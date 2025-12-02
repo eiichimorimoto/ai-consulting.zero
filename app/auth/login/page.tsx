@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, ArrowLeft } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -48,28 +48,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col gap-6">
-          <div className="text-center mb-4">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-white"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="font-bold text-xl text-gray-900">SolveWise</span>
-            </Link>
+    <div className="flex min-h-svh w-full">
+      {/* Left side - AI Illustration */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0 opacity-20">
+          <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* AI Brain Network Pattern */}
+            <circle cx="200" cy="150" r="80" fill="white" opacity="0.1" />
+            <circle cx="600" cy="200" r="60" fill="white" opacity="0.1" />
+            <circle cx="400" cy="400" r="70" fill="white" opacity="0.1" />
+            <circle cx="150" cy="450" r="50" fill="white" opacity="0.1" />
+            <circle cx="650" cy="450" r="65" fill="white" opacity="0.1" />
+            
+            {/* Connecting Lines */}
+            <line x1="200" y1="150" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
+            <line x1="600" y1="200" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
+            <line x1="200" y1="150" x2="600" y2="200" stroke="white" strokeWidth="2" opacity="0.2" />
+            <line x1="150" y1="450" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
+            <line x1="650" y1="450" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
+            
+            {/* AI Robot Silhouette */}
+            <rect x="350" y="250" width="100" height="120" rx="10" fill="white" opacity="0.15" />
+            <circle cx="400" cy="280" r="20" fill="white" opacity="0.2" />
+            <rect x="370" y="320" width="20" height="30" rx="5" fill="white" opacity="0.15" />
+            <rect x="410" y="320" width="20" height="30" rx="5" fill="white" opacity="0.15" />
+            <rect x="380" y="350" width="40" height="20" rx="5" fill="white" opacity="0.15" />
+          </svg>
+        </div>
+        <div className="relative z-10 text-center px-12">
+          <div className="mb-8">
+            <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+              <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h2 className="text-4xl font-bold text-white mb-4">AIの力で<br />経営を変革</h2>
+            <p className="text-white/80 text-lg">24時間365日、AIがあなたのビジネスをサポートします</p>
           </div>
+        </div>
+      </div>
+      
+      {/* Right side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
+        <div className="w-full max-w-md">
+        <div className="flex flex-col gap-6">
 
           {!supabaseReady && (
-            <Card className="border-amber-200 bg-amber-50">
+            <Card className="border-amber-200 bg-amber-50 shadow-md">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -84,7 +109,7 @@ export default function LoginPage() {
             </Card>
           )}
 
-          <Card className="shadow-xl border-0">
+          <Card className="shadow-2xl border border-gray-200 bg-white">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">ログイン</CardTitle>
               <CardDescription>アカウントにログインしてください</CardDescription>
@@ -101,7 +126,7 @@ export default function LoginPage() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-11"
+                      className="h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       disabled={!supabaseReady}
                     />
                   </div>
@@ -113,14 +138,14 @@ export default function LoginPage() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-11"
+                      className="h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       disabled={!supabaseReady}
                     />
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
                   <Button
                     type="submit"
-                    className="w-full h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
                     disabled={isLoading || !supabaseReady}
                   >
                     {isLoading ? "ログイン中..." : "ログイン"}
@@ -139,10 +164,15 @@ export default function LoginPage() {
             </CardContent>
           </Card>
           <div className="text-center">
-            <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
-              ← トップページに戻る
+            <Link 
+              href="/" 
+              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+              <span>トップページに戻る</span>
             </Link>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export default async function AuthErrorPage({
@@ -10,26 +10,10 @@ export default async function AuthErrorPage({
   const params = await searchParams
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
       <div className="w-full max-w-md">
         <div className="flex flex-col gap-6">
-          <div className="text-center mb-4">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-white"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="font-bold text-xl text-gray-900">SolveWise</span>
-            </Link>
-          </div>
-          <Card className="shadow-xl border-0">
+          <Card className="shadow-2xl border border-gray-200 bg-white">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <AlertCircle className="w-16 h-16 text-red-500" />
@@ -51,8 +35,12 @@ export default async function AuthErrorPage({
             </CardContent>
           </Card>
           <div className="text-center">
-            <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
-              ← トップページに戻る
+            <Link 
+              href="/" 
+              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+              <span>トップページに戻る</span>
             </Link>
           </div>
         </div>

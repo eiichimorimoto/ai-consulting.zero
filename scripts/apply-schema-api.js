@@ -50,3 +50,6 @@ if (fs.existsSync(SCHEMA_FILE)) {
 console.log('✅ 上記の手順に従ってスキーマを適用してください。');
 
 
+
+
+

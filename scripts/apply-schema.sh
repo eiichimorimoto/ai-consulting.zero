@@ -70,3 +70,6 @@ echo "  - activity_logs (アクティビティログ)"
 echo ""
 
 
+
+
+
