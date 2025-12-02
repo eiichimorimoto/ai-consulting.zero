@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Brain, Home, MessageSquare, CreditCard, FileText, Settings, HelpCircle,
@@ -304,7 +306,7 @@ const LoginForm = ({
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8 justify-center">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
               <Brain size={28} />
             </div>
             <span className="text-xl font-bold gradient-text">AI Consulting</span>
@@ -359,7 +361,7 @@ const LoginForm = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -613,7 +615,7 @@ const SignupForm = ({
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6 justify-center">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
               <Brain size={28} />
             </div>
             <span className="text-xl font-bold gradient-text">AI Consulting</span>
@@ -742,7 +744,7 @@ const SignupForm = ({
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   次へ <ArrowRight size={18} />
                 </button>
@@ -828,7 +830,7 @@ const SignupForm = ({
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="flex-1 py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     次へ <ArrowRight size={18} />
                   </button>
@@ -1003,7 +1005,7 @@ const SignupForm = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>
@@ -1199,7 +1201,7 @@ const Sidebar = ({
       `}>
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">
               <Brain size={24} />
             </div>
             <span className="text-lg font-bold gradient-text">AI Consulting</span>
@@ -1326,7 +1328,7 @@ const Header = ({
           className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-gray-100 hover:bg-gray-200 cursor-pointer transition-colors"
           onClick={onLogoClick}
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
             {user.name?.[0] || 'U'}
           </div>
           <div className="hidden sm:block">
@@ -2024,7 +2026,7 @@ const ConsultingPage = ({
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                     msg.role === 'user' 
                       ? 'bg-gray-200 text-gray-600' 
-                      : 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                      : 'bg-blue-600 text-white'
                   }`}>
                     {msg.role === 'user' ? <User size={20} /> : <Brain size={20} />}
                   </div>
@@ -2039,7 +2041,7 @@ const ConsultingPage = ({
               ))}
               {isTyping && (
                 <div className="flex gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
                     <Brain size={20} />
                   </div>
                   <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3">
@@ -2068,7 +2070,7 @@ const ConsultingPage = ({
                 <button
                   onClick={sendMessage}
                   disabled={!inputMessage.trim() || isTyping}
-                  className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white flex items-center justify-center hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send size={20} />
                 </button>
@@ -2640,7 +2642,7 @@ const SettingsPage = ({
               }`}
             >
               {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-semibold rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
                   人気
                 </div>
               )}
@@ -2695,99 +2697,67 @@ const LandingPage = ({
   }, [])
   
   const features = [
-    { icon: Brain, title: '24時間AI経営相談', desc: 'いつでも経営課題を相談可能。待ち時間ゼロで専門家レベルの分析を提供。', color: 'from-blue-500 to-cyan-500' },
-    { icon: CreditCard, title: '名刺OCRで簡単登録', desc: '名刺をスキャンするだけで連絡先と会社情報を自動取得。入力の手間を大幅削減。', color: 'from-purple-500 to-pink-500' },
-    { icon: Globe, title: '企業情報自動収集', desc: '会社名からWeb検索で基本情報を自動取得。調査時間を短縮。', color: 'from-green-500 to-emerald-500' },
-    { icon: TrendingUp, title: '経営診断レポート', desc: 'AIとの対話から経営状況を分析。課題と改善策を可視化。', color: 'from-orange-500 to-red-500' },
-    { icon: Users, title: '社内共有機能', desc: '同じ会社のメンバーと情報を共有。チームでの活用も可能。', color: 'from-indigo-500 to-blue-500' },
-    { icon: Shield, title: 'セキュアなデータ管理', desc: '企業情報は安全に保管。Row Level Securityで完全なデータ分離。', color: 'from-teal-500 to-cyan-500' },
+    { icon: Brain, title: '24時間AI経営相談', desc: 'いつでも経営課題を相談可能。待ち時間ゼロで専門家レベルの分析を提供。', color: 'from-sky-300 to-blue-500' },
+    // 課題解決の提案および実行計画策定：AIが経営課題を分析し、具体的な解決策と実行計画を提案します
+    { icon: Target, title: '課題解決の提案および実行計画策定', desc: 'AIが経営課題を分析し、具体的な解決策と実行計画を提案。実装可能なアクションプランを提供します。', color: 'from-blue-400 to-indigo-500' },
+    { icon: Globe, title: '企業情報自動収集', desc: '会社名からWeb検索で基本情報を自動取得。調査時間を短縮。', color: 'from-blue-500 to-indigo-600' },
+    { icon: TrendingUp, title: '経営診断レポート', desc: 'AIとの対話から経営状況を分析。課題と改善策を可視化。', color: 'from-indigo-600 to-blue-700' },
+    { icon: Users, title: '社内共有機能', desc: '同じ会社のメンバーと情報を共有。チームでの活用も可能。', color: 'from-blue-600 to-indigo-700' },
+    { icon: Shield, title: 'セキュアなデータ管理', desc: '企業情報は安全に保管。Row Level Securityで完全なデータ分離。', color: 'from-blue-800 to-slate-900' },
   ]
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-x-hidden" style={{ perspective: '1000px' }}>
-      {/* Header with Scroll Effect */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          scrollY > 50 
-            ? 'bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-lg' 
-            : 'bg-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-3 cursor-pointer"
-            >
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-                className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center text-white shadow-lg"
-              >
-                <Brain size={28} />
-              </motion.div>
-              <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  AI Consulting
-                </span>
-                <p className="text-xs text-gray-500 hidden sm:block">経営課題をAIで解決</p>
-              </div>
-            </motion.div>
-            <nav className="hidden md:flex items-center gap-8">
-              {[
-                { label: '機能', id: 'features' },
-                { label: '料金', id: 'pricing' },
-                { label: 'サービスについて', id: 'about' },
-                { label: 'お問い合わせ', id: 'contact' },
-              ].map((item) => (
-                <motion.a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                  whileHover={{ y: -2 }}
-                  className={`font-medium transition-colors relative ${
-                    scrollY > 50 ? 'text-gray-700 hover:text-blue-600' : 'text-white hover:text-blue-200'
-                  }`}
-                >
-                  {item.label}
-                  <motion.span
-                    className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600"
-                    whileHover={{ width: '100%' }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.a>
-              ))}
-            </nav>
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onLogin}
-                className={`px-4 py-2 font-medium transition-colors hidden sm:block ${
-                  scrollY > 50 ? 'text-gray-700 hover:text-gray-900' : 'text-white hover:text-blue-200'
-                }`}
-              >
-                ログイン
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(59, 130, 246, 0.4)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onSignup}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-              >
-                無料で始める
-                <ArrowRight size={18} />
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </motion.header>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-x-hidden relative" style={{ perspective: '1000px' }}>
+      {/* Animated Background Elements - Diagonal Pattern */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Diagonal Stripe Pattern Background */}
+        <div 
+          className="diagonal-pattern opacity-20"
+        />
+        <motion.div
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: 'linear',
+            repeatType: 'loop'
+          }}
+          className="absolute top-20 left-10 w-72 h-72 bg-blue-400/30 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            x: [0, -80, 0],
+            y: [0, -60, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: 'linear',
+            repeatType: 'loop'
+          }}
+          className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            x: [0, 60, 0],
+            y: [0, -40, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 30,
+            repeat: Infinity,
+            ease: 'linear',
+            repeatType: 'loop'
+          }}
+          className="absolute top-1/2 left-1/2 w-80 h-80 bg-slate-300/30 rounded-full blur-3xl"
+        />
+      </div>
+      <div className="relative z-10">
       
       {/* Hero Section - Simple & Premium */}
       <section 
@@ -2805,8 +2775,8 @@ const LandingPage = ({
               transition: 'transform 0.1s ease-out'
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/30 to-purple-900/30"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-800/60 to-slate-900/70"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-800/20 to-blue-900/20"></div>
         </div>
         
         {/* Content */}
@@ -2817,6 +2787,7 @@ const LandingPage = ({
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="space-y-8"
           >
+            
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2828,16 +2799,11 @@ const LandingPage = ({
             </motion.div>
             
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
-              AIがあなたの<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300">
-                経営パートナーに
+              貴社の課題を<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-200">
+                AIの力で解決する
               </span>
             </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
-              24時間365日、経営課題についてAIに相談できます。<br />
-              名刺スキャンで簡単登録、企業情報も自動取得。
-            </p>
             
             <div className="flex flex-wrap gap-4 justify-center pt-4">
               <motion.button
@@ -2849,14 +2815,16 @@ const LandingPage = ({
                 無料で始める
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </motion.button>
-              <motion.button
+              <motion.a
+                href="/AI.pdf"
+                download="AIコンサルティングサービス資料.pdf"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={onLogin}
-                className="px-10 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/30 inline-flex items-center gap-3"
+                className="px-10 py-4 bg-blue-600/90 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition-all border border-white/30 inline-flex items-center gap-3 shadow-lg"
               >
-                ログイン
-              </motion.button>
+                <Download size={20} />
+                資料をダウンロード
+              </motion.a>
             </div>
             
             <motion.div
@@ -2881,6 +2849,26 @@ const LandingPage = ({
           </motion.div>
         </div>
         
+        {/* Animated AI Powered Consulting Text - Bottom of Hero Section */}
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none z-[5] h-[120px] md:h-[180px] lg:h-[250px] flex items-end">
+          <motion.div
+            initial={{ x: '100vw' }}
+            animate={{ x: '-100%' }}
+            transition={{
+              duration: 60,
+              repeat: Infinity,
+              ease: 'linear',
+              repeatType: 'loop'
+            }}
+            className="absolute whitespace-nowrap"
+            style={{ bottom: 0 }}
+          >
+            <span className="text-[3rem] md:text-[4.5rem] lg:text-[7rem] font-light text-white/50 tracking-[0.05em] leading-none" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', letterSpacing: '0.08em' }}>
+              AI POWERED CONSULTING &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AI POWERED CONSULTING &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AI POWERED CONSULTING
+            </span>
+          </motion.div>
+        </div>
+        
         {/* Scroll Indicator */}
         <motion.div
           animate={{ y: [0, 10, 0] }}
@@ -2894,7 +2882,7 @@ const LandingPage = ({
       {/* Features Section with Images */}
       <section 
         id="features" 
-        className="relative py-32 px-4 bg-white"
+        className="relative py-32 px-4 bg-gradient-to-b from-white via-gray-50 to-white"
       >
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -2905,10 +2893,15 @@ const LandingPage = ({
             className="text-center mb-20"
           >
             <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                未来を変える
+              </span>
+              <br />
               主な機能
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              入力負荷を最小限に、AIによる経営支援を最大限に
+              入力負荷を最小限に、AIによる経営支援を最大限に。<br />
+              最先端の人工知能技術を駆使して、ビジネスのあらゆる側面に革新をもたらします
             </p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
@@ -2985,6 +2978,161 @@ const LandingPage = ({
         </div>
       </section>
       
+      {/* AIによる経営支援の5つのステップ */}
+      <section id="process" className="py-32 px-4 bg-gradient-to-b from-slate-100 via-gray-50 to-slate-100 relative overflow-hidden">
+        {/* Animated Diagonal Pattern Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="diagonal-pattern opacity-80"></div>
+        </div>
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                未来の力で解決する
+              </span>
+              <br />
+              <span className="text-gray-900">AIによる経営支援の5つのステップ</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              単なる技術導入ではなく、貴社の具体的なニーズと目標を深く理解し、<br />
+              オーダーメイドのAI戦略を立案・実行します
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-16">
+            {[
+              {
+                step: '1',
+                title: '課題を聞く',
+                subtitle: 'AIによる深層ヒアリング',
+                desc: '経営者の課題や悩みをAIが丁寧にヒアリング。表面的な問題だけでなく、その根底にある真の課題を特定します。',
+                icon: MessageSquare,
+                color: 'from-sky-300 to-blue-500',
+                image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                step: '2',
+                title: '現状を理解する',
+                subtitle: 'データの可視化と整理',
+                desc: '業務やデータの現状をAIが整理し、改善の出発点を可視化。膨大なデータを偏りなく迅速に処理します。',
+                icon: Database,
+                color: 'from-blue-400 to-indigo-500',
+                image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                step: '3',
+                title: '自動化を提案',
+                subtitle: '効率化の実現',
+                desc: '手作業業務をAIが抽出し、自動化計画を提示。作業効率とデータ精度が向上し、コスト削減を実現します。',
+                icon: Zap,
+                color: 'from-blue-500 to-indigo-600',
+                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                step: '4',
+                title: 'データをつなぐ',
+                subtitle: '全体像の把握',
+                desc: 'システム間の情報を連携し、AIが全体像を把握。経営全体の流れを見える化し、意思決定を支援します。',
+                icon: Globe,
+                color: 'from-indigo-600 to-blue-700',
+                image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                step: '5',
+                title: '参謀として提案',
+                subtitle: '戦略判断の支援',
+                desc: 'データに基づき、AIが課題解決の方向性を提案。市場の変化に迅速に対応し、リスクを最小限に抑えつつ成長機会を最大化します。',
+                icon: Brain,
+                color: 'from-blue-800 to-slate-900',
+                image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                whileHover={{ y: -10, scale: 1.02 }}
+                className="group relative"
+              >
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-white/20 h-full flex flex-col">
+                  {/* Step Number */}
+                  <div className={`relative h-32 bg-gradient-to-br ${item.color} flex items-center justify-center`}>
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <div className="relative z-10 text-center">
+                      <div className="text-5xl font-bold text-white mb-2">{item.step}</div>
+                      <div className={`w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto`}>
+                        <item.icon size={24} className="text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-xl font-bold mb-2 text-gray-900">{item.title}</h3>
+                    <p className="text-sm text-gray-500 mb-3 font-medium">{item.subtitle}</p>
+                    <p className="text-sm text-gray-600 leading-relaxed flex-1">{item.desc}</p>
+                  </div>
+                  
+                  {/* Connecting Line */}
+                  {i < 4 && (
+                    <div className="hidden md:block absolute top-16 -right-3 w-6 h-0.5 bg-gradient-to-r from-gray-300 to-transparent z-0">
+                      <ChevronRight size={16} className="absolute -right-2 top-1/2 -translate-y-1/2 text-gray-300" />
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* CTA Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mt-16"
+          >
+            <div className="inline-block bg-blue-600 rounded-2xl p-8 shadow-2xl">
+              <h3 className="text-2xl font-bold text-white mb-4">
+                貴社の課題もAIで解決できるだろうか？
+              </h3>
+              <p className="text-white/90 mb-6 text-lg">
+                ぜひ私たちサービスをご活用ください。AIの無限の可能性を貴社のビジネスに解き放ち、<br />
+                新たな価値創造を共に実現しましょう。
+              </p>
+              <div className="flex flex-wrap gap-4 justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onSignup}
+                  className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all inline-flex items-center gap-3"
+                >
+                  無料で始める
+                  <ArrowRight size={20} />
+                </motion.button>
+                <motion.a
+                  href="/AI.pdf"
+                  download="AIコンサルティングサービス資料.pdf"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold hover:bg-white/20 transition-all border border-white/30 inline-flex items-center gap-3"
+                >
+                  <Download size={20} />
+                  詳細資料をダウンロード
+                </motion.a>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+      
       {/* About Section with Images */}
       <section id="about" className="py-32 px-4 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-7xl mx-auto">
@@ -3013,32 +3161,34 @@ const LandingPage = ({
               transition={{ duration: 0.6 }}
             >
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
-                AIコンサルティングで<br />
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  経営を変革
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  AIの無限の可能性を
                 </span>
+                <br />
+                貴社のビジネスに解き放つ
               </h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
                 私たちは、AI技術を活用して経営者の意思決定をサポートする次世代のコンサルティングサービスを提供しています。
                 従来のコンサルティングでは時間とコストがかかっていた課題分析を、AIが24時間365日サポートします。
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                名刺スキャンや企業情報の自動取得により、入力負荷を最小限に抑えながら、
-                専門家レベルの分析とアドバイスを提供します。
+                単に技術を導入するだけでなく、貴社の具体的なニーズと目標を深く理解し、
+                オーダーメイドのAI戦略を立案・実行します。これにより、事業の成長を加速させ、
+                運用コストを削減し、競争優位性を確立するお手伝いをいたします。
               </p>
               <div className="flex gap-4">
                 <button 
                   onClick={onSignup}
-                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
+                  className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
                 >
                   無料で始める
                 </button>
-                <button 
-                  onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-all"
+                <Link
+                  href="/contact"
+                  className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-all inline-block"
                 >
                   お問い合わせ
-                </button>
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -3051,28 +3201,28 @@ const LandingPage = ({
                 icon: Zap,
                 title: '迅速な対応',
                 desc: '待ち時間ゼロで即座に分析結果を提供',
-                color: 'from-blue-500 to-cyan-500'
+                color: 'from-sky-300 to-blue-500'
               },
               { 
                 img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
                 icon: Target,
                 title: '精度の高い分析',
                 desc: '専門家レベルの深い洞察を提供',
-                color: 'from-purple-500 to-pink-500'
+                color: 'from-blue-500 to-indigo-600'
               },
               { 
                 img: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
                 icon: Shield,
                 title: 'セキュリティ',
                 desc: '企業情報を安全に管理',
-                color: 'from-green-500 to-emerald-500'
+                color: 'from-indigo-600 to-blue-700'
               },
               { 
                 img: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
                 icon: TrendingUp,
                 title: '継続的改善',
                 desc: 'AIが学習し続け精度が向上',
-                color: 'from-orange-500 to-red-500'
+                color: 'from-blue-800 to-slate-900'
               },
             ].map((item, i) => (
               <motion.div
@@ -3105,12 +3255,157 @@ const LandingPage = ({
         </div>
       </section>
       
+      {/* 投資対効果 */}
+      <section id="roi" className="py-32 px-4 bg-gradient-to-b from-white via-slate-50 to-white relative overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                確実なリターンを数値で示す
+              </span>
+              <br />
+              AI導入による投資対効果
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              AIコンサルティングは単なる技術導入に留まらず、<br />
+              貴社の事業に具体的な財務的価値をもたらします
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+            {[
+              {
+                title: 'コスト削減',
+                desc: 'AIによる業務自動化、リソース最適化、エラー率低減により、運用コストを大幅に削減します。',
+                icon: TrendingUp,
+                color: 'from-blue-600 to-indigo-600',
+                metric: '平均30%',
+                metricDesc: 'コスト削減',
+                image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                title: '売上・収益増加',
+                desc: 'データに基づいた顧客行動予測、パーソナライズされた提案、新市場開拓により、売上と収益の増加に貢献します。',
+                icon: Target,
+                color: 'from-blue-600 to-indigo-600',
+                metric: '平均25%',
+                metricDesc: '売上向上',
+                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                title: '業務効率化',
+                desc: '意思決定の迅速化、プロセス改善、従業員の戦略的業務への集中により、組織全体の生産性を向上させます。',
+                icon: Zap,
+                color: 'from-blue-600 to-indigo-600',
+                metric: '平均40%',
+                metricDesc: '効率向上',
+                image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+              {
+                title: 'リスク低減・競争力強化',
+                desc: '市場変動予測、サプライチェーン最適化、品質管理強化によりリスクを低減し、持続的な競争優位性を確立します。',
+                icon: Shield,
+                color: 'from-blue-600 to-indigo-600',
+                metric: '平均50%',
+                metricDesc: 'リスク低減',
+                image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                whileHover={{ y: -10 }}
+                className="group relative overflow-hidden rounded-2xl bg-white shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100"
+              >
+                {/* Background Image */}
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+                  <div className={`absolute top-4 right-4 w-14 h-14 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg`}>
+                    <item.icon size={28} />
+                  </div>
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <div className="text-3xl font-bold mb-1">{item.metric}</div>
+                    <div className="text-sm text-white/90">{item.metricDesc}</div>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-3 text-gray-900">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed text-sm">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* ROI Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="bg-blue-600 rounded-3xl p-12 text-center text-white shadow-2xl"
+          >
+            <h3 className="text-3xl md:text-4xl font-bold mb-4">
+              投資が確実なリターンとして返ってくることを証明
+            </h3>
+            <p className="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
+              導入によって実現されるコスト削減、売上向上、効率性改善などを明確な数値で示し、<br />
+              貴社の事業に永続的な価値をもたらすための羅針盤となります。
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onSignup}
+                className="px-10 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/20 transition-all inline-flex items-center gap-3"
+              >
+                無料で始める
+                <ArrowRight size={20} />
+              </motion.button>
+              <motion.a
+                href="/AI.pdf"
+                download="AIコンサルティングサービス資料.pdf"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-10 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/30 inline-flex items-center gap-3"
+              >
+                <Download size={20} />
+                詳細資料をダウンロード
+              </motion.a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+      
       {/* Pricing */}
       <section id="pricing" className="py-24 px-4 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">料金プラン</h2>
-            <p className="text-xl text-gray-600">まずは無料プランでお試しください</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                成長を加速させる
+              </span>
+              <br />
+              料金プラン
+            </h2>
+            <p className="text-xl text-gray-600">
+              まずは無料プランでお試しください。<br />
+              貴社の事業に永続的な価値をもたらすための羅針盤として、共に未来を描きましょう。
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -3125,7 +3420,7 @@ const LandingPage = ({
                 }`}
               >
                 {plan.featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-semibold rounded-full">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
                     おすすめ
                   </div>
                 )}
@@ -3142,16 +3437,29 @@ const LandingPage = ({
                     </li>
                   ))}
                 </ul>
-                <button 
-                  onClick={onSignup}
-                  className={`w-full py-3 rounded-xl font-medium transition-colors ${
-                    plan.featured 
-                      ? 'btn-gradient text-white' 
-                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {plan.name === 'Enterprise' ? '問い合わせる' : '無料で始める'}
-                </button>
+                {plan.name === 'Enterprise' ? (
+                  <Link
+                    href="/contact"
+                    className={`w-full py-3 rounded-xl font-medium transition-colors text-center inline-block ${
+                      plan.featured 
+                        ? 'btn-gradient text-white' 
+                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    問い合わせる
+                  </Link>
+                ) : (
+                  <button 
+                    onClick={onSignup}
+                    className={`w-full py-3 rounded-xl font-medium transition-colors ${
+                      plan.featured 
+                        ? 'btn-gradient text-white' 
+                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    無料で始める
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -3159,28 +3467,28 @@ const LandingPage = ({
       </section>
       
       {/* Footer */}
-      <footer id="contact" className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+      <footer id="contact" className="bg-gray-100 text-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-6">
             {/* Company Info */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
                   <Brain size={24} />
                 </div>
-                <span className="text-xl font-bold">AI Consulting</span>
+                <span className="text-xl font-bold text-gray-900">AI Consulting</span>
               </div>
-              <p className="text-gray-400 text-sm mb-4">
+              <p className="text-gray-600 text-sm mb-4">
                 AIで経営課題を解決する次世代コンサルティングサービス
               </p>
               <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors">
+                <a href="#" className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors text-gray-700">
                   <span className="text-sm">X</span>
                 </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors">
+                <a href="#" className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors text-gray-700">
                   <span className="text-sm">f</span>
                 </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors">
+                <a href="#" className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors text-gray-700">
                   <span className="text-sm">in</span>
                 </a>
               </div>
@@ -3188,222 +3496,84 @@ const LandingPage = ({
             
             {/* Product */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">サービス</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#features" className="hover:text-white transition-colors">機能一覧</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">料金プラン</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">導入事例</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">よくある質問</a></li>
+              <h3 className="font-semibold text-lg mb-4 text-gray-900">サービス</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><a href="#features" className="hover:text-gray-900 transition-colors">機能一覧</a></li>
+                <li><a href="#pricing" className="hover:text-gray-900 transition-colors">料金プラン</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">導入事例</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">よくある質問</a></li>
               </ul>
             </div>
             
             {/* Company */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">会社情報</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#about" className="hover:text-white transition-colors">サービスについて</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">企業情報</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">採用情報</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">ニュース</a></li>
+              <h3 className="font-semibold text-lg mb-4 text-gray-900">会社情報</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><a href="#about" className="hover:text-gray-900 transition-colors">サービスについて</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">企業情報</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">ニュース</a></li>
               </ul>
             </div>
             
             {/* Legal & Support */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">サポート</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">お問い合わせ</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">利用規約</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">特定商取引法</a></li>
+              <h3 className="font-semibold text-lg mb-4 text-gray-900">サポート</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><Link href="/contact" className="hover:text-gray-900 transition-colors">お問い合わせ</Link></li>
+                <li><Link href="/legal/terms-of-service" className="hover:text-gray-900 transition-colors">利用規約</Link></li>
+                <li><Link href="/legal/privacy-policy" className="hover:text-gray-900 transition-colors">プライバシーポリシー</Link></li>
+                <li><Link href="/legal/specific-commercial-transactions" className="hover:text-gray-900 transition-colors">特定商取引法</Link></li>
               </ul>
             </div>
           </div>
           
           {/* Contact Info */}
-          <div className="border-t border-gray-800 pt-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="flex items-start gap-3">
-                <Mail size={20} className="text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-gray-400 mb-1">メール</div>
-                  <a href="mailto:info@ai-consulting.jp" className="text-white hover:text-blue-400 transition-colors">
-                    info@ai-consulting.jp
-                  </a>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Phone size={20} className="text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-gray-400 mb-1">電話</div>
-                  <a href="tel:03-1234-5678" className="text-white hover:text-blue-400 transition-colors">
-                    03-1234-5678
-                  </a>
-                  <div className="text-xs text-gray-500 mt-1">平日 9:00-18:00</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <MapPin size={20} className="text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-gray-400 mb-1">所在地</div>
-                  <div className="text-white text-sm">
-                    〒100-0001<br />
-                    東京都千代田区千代田1-1-1
-                  </div>
-                </div>
+          <div className="border-t border-gray-300 pt-6">
+            <div className="flex items-start gap-3 mb-6">
+              <Mail size={20} className="text-gray-500 mt-1 flex-shrink-0" />
+              <div>
+                <div className="text-sm text-gray-500 mb-1">メール</div>
+                <a href="mailto:info@solvewise.jp" className="text-gray-700 hover:text-blue-600 transition-colors">
+                  info@solvewise.jp
+                </a>
               </div>
             </div>
           </div>
           
           {/* Copyright */}
-          <div className="border-t border-gray-800 pt-8">
+          <div className="border-t border-gray-300 pt-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-gray-500 text-sm">
-                © 2024 AI Consulting Inc. All rights reserved.
+                © 2026 AI Consulting Inc. All rights reserved.
               </p>
               <div className="flex gap-6 text-sm text-gray-500">
-                <a href="#" className="hover:text-white transition-colors">利用規約</a>
-                <a href="#" className="hover:text-white transition-colors">プライバシー</a>
-                <a href="#" className="hover:text-white transition-colors">Cookie</a>
+                <Link href="/legal/terms-of-service" className="hover:text-gray-700 transition-colors">利用規約</Link>
+                <a href="#" className="hover:text-gray-700 transition-colors">プライバシー</a>
+                <a href="#" className="hover:text-gray-700 transition-colors">Cookie</a>
               </div>
             </div>
           </div>
         </div>
       </footer>
+      </div>
     </div>
   )
 }
 
 // ============================================
-// MAIN APP
+// MAIN PAGE - Landing Page Only
 // ============================================
-export default function App() {
-  const [authState, setAuthState] = useState<'landing' | 'login' | 'signup' | 'authenticated'>('landing')
-  const [currentPage, setCurrentPage] = useState('dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: string }>>([])
+export default function Page() {
+  const router = useRouter()
   
-  // User & Data
-  const [user, setUser] = useState<UserProfile>({ 
-    id: '1',
-    name: '山田 太郎', 
-    email: 'yamada@example.com', 
-    phone: '03-1234-5678',
-    department: '経営企画部',
-    position: '部長',
-    plan: 'free' 
-  })
-  const [company, setCompany] = useState<Company | null>({
-    id: '1',
-    name: '株式会社サンプル',
-    industry: '情報通信業',
-    employeeCount: '50-99名',
-    prefecture: '東京都',
-  })
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [businessCards, setBusinessCards] = useState<BusinessCard[]>([])
-  const [sessions, setSessions] = useState<ConsultingSession[]>([])
-  
-  const showToast = (message: string, type: string = 'info') => {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, 4000)
-  }
-  
-  const handleLogout = () => {
-    showToast('ログアウトしました', 'success')
-    setAuthState('landing')
-  }
-  
-  const pageTitle: Record<string, string> = {
-    dashboard: 'ダッシュボード',
-    consulting: 'AIコンサルティング',
-    'business-cards': '名刺・連絡先管理',
-    reports: 'レポート',
-    settings: '設定',
-    help: 'ヘルプ'
-  }
-  
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <DashboardPage setCurrentPage={setCurrentPage} user={user} company={company} businessCards={businessCards} sessions={sessions} />
-      case 'business-cards':
-        return <BusinessCardsPage businessCards={businessCards} setBusinessCards={setBusinessCards} companies={companies} setCompanies={setCompanies} user={user} showToast={showToast} />
-      case 'consulting':
-        return <ConsultingPage sessions={sessions} setSessions={setSessions} user={user} showToast={showToast} />
-      case 'reports':
-        return <ReportsPage />
-      case 'settings':
-        return <SettingsPage user={user} setUser={setUser} company={company} setCompany={setCompany} showToast={showToast} />
-      default:
-        return <DashboardPage setCurrentPage={setCurrentPage} user={user} company={company} businessCards={businessCards} sessions={sessions} />
-    }
-  }
-  
-  // Render based on auth state
-  if (authState === 'landing') {
-    return <LandingPage onLogin={() => setAuthState('login')} onSignup={() => setAuthState('signup')} />
-  }
-  
-  if (authState === 'login') {
-    return (
-      <LoginForm 
-        onLogin={() => setAuthState('authenticated')} 
-        onSwitchToSignup={() => setAuthState('signup')}
-        onBack={() => setAuthState('landing')}
-        showToast={showToast}
-      />
-    )
-  }
-  
-  if (authState === 'signup') {
-    return (
-      <SignupForm 
-        onSignup={() => setAuthState('authenticated')} 
-        onSwitchToLogin={() => setAuthState('login')}
-        onBack={() => setAuthState('landing')}
-        showToast={showToast}
-      />
-    )
-  }
-  
-  // Authenticated view
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onLogout={handleLogout}
-      />
-      <main className="flex-1 lg:ml-0">
-        <Header 
-          title={pageTitle[currentPage]} 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-          user={user}
-          onLogoClick={() => setCurrentPage('settings')}
-          onBackToLP={() => setAuthState('landing')}
-        />
-        {renderPage()}
-      </main>
-      
-      {/* Toast Container */}
-      <div className="fixed bottom-6 right-6 z-50 space-y-2">
-        <AnimatePresence>
-          {toasts.map(toast => (
-            <Toast
-              key={toast.id}
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-    </div>
+    <LandingPage 
+      onLogin={() => {
+        router.push('/auth/login')
+      }} 
+      onSignup={() => {
+        router.push('/auth/sign-up')
+      }} 
+    />
   )
 }
