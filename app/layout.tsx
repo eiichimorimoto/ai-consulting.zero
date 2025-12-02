@@ -1,12 +1,11 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono, Orbitron } from "next/font/google"
+import { Inter, Orbitron } from "next/font/google"
 import "./globals.css"
-import Header from "@/components/Header"
+import ConditionalHeader from "@/components/ConditionalHeader"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
-const _orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
+const inter = Inter({ subsets: ["latin"] })
+const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
 
 export const metadata: Metadata = {
   title: "SolveWise - AI Powered Consulting",
@@ -38,8 +37,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`font-sans antialiased`}>
-        <Header />
+      <body className={`${inter.className} antialiased`}>
+        <ConditionalHeader />
         {children}
       </body>
     </html>

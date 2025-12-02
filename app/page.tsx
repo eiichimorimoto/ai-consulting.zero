@@ -2710,10 +2710,6 @@ const LandingPage = ({
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-x-hidden relative" style={{ perspective: '1000px' }}>
       {/* Animated Background Elements - Diagonal Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* Diagonal Stripe Pattern Background */}
-        <div 
-          className="diagonal-pattern opacity-20"
-        />
         <motion.div
           animate={{
             x: [0, 100, 0],
@@ -2806,15 +2802,15 @@ const LandingPage = ({
             </h1>
             
             <div className="flex flex-wrap gap-4 justify-center pt-4">
-              <motion.button
+              <motion.a
+                href="/pricing"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={onSignup}
                 className="px-10 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/20 transition-all inline-flex items-center gap-3 group"
               >
                 無料で始める
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </motion.button>
+              </motion.a>
               <motion.a
                 href="/AI.pdf"
                 download="AIコンサルティングサービス資料.pdf"
@@ -2949,30 +2945,48 @@ const LandingPage = ({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mt-20"
+            className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 items-center mt-20"
           >
-            <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl">
-              <img
-                src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
-                alt="経営者の課題解決"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black lg:order-1">
+              <video
+                src="/AI参謀：AIはコンサルをどう変えるか.mp4"
+                controls
+                className="w-full h-full object-contain"
+                poster="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+              >
+                お使いのブラウザは動画タグをサポートしていません。
+              </video>
             </div>
-            <div>
-              <h3 className="text-3xl font-bold mb-4 text-gray-900">AIによる経営課題の解決</h3>
-              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                経営者が直面する複雑な課題を、AIの力で迅速かつ的確に解決します。
-                データ分析から戦略立案まで、24時間365日サポートします。
+            <div className="lg:order-2">
+              {/* なぜAIコンサルティングなのか - タイトル */}
+              <h3 className="text-2xl lg:text-3xl font-bold mb-4 text-gray-900">なぜ？AIコンサルティングなのか</h3>
+              {/* AIによるコンサルティングの必要性と理由を説明 */}
+              <p className="text-base lg:text-lg text-gray-600 mb-6 leading-relaxed">
+                従来のコンサルティングは高額で、中小企業には手が届きにくいものでした。
+                しかし、AI技術の進化により、誰もがアクセスできる高品質な経営支援が可能になりました。
+                24時間365日、データに基づいた的確なアドバイスを提供します。
               </p>
-              <ul className="space-y-3">
-                {['迅速な意思決定支援', 'データドリブンな分析', '継続的な改善提案'].map((item, idx) => (
+              {/* AIによるコンサルティングの主な利点 */}
+              <ul className="space-y-3 mb-6">
+                {[
+                  'コスト効率：従来のコンサルティングより大幅に低コスト',
+                  '即時対応：待ち時間ゼロで専門家レベルの分析を提供',
+                  'データドリブン：感情や経験に頼らない、客観的な判断'
+                ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-3">
-                    <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">{item}</span>
+                    <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
+                    <span className="text-sm lg:text-base text-gray-700">{item}</span>
                   </li>
                 ))}
               </ul>
+              <a
+                href="/AI参謀革命.pdf"
+                download="AI参謀革命.pdf"
+                className="inline-flex items-center gap-3 px-5 py-2.5 lg:px-6 lg:py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl text-sm lg:text-base"
+              >
+                <Download size={18} />
+                AI参謀革命をダウンロード
+              </a>
             </div>
           </motion.div>
         </div>
@@ -2980,10 +2994,6 @@ const LandingPage = ({
       
       {/* AIによる経営支援の5つのステップ */}
       <section id="process" className="py-32 px-4 bg-gradient-to-b from-slate-100 via-gray-50 to-slate-100 relative overflow-hidden">
-        {/* Animated Diagonal Pattern Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="diagonal-pattern opacity-80"></div>
-        </div>
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -3108,15 +3118,15 @@ const LandingPage = ({
                 新たな価値創造を共に実現しましょう。
               </p>
               <div className="flex flex-wrap gap-4 justify-center">
-                <motion.button
+                <motion.a
+                  href="/pricing"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={onSignup}
                   className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all inline-flex items-center gap-3"
                 >
                   無料で始める
                   <ArrowRight size={20} />
-                </motion.button>
+                </motion.a>
                 <motion.a
                   href="/AI.pdf"
                   download="AIコンサルティングサービス資料.pdf"
@@ -3177,12 +3187,12 @@ const LandingPage = ({
                 運用コストを削減し、競争優位性を確立するお手伝いをいたします。
               </p>
               <div className="flex gap-4">
-                <button 
-                  onClick={onSignup}
-                  className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
+                <Link 
+                  href="/pricing"
+                  className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all inline-block"
                 >
                   無料で始める
-                </button>
+                </Link>
                 <Link
                   href="/contact"
                   className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-all inline-block"
@@ -3257,7 +3267,9 @@ const LandingPage = ({
       
       {/* 投資対効果 */}
       <section id="roi" className="py-32 px-4 bg-gradient-to-b from-white via-slate-50 to-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto">
+        {/* Data Visualization Background */}
+        <div className="roi-background"></div>
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -3367,15 +3379,15 @@ const LandingPage = ({
               貴社の事業に永続的な価値をもたらすための羅針盤となります。
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <motion.button
+              <motion.a
+                href="/pricing"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={onSignup}
                 className="px-10 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/20 transition-all inline-flex items-center gap-3"
               >
                 無料で始める
                 <ArrowRight size={20} />
-              </motion.button>
+              </motion.a>
               <motion.a
                 href="/AI.pdf"
                 download="AIコンサルティングサービス資料.pdf"
@@ -3388,81 +3400,6 @@ const LandingPage = ({
               </motion.a>
             </div>
           </motion.div>
-        </div>
-      </section>
-      
-      {/* Pricing */}
-      <section id="pricing" className="py-24 px-4 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                成長を加速させる
-              </span>
-              <br />
-              料金プラン
-            </h2>
-            <p className="text-xl text-gray-600">
-              まずは無料プランでお試しください。<br />
-              貴社の事業に永続的な価値をもたらすための羅針盤として、共に未来を描きましょう。
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: 'Free', price: '0', desc: 'お試し利用に', features: ['AIチャット 月5回', '名刺OCR 月10枚', '基本レポート'] },
-              { name: 'Standard', price: '12,000', desc: '本格的な活用に', featured: true, features: ['AIチャット 無制限', '名刺OCR 無制限', '詳細レポート', 'Web情報自動取得', '優先サポート'] },
-              { name: 'Enterprise', price: 'お問い合わせ', desc: '大規模利用に', features: ['全機能利用可能', 'API連携', '専任サポート', 'カスタム分析'] }
-            ].map(plan => (
-              <div 
-                key={plan.name}
-                className={`bg-white rounded-2xl p-6 relative ${
-                  plan.featured ? 'border-2 border-blue-500 shadow-xl' : 'border border-gray-200'
-                }`}
-              >
-                {plan.featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
-                    おすすめ
-                  </div>
-                )}
-                <div className="text-lg font-semibold mb-2">{plan.name}</div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">
-                  {plan.price === 'お問い合わせ' ? plan.price : `¥${plan.price}`}
-                  {plan.price !== 'お問い合わせ' && <span className="text-base font-normal text-gray-500">/月</span>}
-                </div>
-                <div className="text-sm text-gray-500 mb-6">{plan.desc}</div>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
-                      <CheckCircle size={16} className="text-green-500" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                {plan.name === 'Enterprise' ? (
-                  <Link
-                    href="/contact"
-                    className={`w-full py-3 rounded-xl font-medium transition-colors text-center inline-block ${
-                      plan.featured 
-                        ? 'btn-gradient text-white' 
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    問い合わせる
-                  </Link>
-                ) : (
-                  <button 
-                    onClick={onSignup}
-                    className={`w-full py-3 rounded-xl font-medium transition-colors ${
-                      plan.featured 
-                        ? 'btn-gradient text-white' 
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    無料で始める
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
       
@@ -3527,30 +3464,12 @@ const LandingPage = ({
             </div>
           </div>
           
-          {/* Contact Info */}
-          <div className="border-t border-gray-300 pt-6">
-            <div className="flex items-start gap-3 mb-6">
-              <Mail size={20} className="text-gray-500 mt-1 flex-shrink-0" />
-              <div>
-                <div className="text-sm text-gray-500 mb-1">メール</div>
-                <a href="mailto:info@solvewise.jp" className="text-gray-700 hover:text-blue-600 transition-colors">
-                  info@solvewise.jp
-                </a>
-              </div>
-            </div>
-          </div>
-          
           {/* Copyright */}
           <div className="border-t border-gray-300 pt-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-center">
               <p className="text-gray-500 text-sm">
                 © 2026 AI Consulting Inc. All rights reserved.
               </p>
-              <div className="flex gap-6 text-sm text-gray-500">
-                <Link href="/legal/terms-of-service" className="hover:text-gray-700 transition-colors">利用規約</Link>
-                <a href="#" className="hover:text-gray-700 transition-colors">プライバシー</a>
-                <a href="#" className="hover:text-gray-700 transition-colors">Cookie</a>
-              </div>
             </div>
           </div>
         </div>
