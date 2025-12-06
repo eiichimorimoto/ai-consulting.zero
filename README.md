@@ -65,7 +65,14 @@ npm install
 
 1. Supabaseダッシュボードで「Authentication」→「Providers」
 2. 「Email」が有効になっていることを確認
-3. 必要に応じて「Site URL」を設定（開発時は`http://localhost:3000`）
+3. 「Authentication」→「Settings」→「Email Auth」で以下を確認：
+   - 「Enable email confirmations」の設定（開発環境では無効にすることも可能）
+4. 「Authentication」→「URL Configuration」で以下を設定：
+   - **Site URL**: `http://localhost:3000`（開発環境）
+   - **Redirect URLs** に以下を追加：
+     - `http://localhost:3000/auth/callback`
+     - `http://localhost:3000/auth/complete-profile`
+5. メールが届かない場合は、`README-EMAIL-TROUBLESHOOTING.md` を参照
 
 #### 3.4 ストレージバケットの作成
 
@@ -96,10 +103,16 @@ cp .env.local.example .env.local
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
+# Google Cloud Vision API（名刺OCR用）
+# 詳細は README-GOOGLE-VISION-SETUP.md を参照
+GOOGLE_CLOUD_CREDENTIALS='{"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}'
+
 # Edge Functions用（後で設定）
 ANTHROPIC_API_KEY=sk-ant-...
 BRAVE_SEARCH_API_KEY=BSA...
 ```
+
+**Google Cloud Vision APIの設定**: 名刺OCR機能を使用する場合は、`README-GOOGLE-VISION-SETUP.md`を参照して設定してください。
 
 ### 5. 開発サーバーの起動
 
