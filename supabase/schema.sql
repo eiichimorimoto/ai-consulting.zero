@@ -313,11 +313,25 @@ CREATE TRIGGER update_subscriptions_updated_at
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (user_id, name, email)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', 'User'), NEW.email);
+  -- Insert profile with error handling
+  BEGIN
+    INSERT INTO profiles (user_id, name, email)
+    VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', 'User'), NEW.email);
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE WARNING 'Failed to create profile for user %: %', NEW.id, SQLERRM;
+      -- Continue even if profile creation fails
+  END;
   
-  INSERT INTO subscriptions (user_id, plan_type, status)
-  VALUES (NEW.id, 'free', 'active');
+  -- Insert subscription with error handling
+  BEGIN
+    INSERT INTO subscriptions (user_id, plan_type, status)
+    VALUES (NEW.id, 'free', 'active');
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE WARNING 'Failed to create subscription for user %: %', NEW.id, SQLERRM;
+      -- Continue even if subscription creation fails
+  END;
   
   RETURN NEW;
 END;
@@ -382,6 +396,10 @@ CREATE POLICY "Users can update their company"
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
   USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own profile"
+  ON profiles FOR INSERT
+  WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
@@ -468,6 +486,10 @@ CREATE POLICY "Users can update own reports"
 CREATE POLICY "Users can view own subscription"
   ON subscriptions FOR SELECT
   USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own subscription"
+  ON subscriptions FOR INSERT
+  WITH CHECK (user_id = auth.uid());
 
 -- Activity Logs: 自分のログのみ
 CREATE POLICY "Users can view own activity logs"

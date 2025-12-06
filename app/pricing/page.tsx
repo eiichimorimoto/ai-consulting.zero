@@ -4,8 +4,8 @@ import React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { CheckCircle, ArrowLeft } from 'lucide-react'
-import Header from '@/components/Header'
+import { CheckCircle, Home } from 'lucide-react'
+import { Header } from '@/components/header'
 
 export default function PricingPage() {
   const router = useRouter()
@@ -23,9 +23,9 @@ export default function PricingPage() {
           {/* Back to Top Button */}
           <Link
             href="/"
-            className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all mb-8"
+            className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors mb-8"
           >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <Home size={18} />
             <span>トップページに戻る</span>
           </Link>
 

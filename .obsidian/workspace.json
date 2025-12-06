@@ -1,0 +1,308 @@
+{
+  "main": {
+    "id": "f4d9448301b6f469",
+    "type": "split",
+    "children": [
+      {
+        "id": "7cbadd2b050fd6ba",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5c1c0fab49978e5d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "利用規約.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "利用規約"
+            }
+          },
+          {
+            "id": "1ea6d3c9e0def57d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "プライバシーポリシー.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "プライバシーポリシー"
+            }
+          },
+          {
+            "id": "0a74af20d9d22458",
+            "type": "leaf",
+            "state": {
+              "type": "pdf",
+              "state": {
+                "file": "public/AI.pdf"
+              },
+              "icon": "lucide-file-text",
+              "title": "AI"
+            }
+          },
+          {
+            "id": "52c5670a10bd184b",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "info-data/Brand_new_minimalist_logo_design_for_SOLVE_WISE_D-1764858574991.png"
+              },
+              "icon": "lucide-image",
+              "title": "Brand_new_minimalist_logo_design_for_SOLVE_WISE_D-1764858574991"
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9ba41933803aa7fb",
+    "type": "split",
+    "children": [
+      {
+        "id": "6b9ab66129225fc9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "89bc0b4c5a072d1f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "ファイルエクスプローラ"
+            }
+          },
+          {
+            "id": "44d18ad47e8f4718",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "検索"
+            }
+          },
+          {
+            "id": "3b07f7cb122cb1d9",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "ブックマーク"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d69eeb590e75948e",
+    "type": "split",
+    "children": [
+      {
+        "id": "dfe32abbda2873a6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7d1698df0efeed62",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "特定商取引法に基づく表記.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "特定商取引法に基づく表記へのバックリンク"
+            }
+          },
+          {
+            "id": "c22068525ee2131b",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "特定商取引法に基づく表記.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "特定商取引法に基づく表記からのアウトゴーイングリンク"
+            }
+          },
+          {
+            "id": "8f98bd77908e00fa",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "タグ"
+            }
+          },
+          {
+            "id": "26a13552ebce1372",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "すべてのプロパティ"
+            }
+          },
+          {
+            "id": "88bc1fbd52ccf555",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "特定商取引法に基づく表記.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "特定商取引法に基づく表記のアウトライン"
+            }
+          },
+          {
+            "id": "3d32a9a85a5bc459",
+            "type": "leaf",
+            "state": {
+              "type": "calendar",
+              "state": {},
+              "icon": "calendar-with-checkmark",
+              "title": "Calendar"
+            }
+          },
+          {
+            "id": "b9172568cf04e67f",
+            "type": "leaf",
+            "state": {
+              "type": "todo",
+              "state": {},
+              "icon": "checkmark",
+              "title": "Todo List"
+            }
+          },
+          {
+            "id": "f527e9f0f83159e0",
+            "type": "leaf",
+            "state": {
+              "type": "copilot-chat-view",
+              "state": {},
+              "icon": "message-square",
+              "title": "Copilot"
+            }
+          }
+        ],
+        "currentTab": 7
+      }
+    ],
+    "direction": "horizontal",
+    "width": 474.5
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:クイックスイッチャーを開く": false,
+      "graph:グラフビューを開く": false,
+      "canvas:新規キャンバスを作成": false,
+      "daily-notes:今日のデイリーノートを開く": false,
+      "templates:テンプレートを挿入": false,
+      "command-palette:コマンドパレットを開く": false,
+      "bases:Create new base": false,
+      "copilot:Open Copilot Chat": false,
+      "obsidian-kanban:カンバンボードを新規作成": false,
+      "obsidian-git:Open Git source control": false,
+      "table-editor-obsidian:Advanced Tables Toolbar": false
+    }
+  },
+  "active": "52c5670a10bd184b",
+  "lastOpenFiles": [
+    "Service-Role-Key設定方法.md",
+    "デバッグ手順.md",
+    "メール設定_すぐに解決する方法.md",
+    "名刺OCR設定確認チェックリスト.md",
+    "scripts/check-ocr-env.js",
+    "info-data/solvewise_ai_consulting_transformation_20251202034248.pdf",
+    "info-data/Brand_new_minimalist_logo_design_for_SOLVE_WISE_D-1764858574991.png",
+    "info-data/AI参謀革命.pdf",
+    "info-data/AI参謀：AIはコンサルをどう変えるか.mp4",
+    "info-data/AIで変わる大手コンサルと中小企業の未来図.m4a",
+    "info-data/AIコンサルティングサービス資料.pdf",
+    "info-data/AI−LOGO2.png",
+    "info-data/AI-LOGO05.png",
+    "info-data/AI-LOGO1.png",
+    "info-data/A-LOGO3.png",
+    "info-data/AI-Chara01.png",
+    "components/AuthHeader.tsx",
+    "components/ConditionalHeader.tsx",
+    "node_modules/@radix-ui/react-progress/node_modules/@radix-ui/react-context/dist/index.js.map",
+    "node_modules/@radix-ui/react-progress/node_modules/@radix-ui/react-context/dist/index.js",
+    "node_modules/@radix-ui/react-progress/node_modules/@radix-ui/react-context/README.md",
+    "node_modules/@radix-ui/react-progress/README.md",
+    "node_modules/@radix-ui/react-avatar/node_modules/@radix-ui/react-context/README.md",
+    "node_modules/@radix-ui/react-avatar/README.md",
+    "node_modules/@radix-ui/react-arrow/node_modules/@radix-ui/react-slot/README.md",
+    "node_modules/@radix-ui/react-arrow/node_modules/@radix-ui/react-primitive/README.md",
+    "node_modules/@radix-ui/react-arrow/README.md",
+    "node_modules/@radix-ui/react-visually-hidden/node_modules/@radix-ui/react-slot/README.md",
+    "node_modules/@radix-ui/react-visually-hidden/node_modules/@radix-ui/react-primitive/README.md",
+    "node_modules/@radix-ui/react-visually-hidden/README.md",
+    "node_modules/@radix-ui/react-roving-focus/node_modules/@radix-ui/react-primitive/README.md",
+    "node_modules/@radix-ui/react-roving-focus/node_modules/@radix-ui/react-slot/README.md",
+    "node_modules/@radix-ui/react-roving-focus/README.md",
+    "node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-slot/README.md",
+    "node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-primitive/README.md",
+    "node_modules/@radix-ui/react-popper/README.md",
+    "node_modules/@radix-ui/react-portal/node_modules/@radix-ui/react-primitive/README.md",
+    "node_modules/@radix-ui/react-portal/node_modules/@radix-ui/react-slot/README.md",
+    "node_modules/@radix-ui/react-portal/README.md",
+    "node_modules/@radix-ui/react-collection/node_modules/@radix-ui/react-slot/README.md",
+    "node_modules/@radix-ui/react-collection/node_modules/@radix-ui/react-primitive/README.md",
+    "node_modules/@radix-ui/react-collection/README.md",
+    "public/professional-business-consultant-working-with-ai-h.jpg",
+    "public/placeholder-user.jpg",
+    "public/placeholder-logo.svg",
+    "public/placeholder-logo.png"
+  ]
+}

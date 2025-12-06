@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Mail, Send, ArrowLeft } from "lucide-react"
+import { Mail, Send, Home } from "lucide-react"
 
 export default function ContactPage() {
   return (
@@ -144,9 +144,9 @@ export default function ContactPage() {
           <div className="mt-8 text-center">
             <Link
               href="/"
-              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
             >
-              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+              <Home size={18} />
               <span>トップページに戻る</span>
             </Link>
           </div>

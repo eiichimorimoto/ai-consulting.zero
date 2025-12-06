@@ -10,7 +10,7 @@ import {
   TrendingUp, Sparkles, CheckCircle, AlertTriangle, Info, Loader2,
   Mail, Phone, MapPin, Globe, ChevronRight, ChevronDown, Eye, EyeOff,
   Download, ArrowRight, LogOut, Users, Briefcase, Clock, Shield,
-  Database, Zap, Target, Check, ArrowLeft
+  Database, Zap, Target, Check
 } from 'lucide-react'
 import { checkPasswordStrength, isValidEmail, isValidPassword } from '@/lib/auth-utils'
 
@@ -297,19 +297,21 @@ const LoginForm = ({
         {/* Back button */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
         >
-          <ArrowLeft size={20} />
+          <Home size={20} />
           <span>トップページに戻る</span>
         </button>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8 justify-center">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
-              <Brain size={28} />
-            </div>
-            <span className="text-xl font-bold gradient-text">AI Consulting</span>
+            <img 
+              src="/info-data/AI-LOGO05.png" 
+              alt="SolveWise" 
+              className="h-12 w-auto"
+            />
+            <span className="text-xl font-bold gradient-text">SolveWise</span>
           </div>
 
           <h1 className="text-2xl font-bold text-center mb-2">ログイン</h1>
@@ -436,6 +438,14 @@ const SignupForm = ({
   const industries = [
     '情報通信業', '製造業', '卸売業・小売業', 'サービス業', '建設業',
     '不動産業', '金融業・保険業', '運輸業・郵便業', '医療・福祉', '教育・学習支援業', 'その他'
+  ]
+  
+  const positions = [
+    '代表取締役', '取締役', '執行役員', '部長', '次長', '課長', '係長', '主任', '一般社員', 'その他'
+  ]
+  
+  const departments = [
+    '営業部', 'マーケティング部', '開発部', '技術部', '人事部', '経理部', '総務部', '企画部', 'その他'
   ]
   
   const employeeRanges = [
@@ -606,19 +616,21 @@ const SignupForm = ({
         {/* Back button */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
         >
-          <ArrowLeft size={20} />
+          <Home size={20} />
           <span>トップページに戻る</span>
         </button>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6 justify-center">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
-              <Brain size={28} />
-            </div>
-            <span className="text-xl font-bold gradient-text">AI Consulting</span>
+            <img 
+              src="/info-data/AI-LOGO05.png" 
+              alt="SolveWise" 
+              className="h-12 w-auto"
+            />
+            <span className="text-xl font-bold gradient-text">SolveWise</span>
           </div>
 
           <h1 className="text-2xl font-bold text-center mb-2">アカウント作成</h1>
@@ -1201,10 +1213,12 @@ const Sidebar = ({
       `}>
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">
-              <Brain size={24} />
-            </div>
-            <span className="text-lg font-bold gradient-text">AI Consulting</span>
+            <img 
+              src="/info-data/AI-LOGO05.png" 
+              alt="SolveWise" 
+              className="h-10 w-auto"
+            />
+            <span className="text-lg font-bold gradient-text">SolveWise</span>
           </div>
         </div>
         
@@ -3410,10 +3424,12 @@ const LandingPage = ({
             {/* Company Info */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
-                  <Brain size={24} />
-                </div>
-                <span className="text-xl font-bold text-gray-900">AI Consulting</span>
+                <img 
+                  src="/info-data/AI-LOGO05.png" 
+                  alt="SolveWise" 
+                  className="h-12 w-auto"
+                />
+                <span className="text-xl font-bold text-gray-900">SolveWise</span>
               </div>
               <p className="text-gray-600 text-sm mb-4">
                 AIで経営課題を解決する次世代コンサルティングサービス
