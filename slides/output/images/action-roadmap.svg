@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <text x="400" y="200" text-anchor="middle" fill="#4fc3f7" font-size="24" font-family="sans-serif">
+    📊 Strategic roadmap infographic showing 3 phases of ...
+  </text>
+  <text x="400" y="250" text-anchor="middle" fill="#81d4fa" font-size="16" font-family="sans-serif">
+    [Nano Banana Pro で生成予定]
+  </text>
+  <text x="400" y="290" text-anchor="middle" fill="#666" font-size="12" font-family="sans-serif">
+    GOOGLE_AI_API_KEY を設定すると実際の図が生成されます
+  </text>
+</svg>

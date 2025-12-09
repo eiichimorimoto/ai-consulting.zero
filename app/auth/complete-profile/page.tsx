@@ -33,6 +33,11 @@ export default function CompleteProfilePage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
+  // ステップ状態の変更をログに記録
+  React.useEffect(() => {
+    console.log('📊 ステップ状態が変更されました:', { step, scanStep, hasOcrResult: !!ocrResult, isProcessing })
+  }, [step, scanStep, ocrResult, isProcessing])
+  
   const [profileData, setProfileData] = useState({
     name: '',
     nameKana: '',
@@ -81,35 +86,80 @@ export default function CompleteProfilePage() {
   ]
 
   useEffect(() => {
-    // 認証状態とプロフィール登録状況を確認
+    // 認証状態とプロフィール登録状況を確認（初回のみ実行）
+    let isMounted = true
+    
     const checkAuthAndProfile = async () => {
       const supabase = createClient()
-      if (!supabase) return
-      
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
+      if (!supabase) {
+        console.warn('⚠️ Supabase client not available')
         return
       }
       
-      // プロフィールが既に登録されているか確認
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name, company_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (profile && profile.name && profile.name !== 'User' && profile.company_id) {
-        // プロフィールと会社情報が既に登録されている場合はダッシュボードへ
-        router.push('/dashboard')
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          console.log('❌ 認証されていません:', userError?.message)
+          if (isMounted) {
+            router.push('/auth/login')
+          }
+          return
+        }
+        
+        console.log('✅ 認証確認完了:', user.id)
+        
+        // プロフィールが既に登録されているか確認（エラーを無視）
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('name, company_id')
+          .eq('user_id', user.id)
+          .maybeSingle() // single()の代わりにmaybeSingle()を使用（存在しない場合エラーにならない）
+        
+        if (profileError) {
+          // プロファイルが存在しない場合はエラーを無視（新規登録プロセス中）
+          console.log('📝 プロファイル確認:', profileError.code === 'PGRST116' ? 'プロファイル未作成（正常）' : profileError.message)
+        }
+        
+        // プロフィールと会社情報が既に登録されている場合のみダッシュボードへ
+        if (profile && profile.name && profile.name !== 'User' && profile.company_id) {
+          console.log('✅ プロファイル登録済み、ダッシュボードへリダイレクト')
+          if (isMounted) {
+            router.push('/dashboard')
+          }
+        } else {
+          console.log('📝 プロファイル登録が必要:', {
+            hasProfile: !!profile,
+            name: profile?.name,
+            hasCompanyId: !!profile?.company_id
+          })
+        }
+      } catch (error) {
+        console.error('❌ プロファイルチェックエラー:', error)
+        // エラーが発生してもループしないようにする
       }
     }
+    
     checkAuthAndProfile()
-  }, [router])
+    
+    // クリーンアップ
+    return () => {
+      isMounted = false
+    }
+  }, []) // 依存配列を空にして、初回のみ実行
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // ファイルタイプの確認（画像またはPDF）
+      const isImage = file.type.startsWith('image/')
+      const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+      
+      if (!isImage && !isPDF) {
+        setErrors({ ocr: '画像またはPDFファイルを選択してください' })
+        return
+      }
+      
       const reader = new FileReader()
       reader.onload = (event) => {
         setUploadedImage(event.target?.result as string)
@@ -127,68 +177,118 @@ export default function CompleteProfilePage() {
     setErrors({})
     
     try {
-      // Base64データURLからBlobを作成
-      const base64Data = uploadedImage.split(',')[1] // data:image/jpeg;base64, の後の部分を取得
-      const byteCharacters = atob(base64Data)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      // Base64データURLを解析
+      const dataUrlMatch = uploadedImage.match(/^data:([^;]+);base64,(.+)$/)
+      if (!dataUrlMatch) {
+        throw new Error('画像データの形式が正しくありません')
       }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'image/jpeg' })
       
-      // FormDataを作成
-      const formData = new FormData()
-      formData.append('file', blob, 'business-card.jpg')
+      const mimeType = dataUrlMatch[1] || 'image/jpeg'
+      const base64Data = dataUrlMatch[2] // base64データ部分のみ
       
-      // OCR APIを呼び出し
-      console.log('OCR APIを呼び出します...')
-      const response = await fetch('/api/ocr-business-card', {
-        method: 'POST',
-        body: formData,
+      console.log('📸 ファイルデータを解析:', {
+        mimeType,
+        base64Length: base64Data.length,
+        isPDF: mimeType.includes('pdf'),
       })
       
-      console.log('OCR API response status:', response.status)
+      // OCR APIを呼び出し（JSON形式でbase64データを送信）
+      console.log('📤 OCR APIを呼び出します...')
+      
+      const response = await fetch('/api/ocr-business-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          image: base64Data, // base64データ部分のみ
+          mimeType: mimeType, // PDF対応のためMIMEタイプを送信
+        }),
+      })
+      
+      console.log('📥 OCR API応答:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      })
       
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('OCR API error:', errorData)
-        throw new Error(errorData.error || errorData.details || 'OCR処理に失敗しました')
+        // エラーレスポンスの内容を取得
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        let errorData: any = null
+        
+        try {
+          const contentType = response.headers.get('content-type')
+          if (contentType && contentType.includes('application/json')) {
+            errorData = await response.json()
+            errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
+            console.error('❌ OCR API エラー (JSON):', errorData)
+          } else {
+            const textData = await response.text()
+            console.error('❌ OCR API エラー (Text):', textData)
+            errorMessage = textData || errorMessage
+          }
+        } catch (parseError) {
+          console.error('❌ エラーレスポンスの解析に失敗:', parseError)
+        }
+        
+        throw new Error(errorMessage)
       }
       
+      // レスポンスをJSONとして解析
       const result = await response.json()
-      console.log('OCR API result:', result)
+      console.log('✅ OCR API結果:', result)
       
       // エラーチェック
       if (result.error) {
         throw new Error(result.error)
       }
       
-      const ocrData: OCRResult = {
-        personName: result.personName,
-        personNameKana: result.personNameKana,
-        position: result.position,
-        department: result.department,
-        companyName: result.companyName,
-        email: result.email,
-        phone: result.phone,
-        mobile: result.mobile,
-        postalCode: result.postalCode,
-        address: result.address,
-        website: result.website,
+      // レスポンスからdataオブジェクトを取得（テストスクリプトと同じ形式）
+      const data = result.data
+      
+      if (!data) {
+        console.error('❌ レスポンスにdataオブジェクトが含まれていません:', result)
+        throw new Error('OCR結果の形式が正しくありません')
       }
       
+      console.log('📋 抽出されたデータ:', JSON.stringify(data, null, 2))
+      
+      // OCRResult形式に変換（テストスクリプトの結果と同じ形式）
+      const ocrData: OCRResult = {
+        personName: data.personName || data.fullName || null,
+        personNameKana: data.personNameKana || null,
+        position: data.position || null,
+        department: data.department || null,
+        companyName: data.companyName || null,
+        email: data.email || null,
+        phone: data.phone || null,
+        mobile: data.mobile || null,
+        postalCode: data.postalCode || null,
+        address: data.address || null,
+        website: data.website || null,
+      }
+      
+      console.log('✅ OCRデータ変換完了:', ocrData)
+      
       // 少なくとも1つの情報が取得できた場合のみ結果を表示
-      if (ocrData.personName || ocrData.companyName || ocrData.email || ocrData.phone) {
+      const hasValidData = ocrData.personName || ocrData.companyName || ocrData.email || ocrData.phone || ocrData.department
+      
+      if (hasValidData) {
         setOcrResult(ocrData)
         setScanStep(3)
+        console.log('✅ OCR結果を表示ステップに設定')
       } else {
+        console.warn('⚠️ 有効なデータが取得できませんでした:', ocrData)
         throw new Error('名刺から情報を読み取れませんでした。画像を確認してください。')
       }
     } catch (error) {
-      console.error('OCR error:', error)
+      console.error('❌ OCR処理エラー:', error)
+      const errorMessage = error instanceof Error ? error.message : '名刺の読み取りに失敗しました。手動で入力してください。'
       setErrors({ 
-        ocr: error instanceof Error ? error.message : '名刺の読み取りに失敗しました。手動で入力してください。' 
+        ocr: errorMessage
       })
       // エラーが発生しても、手動入力に進める
       setScanStep(1)
@@ -198,29 +298,153 @@ export default function CompleteProfilePage() {
   }
 
   const applyOCRData = () => {
-    if (ocrResult) {
+    console.log('🔵 applyOCRData が呼ばれました')
+    console.log('🔵 ocrResult:', ocrResult)
+    
+    if (!ocrResult) {
+      console.warn('⚠️ ocrResult が存在しません')
+      return
+    }
+    
+    try {
+      // 部署のマッチング（部分一致で検索）
+      let matchedDepartment = ocrResult.department
+      if (ocrResult.department) {
+        // 「営業」「マーケティング」など部分一致で検索
+        const deptKeywords: Record<string, string> = {
+          '営業': '営業部',
+          'マーケティング': 'マーケティング部',
+          '開発': '開発部',
+          '技術': '技術部',
+          '人事': '人事部',
+          '経理': '経理部',
+          '総務': '総務部',
+          '企画': '企画部',
+        }
+        
+        let matched = departments.find((d) => 
+          ocrResult.department?.includes(d.replace("・", "")) || 
+          d.includes(ocrResult.department?.replace("・", "") || "")
+        )
+        
+        // キーワードベースのマッチング
+        if (!matched) {
+          for (const [keyword, dept] of Object.entries(deptKeywords)) {
+            if (ocrResult.department?.includes(keyword)) {
+              matched = dept
+              break
+            }
+          }
+        }
+        
+        if (matched) {
+          matchedDepartment = matched
+          console.log('✅ 部署マッチング:', ocrResult.department, '->', matched)
+        } else {
+          // マッチしない場合は「その他」にセット
+          matchedDepartment = 'その他'
+          console.log('⚠️ 部署マッチングなし、「その他」に設定:', ocrResult.department)
+        }
+      }
+      
+      // 役職のマッチング（部分一致で検索）
+      let matchedPosition = ocrResult.position
+      if (ocrResult.position) {
+        // 役職キーワードマッチング
+        const posKeywords: Record<string, string> = {
+          '代表取締役': '代表取締役',
+          '社長': '代表取締役',
+          '取締役': '取締役',
+          '執行役員': '執行役員',
+          '部長': '部長',
+          '次長': '次長',
+          '課長': '課長',
+          '係長': '係長',
+          '主任': '主任',
+          'マネージャー': '課長',
+          'リーダー': '係長',
+        }
+        
+        let matched = positions.find((p) => 
+          ocrResult.position?.includes(p.split("/")[0]) ||
+          p.split("/").some(part => ocrResult.position?.includes(part))
+        )
+        
+        // キーワードベースのマッチング
+        if (!matched) {
+          for (const [keyword, pos] of Object.entries(posKeywords)) {
+            if (ocrResult.position?.includes(keyword)) {
+              matched = pos
+              break
+            }
+          }
+        }
+        
+        if (matched) {
+          matchedPosition = matched
+          console.log('✅ 役職マッチング:', ocrResult.position, '->', matched)
+        } else {
+          // マッチしない場合は「その他」にセット
+          matchedPosition = 'その他'
+          console.log('⚠️ 役職マッチングなし、「その他」に設定:', ocrResult.position)
+        }
+      }
+      
+      // 設定するデータをログに出力
+      const newProfileData = {
+        name: ocrResult.personName || '',
+        nameKana: ocrResult.personNameKana || '',
+        position: matchedPosition || '',
+        department: matchedDepartment || '',
+        phone: ocrResult.phone || '',
+        mobile: ocrResult.mobile || '',
+      }
+      
+      const newCompanyData = {
+        name: ocrResult.companyName || '',
+        website: ocrResult.website || '',
+        postalCode: ocrResult.postalCode || '',
+        address: ocrResult.address || '',
+      }
+      
+      console.log('📝 セットするプロフィールデータ:', newProfileData)
+      console.log('📝 セットする会社データ:', newCompanyData)
+      
       setProfileData(prev => ({
         ...prev,
-        name: ocrResult.personName || prev.name,
-        nameKana: ocrResult.personNameKana || prev.nameKana,
-        position: ocrResult.position || prev.position,
-        department: ocrResult.department || prev.department,
-        phone: ocrResult.phone || prev.phone,
-        mobile: ocrResult.mobile || prev.mobile,
+        name: newProfileData.name || prev.name,
+        nameKana: newProfileData.nameKana || prev.nameKana,
+        position: newProfileData.position || prev.position,
+        department: newProfileData.department || prev.department,
+        phone: newProfileData.phone || prev.phone,
+        mobile: newProfileData.mobile || prev.mobile,
       }))
       
       setCompanyData(prev => ({
         ...prev,
-        name: ocrResult.companyName || prev.name,
-        website: ocrResult.website || prev.website,
-        postalCode: ocrResult.postalCode || prev.postalCode,
-        address: ocrResult.address || prev.address,
+        name: newCompanyData.name || prev.name,
+        website: newCompanyData.website || prev.website,
+        postalCode: newCompanyData.postalCode || prev.postalCode,
+        address: newCompanyData.address || prev.address,
       }))
       
-      setStep(2)
-      setScanStep(1)
+      console.log('➡️ ステップ2に移動します')
+      console.log('🔵 現在のstep状態:', step)
+      
+      // 状態をクリーンアップ
       setUploadedImage(null)
       setOcrResult(null)
+      setErrors({})
+      setScanStep(1)
+      
+      // ステップ2に移動
+      console.log('➡️ setStep(2) を実行します')
+      setStep(2)
+      console.log('✅ setStep(2) 実行完了')
+      
+      console.log('✅ applyOCRData 完了')
+    } catch (error) {
+      console.error('❌ applyOCRData エラー:', error)
     }
   }
 
@@ -265,23 +489,34 @@ export default function CompleteProfilePage() {
         throw new Error('認証されていません')
       }
       
-      // プロファイルを更新
+      // プロファイルを作成または更新（upsert）
+      console.log('📝 プロフィールを保存します:', {
+        user_id: user.id,
+        email: user.email,
+        name: profileData.name,
+      })
+      
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          user_id: user.id,
+          email: user.email, // NOT NULL制約があるためemailを追加
           name: profileData.name,
           name_kana: profileData.nameKana || null,
           position: profileData.position || null,
           department: profileData.department || null,
           phone: profileData.phone || null,
           mobile: profileData.mobile || null,
+        }, {
+          onConflict: 'user_id'
         })
-        .eq('user_id', user.id)
       
       if (profileError) {
-        console.error('Profile update error:', profileError)
-        throw new Error(`プロフィールの更新に失敗しました: ${profileError.message || profileError.code || '不明なエラー'}`)
+        console.error('Profile upsert error:', profileError)
+        throw new Error(`プロフィールの保存に失敗しました: ${profileError.message || profileError.code || '不明なエラー'}`)
       }
+      
+      console.log('✅ プロフィール保存完了')
       
       setStep(3)
     } catch (error) {
@@ -338,21 +573,43 @@ export default function CompleteProfilePage() {
       }
       
       // 会社情報を取得または作成
+      console.log('📝 プロフィールから会社IDを取得します')
+      
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
       
       if (profileError) {
         console.error('Profile fetch error:', profileError)
         throw new Error(`プロフィールの取得に失敗しました: ${profileError.message}`)
       }
       
+      // プロフィールが存在しない場合は作成
+      if (!profile) {
+        console.log('📝 プロフィールが存在しないため作成します')
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            email: user.email, // NOT NULL制約があるためemailを追加
+            name: 'User', // 仮の名前
+          })
+        
+        if (createProfileError) {
+          console.error('Profile create error:', createProfileError)
+          throw new Error(`プロフィールの作成に失敗しました: ${createProfileError.message}`)
+        }
+      }
+      
       let companyId = profile?.company_id
+      console.log('📝 現在の会社ID:', companyId)
       
       if (!companyId) {
         // 会社を作成
+        console.log('📝 新しい会社を作成します:', companyData.name)
+        
         const { data: newCompany, error: companyError } = await supabase
           .from('companies')
           .insert({
@@ -381,8 +638,10 @@ export default function CompleteProfilePage() {
         }
         
         companyId = newCompany.id
+        console.log('✅ 会社作成完了:', companyId)
         
         // プロファイルに会社IDを設定
+        console.log('📝 プロフィールに会社IDを設定します')
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ company_id: companyId })
@@ -392,6 +651,7 @@ export default function CompleteProfilePage() {
           console.error('Profile update error:', updateError)
           throw new Error(`プロフィールの更新に失敗しました: ${updateError.message || updateError.code || '不明なエラー'}`)
         }
+        console.log('✅ プロフィール更新完了')
       } else {
         // 既存の会社を更新
         const { error: updateError } = await supabase
@@ -418,6 +678,7 @@ export default function CompleteProfilePage() {
       }
       
       // ダッシュボードにリダイレクト
+      console.log('✅ 登録完了！ダッシュボードにリダイレクトします')
       router.push('/dashboard')
     } catch (error) {
       console.error('Company save error:', error)
@@ -508,7 +769,7 @@ export default function CompleteProfilePage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
@@ -542,6 +803,13 @@ export default function CompleteProfilePage() {
               
               {scanStep === 3 && ocrResult && (
                 <div className="space-y-4">
+                  {/* OCR成功メッセージ */}
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700 font-medium">
+                      名刺から情報を読み取りました。下のフォームに自動入力されています。
+                    </p>
+                  </div>
+                  
                   {errors.ocr && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                       <p className="text-sm text-red-600">{errors.ocr}</p>
@@ -553,8 +821,13 @@ export default function CompleteProfilePage() {
                       {ocrResult.personName && <p><strong>氏名:</strong> {ocrResult.personName}</p>}
                       {ocrResult.companyName && <p><strong>会社名:</strong> {ocrResult.companyName}</p>}
                       {ocrResult.position && <p><strong>役職:</strong> {ocrResult.position}</p>}
+                      {ocrResult.department && <p><strong>部署:</strong> {ocrResult.department}</p>}
                       {ocrResult.email && <p><strong>メール:</strong> {ocrResult.email}</p>}
                       {ocrResult.phone && <p><strong>電話:</strong> {ocrResult.phone}</p>}
+                      {ocrResult.mobile && <p><strong>携帯:</strong> {ocrResult.mobile}</p>}
+                      {ocrResult.postalCode && <p><strong>郵便番号:</strong> {ocrResult.postalCode}</p>}
+                      {ocrResult.address && <p><strong>住所:</strong> {ocrResult.address}</p>}
+                      {ocrResult.website && <p><strong>ウェブサイト:</strong> {ocrResult.website}</p>}
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -571,8 +844,15 @@ export default function CompleteProfilePage() {
                       やり直す
                     </Button>
                     <Button
-                      onClick={applyOCRData}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        console.log('🔵 「この情報を使用」ボタンがクリックされました')
+                        console.log('🔵 現在の状態:', { step, scanStep, hasOcrResult: !!ocrResult })
+                        applyOCRData()
+                        console.log('🔵 applyOCRData 実行後')
+                      }}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                      disabled={!ocrResult || isProcessing}
                     >
                       <CheckCircle size={18} className="mr-2" />
                       この情報を使用

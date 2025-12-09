@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // メール確認成功 - プロフィール登録画面にリダイレクト
+      // メール確認成功 - 個人情報・会社情報入力画面にリダイレクト
       return NextResponse.redirect(new URL(next, request.url))
     }
   }
