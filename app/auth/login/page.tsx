@@ -39,6 +39,23 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
+      
+      // プロファイルが完成しているかチェック
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, company_id')
+          .eq('user_id', user.id)
+          .single()
+        
+        // プロファイルが未完成の場合（nameが'User'またはcompany_idが存在しない）はプロファイル登録画面へ
+        if (!profile || !profile.name || profile.name === 'User' || !profile.company_id) {
+          router.push("/auth/complete-profile")
+          return
+        }
+      }
+      
       router.push("/dashboard")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "エラーが発生しました")
