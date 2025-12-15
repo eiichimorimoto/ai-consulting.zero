@@ -294,7 +294,16 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-svh w-full">
       {/* Left side - AI Illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-400 relative overflow-hidden items-center justify-center">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 relative overflow-hidden items-center justify-center">
+        {/* Quantum Computer Background Image */}
+        <div className="absolute inset-0 opacity-30">
+          <img 
+            src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop"
+            alt="Quantum Computer"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-indigo-600/80"></div>
         <div className="absolute inset-0 opacity-20">
           <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* AI Brain Network Pattern */}
