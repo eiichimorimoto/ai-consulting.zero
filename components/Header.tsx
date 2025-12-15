@@ -38,7 +38,7 @@ export default function Header() {
           : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-3">
             <motion.div
@@ -53,12 +53,12 @@ export default function Header() {
                 className="h-12 w-auto"
               />
               <div>
-                <span className={`text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ${
-                  scrollY > 50 ? '' : 'text-white'
+                <span className={`text-xl font-bold ${
+                  scrollY > 50 ? 'text-gray-900' : 'text-white'
                 }`}>
                   SolveWise
                 </span>
-                <p className={`text-xs hidden sm:block ${scrollY > 50 ? 'text-gray-500' : 'text-white/80'}`}>
+                <p className={`text-xs hidden sm:block ${scrollY > 50 ? 'text-gray-600' : 'text-white/90'}`}>
                   経営課題をAIで解決
                 </p>
               </div>

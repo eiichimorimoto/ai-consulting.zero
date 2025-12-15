@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import Image from "next/image"
-import { Settings, ArrowLeft } from "lucide-react"
+import { Settings, ArrowLeft, Home } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import LogoutButton from "@/components/LogoutButton"
@@ -45,8 +45,8 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
+          <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-4">
               <Link href="/dashboard" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <ArrowLeft className="h-6 w-6 text-gray-600" />
@@ -55,13 +55,29 @@ export default async function SettingsPage() {
                 <Image
                   src="/info-data/AI-LOGO001.png"
                   alt="SolveWise"
-                  width={120}
-                  height={40}
-                  className="h-10 w-auto object-contain"
+                  width={48}
+                  height={48}
+                  className="h-12 w-auto"
                 />
+                <div>
+                  <span className="text-xl font-bold text-gray-900">
+                    SolveWise
+                  </span>
+                  <p className="text-xs hidden sm:block text-gray-600">
+                    経営課題をAIで解決
+                  </p>
+                </div>
               </Link>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
+              <Link 
+                href="/" 
+                className="flex flex-col items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                <Home size={20} />
+                <span className="text-xs">TOP</span>
+              </Link>
+              
               {/* アバター表示 */}
               <Avatar className="w-10 h-10">
                 {profile.avatar_url ? (
