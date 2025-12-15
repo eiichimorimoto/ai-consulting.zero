@@ -38,7 +38,7 @@ export default function Header() {
           : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
+      <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
             <motion.div
