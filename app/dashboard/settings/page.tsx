@@ -44,7 +44,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+      <header className="bg-white/70 backdrop-blur-2xl shadow-sm border-b border-white/20 sticky top-0 z-50">
         <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
