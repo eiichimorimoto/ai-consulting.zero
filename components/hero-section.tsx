@@ -1,4 +1,7 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
+import { motion } from "framer-motion"
 
 export function HeroSection() {
   return (
@@ -32,9 +35,30 @@ export function HeroSection() {
 
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-        <h1 className="font-display text-white text-4xl md:text-6xl lg:text-7xl font-bold tracking-widest mb-12 drop-shadow-lg">
-          AI POWERED CONSULTING
-        </h1>
+        <motion.h1 
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="font-display text-white text-4xl md:text-6xl lg:text-7xl font-bold tracking-widest mb-12 drop-shadow-lg overflow-hidden"
+        >
+          <motion.span
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="inline-block"
+          >
+            AI POWERED
+          </motion.span>
+          {" "}
+          <motion.span
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="inline-block"
+          >
+            CONSULTING
+          </motion.span>
+        </motion.h1>
 
         {/* Holographic UI Element */}
         <div className="relative my-8">
