@@ -5,17 +5,17 @@ import { Home } from 'lucide-react'
 
 export default function AuthHeader() {
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white shadow-sm">
+    <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md shadow-sm">
       <div className="max-w-7xl mx-auto" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
             <img 
               src="/info-data/AI-LOGO001.png" 
               alt="SolveWise" 
-              className="h-12 w-auto"
+              className="h-10 w-auto"
             />
             <div>
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-lg font-bold text-gray-900">
                 SolveWise
               </span>
               <p className="text-xs hidden sm:block text-gray-600">
@@ -26,9 +26,9 @@ export default function AuthHeader() {
           
           <Link 
             href="/" 
-            className="flex flex-col items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
+            className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-blue-600 transition-colors"
           >
-            <Home size={20} />
+            <Home size={18} />
             <span className="text-xs">TOP</span>
           </Link>
         </div>

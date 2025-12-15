@@ -39,7 +39,7 @@ export default function Header() {
       }`}
     >
       <div className="max-w-7xl mx-auto" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
             <motion.div
               whileHover={{ scale: 1.05 }}
@@ -50,10 +50,10 @@ export default function Header() {
                 transition={{ duration: 0.3 }}
                 src="/info-data/AI-LOGO001.png"
                 alt="SolveWise"
-                className="h-12 w-auto"
+                className="h-10 w-auto"
               />
               <div>
-                <span className={`text-xl font-bold ${
+                <span className={`text-lg font-bold ${
                   scrollY > 50 ? 'text-gray-900' : 'text-white'
                 }`}>
                   SolveWise
