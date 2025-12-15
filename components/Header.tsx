@@ -48,7 +48,7 @@ export default function Header() {
               <motion.img
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.3 }}
-                src="/info-data/AI-LOGO05.png"
+                src="/info-data/AI-LOGO001.png"
                 alt="SolveWise"
                 className="h-12 w-auto"
               />
