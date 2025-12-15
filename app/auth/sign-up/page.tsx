@@ -486,13 +486,13 @@ export default function SignUpPage() {
             </CardContent>
           </Card>
           <div className="text-center">
-            <Link 
-              href="/" 
-              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            <button
+              onClick={() => router.push('/')}
+              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
             >
               <Home size={18} />
               <span>トップページに戻る</span>
-            </Link>
+            </button>
           </div>
         </div>
         </div>
