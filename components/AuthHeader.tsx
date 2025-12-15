@@ -24,13 +24,13 @@ export default function AuthHeader() {
             </div>
           </Link>
           
-          <Link 
+          <a 
             href="/" 
-            className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-blue-600 transition-colors"
+            className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
           >
             <Home size={18} />
             <span className="text-xs">TOP</span>
-          </Link>
+          </a>
         </div>
       </div>
     </header>
