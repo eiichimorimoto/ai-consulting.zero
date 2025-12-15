@@ -182,7 +182,11 @@ export default function LoginPage() {
           </Card>
           <div className="text-center">
             <button
-              onClick={() => router.push('/')}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                window.location.href = '/'
+              }}
               className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
             >
               <Home size={18} />
