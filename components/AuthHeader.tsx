@@ -5,7 +5,7 @@ import { Home } from 'lucide-react'
 
 export default function AuthHeader() {
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md shadow-sm">
+    <header className="fixed top-0 inset-x-0 z-50 bg-white/70 backdrop-blur-2xl shadow-sm border-b border-white/20">
       <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">

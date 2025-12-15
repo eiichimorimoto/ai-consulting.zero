@@ -34,8 +34,8 @@ export default function Header() {
       transition={{ duration: 0.5 }}
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         scrollY > 50 
-          ? 'bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-lg' 
-          : 'bg-transparent'
+          ? 'bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-lg' 
+          : 'bg-gradient-to-b from-black/20 to-transparent backdrop-blur-sm'
       }`}
     >
       <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
