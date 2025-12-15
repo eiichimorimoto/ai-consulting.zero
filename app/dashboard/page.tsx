@@ -34,7 +34,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-3">
               <Image
-                src="/info-data/AI-LOGO05.png"
+                src="/info-data/AI-LOGO001.png"
                 alt="SolveWise"
                 width={40}
                 height={40}
