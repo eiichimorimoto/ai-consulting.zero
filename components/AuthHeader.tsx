@@ -10,7 +10,7 @@ export default function AuthHeader() {
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-3">
             <img 
-              src="/info-data/AI-LOGO05.png" 
+              src="/info-data/AI-LOGO001.png" 
               alt="SolveWise" 
               className="h-12 w-auto"
             />

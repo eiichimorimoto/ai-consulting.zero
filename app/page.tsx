@@ -1,447 +1,93 @@
-'use client'
+"use client"
 
-import React, { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
+import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Brain, Home, MessageSquare, CreditCard, FileText, Settings, HelpCircle,
-  Menu, X, Bell, Search, Plus, Camera, Upload, Send, User, Building2,
-  TrendingUp, Sparkles, CheckCircle, AlertTriangle, Info, Loader2,
-  Mail, Phone, MapPin, Globe, ChevronRight, ChevronDown, Eye, EyeOff,
-  Download, ArrowRight, LogOut, Users, Briefcase, Clock, Shield,
-  Database, Zap, Target, Check
-} from 'lucide-react'
-import { checkPasswordStrength, isValidEmail, isValidPassword } from '@/lib/auth-utils'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Camera, Upload, CheckCircle, Loader2, Home, Building2, User, X, Globe } from 'lucide-react'
+import Link from 'next/link'
+import FileUpload from '@/components/FileUpload'
 
-// ============================================
-// TYPES
-// ============================================
-interface UserProfile {
-  id: string
-  name: string
-  nameKana?: string
-  email: string
-  phone?: string
-  mobile?: string
-  position?: string
-  department?: string
-  avatarUrl?: string
-  plan: 'free' | 'standard' | 'enterprise'
-}
-
-interface Company {
-  id: string
-  name: string
-  nameKana?: string
-  corporateNumber?: string
-  postalCode?: string
-  prefecture?: string
-  city?: string
-  address?: string
-  building?: string
-  phone?: string
-  fax?: string
-  email?: string
-  website?: string
-  industry?: string
-  employeeCount?: string
-  annualRevenue?: string
-  capital?: string
-  establishedDate?: string
-  representativeName?: string
-  businessDescription?: string
-  characteristics?: string
-  currentChallenges?: string[]
-  uploadedDocuments?: Array<{ id: string; name: string; url: string; uploadedAt: string }>
-}
-
-interface BusinessCard {
-  id: string
-  personName: string
+interface OCRResult {
+  personName?: string
   personNameKana?: string
-  position?: string
   department?: string
+  companyName?: string
   email?: string
   phone?: string
   mobile?: string
-  fax?: string
   postalCode?: string
   address?: string
   website?: string
-  companyName?: string
-  companyId?: string
-  imageUrl?: string
-  notes?: string
-  createdAt: string
 }
 
-interface ConsultingSession {
-  id: string
-  title: string
-  status: 'active' | 'completed'
-  messageCount: number
-  createdAt: string
+interface OCRValidationResult {
+  isValid: boolean
+  warnings: string[]
+  errors: string[]
+  correctedData?: OCRResult // 修正されたデータ
 }
 
-interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-}
-
-// ============================================
-// TOAST COMPONENT
-// ============================================
-const Toast = ({ message, type, onClose }: { message: string; type: string; onClose: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    exit={{ opacity: 0, y: 20, scale: 0.95 }}
-    className={`flex items-center gap-3 px-5 py-3.5 rounded-lg shadow-xl text-white ${
-      type === 'success' ? 'bg-green-500' :
-      type === 'error' ? 'bg-red-500' :
-      type === 'warning' ? 'bg-yellow-500' : 'bg-gray-900'
-    }`}
-  >
-    {type === 'success' && <CheckCircle size={20} />}
-    {type === 'error' && <AlertTriangle size={20} />}
-    {type === 'warning' && <AlertTriangle size={20} />}
-    {type === 'info' && <Info size={20} />}
-    <span>{message}</span>
-    <button onClick={onClose} className="ml-2 hover:opacity-70">
-      <X size={16} />
-    </button>
-  </motion.div>
-)
-
-// ============================================
-// MODAL COMPONENT
-// ============================================
-const Modal = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  size = '', 
-  footer 
-}: { 
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  children: React.ReactNode
-  size?: string
-  footer?: React.ReactNode
-}) => {
-  if (!isOpen) return null
+export default function CompleteProfilePage() {
+  const router = useRouter()
+  const [step, setStep] = useState(1) // 1: 名刺OCR, 2: プロフィール入力, 3: 会社情報入力
+  const [scanStep, setScanStep] = useState(1) // 1: アップロード, 2: 処理中, 3: 結果確認
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5" onClick={onClose}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className={`bg-white rounded-2xl w-full overflow-hidden flex flex-col max-h-[90vh] ${
-          size === 'lg' ? 'max-w-3xl' : size === 'xl' ? 'max-w-5xl' : 'max-w-xl'
-        }`}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto flex-1">{children}</div>
-        {footer && <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">{footer}</div>}
-      </motion.div>
-    </div>
-  )
-}
-
-// ============================================
-// PASSWORD INPUT WITH VISIBILITY TOGGLE
-// ============================================
-const PasswordInput = ({
-  value,
-  onChange,
-  placeholder,
-  showStrength = false,
-  className = ''
-}: {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  showStrength?: boolean
-  className?: string
-}) => {
-  const [showPassword, setShowPassword] = useState(false)
-  const strength = showStrength ? checkPasswordStrength(value) : null
-
-  return (
-    <div className="space-y-2">
-      <div className="relative">
-        <input
-          type={showPassword ? 'text' : 'password'}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${className}`}
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
-        >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
-      </div>
-      
-      {showStrength && value && (
-        <div className="space-y-2">
-          {/* Strength bar */}
-          <div className="flex gap-1">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i < strength!.score ? strength!.color : 'bg-gray-200'
-                }`}
-              />
-            ))}
-          </div>
-          
-          {/* Strength label */}
-          <div className="flex items-center justify-between text-sm">
-            <span className={`font-medium ${
-              strength!.score <= 1 ? 'text-red-500' :
-              strength!.score === 2 ? 'text-yellow-500' :
-              'text-green-500'
-            }`}>
-              {strength!.label}
-            </span>
-          </div>
-          
-          {/* Feedback */}
-          {strength!.feedback.length > 0 && (
-            <ul className="text-xs text-gray-500 space-y-1">
-              {strength!.feedback.map((f, i) => (
-                <li key={i} className="flex items-center gap-1">
-                  <Info size={12} /> {f}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// LOGIN FORM
-// ============================================
-const LoginForm = ({
-  onLogin,
-  onSwitchToSignup,
-  onBack,
-  showToast
-}: {
-  onLogin: () => void
-  onSwitchToSignup: () => void
-  onBack: () => void
-  showToast: (message: string, type: string) => void
-}) => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrors({})
-
-    // Validation
-    const newErrors: typeof errors = {}
-    if (!email) {
-      newErrors.email = 'メールアドレスを入力してください'
-    } else if (!isValidEmail(email)) {
-      newErrors.email = '有効なメールアドレスを入力してください'
-    }
-    if (!password) {
-      newErrors.password = 'パスワードを入力してください'
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    setIsLoading(true)
-    
-    // Simulate login (replace with actual Supabase auth)
-    setTimeout(() => {
-      setIsLoading(false)
-      showToast('ログインしました', 'success')
-      onLogin()
-    }, 1000)
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        {/* Back button */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-        >
-          <Home size={20} />
-          <span>トップページに戻る</span>
-        </button>
-
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-8 justify-center">
-            <img 
-              src="/info-data/AI-LOGO05.png" 
-              alt="SolveWise" 
-              className="h-12 w-auto"
-            />
-            <span className="text-xl font-bold gradient-text">SolveWise</span>
-          </div>
-
-          <h1 className="text-2xl font-bold text-center mb-2">ログイン</h1>
-          <p className="text-gray-500 text-center mb-8">アカウントにログインしてください</p>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                メールアドレス
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@company.com"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                パスワード
-              </label>
-              <PasswordInput
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="パスワードを入力"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" />
-                <span className="text-gray-600">ログイン状態を保持</span>
-              </label>
-              <button type="button" className="text-blue-600 hover:text-blue-700">
-                パスワードを忘れた方
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  ログイン中...
-                </>
-              ) : (
-                'ログイン'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <span className="text-gray-500">アカウントをお持ちでない方は</span>
-            <button
-              onClick={onSwitchToSignup}
-              className="text-blue-600 hover:text-blue-700 font-medium ml-1"
-            >
-              新規登録
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
-// ============================================
-// SIGNUP FORM
-// ============================================
-const SignupForm = ({
-  onSignup,
-  onSwitchToLogin,
-  onBack,
-  showToast
-}: {
-  onSignup: () => void
-  onSwitchToLogin: () => void
-  onBack: () => void
-  showToast: (message: string, type: string) => void
-}) => {
-  const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState({
+  // ステップ状態の変更をログに記録
+  React.useEffect(() => {
+    console.log('📊 ステップ状態が変更されました:', { step, scanStep, hasOcrResult: !!ocrResult, isProcessing })
+  }, [step, scanStep, ocrResult, isProcessing])
+  
+  const [profileData, setProfileData] = useState({
     name: '',
     nameKana: '',
-    email: '',
-    phone: '',
-    password: '',
-    passwordConfirm: '',
-    companyName: '',
-    companyNameKana: '',
-    position: '',
     department: '',
-    industry: '',
-    annualRevenue: '',
-    employeeCount: '',
-    website: '',
-    characteristics: '',
-    agreeTerms: false
+    phone: '',
+    mobile: '',
+    avatarUrl: '', // アバター画像URL
   })
+  
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [isDraggingAvatar, setIsDraggingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [companyDocuments, setCompanyDocuments] = useState<File[]>([])
+  
+  const [companyData, setCompanyData] = useState({
+    name: '',
+    nameKana: '',
+    industry: '',
+    employeeCount: '',
+    annualRevenue: '',
+    website: '',
+    email: '', // 会社のemailを追加
+    postalCode: '',
+    prefecture: '',
+    city: '',
+    address: '',
+    building: '',
+    retrievedInfo: '',
+  })
+  const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
+  const [isFetchingCompanyIntel, setIsFetchingCompanyIntel] = useState(false)
+  const [companyIntelStatus, setCompanyIntelStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [showCardScanModal, setShowCardScanModal] = useState(false)
-  const [scanStep, setScanStep] = useState(1)
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-  const [ocrResult, setOcrResult] = useState<Partial<BusinessCard & { companyIndustry?: string; companyEmployeeCount?: string }> | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [uploadedDocuments, setUploadedDocuments] = useState<Array<{ id: string; name: string; url: string; uploadedAt: string }>>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const documentInputRef = useRef<HTMLInputElement>(null)
+  const [postalCodeStatus, setPostalCodeStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [ocrValidation, setOcrValidation] = useState<OCRValidationResult | null>(null)
   
   const industries = [
     '情報通信業', '製造業', '卸売業・小売業', 'サービス業', '建設業',
     '不動産業', '金融業・保険業', '運輸業・郵便業', '医療・福祉', '教育・学習支援業', 'その他'
-  ]
-  
-  const positions = [
-    '代表取締役', '取締役', '執行役員', '部長', '次長', '課長', '係長', '主任', '一般社員', 'その他'
   ]
   
   const departments = [
@@ -455,424 +101,1775 @@ const SignupForm = ({
   const revenueRanges = [
     '1億円未満', '1-5億円', '5-10億円', '10-50億円', '50-100億円', '100-500億円', '500億円以上'
   ]
-  
+
+  useEffect(() => {
+    // 認証状態とプロフィール登録状況を確認（初回のみ実行）
+    let isMounted = true
+    
+    const checkAuthAndProfile = async () => {
+      const supabase = createClient()
+      if (!supabase) {
+        console.warn('⚠️ Supabase client not available')
+        return
+      }
+      
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          console.log('❌ 認証されていません:', userError?.message)
+          if (isMounted) {
+            router.push('/auth/login')
+          }
+          return
+        }
+        
+        console.log('✅ 認証確認完了:', user.id)
+        
+        // プロフィールが既に登録されているか確認（エラーを無視）
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('name, name_kana, department, phone, mobile, avatar_url, company_id')
+          .eq('user_id', user.id)
+          .maybeSingle() // single()の代わりにmaybeSingle()を使用（存在しない場合エラーにならない）
+        
+        if (profileError) {
+          // プロファイルが存在しない場合はエラーを無視（新規登録プロセス中）
+          console.log('📝 プロファイル確認:', profileError.code === 'PGRST116' ? 'プロファイル未作成（正常）' : profileError.message)
+        }
+        
+        // 既存のプロフィールデータがある場合はフォームに設定
+        if (profile && isMounted) {
+          setProfileData({
+            name: profile.name || '',
+            nameKana: profile.name_kana || '',
+            department: profile.department || '',
+            phone: profile.phone || '',
+            mobile: profile.mobile || '',
+            avatarUrl: profile.avatar_url || '',
+          })
+          
+          if (profile.avatar_url) {
+            setAvatarPreview(profile.avatar_url)
+          }
+        }
+        
+        // プロフィールと会社情報が既に登録されている場合のみダッシュボードへ
+        if (profile && profile.name && profile.name !== 'User' && profile.company_id) {
+          console.log('✅ プロファイル登録済み、ダッシュボードへリダイレクト')
+          if (isMounted) {
+            router.push('/dashboard')
+          }
+        } else {
+          console.log('📝 プロファイル登録が必要:', {
+            hasProfile: !!profile,
+            name: profile?.name,
+            hasCompanyId: !!profile?.company_id
+          })
+        }
+      } catch (error) {
+        console.error('❌ プロファイルチェックエラー:', error)
+        // エラーが発生してもループしないようにする
+      }
+    }
+    
+    checkAuthAndProfile()
+    
+    // クリーンアップ
+    return () => {
+      isMounted = false
+    }
+  }, [router]) // 依存配列を空にして、初回のみ実行
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    console.log('📁 ファイルが選択されました:', {
+      name: file?.name,
+      type: file?.type,
+      size: file?.size,
+      hasFile: !!file,
+    })
+    
     if (file) {
+      // ファイルタイプの確認（画像のみ）
+      const isImage = file.type.startsWith('image/')
+      
+      if (!isImage) {
+        console.error('❌ 無効なファイル形式:', file.type)
+        setErrors({ ocr: '画像ファイル（JPEG、PNG）を選択してください。PDFファイルは現在サポートされていません。' })
+        return
+      }
+      
+      console.log('📖 ファイルを読み込み中...')
       const reader = new FileReader()
       reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string)
+        const result = event.target?.result as string
+        console.log('✅ ファイル読み込み完了:', {
+          dataUrlLength: result?.length,
+          hasData: !!result,
+        })
+        setUploadedImage(result)
         setScanStep(2)
-        processOCR()
+        console.log('🔄 processOCRを呼び出します（画像データを直接渡します）...')
+        // 画像データを直接渡してOCR処理を開始
+        processOCRWithImage(result)
+      }
+      reader.onerror = (error) => {
+        console.error('❌ ファイル読み込みエラー:', error)
+        setErrors({ ocr: 'ファイルの読み込みに失敗しました' })
       }
       reader.readAsDataURL(file)
+    } else {
+      console.warn('⚠️ ファイルが選択されていません')
     }
   }
-  
-  const processOCR = () => {
+
+  const processOCRWithImage = async (imageData: string) => {
+    console.log('🚀 processOCRWithImage開始:', {
+      imageDataLength: imageData?.length,
+      hasImageData: !!imageData,
+    })
+    
+    if (!imageData) {
+      console.error('❌ imageDataが存在しません')
+      return
+    }
+    
+    console.log('⏳ OCR処理を開始します...')
     setIsProcessing(true)
-    setTimeout(() => {
-      const mockData = {
-        personName: '田中 一郎',
-        personNameKana: 'タナカ イチロウ',
-        position: '営業部長',
-        department: '営業本部',
-        companyName: '株式会社テックソリューションズ',
-        email: 'tanaka@techsolutions.co.jp',
-        phone: '03-1234-5678',
-        mobile: '090-1234-5678',
-        postalCode: '150-0001',
-        address: '東京都渋谷区恵比寿1-1-1',
-        website: 'https://techsolutions.co.jp'
+    setErrors({})
+    
+    try {
+      // Base64データURLを解析
+      const dataUrlMatch = imageData.match(/^data:([^;]+);base64,(.+)$/)
+      if (!dataUrlMatch) {
+        throw new Error('画像データの形式が正しくありません')
       }
-      setOcrResult(mockData)
-      setIsProcessing(false)
-      setScanStep(3)
-    }, 2000)
-  }
-  
-  const applyOCRData = () => {
-    if (ocrResult) {
-      setFormData(prev => ({
-        ...prev,
-        name: ocrResult.personName || prev.name,
-        nameKana: ocrResult.personNameKana || prev.nameKana,
-        position: ocrResult.position || prev.position,
-        department: ocrResult.department || prev.department,
-        companyName: ocrResult.companyName || prev.companyName,
-        email: ocrResult.email || prev.email,
-        phone: ocrResult.phone || prev.phone,
-        website: ocrResult.website || prev.website,
-      }))
-      setShowCardScanModal(false)
+      
+      const mimeType = dataUrlMatch[1] || 'image/jpeg'
+      const base64Data = dataUrlMatch[2] // base64データ部分のみ
+      
+      console.log('📸 ファイルデータを解析:', {
+        mimeType,
+        base64Length: base64Data.length,
+        isPDF: mimeType.includes('pdf'),
+      })
+      
+      // OCR APIを呼び出し（JSON形式でbase64データを送信）
+      console.log('📤 OCR APIを呼び出します...')
+      
+      // 認証状態を事前に確認
+      const supabase = createClient()
+      const { data: { user }, error: authCheckError } = await supabase.auth.getUser()
+      
+      if (authCheckError || !user) {
+        console.error('❌ OCR呼び出し前の認証チェック失敗:', {
+          hasError: !!authCheckError,
+          errorMessage: authCheckError?.message,
+          hasUser: !!user,
+        })
+        throw new Error('認証されていません。ページを再読み込みしてください。')
+      }
+      
+      console.log('✅ 認証確認完了、OCR APIを呼び出します:', {
+        userId: user.id,
+        email: user.email,
+      })
+      
+      const response = await fetch('/api/ocr-business-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include', // Cookieを含める
+        body: JSON.stringify({
+          image: base64Data, // base64データ部分のみ
+          mimeType: mimeType, // PDF対応のためMIMEタイプを送信
+        }),
+      })
+      
+      console.log('📥 OCR API応答:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      })
+      
+      if (!response.ok) {
+        // エラーレスポンスの内容を取得
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        let errorData: any = null
+        
+        console.error('❌ OCR API エラー:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries()),
+        })
+        
+        try {
+          const contentType = response.headers.get('content-type')
+          console.log('📋 レスポンスContent-Type:', contentType)
+          
+          if (contentType && contentType.includes('application/json')) {
+            const responseText = await response.text()
+            console.log('📋 レスポンス本文（生）:', responseText)
+            
+            if (responseText && responseText.trim() !== '') {
+              try {
+                errorData = JSON.parse(responseText)
+                console.error('❌ OCR API エラー (JSON):', errorData)
+                
+                // エラーメッセージを構築（複数の可能性を確認）
+                errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
+                
+                // 空のオブジェクトの場合は、ステータスコードから推測
+                if (Object.keys(errorData).length === 0) {
+                  if (response.status === 401) {
+                    errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
+                  } else if (response.status === 500) {
+                    errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
+                  } else {
+                    errorMessage = `エラーが発生しました (HTTP ${response.status})`
+                  }
+                }
+              } catch (jsonParseError) {
+                console.error('❌ JSON解析エラー:', jsonParseError)
+                errorMessage = responseText || errorMessage
+              }
+            } else {
+              console.error('❌ レスポンス本文が空です')
+              if (response.status === 401) {
+                errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
+              } else {
+                errorMessage = `エラーが発生しました (HTTP ${response.status})`
+              }
+            }
+          } else {
+            const textData = await response.text()
+            console.error('❌ OCR API エラー (Text):', textData)
+            errorMessage = textData || errorMessage
+          }
+        } catch (parseError) {
+          console.error('❌ エラーレスポンスの解析に失敗:', parseError)
+          errorMessage = `エラーが発生しました (HTTP ${response.status})`
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      // レスポンスをJSONとして解析
+      const result = await response.json()
+      console.log('✅ OCR API結果:', result)
+      
+      // エラーチェック
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      
+      // レスポンスからdataオブジェクトを取得（テストスクリプトと同じ形式）
+      const data = result.data
+      
+      if (!data) {
+        console.error('❌ レスポンスにdataオブジェクトが含まれていません:', result)
+        throw new Error('OCR結果の形式が正しくありません')
+      }
+      
+      console.log('📋 抽出されたデータ:', JSON.stringify(data, null, 2))
+      
+      // OCRResult形式に変換（テストスクリプトの結果と同じ形式）
+      const ocrData: OCRResult = {
+        personName: data.personName || data.fullName || null,
+        personNameKana: data.personNameKana || null,
+        department: data.department || null,
+        companyName: data.companyName || null,
+        email: data.email || null,
+        phone: data.phone || null,
+        mobile: data.mobile || null,
+        postalCode: data.postalCode || null,
+        address: data.address || null,
+        website: data.website || null,
+      }
+      
+      console.log('✅ OCRデータ変換完了:', ocrData)
+      
+      // 少なくとも1つの情報が取得できた場合のみ結果を表示
+      const hasValidData = ocrData.personName || ocrData.companyName || ocrData.email || ocrData.phone || ocrData.department
+      
+      if (hasValidData) {
+        // OCR結果を検証・修正
+        const validation = await validateOCRResult(ocrData)
+        setOcrValidation(validation)
+        
+        // 修正されたデータがある場合はそれを使用、なければ元のデータを使用
+        const finalOcrData = validation.correctedData || ocrData
+        setOcrResult(finalOcrData)
+        setScanStep(3)
+        console.log('✅ OCR結果を表示ステップに設定（修正済みデータを使用）')
+      } else {
+        console.warn('⚠️ 有効なデータが取得できませんでした:', ocrData)
+        throw new Error('名刺から情報を読み取れませんでした。画像を確認してください。')
+      }
+    } catch (error) {
+      console.error('❌ OCR処理エラー:', error)
+      let errorMessage = '名刺の読み取りに失敗しました。手動で入力してください。'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+        
+        // より分かりやすいエラーメッセージに変換
+        if (error.message.includes('401') || error.message.includes('認証')) {
+          errorMessage = '認証エラーが発生しました。ログインし直してください。'
+        } else if (error.message.includes('429')) {
+          errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
+        } else if (error.message.includes('画像データ')) {
+          errorMessage = '画像データの形式が正しくありません。別の画像を試してください。'
+        } else if (error.message.includes('PDF') || error.message.includes('pdf')) {
+          errorMessage = 'PDFファイルは現在サポートされていません。名刺をスキャンして画像ファイル（JPEG、PNG）として保存し、その画像をアップロードしてください。'
+        }
+      }
+      
+      setErrors({ 
+        ocr: errorMessage
+      })
+      // エラーが発生しても、手動入力に進める
       setScanStep(1)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const applyOCRData = async () => {
+    console.log('🔵 applyOCRData が呼ばれました')
+    console.log('🔵 ocrResult:', ocrResult)
+    
+    if (!ocrResult) {
+      console.warn('⚠️ ocrResult が存在しません')
+      return
+    }
+    
+    try {
+      // 部署のマッチング（部分一致で検索）
+      let matchedDepartment = ocrResult.department
+      if (ocrResult.department) {
+        // 「営業」「マーケティング」など部分一致で検索
+        const deptKeywords: Record<string, string> = {
+          '営業': '営業部',
+          'マーケティング': 'マーケティング部',
+          '開発': '開発部',
+          '技術': '技術部',
+          '人事': '人事部',
+          '経理': '経理部',
+          '総務': '総務部',
+          '企画': '企画部',
+        }
+        
+        let matched = departments.find((d) => 
+          ocrResult.department?.includes(d.replace("・", "")) || 
+          d.includes(ocrResult.department?.replace("・", "") || "")
+        )
+        
+        // キーワードベースのマッチング
+        if (!matched) {
+          for (const [keyword, dept] of Object.entries(deptKeywords)) {
+            if (ocrResult.department?.includes(keyword)) {
+              matched = dept
+              break
+            }
+          }
+        }
+        
+        if (matched) {
+          matchedDepartment = matched
+          console.log('✅ 部署マッチング:', ocrResult.department, '->', matched)
+        } else {
+          // マッチしない場合は「その他」にセット
+          matchedDepartment = 'その他'
+          console.log('⚠️ 部署マッチングなし、「その他」に設定:', ocrResult.department)
+        }
+      }
+      
+      // 設定するデータをログに出力
+      const newProfileData = {
+        name: ocrResult.personName || '',
+        nameKana: ocrResult.personNameKana || '',
+        department: matchedDepartment || '',
+        phone: ocrResult.phone || '',
+        mobile: ocrResult.mobile || '',
+      }
+      
+      const newCompanyData = {
+        name: ocrResult.companyName || '',
+        website: ocrResult.website || '',
+        postalCode: ocrResult.postalCode || '',
+        address: ocrResult.address || '',
+        email: ocrResult.email || '', // 会社のemailを追加
+      }
+      
+      console.log('📝 セットするプロフィールデータ:', newProfileData)
+      console.log('📝 セットする会社データ:', newCompanyData)
+      
+      setProfileData(prev => ({
+        ...prev,
+        name: newProfileData.name || prev.name,
+        nameKana: newProfileData.nameKana || prev.nameKana,
+        department: newProfileData.department || prev.department,
+        phone: newProfileData.phone || prev.phone,
+        mobile: newProfileData.mobile || prev.mobile,
+      }))
+      
+      // 会社データをセット
+      setCompanyData(prev => ({
+        ...prev,
+        name: newCompanyData.name || prev.name,
+        website: newCompanyData.website || prev.website,
+        postalCode: newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== '' ? newCompanyData.postalCode : prev.postalCode,
+        address: newCompanyData.address || prev.address,
+        email: newCompanyData.email || prev.email,
+      }))
+      
+      console.log('✅ 会社データをセットしました:', {
+        postalCode: newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== '' ? newCompanyData.postalCode : '保持',
+        email: newCompanyData.email || '保持',
+      })
+      
+      // OCR結果から郵便番号が取得された場合、郵便番号から都道府県と市区町村を取得
+      // その際、OCRで読み取った元の住所は建物名に保存
+      if (newCompanyData.postalCode) {
+        console.log('📍 OCR結果から郵便番号を検出、住所を取得します:', newCompanyData.postalCode)
+        
+        // OCRで読み取った元の住所を保存（建物名にセットするため）
+        const originalAddress = newCompanyData.address || ''
+        console.log('📝 OCRで読み取った元の住所を保存:', originalAddress)
+        
+        // 〒マークとハイフンを除去してから検索
+        const cleanPostalCode = newCompanyData.postalCode.replace(/[〒ー-]/g, '')
+        if (/^\d{7}$/.test(cleanPostalCode)) {
+          // 郵便番号から住所を取得（都道府県・市区町村・番地）
+          try {
+            const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
+            const response = await fetch(apiUrl)
+            const data = await response.json()
+            
+            if (data.status === 200 && data.results && data.results.length > 0) {
+              const result = data.results[0]
+              const prefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
+              const city = result.address2 || ''
+              const address = result.address3 || ''
+              
+              console.log('✅ 郵便番号から住所を取得:', { prefecture, city, address })
+              
+              // 都道府県・市区町村・番地をセット
+              setCompanyData(prev => ({
+                ...prev,
+                prefecture: prefecture || prev.prefecture,
+                city: city || prev.city,
+                address: address || prev.address,
+                // OCRで読み取った元の住所を建物名にセット
+                building: originalAddress || prev.building,
+              }))
+              
+              console.log('✅ 住所情報をセットしました（建物名に元の住所を保存）')
+            }
+          } catch (error) {
+            console.error('❌ 郵便番号検索エラー:', error)
+          }
+        } else {
+          console.warn('⚠️ OCR結果の郵便番号が正しい形式ではありません:', newCompanyData.postalCode)
+        }
+      }
+      
+      console.log('➡️ ステップ2に移動します')
+      console.log('🔵 現在のstep状態:', step)
+      
+      // 状態をクリーンアップ
       setUploadedImage(null)
       setOcrResult(null)
-      showToast('名刺情報を入力欄に反映しました', 'success')
-    }
-  }
-  
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          const newDoc = {
-            id: Date.now().toString() + Math.random(),
-            name: file.name,
-            url: event.target?.result as string,
-            uploadedAt: new Date().toISOString()
-          }
-          setUploadedDocuments(prev => [...prev, newDoc])
-          showToast(`${file.name}をアップロードしました`, 'success')
-        }
-        reader.readAsDataURL(file)
-      })
-    }
-  }
-  
-  const removeDocument = (id: string) => {
-    setUploadedDocuments(prev => prev.filter(doc => doc.id !== id))
-    showToast('資料を削除しました', 'info')
-  }
-
-  const updateForm = (key: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [key]: value }))
-    if (errors[key]) {
-      setErrors(prev => ({ ...prev, [key]: '' }))
+      setErrors({})
+      setScanStep(1)
+      
+      // ステップ2に移動
+      console.log('➡️ setStep(2) を実行します')
+      setStep(2)
+      console.log('✅ setStep(2) 実行完了')
+      
+      console.log('✅ applyOCRData 完了')
+    } catch (error) {
+      console.error('❌ applyOCRData エラー:', error)
     }
   }
 
-  const validateStep1 = () => {
-    const newErrors: Record<string, string> = {}
+  // アバターファイル処理（共通処理）
+  const handleAvatarFile = (file: File) => {
+    // 画像ファイルのみ許可（JPEG、PNG）
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setErrors({ avatar: 'JPEGまたはPNG形式の画像を選択してください' })
+      return
+    }
     
-    if (!formData.name.trim()) {
+    // ファイルサイズチェック（5MB以下）
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors({ avatar: 'ファイルサイズは5MB以下にしてください' })
+      return
+    }
+    
+    setAvatarFile(file)
+    
+    // プレビュー用にDataURLを作成
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setAvatarPreview(event.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // アバターファイル選択ハンドラー
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    handleAvatarFile(file)
+  }
+
+  // アバタードラッグ＆ドロップ
+  const handleAvatarDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingAvatar(true)
+  }
+
+  const handleAvatarDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingAvatar(false)
+  }
+
+  const handleAvatarDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingAvatar(false)
+
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleAvatarFile(file)
+    }
+  }
+  
+  // アバターをSupabaseストレージにアップロード
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile) return null
+    
+    try {
+      const supabase = createClient()
+      if (!supabase) {
+        throw new Error('Supabaseが設定されていません')
+      }
+      
+      setIsUploadingAvatar(true)
+      
+      // ファイル名を生成（ユーザーID + タイムスタンプ）
+      const fileExt = avatarFile.name.split('.').pop()
+      const fileName = `${userId}-${Date.now()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+      
+      // Supabaseストレージにアップロード
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile, {
+          cacheControl: '3600',
+          upsert: false
+        })
+      
+      if (error) {
+        console.error('❌ アバターアップロードエラー:', error)
+        throw new Error(`アバターのアップロードに失敗しました: ${error.message}`)
+      }
+      
+      // 公開URLを取得
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+      
+      console.log('✅ アバターアップロード成功:', urlData.publicUrl)
+      return urlData.publicUrl
+    } catch (error) {
+      console.error('❌ アバターアップロードエラー:', error)
+      throw error
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  // 会社資料をアップロード
+  const uploadCompanyDocuments = async (companyId: string): Promise<string[]> => {
+    if (companyDocuments.length === 0) return []
+
+    try {
+      const supabase = createClient()
+      if (!supabase) {
+        throw new Error('Supabaseが設定されていません')
+      }
+
+      const uploadedPaths: string[] = [] // URLではなくパスを保存
+
+      for (const file of companyDocuments) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${companyId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = fileName
+
+        const { error } = await supabase.storage
+          .from('company-documents')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (error) {
+          console.error('ファイルアップロードエラー:', error)
+          continue
+        }
+
+        // パスのみを保存（Privateバケットのため）
+        uploadedPaths.push(filePath)
+      }
+
+      return uploadedPaths
+    } catch (error) {
+      console.error('会社資料アップロードエラー:', error)
+      throw error
+    }
+  }
+
+  const validateProfile = () => {
+    const newErrors: Record<string, string> = {}
+    if (!profileData.name.trim()) {
       newErrors.name = '氏名を入力してください'
     }
-    if (!formData.email) {
-      newErrors.email = 'メールアドレスを入力してください'
-    } else if (!isValidEmail(formData.email)) {
-      newErrors.email = '有効なメールアドレスを入力してください'
-    }
-    if (!formData.password) {
-      newErrors.password = 'パスワードを入力してください'
-    } else {
-      const pwCheck = isValidPassword(formData.password)
-      if (!pwCheck.valid) {
-        newErrors.password = pwCheck.message
-      }
-    }
-    if (formData.password !== formData.passwordConfirm) {
-      newErrors.passwordConfirm = 'パスワードが一致しません'
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const validateStep2 = () => {
+  const validateCompany = () => {
     const newErrors: Record<string, string> = {}
-    
-    if (!formData.companyName.trim()) {
+    if (!companyData.name.trim()) {
       newErrors.companyName = '会社名を入力してください'
     }
-    if (!formData.agreeTerms) {
-      newErrors.agreeTerms = '利用規約に同意してください'
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleNext = () => {
-    if (validateStep1()) {
-      setStep(2)
+  // OCR結果を検証・修正
+  const validateOCRResult = async (ocrData: OCRResult): Promise<OCRValidationResult> => {
+    const warnings: string[] = []
+    const errors: string[] = []
+    let correctedData: OCRResult = { ...ocrData } // コピーを作成
+    
+    console.log('🔍 OCR結果の検証を開始:', ocrData)
+    
+    // 1. 郵便番号と住所の整合性チェック・自動修正
+    if (ocrData.postalCode) {
+      try {
+        const cleanPostalCode = ocrData.postalCode.replace(/[〒ー-]/g, '')
+        if (/^\d{7}$/.test(cleanPostalCode)) {
+          const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
+          const response = await fetch(apiUrl)
+          const data = await response.json()
+          
+          if (data.status === 200 && data.results && data.results.length > 0) {
+            // 複数結果がある場合は最初の住所を使用
+            const result = data.results[0]
+            const correctPrefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
+            const correctCity = result.address2 || ''
+            const correctAddress = result.address3 || ''
+            const correctFullAddress = `${correctPrefecture}${correctCity}${correctAddress}`.trim()
+            
+            if (ocrData.address) {
+              const ocrAddress = ocrData.address.replace(/[〒ー-]/g, '').trim()
+              
+              // 住所の類似度をチェック
+              const correctWords = correctFullAddress.split(/[都道府県市区町村]/).filter(w => w.length > 1)
+              const ocrWords = ocrAddress.split(/[都道府県市区町村]/).filter(w => w.length > 1)
+              
+              // 共通の単語数をチェック
+              const commonWords = correctWords.filter(word => 
+                ocrWords.some(ocrWord => ocrWord.includes(word) || word.includes(ocrWord))
+              )
+              
+              const similarity = correctWords.length > 0 ? commonWords.length / correctWords.length : 0
+              
+              // 類似度が低い場合（0.5未満）、住所を自動修正
+              if (similarity < 0.5) {
+                console.warn('⚠️ 郵便番号と住所の不一致を検出、住所を自動修正します:', {
+                  postalCode: ocrData.postalCode,
+                  ocrAddress,
+                  correctFullAddress,
+                  similarity
+                })
+                
+                // 正しい住所で上書き
+                correctedData.address = correctFullAddress
+                
+                warnings.push(
+                  `郵便番号（${ocrData.postalCode}）と読み取った住所が一致しなかったため、正しい住所に自動修正しました。修正前: ${ocrAddress.substring(0, 50)}... → 修正後: ${correctFullAddress.substring(0, 50)}...`
+                )
+                
+                // 住所が間違っていた場合、電話番号も確認が必要な可能性があることを警告
+                if (ocrData.phone) {
+                  warnings.push(
+                    `住所が間違っていたため、電話番号（${ocrData.phone}）も名刺画像と照合して確認してください。`
+                  )
+                }
+              } else if (similarity < 1.0) {
+                warnings.push(
+                  `郵便番号（${ocrData.postalCode}）に対応する住所が一部異なります。確認してください。`
+                )
+              }
+            } else {
+              // 住所が読み取れていない場合、郵便番号から取得した住所を設定
+              correctedData.address = correctFullAddress
+              console.log('✅ 住所が読み取れていなかったため、郵便番号から住所を自動設定:', correctFullAddress)
+            }
+          } else {
+            warnings.push(`郵便番号（${ocrData.postalCode}）から住所を取得できませんでした。`)
+          }
+        }
+      } catch (error) {
+        console.error('住所整合性チェックエラー:', error)
+        warnings.push('郵便番号と住所の整合性チェック中にエラーが発生しました。')
+      }
+    }
+    
+    // 2. メールアドレスの形式チェック
+    if (ocrData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(ocrData.email)) {
+        errors.push(`メールアドレスの形式が正しくありません: ${ocrData.email}`)
+      }
+    }
+    
+    // 3. 電話番号の形式チェック（簡易版）
+    if (ocrData.phone) {
+      const phoneRegex = /^[\d-ー()]+$/
+      if (!phoneRegex.test(ocrData.phone.replace(/\s/g, ''))) {
+        warnings.push(`電話番号の形式を確認してください: ${ocrData.phone}`)
+      }
+    }
+    
+    // 4. URLの形式チェック
+    if (ocrData.website) {
+      try {
+        new URL(ocrData.website.startsWith('http') ? ocrData.website : `https://${ocrData.website}`)
+      } catch {
+        warnings.push(`ウェブサイトのURL形式を確認してください: ${ocrData.website}`)
+      }
+    }
+    
+    // 5. 重要な情報の欠損チェック
+    const hasName = !!ocrData.personName
+    const hasCompany = !!ocrData.companyName
+    const hasContact = !!(ocrData.email || ocrData.phone || ocrData.mobile)
+    
+    if (!hasName && !hasCompany) {
+      errors.push('氏名または会社名が読み取れませんでした。')
+    }
+    
+    if (!hasContact) {
+      warnings.push('連絡先情報（メール、電話番号）が読み取れませんでした。')
+    }
+    
+    const validationResult: OCRValidationResult = {
+      isValid: errors.length === 0,
+      warnings,
+      errors,
+      correctedData: Object.keys(correctedData).length > 0 ? correctedData : undefined
+    }
+    
+    console.log('✅ OCR検証完了:', validationResult)
+    console.log('📝 修正されたデータ:', correctedData)
+    return validationResult
+  }
+
+  // 郵便番号から住所を取得
+  const fetchAddressFromPostalCode = async (postalCode: string) => {
+    // 〒マークとハイフンを除去
+    const cleanPostalCode = postalCode.replace(/[〒ー-]/g, '')
+    
+    console.log('📍 郵便番号検索開始:', { postalCode, cleanPostalCode })
+    
+    // 7桁の数字でない場合は処理しない
+    if (!/^\d{7}$/.test(cleanPostalCode)) {
+      console.log('⚠️ 郵便番号が7桁の数字ではありません:', cleanPostalCode)
+      return
+    }
+    
+    try {
+      // 郵便番号検索APIを使用（zipcloud）
+      const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
+      console.log('🔍 API呼び出し:', apiUrl)
+      
+      const response = await fetch(apiUrl)
+      const data = await response.json()
+      
+      console.log('📥 APIレスポンス:', JSON.stringify(data, null, 2))
+      
+      if (data.status === 200 && data.results && data.results.length > 0) {
+        const result = data.results[0]
+        console.log('✅ 住所データ取得成功:', result)
+        
+        const prefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
+        const city = result.address2 || ''
+        const address = result.address3 || ''
+        
+        console.log('📝 設定する住所データ:', { prefecture, city, address })
+        
+        setCompanyData(prev => {
+          const newData = {
+            ...prev,
+            prefecture: prefecture || prev.prefecture,
+            city: city || prev.city,
+            address: address || prev.address,
+          }
+          console.log('✅ 会社データを更新しました:', newData)
+          return newData
+        })
+        
+        // 成功メッセージを表示
+        if (prefecture || city) {
+          const addressText = `${prefecture} ${city} ${address}`.trim()
+          console.log('✅ 住所を設定しました:', addressText)
+          setPostalCodeStatus({
+            message: `住所を設定しました: ${addressText}`,
+            type: 'success'
+          })
+          // 5秒後にメッセージを消す
+          setTimeout(() => setPostalCodeStatus(null), 5000)
+        }
+      } else {
+        console.warn('⚠️ 住所が見つかりませんでした:', data)
+        const errorMsg = data.message || '住所が見つかりませんでした'
+        console.warn('エラーメッセージ:', errorMsg)
+        setPostalCodeStatus({
+          message: `郵便番号から住所を取得できませんでした: ${errorMsg}`,
+          type: 'error'
+        })
+        setTimeout(() => setPostalCodeStatus(null), 5000)
+      }
+    } catch (error) {
+      console.error('❌ 郵便番号検索エラー:', error)
+      const errorMsg = error instanceof Error ? error.message : '郵便番号検索に失敗しました'
+      console.error('エラー詳細:', errorMsg)
+      setPostalCodeStatus({
+        message: `郵便番号検索エラー: ${errorMsg}`,
+        type: 'error'
+      })
+      setTimeout(() => setPostalCodeStatus(null), 5000)
+      // エラーが発生しても続行
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateStep2()) return
+  // 都道府県コードから都道府県名を取得
+  const getPrefectureName = (code: string): string => {
+    const prefectureMap: Record<string, string> = {
+      '01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城県', '05': '秋田県',
+      '06': '山形県', '07': '福島県', '08': '茨城県', '09': '栃木県', '10': '群馬県',
+      '11': '埼玉県', '12': '千葉県', '13': '東京都', '14': '神奈川県', '15': '新潟県',
+      '16': '富山県', '17': '石川県', '18': '福井県', '19': '山梨県', '20': '長野県',
+      '21': '岐阜県', '22': '静岡県', '23': '愛知県', '24': '三重県', '25': '滋賀県',
+      '26': '京都府', '27': '大阪府', '28': '兵庫県', '29': '奈良県', '30': '和歌山県',
+      '31': '鳥取県', '32': '島根県', '33': '岡山県', '34': '広島県', '35': '山口県',
+      '36': '徳島県', '37': '香川県', '38': '愛媛県', '39': '高知県', '40': '福岡県',
+      '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
+      '46': '鹿児島県', '47': '沖縄県'
+    }
+    return prefectureMap[code] || code
+  }
 
-    setIsLoading(true)
+  const fetchCompanyIntel = async () => {
+    if (!companyData.website) {
+      setCompanyIntelStatus({
+        message: 'WebサイトのURLを入力してください',
+        type: 'error',
+      })
+      return
+    }
+
+    try {
+      setIsFetchingCompanyIntel(true)
+      setCompanyIntelStatus({
+        message: 'Webサイトから情報を取得しています...',
+        type: 'info',
+      })
+
+      const response = await fetch('/api/company-intel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website: companyData.website }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result?.error || 'Web情報の取得に失敗しました')
+      }
+
+      const intel = result?.data || {}
+      setCompanyIntel(intel)
+      setCompanyData(prev => ({
+        ...prev,
+        industry: intel.industry || prev.industry,
+        employeeCount: intel.employeeCount || prev.employeeCount,
+        annualRevenue: intel.annualRevenue || prev.annualRevenue,
+        retrievedInfo: intel.summary || intel.rawNotes || prev.retrievedInfo,
+      }))
+
+      setCompanyIntelStatus({
+        message: 'Web情報を取得し、フォームに反映しました',
+        type: 'success',
+      })
+    } catch (error) {
+      console.error('❌ Web情報取得エラー:', error)
+      const message = error instanceof Error ? error.message : 'Web情報の取得に失敗しました'
+      setCompanyIntelStatus({
+        message,
+        type: 'error',
+      })
+    } finally {
+      setIsFetchingCompanyIntel(false)
+      setTimeout(() => setCompanyIntelStatus(null), 6000)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!validateProfile()) return
     
-    // Simulate signup (replace with actual Supabase auth)
-    setTimeout(() => {
+    setIsLoading(true)
+    setErrors({})
+    
+    try {
+      const supabase = createClient()
+      if (!supabase) {
+        throw new Error('Supabaseが設定されていません')
+      }
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError) {
+        console.error('User auth error:', userError)
+        throw new Error(`認証エラー: ${userError.message}`)
+      }
+      
+      if (!user) {
+        throw new Error('認証されていません')
+      }
+      
+      // アバターをアップロード（ファイルが選択されている場合）
+      let avatarUrl = profileData.avatarUrl
+      if (avatarFile) {
+        try {
+          console.log('📤 アバターをアップロードします...')
+          const uploadedUrl = await uploadAvatar(user.id)
+          if (uploadedUrl) {
+            avatarUrl = uploadedUrl
+            // プレビューも更新
+            setAvatarPreview(uploadedUrl)
+            setProfileData(prev => ({ ...prev, avatarUrl: uploadedUrl }))
+          }
+        } catch (uploadError) {
+          console.error('❌ アバターアップロードエラー:', uploadError)
+          setErrors({ avatar: uploadError instanceof Error ? uploadError.message : 'アバターのアップロードに失敗しました' })
+          setIsLoading(false)
+          return
+        }
+      }
+      
+      // プロファイルを作成または更新（upsert）
+      console.log('📝 プロフィールを保存します:', {
+        user_id: user.id,
+        email: user.email,
+        name: profileData.name,
+        avatar_url: avatarUrl,
+      })
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          email: user.email, // NOT NULL制約があるためemailを追加
+          name: profileData.name,
+          name_kana: profileData.nameKana || null,
+          department: profileData.department || null,
+          phone: profileData.phone || null,
+          mobile: profileData.mobile || null,
+          avatar_url: avatarUrl || null,
+        }, {
+          onConflict: 'user_id'
+        })
+      
+      if (profileError) {
+        console.error('Profile upsert error:', profileError)
+        throw new Error(`プロフィールの保存に失敗しました: ${profileError.message || profileError.code || '不明なエラー'}`)
+      }
+      
+      console.log('✅ プロフィール保存完了')
+      
+      setStep(3)
+    } catch (error) {
+      console.error('Profile update error:', error)
+      
+      // エラーメッセージを適切に取得
+      let errorMessage = 'エラーが発生しました'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (error && typeof error === 'object') {
+        // Supabaseのエラーオブジェクトの場合
+        const supabaseError = error as any
+        if (supabaseError.message) {
+          errorMessage = supabaseError.message
+        } else if (supabaseError.code) {
+          errorMessage = `エラーコード: ${supabaseError.code}`
+        } else if (supabaseError.details) {
+          errorMessage = supabaseError.details
+        } else {
+          errorMessage = JSON.stringify(error)
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      setErrors({ general: errorMessage })
+    } finally {
       setIsLoading(false)
-      showToast('アカウントを作成しました', 'success')
-      onSignup()
-    }, 1500)
+    }
+  }
+
+  const handleSaveCompany = async () => {
+    if (!validateCompany()) return
+    
+    setIsLoading(true)
+    setErrors({})
+    
+    try {
+      const supabase = createClient()
+      if (!supabase) {
+        throw new Error('Supabaseが設定されていません')
+      }
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError) {
+        console.error('User auth error:', userError)
+        throw new Error(`認証エラー: ${userError.message}`)
+      }
+      
+      if (!user) {
+        throw new Error('認証されていません')
+      }
+      
+      // 会社情報を取得または作成
+      console.log('📝 プロフィールから会社IDを取得します')
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      
+      if (profileError) {
+        console.error('Profile fetch error:', profileError)
+        throw new Error(`プロフィールの取得に失敗しました: ${profileError.message}`)
+      }
+      
+      // プロフィールが存在しない場合は作成
+      if (!profile) {
+        console.log('📝 プロフィールが存在しないため作成します')
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            email: user.email, // NOT NULL制約があるためemailを追加
+            name: 'User', // 仮の名前
+          })
+        
+        if (createProfileError) {
+          console.error('Profile create error:', createProfileError)
+          throw new Error(`プロフィールの作成に失敗しました: ${createProfileError.message}`)
+        }
+      }
+      
+      let companyId = profile?.company_id
+      console.log('📝 現在の会社ID:', companyId)
+      const retrievedInfoPayload = companyIntel
+        ? companyIntel
+        : (companyData.retrievedInfo ? { summary: companyData.retrievedInfo } : null)
+      
+      if (!companyId) {
+        // 会社を作成
+        console.log('📝 新しい会社を作成します:', companyData.name)
+        
+        const { data: newCompany, error: companyError } = await supabase
+          .from('companies')
+          .insert({
+            name: companyData.name,
+            name_kana: companyData.nameKana || null,
+            industry: companyData.industry || null,
+            employee_count: companyData.employeeCount || null,
+            annual_revenue: companyData.annualRevenue || null,
+            website: companyData.website || null,
+            email: companyData.email || null, // 会社のemailを追加
+            postal_code: companyData.postalCode || null,
+            prefecture: companyData.prefecture || null,
+            city: companyData.city || null,
+            address: companyData.address || null,
+            building: companyData.building || null,
+            ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
+          })
+          .select()
+          .single()
+        
+        if (companyError) {
+          console.error('Company insert error:', companyError)
+          throw new Error(`会社情報の作成に失敗しました: ${companyError.message || companyError.code || '不明なエラー'}`)
+        }
+        
+        if (!newCompany || !newCompany.id) {
+          throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）')
+        }
+        
+        companyId = newCompany.id
+        console.log('✅ 会社作成完了:', companyId)
+
+        // 会社資料をアップロード（会社作成後）
+        let documentPaths: string[] = []
+        if (companyDocuments.length > 0) {
+          try {
+            documentPaths = await uploadCompanyDocuments(companyId)
+            console.log('✅ 会社資料アップロード完了:', documentPaths.length, 'ファイル')
+            
+            // アップロードした資料パスを会社情報に更新
+            if (documentPaths.length > 0) {
+              const { error: updateDocsError } = await supabase
+                .from('companies')
+                .update({ documents_urls: documentPaths })
+                .eq('id', companyId)
+              
+              if (updateDocsError) {
+                console.error('会社資料パス更新エラー:', updateDocsError)
+              }
+            }
+          } catch (docError) {
+            console.error('会社資料アップロードエラー（続行）:', docError)
+            // 資料アップロードが失敗しても続行
+          }
+        }
+        
+        // プロファイルに会社IDを設定
+        console.log('📝 プロフィールに会社IDを設定します')
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ company_id: companyId })
+          .eq('user_id', user.id)
+        
+        if (updateError) {
+          console.error('Profile update error:', updateError)
+          throw new Error(`プロフィールの更新に失敗しました: ${updateError.message || updateError.code || '不明なエラー'}`)
+        }
+        console.log('✅ プロフィール更新完了')
+      } else {
+        // 既存の会社を更新
+        // 会社資料をアップロード
+        let documentPaths: string[] = []
+        if (companyDocuments.length > 0) {
+          try {
+            documentPaths = await uploadCompanyDocuments(companyId)
+            console.log('✅ 会社資料アップロード完了:', documentPaths.length, 'ファイル')
+          } catch (docError) {
+            console.error('会社資料アップロードエラー（続行）:', docError)
+            // 資料アップロードが失敗しても続行
+          }
+        }
+
+        // 既存の資料パスを取得
+        const { data: existingCompany } = await supabase
+          .from('companies')
+          .select('documents_urls')
+          .eq('id', companyId)
+          .single()
+
+        const existingDocuments = existingCompany?.documents_urls || []
+        const allDocuments = Array.isArray(existingDocuments) 
+          ? [...existingDocuments, ...documentPaths]
+          : documentPaths
+
+        const { error: updateError } = await supabase
+          .from('companies')
+          .update({
+            name: companyData.name,
+            name_kana: companyData.nameKana || null,
+            industry: companyData.industry || null,
+            employee_count: companyData.employeeCount || null,
+            annual_revenue: companyData.annualRevenue || null,
+            website: companyData.website || null,
+            email: companyData.email || null, // 会社のemailを追加
+            postal_code: companyData.postalCode || null,
+            prefecture: companyData.prefecture || null,
+            city: companyData.city || null,
+            address: companyData.address || null,
+            building: companyData.building || null,
+            documents_urls: allDocuments.length > 0 ? allDocuments : null,
+            ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
+          })
+          .eq('id', companyId)
+        
+        if (updateError) {
+          console.error('Company update error:', updateError)
+          throw new Error(`会社情報の更新に失敗しました: ${updateError.message || updateError.code || '不明なエラー'}`)
+        }
+      }
+      
+      // ダッシュボードにリダイレクト
+      console.log('✅ 登録完了！ダッシュボードにリダイレクトします')
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Company save error:', error)
+      
+      // エラーメッセージを適切に取得
+      let errorMessage = 'エラーが発生しました'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (error && typeof error === 'object') {
+        // Supabaseのエラーオブジェクトの場合
+        const supabaseError = error as any
+        if (supabaseError.message) {
+          errorMessage = supabaseError.message
+        } else if (supabaseError.code) {
+          errorMessage = `エラーコード: ${supabaseError.code}`
+        } else if (supabaseError.details) {
+          errorMessage = supabaseError.details
+        } else {
+          errorMessage = JSON.stringify(error)
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      setErrors({ general: errorMessage })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        {/* Back button */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-        >
-          <Home size={20} />
-          <span>トップページに戻る</span>
-        </button>
-
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-6 justify-center">
-            <img 
-              src="/info-data/AI-LOGO05.png" 
-              alt="SolveWise" 
-              className="h-12 w-auto"
-            />
-            <span className="text-xl font-bold gradient-text">SolveWise</span>
-          </div>
-
-          <h1 className="text-2xl font-bold text-center mb-2">アカウント作成</h1>
-          
-          {/* Step indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>
-              {step > 1 ? <Check size={16} /> : '1'}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-4">
+            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                step >= 1 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
+              }`}>
+                {step > 1 ? <CheckCircle size={20} /> : <Camera size={20} />}
+              </div>
+              <span className="font-medium">名刺登録</span>
             </div>
-            <div className={`w-12 h-0.5 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>
-              {step > 2 ? <Check size={16} /> : '2'}
+            <div className={`w-16 h-0.5 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-300'}`} />
+            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                step >= 2 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
+              }`}>
+                {step > 2 ? <CheckCircle size={20} /> : <User size={20} />}
+              </div>
+              <span className="font-medium">プロフィール</span>
             </div>
-            <div className={`w-12 h-0.5 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>
-              3
+            <div className={`w-16 h-0.5 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-300'}`} />
+            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                step >= 3 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
+              }`}>
+                <Building2 size={20} />
+              </div>
+              <span className="font-medium">会社情報</span>
             </div>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            {step === 1 ? (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    氏名 <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCardScanModal(true)}
-                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    <Camera size={14} /> 名刺から読み取る
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => updateForm('name', e.target.value)}
-                  placeholder="山田 太郎"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    氏名（カナ）
-                  </label>
+        {/* Step 1: Business Card OCR */}
+        {step === 1 && (
+          <Card className="shadow-2xl border border-gray-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-center">名刺を登録</CardTitle>
+              <CardDescription className="text-center">
+                名刺をスキャンして、プロフィール情報を自動入力します
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {scanStep === 1 && (
+                <div className="text-center py-12">
+                  <div className="mb-6">
+                    <div className="w-24 h-24 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                      <Camera className="w-12 h-12 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">名刺をアップロード</h3>
+                    <p className="text-gray-600 text-sm mb-6">
+                      名刺の画像（JPEG、PNG）をアップロードすると、自動で情報を読み取ります
+                    </p>
+                  </div>
                   <input
-                    type="text"
-                    value={formData.nameKana}
-                    onChange={(e) => updateForm('nameKana', e.target.value)}
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  >
+                    <Upload size={18} className="mr-2" />
+                    名刺を選択
+                  </Button>
+                  <div className="mt-6">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="text-sm text-gray-600 hover:text-gray-900 underline"
+                    >
+                      スキップして手動入力
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {scanStep === 2 && (
+                <div className="text-center py-12">
+                  <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">名刺を読み取っています...</p>
+                  {errors.ocr && (
+                    <p className="text-sm text-red-500 mt-2">{errors.ocr}</p>
+                  )}
+                </div>
+              )}
+              
+              {scanStep === 3 && ocrResult && (
+                <div className="space-y-4">
+                  {/* OCR成功メッセージ */}
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700 font-medium">
+                      名刺から情報を読み取りました。下のフォームに自動入力されています。
+                    </p>
+                  </div>
+                  
+                  {/* OCR検証結果の表示 */}
+                  {ocrValidation && (
+                    <div className="space-y-2">
+                      {ocrValidation.correctedData && (
+                        <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                          <p className="text-sm font-bold text-blue-800 mb-2">
+                            ✅ 自動修正が適用されました
+                          </p>
+                          <p className="text-sm text-blue-700 mb-2">
+                            読み取った郵便番号と住所を照合し、正しい住所に自動修正しました。修正後の情報が下のフォームに反映されています。
+                          </p>
+                          {ocrValidation.warnings.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-blue-200">
+                              <ul className="list-disc list-inside space-y-1">
+                                {ocrValidation.warnings.map((warning, index) => (
+                                  <li key={index} className="text-sm text-blue-600">{warning}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {!ocrValidation.correctedData && ocrValidation.errors.length > 0 && (
+                        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+                          <p className="text-sm font-bold text-red-800 mb-2">
+                            ⚠️ 重要な問題が検出されました
+                          </p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {ocrValidation.errors.map((error, index) => (
+                              <li key={index} className="text-sm text-red-700">{error}</li>
+                            ))}
+                          </ul>
+                          <p className="text-xs text-red-600 mt-2 font-medium">
+                            📝 この情報を使用する前に、読み取り結果を確認・修正してください。
+                          </p>
+                        </div>
+                      )}
+                      {!ocrValidation.correctedData && ocrValidation.warnings.length > 0 && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <p className="text-sm font-semibold text-yellow-800 mb-2">
+                            ⚠️ 確認が必要な項目があります
+                          </p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {ocrValidation.warnings.map((warning, index) => (
+                              <li key={index} className="text-sm text-yellow-700">{warning}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {ocrValidation.errors.length === 0 && ocrValidation.warnings.length === 0 && !ocrValidation.correctedData && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-700 font-medium">
+                            ✅ 読み取り結果に問題は見つかりませんでした。
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {errors.ocr && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-red-600">{errors.ocr}</p>
+                    </div>
+                  )}
+                  
+                  {/* アップロードした名刺画像の表示 */}
+                  {uploadedImage && (
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+                      <h4 className="font-semibold mb-3">アップロードした名刺</h4>
+                      <div className="flex justify-center">
+                        <img
+                          src={uploadedImage}
+                          alt="アップロードした名刺"
+                          className="max-w-full h-auto max-h-96 rounded-lg shadow-md object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h4 className="font-semibold mb-3 text-lg">読み取り結果</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {ocrResult.personName && (
+                        <div className="flex items-start">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">氏名:</span>
+                          <span className="text-gray-900">{ocrResult.personName}</span>
+                        </div>
+                      )}
+                      {ocrResult.personNameKana && (
+                        <div className="flex items-start">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">氏名(カナ):</span>
+                          <span className="text-gray-900">{ocrResult.personNameKana}</span>
+                        </div>
+                      )}
+                      {ocrResult.department && (
+                        <div className="flex items-start">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">部署:</span>
+                          <span className="text-gray-900">{ocrResult.department}</span>
+                        </div>
+                      )}
+                      {ocrResult.companyName && (
+                        <div className="flex items-start md:col-span-2">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">会社名:</span>
+                          <span className="text-gray-900">{ocrResult.companyName}</span>
+                        </div>
+                      )}
+                      {ocrResult.email && (
+                        <div className="flex items-start md:col-span-2">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">メール:</span>
+                          <span className="text-gray-900 break-all">{ocrResult.email}</span>
+                        </div>
+                      )}
+                      {ocrResult.phone && (
+                        <div className="flex items-start">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">電話:</span>
+                          <span className="text-gray-900">{ocrResult.phone}</span>
+                        </div>
+                      )}
+                      {ocrResult.mobile && (
+                        <div className="flex items-start">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">携帯:</span>
+                          <span className="text-gray-900">{ocrResult.mobile}</span>
+                        </div>
+                      )}
+                      {ocrResult.postalCode && (
+                        <div className="flex items-start">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">郵便番号:</span>
+                          <span className="text-gray-900">〒{ocrResult.postalCode}</span>
+                        </div>
+                      )}
+                      {ocrResult.address && (
+                        <div className="flex items-start md:col-span-2">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">住所:</span>
+                          <span className="text-gray-900 break-words">{ocrResult.address}</span>
+                        </div>
+                      )}
+                      {ocrResult.website && (
+                        <div className="flex items-start md:col-span-2">
+                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">ウェブサイト:</span>
+                          <span className="text-blue-600 break-all">{ocrResult.website}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* 読み取れなかった項目の表示 */}
+                    {!ocrResult.personName && !ocrResult.companyName && !ocrResult.email && (
+                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+                        ⚠️ 一部の情報が読み取れませんでした。手動で入力してください。
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setScanStep(1)
+                        setUploadedImage(null)
+                        setOcrResult(null)
+                        setOcrValidation(null)
+                        setErrors({})
+                      }}
+                      className="flex-1"
+                    >
+                      やり直す
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        console.log('🔵 「この情報を使用」ボタンがクリックされました')
+                        console.log('🔵 現在の状態:', { step, scanStep, hasOcrResult: !!ocrResult })
+                        applyOCRData()
+                        console.log('🔵 applyOCRData 実行後')
+                      }}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                      disabled={!ocrResult || isProcessing}
+                    >
+                      <CheckCircle size={18} className="mr-2" />
+                      この情報を使用
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {errors.ocr && scanStep === 1 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-red-600">{errors.ocr}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 2: Profile Information */}
+        {step === 2 && (
+          <Card className="shadow-2xl border border-gray-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-center">プロフィール情報</CardTitle>
+              <CardDescription className="text-center">
+                あなたの基本情報を入力してください
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* アバターアップロード */}
+                <div className="flex flex-col items-center gap-4 mb-6">
+                  <Label>プロフィール写真（任意）</Label>
+                  <div 
+                    className={`
+                      relative border-2 border-dashed rounded-lg p-4 transition-colors
+                      ${isDraggingAvatar 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                      }
+                    `}
+                    onDragOver={handleAvatarDragOver}
+                    onDragLeave={handleAvatarDragLeave}
+                    onDrop={handleAvatarDrop}
+                  >
+                    {avatarPreview || profileData.avatarUrl ? (
+                      <div className="relative">
+                        <img
+                          src={avatarPreview || profileData.avatarUrl || ''}
+                          alt="アバタープレビュー"
+                          className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAvatarFile(null)
+                            setAvatarPreview(null)
+                            setProfileData(prev => ({ ...prev, avatarUrl: '' }))
+                            if (avatarInputRef.current) {
+                              avatarInputRef.current.value = ''
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                          <User size={32} className="text-gray-400" />
+                        </div>
+                        <p className="text-xs text-gray-500 text-center">ドラッグ＆ドロップ<br />またはクリック</p>
+                      </div>
+                    )}
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      onChange={handleAvatarSelect}
+                      className="hidden"
+                      id="avatar-upload"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="w-auto"
+                  >
+                    {isUploadingAvatar ? (
+                      <>
+                        <Loader2 className="animate-spin mr-2" size={16} />
+                        アップロード中...
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={16} className="mr-2" />
+                        {avatarPreview || profileData.avatarUrl ? '写真を変更' : '写真を選択'}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-gray-500">JPEG、PNG形式（最大5MB）</p>
+                  {errors.avatar && (
+                    <p className="text-sm text-red-500">{errors.avatar}</p>
+                  )}
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="name">氏名 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="name"
+                    value={profileData.name}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="山田 太郎"
+                    required
+                  />
+                  {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="nameKana">氏名（カナ）</Label>
+                  <Input
+                    id="nameKana"
+                    value={profileData.nameKana}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, nameKana: e.target.value }))}
                     placeholder="ヤマダ タロウ"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    電話番号
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => updateForm('phone', e.target.value)}
-                    placeholder="03-1234-5678"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="department">部署</Label>
+                    <select
+                      id="department"
+                      value={profileData.department}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">選択してください</option>
+                      {departments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    メールアドレス <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => updateForm('email', e.target.value)}
-                    placeholder="example@company.com"
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">電話番号</Label>
+                    <Input
+                      id="phone"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="03-1234-5678"
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="mobile">携帯電話</Label>
+                    <Input
+                      id="mobile"
+                      value={profileData.mobile}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, mobile: e.target.value }))}
+                      placeholder="090-1234-5678"
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    パスワード <span className="text-red-500">*</span>
-                  </label>
-                  <PasswordInput
-                    value={formData.password}
-                    onChange={(e) => updateForm('password', e.target.value)}
-                    placeholder="8文字以上、大小英数字を含む"
-                    showStrength
-                  />
-                  {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    パスワード（確認） <span className="text-red-500">*</span>
-                  </label>
-                  <PasswordInput
-                    value={formData.passwordConfirm}
-                    onChange={(e) => updateForm('passwordConfirm', e.target.value)}
-                    placeholder="パスワードを再入力"
-                  />
-                  {errors.passwordConfirm && <p className="mt-1 text-sm text-red-500">{errors.passwordConfirm}</p>}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="w-full py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  次へ <ArrowRight size={18} />
-                </button>
-              </motion.div>
-            ) : step === 2 ? (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    会社名 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.companyName}
-                    onChange={(e) => updateForm('companyName', e.target.value)}
-                    placeholder="株式会社サンプル"
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
-                      errors.companyName ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.companyName && <p className="mt-1 text-sm text-red-500">{errors.companyName}</p>}
-                  <p className="mt-1 text-xs text-gray-500">
-                    同じ会社の方がすでに登録済みの場合、会社情報が共有されます
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    会社名（カナ）
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.companyNameKana}
-                    onChange={(e) => updateForm('companyNameKana', e.target.value)}
-                    placeholder="カブシキガイシャサンプル"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    役職
-                  </label>
-                  <select
-                    value={formData.position}
-                    onChange={(e) => updateForm('position', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white"
-                  >
-                    <option value="">選択してください</option>
-                    {positions.map(pos => (
-                      <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    部署
-                  </label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) => updateForm('department', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white"
-                  >
-                    <option value="">選択してください</option>
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
+                
+                {errors.general && (
+                  <p className="text-sm text-red-500">{errors.general}</p>
+                )}
+                
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
                     onClick={() => setStep(1)}
-                    className="flex-1 py-3.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex-1"
                   >
                     戻る
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStep(3)}
-                    className="flex-1 py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  </Button>
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={isLoading}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                   >
-                    次へ <ArrowRight size={18} />
-                  </button>
+                    {isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                    次へ
+                  </Button>
                 </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-4"
-              >
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
-                  <div className="flex items-center gap-2 text-blue-700 mb-2">
-                    <Info size={16} />
-                    <span className="font-semibold text-sm">会社情報について</span>
-                  </div>
-                  <p className="text-sm text-blue-600">
-                    これらの情報はAIコンサルティングの精度向上に役立ちます。任意項目ですので、後から追加・修正も可能です。
-                  </p>
-                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      業種
-                    </label>
+        {/* Step 3: Company Information */}
+        {step === 3 && (
+          <Card className="shadow-2xl border border-gray-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-center">会社情報</CardTitle>
+              <CardDescription className="text-center">
+                会社の基本情報を入力してください
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="companyName">会社名 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="companyName"
+                    value={companyData.name}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="株式会社サンプル"
+                    required
+                  />
+                  {errors.companyName && <p className="text-sm text-red-500">{errors.companyName}</p>}
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="companyNameKana">会社名（カナ）</Label>
+                  <Input
+                    id="companyNameKana"
+                    value={companyData.nameKana}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, nameKana: e.target.value }))}
+                    placeholder="カブシキガイシャサンプル"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="industry">業種</Label>
                     <select
-                      value={formData.industry}
-                      onChange={(e) => updateForm('industry', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
+                      id="industry"
+                      value={companyData.industry}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, industry: e.target.value }))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                     >
                       <option value="">選択してください</option>
                       {industries.map(ind => (
@@ -880,15 +1877,14 @@ const SignupForm = ({
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      従業員数
-                    </label>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="employeeCount">従業員数</Label>
                     <select
-                      value={formData.employeeCount}
-                      onChange={(e) => updateForm('employeeCount', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
+                      id="employeeCount"
+                      value={companyData.employeeCount}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, employeeCount: e.target.value }))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                     >
                       <option value="">選択してください</option>
                       {employeeRanges.map(range => (
@@ -896,2619 +1892,225 @@ const SignupForm = ({
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      売上規模
-                    </label>
-                    <select
-                      value={formData.annualRevenue}
-                      onChange={(e) => updateForm('annualRevenue', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
-                    >
-                      <option value="">選択してください</option>
-                      {revenueRanges.map(range => (
-                        <option key={range} value={range}>{range}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      ホームページ
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.website}
-                      onChange={(e) => updateForm('website', e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    特徴・強み
-                  </label>
-                  <textarea
-                    value={formData.characteristics}
-                    onChange={(e) => updateForm('characteristics', e.target.value)}
-                    placeholder="会社の特徴、強み、独自性などを記入してください"
-                    rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    その他資料（カタログ、課題判断に役立つ資料など）
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                    <input
-                      ref={documentInputRef}
-                      type="file"
-                      multiple
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
-                      onChange={handleDocumentUpload}
-                      className="hidden"
-                    />
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <Upload size={24} className="text-gray-400 mb-2" />
-                      <button
-                        type="button"
-                        onClick={() => documentInputRef.current?.click()}
-                        className="text-sm text-blue-600 hover:text-blue-700 mb-2"
-                      >
-                        ファイルを選択
-                      </button>
-                      <p className="text-xs text-gray-500">
-                        PDF, Word, Excel, PowerPoint, 画像ファイルに対応
-                      </p>
-                    </div>
-                    {uploadedDocuments.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        {uploadedDocuments.map(doc => (
-                          <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <FileText size={16} className="text-gray-400 flex-shrink-0" />
-                              <span className="text-sm text-gray-700 truncate">{doc.name}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeDocument(doc.id)}
-                              className="p-1 text-red-500 hover:text-red-700 flex-shrink-0"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.agreeTerms}
-                      onChange={(e) => updateForm('agreeTerms', e.target.checked)}
-                      className="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600"
-                    />
-                    <span className="text-sm text-gray-600">
-                      <a href="#" className="text-blue-600 hover:underline">利用規約</a>
-                      および
-                      <a href="#" className="text-blue-600 hover:underline">プライバシーポリシー</a>
-                      に同意します
-                    </span>
-                  </label>
-                  {errors.agreeTerms && <p className="mt-1 text-sm text-red-500">{errors.agreeTerms}</p>}
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="flex-1 py-3.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    戻る
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="flex-1 py-3.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 size={20} className="animate-spin" />
-                        作成中...
-                      </>
-                    ) : (
-                      'アカウント作成'
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </form>
-
-          <div className="mt-6 text-center">
-            <span className="text-gray-500">すでにアカウントをお持ちの方は</span>
-            <button
-              onClick={onSwitchToLogin}
-              className="text-blue-600 hover:text-blue-700 font-medium ml-1"
-            >
-              ログイン
-            </button>
-          </div>
-        </div>
-      </motion.div>
-      
-      {/* Business Card Scan Modal */}
-      <Modal
-        isOpen={showCardScanModal}
-        onClose={() => {
-          setShowCardScanModal(false)
-          setScanStep(1)
-          setUploadedImage(null)
-          setOcrResult(null)
-        }}
-        title="名刺スキャン"
-        size="lg"
-        footer={
-          scanStep === 3 ? (
-            <>
-              <button 
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                onClick={() => { setScanStep(1); setUploadedImage(null); setOcrResult(null) }}
-              >
-                やり直す
-              </button>
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                onClick={applyOCRData}
-              >
-                <CheckCircle size={18} /> 入力欄に反映
-              </button>
-            </>
-          ) : null
-        }
-      >
-        {scanStep === 1 && (
-          <div 
-            className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Upload size={28} className="text-gray-400" />
-            </div>
-            <p className="text-gray-600 mb-2">
-              クリックまたはドラッグ＆ドロップで名刺画像をアップロード
-            </p>
-            <p className="text-sm text-gray-400">JPEG, PNG形式に対応（最大10MB）</p>
-            <div className="mt-5">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 inline-flex items-center gap-2 hover:bg-gray-50">
-                <Camera size={18} /> カメラで撮影
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {scanStep === 2 && isProcessing && (
-          <div className="text-center py-12">
-            <Loader2 size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
-            <div className="font-semibold mb-2">OCR処理中...</div>
-            <p className="text-gray-500">名刺から情報を抽出しています</p>
-          </div>
-        )}
-        
-        {scanStep === 3 && ocrResult && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-100 rounded-xl p-4 flex items-center justify-center min-h-[200px]">
-              {uploadedImage && (
-                <img src={uploadedImage} alt="名刺" className="max-w-full max-h-[280px] rounded-lg shadow" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold">抽出情報</h4>
-              </div>
-              
-              <div className="space-y-3 text-sm">
-                {ocrResult.personName && (
-                  <div>
-                    <span className="text-gray-500">氏名:</span> {ocrResult.personName}
-                  </div>
-                )}
-                {ocrResult.position && (
-                  <div>
-                    <span className="text-gray-500">役職:</span> {ocrResult.position}
-                  </div>
-                )}
-                {ocrResult.department && (
-                  <div>
-                    <span className="text-gray-500">部署:</span> {ocrResult.department}
-                  </div>
-                )}
-                {ocrResult.companyName && (
-                  <div>
-                    <span className="text-gray-500">会社名:</span> {ocrResult.companyName}
-                  </div>
-                )}
-                {ocrResult.email && (
-                  <div>
-                    <span className="text-gray-500">メール:</span> {ocrResult.email}
-                  </div>
-                )}
-                {ocrResult.phone && (
-                  <div>
-                    <span className="text-gray-500">電話:</span> {ocrResult.phone}
-                  </div>
-                )}
-                {ocrResult.website && (
-                  <div>
-                    <span className="text-gray-500">Webサイト:</span> {ocrResult.website}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
-  )
-}
-
-// ============================================
-// SIDEBAR
-// ============================================
-const Sidebar = ({
-  currentPage,
-  setCurrentPage,
-  isOpen,
-  onClose,
-  onLogout
-}: {
-  currentPage: string
-  setCurrentPage: (page: string) => void
-  isOpen: boolean
-  onClose: () => void
-  onLogout: () => void
-}) => {
-  const navItems = [
-    { id: 'dashboard', icon: Home, label: 'ダッシュボード' },
-    { id: 'consulting', icon: MessageSquare, label: 'AIコンサルティング', badge: 'AI' },
-    { id: 'business-cards', icon: CreditCard, label: '名刺・連絡先管理' },
-    { id: 'reports', icon: FileText, label: 'レポート' },
-  ]
-  
-  const settingsItems = [
-    { id: 'settings', icon: Settings, label: '設定' },
-    { id: 'help', icon: HelpCircle, label: 'ヘルプ' },
-  ]
-  
-  return (
-    <>
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-40 lg:hidden" 
-          onClick={onClose} 
-        />
-      )}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 bg-white border-r border-gray-200
-        flex flex-col h-screen
-        transform transition-transform duration-300
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-5 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <img 
-              src="/info-data/AI-LOGO05.png" 
-              alt="SolveWise" 
-              className="h-10 w-auto"
-            />
-            <span className="text-lg font-bold gradient-text">SolveWise</span>
-          </div>
-        </div>
-        
-        <nav className="flex-1 p-3 overflow-y-auto">
-          <div className="mb-6">
-            <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              メインメニュー
-            </div>
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => { setCurrentPage(item.id); onClose() }}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-3 rounded-lg mb-1
-                  transition-colors text-left
-                  ${currentPage === item.id 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-600 hover:bg-gray-100'
-                  }
-                `}
-              >
-                <item.icon size={20} />
-                <span className="font-medium">{item.label}</span>
-                {item.badge && (
-                  <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-                    currentPage === item.id ? 'bg-white/20' : 'bg-red-500 text-white'
-                  }`}>
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          
-          <div>
-            <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              その他
-            </div>
-            {settingsItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => { setCurrentPage(item.id); onClose() }}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-3 rounded-lg mb-1
-                  transition-colors text-left
-                  ${currentPage === item.id 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-600 hover:bg-gray-100'
-                  }
-                `}
-              >
-                <item.icon size={20} />
-                <span className="font-medium">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-        
-        <div className="p-4 border-t border-gray-100">
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-          >
-            <LogOut size={20} />
-            <span className="font-medium">ログアウト</span>
-          </button>
-        </div>
-      </aside>
-    </>
-  )
-}
-
-// ============================================
-// HEADER
-// ============================================
-const Header = ({
-  title,
-  onMenuClick,
-  user,
-  onLogoClick,
-  onBackToLP
-}: {
-  title: string
-  onMenuClick: () => void
-  user: UserProfile
-  onLogoClick: () => void
-  onBackToLP: () => void
-}) => (
-  <header className="bg-white border-b border-gray-200 px-4 lg:px-6 h-16 flex items-center justify-between sticky top-0 z-30">
-    <div className="flex items-center gap-4">
-      <button 
-        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-600"
-        onClick={onMenuClick}
-      >
-        <Menu size={24} />
-      </button>
-      <h1 className="text-lg font-semibold">{title}</h1>
-    </div>
-    
-    <div className="flex items-center gap-3">
-      {/* Back to LP button */}
-      <button 
-        onClick={onBackToLP}
-        className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors hidden sm:flex items-center gap-1"
-      >
-        <Home size={16} />
-        <span>トップページ</span>
-      </button>
-      
-      <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hidden sm:flex">
-        <Search size={20} />
-      </button>
-      <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 relative">
-        <Bell size={20} />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-      </button>
-      
-      {/* User profile */}
-      <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
-        <div 
-          className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-gray-100 hover:bg-gray-200 cursor-pointer transition-colors"
-          onClick={onLogoClick}
-        >
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-            {user.name?.[0] || 'U'}
-          </div>
-          <div className="hidden sm:block">
-            <div className="text-sm font-medium text-gray-800">{user.name}</div>
-            <div className="text-xs text-gray-500">{user.plan === 'free' ? 'Free' : user.plan === 'standard' ? 'Standard' : 'Enterprise'}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-)
-
-// ============================================
-// DASHBOARD PAGE
-// ============================================
-const DashboardPage = ({
-  setCurrentPage,
-  user,
-  company,
-  businessCards,
-  sessions
-}: {
-  setCurrentPage: (page: string) => void
-  user: UserProfile
-  company: Company | null
-  businessCards: BusinessCard[]
-  sessions: ConsultingSession[]
-}) => {
-  const stats = [
-    { label: '今月のセッション', value: sessions.length, icon: MessageSquare, color: 'blue', change: '+3' },
-    { label: '登録連絡先', value: businessCards.length, icon: CreditCard, color: 'green', change: '+5' },
-    { label: 'レポート数', value: 2, icon: FileText, color: 'purple', change: '+1' },
-    { label: 'AI分析スコア', value: '85', icon: TrendingUp, color: 'orange', change: '+8' },
-  ]
-  
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    orange: 'bg-orange-100 text-orange-600',
-  }
-  
-  return (
-    <div className="p-6">
-      {/* Welcome */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">おかえりなさい、{user.name}さん</h2>
-        <p className="text-gray-500">
-          {company?.name || '会社未設定'} • 今日も経営課題の解決をサポートします
-        </p>
-      </div>
-      
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${colorClasses[stat.color as keyof typeof colorClasses]}`}>
-                <stat.icon size={22} />
-              </div>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-            <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
-            <div className="flex items-center gap-1 mt-2 text-sm text-green-600">
-              <TrendingUp size={14} />
-              <span>{stat.change} 今月</span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl border border-gray-200 mb-6">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold">クイックアクション</h3>
-        </div>
-        <div className="p-6 flex flex-wrap gap-3">
-          <button
-            onClick={() => setCurrentPage('consulting')}
-            className="btn-gradient px-5 py-2.5 rounded-lg text-white font-medium flex items-center gap-2"
-          >
-            <Sparkles size={18} /> AIに相談する
-          </button>
-          <button
-            onClick={() => setCurrentPage('business-cards')}
-            className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-2 hover:bg-blue-700 transition-colors"
-          >
-            <Camera size={18} /> 名刺をスキャン
-          </button>
-          <button
-            onClick={() => setCurrentPage('reports')}
-            className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium flex items-center gap-2 hover:bg-gray-50 transition-colors"
-          >
-            <FileText size={18} /> レポートを見る
-          </button>
-        </div>
-      </div>
-      
-      {/* Recent activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sessions */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold">最近のセッション</h3>
-            <button 
-              onClick={() => setCurrentPage('consulting')}
-              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              すべて表示 <ChevronRight size={16} />
-            </button>
-          </div>
-          <div className="p-4">
-            {sessions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare size={32} className="mx-auto mb-3 opacity-50" />
-                <p className="text-sm">セッションがありません</p>
-              </div>
-            ) : (
-              sessions.slice(0, 3).map(session => (
-                <div key={session.id} className="py-3 border-b border-gray-100 last:border-0">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{session.title}</div>
-                      <div className="text-sm text-gray-500 mt-0.5">
-                        {session.messageCount}件のメッセージ
-                      </div>
-                    </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full ${
-                      session.status === 'active' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {session.status === 'active' ? '進行中' : '完了'}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        
-        {/* Business Cards */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold">最近の連絡先</h3>
-            <button 
-              onClick={() => setCurrentPage('business-cards')}
-              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              すべて表示 <ChevronRight size={16} />
-            </button>
-          </div>
-          <div className="p-4">
-            {businessCards.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <CreditCard size={32} className="mx-auto mb-3 opacity-50" />
-                <p className="text-sm">連絡先がありません</p>
-              </div>
-            ) : (
-              businessCards.slice(0, 3).map(card => (
-                <div key={card.id} className="py-3 border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-medium">
-                      {card.personName?.[0]}
-                    </div>
-                    <div>
-                      <div className="font-medium">{card.personName}</div>
-                      <div className="text-sm text-gray-500">
-                        {card.position} • {card.companyName}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ============================================
-// BUSINESS CARDS PAGE
-// ============================================
-const BusinessCardsPage = ({
-  businessCards,
-  setBusinessCards,
-  companies,
-  setCompanies,
-  user,
-  showToast
-}: {
-  businessCards: BusinessCard[]
-  setBusinessCards: React.Dispatch<React.SetStateAction<BusinessCard[]>>
-  companies: Company[]
-  setCompanies: React.Dispatch<React.SetStateAction<Company[]>>
-  user: UserProfile
-  showToast: (message: string, type: string) => void
-}) => {
-  const [showScanModal, setShowScanModal] = useState(false)
-  const [scanStep, setScanStep] = useState(1)
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-  const [ocrResult, setOcrResult] = useState<Partial<BusinessCard & { companyIndustry?: string; companyEmployeeCount?: string }> | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isSearchingCompany, setIsSearchingCompany] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
-  const filteredCards = businessCards.filter(c => 
-    c.personName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.companyName?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-  
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string)
-        setScanStep(2)
-        processOCR()
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-  
-  const processOCR = () => {
-    setIsProcessing(true)
-    setTimeout(() => {
-      setOcrResult({
-        personName: '田中 一郎',
-        personNameKana: 'タナカ イチロウ',
-        position: '営業部長',
-        department: '営業本部',
-        companyName: '株式会社テックソリューションズ',
-        email: 'tanaka@techsolutions.co.jp',
-        phone: '03-1234-5678',
-        mobile: '090-1234-5678',
-        postalCode: '150-0001',
-        address: '東京都渋谷区恵比寿1-1-1',
-        website: 'https://techsolutions.co.jp'
-      })
-      setIsProcessing(false)
-      setScanStep(3)
-    }, 2000)
-  }
-  
-  const searchCompanyInfo = () => {
-    if (!ocrResult?.companyName) return
-    setIsSearchingCompany(true)
-    setTimeout(() => {
-      setOcrResult(prev => ({
-        ...prev,
-        companyIndustry: '情報通信業',
-        companyEmployeeCount: '100-299名',
-      }))
-      setIsSearchingCompany(false)
-      showToast('会社情報を取得しました', 'success')
-    }, 1500)
-  }
-  
-  const saveBusinessCard = () => {
-    if (!ocrResult) return
-    
-    let companyId: string | undefined = undefined
-    const existingCompany = companies.find(c => 
-      c.name.toLowerCase() === ocrResult.companyName?.toLowerCase()
-    )
-    
-    if (existingCompany) {
-      companyId = existingCompany.id
-    } else if (ocrResult.companyName) {
-      const newCompany: Company = {
-        id: Date.now().toString(),
-        name: ocrResult.companyName,
-        industry: ocrResult.companyIndustry || '',
-        employeeCount: ocrResult.companyEmployeeCount || '',
-        website: ocrResult.website || '',
-        address: ocrResult.address || '',
-      }
-      setCompanies(prev => [newCompany, ...prev])
-      companyId = newCompany.id
-    }
-    
-    const newCard: BusinessCard = {
-      id: Date.now().toString(),
-      personName: ocrResult.personName || '',
-      personNameKana: ocrResult.personNameKana,
-      position: ocrResult.position,
-      department: ocrResult.department,
-      email: ocrResult.email,
-      phone: ocrResult.phone,
-      mobile: ocrResult.mobile,
-      postalCode: ocrResult.postalCode,
-      address: ocrResult.address,
-      website: ocrResult.website,
-      companyName: ocrResult.companyName,
-      companyId,
-      imageUrl: uploadedImage || undefined,
-      createdAt: new Date().toISOString()
-    }
-    setBusinessCards(prev => [newCard, ...prev])
-    
-    setShowScanModal(false)
-    setScanStep(1)
-    setUploadedImage(null)
-    setOcrResult(null)
-    showToast('名刺と会社情報を保存しました', 'success')
-  }
-  
-  const resetModal = () => {
-    setShowScanModal(false)
-    setScanStep(1)
-    setUploadedImage(null)
-    setOcrResult(null)
-  }
-  
-  return (
-    <div className="p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="relative flex-1 max-w-xs">
-          <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="名前・会社名で検索..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-          />
-        </div>
-        <button
-          onClick={() => setShowScanModal(true)}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-blue-700 transition-colors"
-        >
-          <Camera size={18} /> 名刺をスキャン
-        </button>
-      </div>
-      
-      {filteredCards.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CreditCard size={32} className="text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">連絡先が登録されていません</h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-            名刺をスキャンして、連絡先と会社情報を自動で取得しましょう。
-          </p>
-          <button
-            onClick={() => setShowScanModal(true)}
-            className="btn-gradient px-6 py-3 rounded-lg text-white font-medium inline-flex items-center gap-2"
-          >
-            <Camera size={18} /> 名刺をスキャン
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredCards.map(card => (
-            <motion.div
-              key={card.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="flex items-start gap-3">
-                {card.imageUrl && (
-                  <img 
-                    src={card.imageUrl} 
-                    alt="名刺" 
-                    className="w-16 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{card.personName}</div>
-                  <div className="text-sm text-gray-500 truncate">
-                    {card.position} • {card.department}
-                  </div>
-                  <div className="text-sm text-blue-600 truncate mt-1">{card.companyName}</div>
-                </div>
-              </div>
-              <div className="mt-3 space-y-1 text-sm">
-                {card.email && (
-                  <div className="flex items-center gap-2 text-gray-600 truncate">
-                    <Mail size={14} /> {card.email}
-                  </div>
-                )}
-                {card.phone && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone size={14} /> {card.phone}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-      
-      {/* Scan Modal */}
-      <Modal
-        isOpen={showScanModal}
-        onClose={resetModal}
-        title="名刺スキャン"
-        size="lg"
-        footer={
-          scanStep === 3 ? (
-            <>
-              <button 
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                onClick={() => { setScanStep(1); setUploadedImage(null); setOcrResult(null) }}
-              >
-                やり直す
-              </button>
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                onClick={saveBusinessCard}
-              >
-                <CheckCircle size={18} /> 保存する
-              </button>
-            </>
-          ) : null
-        }
-      >
-        {scanStep === 1 && (
-          <div 
-            className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Upload size={28} className="text-gray-400" />
-            </div>
-            <p className="text-gray-600 mb-2">
-              クリックまたはドラッグ＆ドロップで名刺画像をアップロード
-            </p>
-            <p className="text-sm text-gray-400">JPEG, PNG形式に対応（最大10MB）</p>
-            <div className="mt-5">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 inline-flex items-center gap-2 hover:bg-gray-50">
-                <Camera size={18} /> カメラで撮影
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {scanStep === 2 && isProcessing && (
-          <div className="text-center py-12">
-            <Loader2 size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
-            <div className="font-semibold mb-2">OCR処理中...</div>
-            <p className="text-gray-500">名刺から情報を抽出しています</p>
-          </div>
-        )}
-        
-        {scanStep === 3 && ocrResult && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-100 rounded-xl p-4 flex items-center justify-center min-h-[200px]">
-              {uploadedImage && (
-                <img src={uploadedImage} alt="名刺" className="max-w-full max-h-[280px] rounded-lg shadow" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold">抽出情報（編集可能）</h4>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">氏名</label>
-                  <input 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={ocrResult.personName || ''}
-                    onChange={e => setOcrResult({ ...ocrResult, personName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">役職</label>
-                  <input 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={ocrResult.position || ''}
-                    onChange={e => setOcrResult({ ...ocrResult, position: e.target.value })}
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-3">
-                <label className="block text-xs font-medium text-gray-500 mb-1">会社名</label>
-                <div className="flex gap-2">
-                  <input 
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={ocrResult.companyName || ''}
-                    onChange={e => setOcrResult({ ...ocrResult, companyName: e.target.value })}
-                  />
-                  <button 
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-1 whitespace-nowrap"
-                    onClick={searchCompanyInfo}
-                    disabled={isSearchingCompany}
-                  >
-                    {isSearchingCompany ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
-                    検索
-                  </button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">メール</label>
-                  <input 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={ocrResult.email || ''}
-                    onChange={e => setOcrResult({ ...ocrResult, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">電話番号</label>
-                  <input 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={ocrResult.phone || ''}
-                    onChange={e => setOcrResult({ ...ocrResult, phone: e.target.value })}
-                  />
-                </div>
-              </div>
-              
-              {ocrResult.companyIndustry && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-500 mb-2">取得した会社情報</div>
-                  <div className="text-sm space-y-1">
-                    <div>業種: {ocrResult.companyIndustry}</div>
-                    <div>従業員数: {ocrResult.companyEmployeeCount}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
-  )
-}
-
-// ============================================
-// CONSULTING PAGE
-// ============================================
-const ConsultingPage = ({
-  sessions,
-  setSessions,
-  user,
-  showToast
-}: {
-  sessions: ConsultingSession[]
-  setSessions: React.Dispatch<React.SetStateAction<ConsultingSession[]>>
-  user: UserProfile
-  showToast: (message: string, type: string) => void
-}) => {
-  const [selectedSession, setSelectedSession] = useState<ConsultingSession | null>(null)
-  const [showNewModal, setShowNewModal] = useState(false)
-  const [newSessionTitle, setNewSessionTitle] = useState('')
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputMessage, setInputMessage] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-  
-  const startNewSession = () => {
-    if (!newSessionTitle.trim()) {
-      showToast('セッション名を入力してください', 'warning')
-      return
-    }
-    
-    const newSession: ConsultingSession = {
-      id: Date.now().toString(),
-      title: newSessionTitle,
-      status: 'active',
-      messageCount: 0,
-      createdAt: new Date().toISOString()
-    }
-    setSessions(prev => [newSession, ...prev])
-    setSelectedSession(newSession)
-    setShowNewModal(false)
-    setNewSessionTitle('')
-    
-    setMessages([{
-      id: '1',
-      role: 'assistant',
-      content: `こんにちは、${user.name}さん！AI経営コンサルタントです。\n\n経営課題について、お気軽にご相談ください。\n\n以下のような内容でお手伝いできます：\n• 経営戦略の立案・見直し\n• 業務効率化・コスト削減\n• 人材育成・組織改善\n• DX推進のアドバイス\n• リスク分析と対策\n\n何からお話しましょうか？`
-    }])
-  }
-  
-  const sendMessage = () => {
-    if (!inputMessage.trim()) return
-    
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: inputMessage
-    }
-    setMessages(prev => [...prev, userMessage])
-    setInputMessage('')
-    setIsTyping(true)
-    
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'ご質問ありがとうございます。\n\nより詳しく理解させてください：\n\n1. この課題が顕在化したのはいつ頃からですか？\n2. 現在、どのような対策を講じていますか？\n3. 理想的な状態はどのようなものですか？\n\n詳細をお聞かせいただければ、より具体的なアドバイスができます。'
-      }])
-      setIsTyping(false)
-      
-      if (selectedSession) {
-        setSessions(prev => prev.map(s => 
-          s.id === selectedSession.id 
-            ? { ...s, messageCount: s.messageCount + 2 }
-            : s
-        ))
-      }
-    }, 1500)
-  }
-  
-  return (
-    <div className="h-[calc(100vh-64px)] flex">
-      {/* Session List */}
-      <div className="w-72 border-r border-gray-200 bg-white flex flex-col flex-shrink-0 hidden lg:flex">
-        <div className="p-4 border-b border-gray-100">
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="w-full btn-gradient px-4 py-2.5 rounded-lg text-white font-medium flex items-center justify-center gap-2"
-          >
-            <Plus size={18} /> 新規セッション
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {sessions.length === 0 ? (
-            <div className="p-6 text-center text-gray-500 text-sm">
-              セッションがありません
-            </div>
-          ) : (
-            sessions.map(session => (
-              <button
-                key={session.id}
-                onClick={() => {
-                  setSelectedSession(session)
-                  setMessages([{
-                    id: '1',
-                    role: 'assistant',
-                    content: `セッション「${session.title}」を再開しました。前回の続きからお話しましょう。`
-                  }])
-                }}
-                className={`w-full p-4 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                  selectedSession?.id === session.id ? 'bg-gray-100' : ''
-                }`}
-              >
-                <div className="font-medium text-sm mb-1 truncate">{session.title}</div>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>{session.messageCount}件のメッセージ</span>
-                  <span className={`px-2 py-0.5 rounded-full ${
-                    session.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100'
-                  }`}>
-                    {session.status === 'active' ? '進行中' : '完了'}
-                  </span>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-      
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedSession ? (
-          <>
-            <div className="px-5 py-4 border-b border-gray-100 bg-white flex items-center justify-between">
-              <div>
-                <div className="font-semibold">{selectedSession.title}</div>
-                <div className="text-sm text-gray-500">AIコンサルタントとの対話</div>
-              </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">進行中</span>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex gap-3 mb-6 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    msg.role === 'user' 
-                      ? 'bg-gray-200 text-gray-600' 
-                      : 'bg-blue-600 text-white'
-                  }`}>
-                    {msg.role === 'user' ? <User size={20} /> : <Brain size={20} />}
-                  </div>
-                  <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                    msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-br-sm'
-                      : 'bg-white border border-gray-200 rounded-bl-sm'
-                  }`}>
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {isTyping && (
-                <div className="flex gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                    <Brain size={20} />
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3">
-                    <span className="animate-pulse">入力中...</span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-            
-            <div className="px-5 py-4 border-t border-gray-100 bg-white">
-              <div className="flex gap-3 items-end">
-                <textarea
-                  value={inputMessage}
-                  onChange={e => setInputMessage(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      sendMessage()
-                    }
-                  }}
-                  placeholder="経営課題を相談してください..."
-                  rows={1}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-full resize-none focus:outline-none focus:border-blue-500 max-h-32"
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={!inputMessage.trim() || isTyping}
-                  className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send size={20} />
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare size={32} className="text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">AIコンサルタントに相談しましょう</h3>
-              <p className="text-gray-500 mb-6">新規セッションを開始して、経営課題について相談してください</p>
-              <button
-                onClick={() => setShowNewModal(true)}
-                className="btn-gradient px-6 py-3 rounded-lg text-white font-medium inline-flex items-center gap-2"
-              >
-                <Sparkles size={18} /> 新規セッション開始
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* New Session Modal */}
-      <Modal
-        isOpen={showNewModal}
-        onClose={() => setShowNewModal(false)}
-        title="新規コンサルティングセッション"
-        footer={
-          <>
-            <button 
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              onClick={() => setShowNewModal(false)}
-            >
-              キャンセル
-            </button>
-            <button 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              onClick={startNewSession}
-            >
-              開始する
-            </button>
-          </>
-        }
-      >
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            セッション名 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={newSessionTitle}
-            onChange={e => setNewSessionTitle(e.target.value)}
-            placeholder="例：売上向上戦略の検討、人材採用の改善など"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-          />
-          <p className="mt-1 text-sm text-gray-500">相談したい内容を簡潔に入力してください</p>
-        </div>
-        
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <Info size={16} className="text-blue-600" /> よく相談される内容
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {['売上向上', '業務効率化', '人材確保', 'DX推進', 'コスト削減', '新規事業'].map(topic => (
-              <button 
-                key={topic}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-white hover:border-blue-500 hover:text-blue-600 transition-colors"
-                onClick={() => setNewSessionTitle(topic + 'について相談')}
-              >
-                {topic}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Modal>
-    </div>
-  )
-}
-
-// ============================================
-// REPORTS PAGE
-// ============================================
-const ReportsPage = () => {
-  const reports = [
-    { id: '1', title: '経営診断レポート', type: 'diagnosis', status: 'published', createdAt: '2024-01-15', score: 85 },
-    { id: '2', title: '月次分析レポート（2024年1月）', type: 'monthly', status: 'published', createdAt: '2024-02-01', score: 78 },
-  ]
-  
-  return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">分析レポート</h2>
-        <p className="text-gray-500">AIコンサルティングセッションから生成された分析レポート</p>
-      </div>
-      
-      {reports.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText size={32} className="text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">レポートがありません</h3>
-          <p className="text-gray-500">コンサルティングセッションを完了すると、自動でレポートが生成されます</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">タイトル</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">種類</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">スコア</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ステータス</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">作成日</th>
-                  <th className="px-6 py-3 w-24"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {reports.map(report => (
-                  <tr key={report.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium">{report.title}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                        {report.type === 'diagnosis' ? '経営診断' : '月次分析'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`font-semibold ${
-                        report.score >= 80 ? 'text-green-600' : 
-                        report.score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {report.score}点
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs ${
-                        report.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {report.status === 'published' ? '公開済み' : '下書き'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{report.createdAt}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                          <Eye size={16} />
-                        </button>
-                        <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                          <Download size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// SETTINGS PAGE
-// ============================================
-const SettingsPage = ({
-  user,
-  setUser,
-  company,
-  setCompany,
-  showToast
-}: {
-  user: UserProfile
-  setUser: React.Dispatch<React.SetStateAction<UserProfile>>
-  company: Company | null
-  setCompany: React.Dispatch<React.SetStateAction<Company | null>>
-  showToast: (message: string, type: string) => void
-}) => {
-  const [activeTab, setActiveTab] = useState('profile')
-  
-  const industries = [
-    '情報通信業', '製造業', '卸売業・小売業', 'サービス業', '建設業',
-    '不動産業', '金融業・保険業', '運輸業・郵便業', '医療・福祉', '教育・学習支援業', 'その他'
-  ]
-  
-  const employeeRanges = [
-    '1-9名', '10-29名', '30-49名', '50-99名', '100-299名', '300-499名', '500-999名', '1000名以上'
-  ]
-  
-  const revenueRanges = [
-    '1億円未満', '1-5億円', '5-10億円', '10-50億円', '50-100億円', '100-500億円', '500億円以上'
-  ]
-  
-  const [uploadedDocuments, setUploadedDocuments] = useState<Array<{ id: string; name: string; url: string; uploadedAt: string }>>(
-    company?.uploadedDocuments || []
-  )
-  const documentInputRef = useRef<HTMLInputElement>(null)
-  
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          const newDoc = {
-            id: Date.now().toString() + Math.random(),
-            name: file.name,
-            url: event.target?.result as string,
-            uploadedAt: new Date().toISOString()
-          }
-          setUploadedDocuments(prev => [...prev, newDoc])
-          setCompany(prev => prev ? { ...prev, uploadedDocuments: [...(prev.uploadedDocuments || []), newDoc] } : null)
-          showToast(`${file.name}をアップロードしました`, 'success')
-        }
-        reader.readAsDataURL(file)
-      })
-    }
-  }
-  
-  const removeDocument = (id: string) => {
-    setUploadedDocuments(prev => prev.filter(doc => doc.id !== id))
-    setCompany(prev => prev ? { ...prev, uploadedDocuments: prev.uploadedDocuments?.filter(doc => doc.id !== id) } : null)
-    showToast('資料を削除しました', 'info')
-  }
-  
-  return (
-    <div className="p-6">
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6">
-        {[
-          { id: 'profile', label: 'プロフィール' },
-          { id: 'company', label: '会社情報' },
-          { id: 'plan', label: 'プラン' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-3 font-medium text-sm border-b-2 -mb-px transition-colors ${
-              activeTab === tab.id 
-                ? 'text-blue-600 border-blue-600' 
-                : 'text-gray-500 border-transparent hover:text-gray-700'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      
-      {/* Profile Tab */}
-      {activeTab === 'profile' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-6">プロフィール設定</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">氏名</label>
-              <input
-                type="text"
-                value={user.name}
-                onChange={e => setUser({ ...user, name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">氏名（カナ）</label>
-              <input
-                type="text"
-                value={user.nameKana || ''}
-                onChange={e => setUser({ ...user, nameKana: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">メールアドレス</label>
-              <input
-                type="email"
-                value={user.email}
-                onChange={e => setUser({ ...user, email: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">電話番号</label>
-              <input
-                type="tel"
-                value={user.phone || ''}
-                onChange={e => setUser({ ...user, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">部署</label>
-              <input
-                type="text"
-                value={user.department || ''}
-                onChange={e => setUser({ ...user, department: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">役職</label>
-              <input
-                type="text"
-                value={user.position || ''}
-                onChange={e => setUser({ ...user, position: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-          
-          <div className="mt-6">
-            <button 
-              onClick={() => showToast('プロフィールを更新しました', 'success')}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              保存する
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Company Tab */}
-      {activeTab === 'company' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-6">
-            <div className="flex items-center gap-2 text-blue-700 mb-2">
-              <Info size={16} />
-              <span className="font-semibold text-sm">会社情報について</span>
-            </div>
-            <p className="text-sm text-blue-600">
-              同じ会社の他のユーザーがすでに登録している場合、会社情報は共有されます。
-              名刺スキャン時に会社情報を自動取得することもできます。
-            </p>
-          </div>
-          
-          <h3 className="text-lg font-semibold mb-6">会社情報設定</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                会社名 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={company?.name || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, name: e.target.value } : { id: '1', name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">会社名（カナ）</label>
-              <input
-                type="text"
-                value={company?.nameKana || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, nameKana: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">法人番号</label>
-              <input
-                type="text"
-                value={company?.corporateNumber || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, corporateNumber: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">業種</label>
-              <select
-                value={company?.industry || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, industry: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
-              >
-                <option value="">選択してください</option>
-                {industries.map(ind => (
-                  <option key={ind} value={ind}>{ind}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">従業員数</label>
-              <select
-                value={company?.employeeCount || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, employeeCount: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
-              >
-                <option value="">選択してください</option>
-                {employeeRanges.map(range => (
-                  <option key={range} value={range}>{range}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">売上規模</label>
-              <select
-                value={company?.annualRevenue || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, annualRevenue: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
-              >
-                <option value="">選択してください</option>
-                {revenueRanges.map(range => (
-                  <option key={range} value={range}>{range}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">郵便番号</label>
-              <input
-                type="text"
-                value={company?.postalCode || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, postalCode: e.target.value } : null)}
-                placeholder="000-0000"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">都道府県</label>
-              <input
-                type="text"
-                value={company?.prefecture || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, prefecture: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">住所</label>
-              <input
-                type="text"
-                value={company?.address || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, address: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">電話番号</label>
-              <input
-                type="tel"
-                value={company?.phone || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Webサイト</label>
-              <input
-                type="url"
-                value={company?.website || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, website: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">代表者名</label>
-              <input
-                type="text"
-                value={company?.representativeName || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, representativeName: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">設立日</label>
-              <input
-                type="date"
-                value={company?.establishedDate || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, establishedDate: e.target.value } : null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">事業内容</label>
-              <textarea
-                value={company?.businessDescription || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, businessDescription: e.target.value } : null)}
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">特徴・強み</label>
-              <textarea
-                value={company?.characteristics || ''}
-                onChange={e => setCompany(prev => prev ? { ...prev, characteristics: e.target.value } : null)}
-                placeholder="会社の特徴、強み、独自性などを記入してください"
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                その他資料（カタログ、課題判断に役立つ資料など）
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                <input
-                  ref={documentInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
-                  onChange={handleDocumentUpload}
-                  className="hidden"
-                />
-                <div className="flex flex-col items-center justify-center text-center mb-4">
-                  <Upload size={24} className="text-gray-400 mb-2" />
-                  <button
-                    type="button"
-                    onClick={() => documentInputRef.current?.click()}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
-                  >
-                    ファイルを選択
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    PDF, Word, Excel, PowerPoint, 画像ファイルに対応
-                  </p>
-                </div>
-                {uploadedDocuments.length > 0 && (
-                  <div className="space-y-2">
-                    {uploadedDocuments.map(doc => (
-                      <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <FileText size={16} className="text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700 truncate">{doc.name}</span>
-                          <span className="text-xs text-gray-500 ml-auto">
-                            {new Date(doc.uploadedAt).toLocaleDateString('ja-JP')}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeDocument(doc.id)}
-                          className="p-1 text-red-500 hover:text-red-700 flex-shrink-0 ml-2"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-6">
-            <button 
-              onClick={() => showToast('会社情報を更新しました', 'success')}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              保存する
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Plan Tab */}
-      {activeTab === 'plan' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { name: 'Free', price: '0', desc: 'お試し利用', features: ['AIチャット 月5回', '名刺OCR 月10枚', '基本レポート'] },
-            { name: 'Standard', price: '12,000', desc: '本格活用', featured: true, features: ['AIチャット 無制限', '名刺OCR 無制限', '詳細レポート', 'Web情報自動取得', '優先サポート'] },
-            { name: 'Enterprise', price: 'お問い合わせ', desc: '大規模利用', features: ['全機能', 'API連携', '専任サポート', 'カスタム分析'] }
-          ].map(plan => (
-            <div 
-              key={plan.name} 
-              className={`bg-white rounded-xl p-6 border relative ${
-                plan.featured ? 'border-blue-500 shadow-lg' : 'border-gray-200'
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
-                  人気
-                </div>
-              )}
-              <div className="text-lg font-semibold mb-2">{plan.name}</div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">
-                {plan.price === 'お問い合わせ' ? plan.price : `¥${plan.price}`}
-                {plan.price !== 'お問い合わせ' && <span className="text-base font-normal text-gray-500">/月</span>}
-              </div>
-              <div className="text-sm text-gray-500 mb-6">{plan.desc}</div>
-              <ul className="space-y-3 mb-6">
-                {plan.features.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
-                    <CheckCircle size={16} className="text-green-500" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <button className={`w-full py-3 rounded-lg font-medium ${
-                plan.featured 
-                  ? 'btn-gradient text-white' 
-                  : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}>
-                {user.plan === plan.name.toLowerCase() ? '現在のプラン' : 
-                  plan.name === 'Enterprise' ? '問い合わせる' : 'アップグレード'}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// LANDING PAGE - Microsoft AI Style
-// ============================================
-const LandingPage = ({
-  onLogin,
-  onSignup
-}: {
-  onLogin: () => void
-  onSignup: () => void
-}) => {
-  const [scrollY, setScrollY] = useState(0)
-  const heroRef = useRef<HTMLDivElement>(null)
-  
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-  
-  const features = [
-    { icon: Brain, title: '24時間AI経営相談', desc: 'いつでも経営課題を相談可能。待ち時間ゼロで専門家レベルの分析を提供。', color: 'from-sky-300 to-blue-500' },
-    // 課題解決の提案および実行計画策定：AIが経営課題を分析し、具体的な解決策と実行計画を提案します
-    { icon: Target, title: '課題解決の提案および実行計画策定', desc: 'AIが経営課題を分析し、具体的な解決策と実行計画を提案。実装可能なアクションプランを提供します。', color: 'from-blue-400 to-indigo-500' },
-    { icon: Globe, title: '企業情報自動収集', desc: '会社名からWeb検索で基本情報を自動取得。調査時間を短縮。', color: 'from-blue-500 to-indigo-600' },
-    { icon: TrendingUp, title: '経営診断レポート', desc: 'AIとの対話から経営状況を分析。課題と改善策を可視化。', color: 'from-indigo-600 to-blue-700' },
-    { icon: Users, title: '社内共有機能', desc: '同じ会社のメンバーと情報を共有。チームでの活用も可能。', color: 'from-blue-600 to-indigo-700' },
-    { icon: Shield, title: 'セキュアなデータ管理', desc: '企業情報は安全に保管。Row Level Securityで完全なデータ分離。', color: 'from-blue-800 to-slate-900' },
-  ]
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-x-hidden relative" style={{ perspective: '1000px' }}>
-      {/* Animated Background Elements - Diagonal Pattern */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <motion.div
-          animate={{
-            x: [0, 100, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: 'linear',
-            repeatType: 'loop'
-          }}
-          className="absolute top-20 left-10 w-72 h-72 bg-blue-400/30 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            x: [0, -80, 0],
-            y: [0, -60, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: 'linear',
-            repeatType: 'loop'
-          }}
-          className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            x: [0, 60, 0],
-            y: [0, -40, 0],
-            scale: [1, 1.15, 1],
-          }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: 'linear',
-            repeatType: 'loop'
-          }}
-          className="absolute top-1/2 left-1/2 w-80 h-80 bg-slate-300/30 rounded-full blur-3xl"
-        />
-      </div>
-      <div className="relative z-10">
-      
-      {/* Hero Section - Simple & Premium */}
-      <section 
-        ref={heroRef}
-        className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      >
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
-            alt="AI Technology"
-            className="w-full h-full object-cover"
-            style={{
-              transform: `translateY(${scrollY * 0.3}px) scale(1.1)`,
-              transition: 'transform 0.1s ease-out'
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-800/60 to-slate-900/70"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-800/20 to-blue-900/20"></div>
-        </div>
-        
-        {/* Content */}
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="space-y-8"
-          >
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20"
-            >
-              <Sparkles size={20} className="text-white" />
-              <span className="text-white font-medium">AI Powered Consulting</span>
-            </motion.div>
-            
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
-              貴社の課題を<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-200">
-                AIの力で解決する
-              </span>
-            </h1>
-            
-            <div className="flex flex-wrap gap-4 justify-center pt-4">
-              <motion.a
-                href="/pricing"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-10 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/20 transition-all inline-flex items-center gap-3 group"
-              >
-                無料で始める
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </motion.a>
-              <motion.a
-                href="/AI.pdf"
-                download="AIコンサルティングサービス資料.pdf"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-10 py-4 bg-blue-600/90 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition-all border border-white/30 inline-flex items-center gap-3 shadow-lg"
-              >
-                <Download size={20} />
-                資料をダウンロード
-              </motion.a>
-            </div>
-            
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="pt-12 flex items-center justify-center gap-16 text-white"
-            >
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-1">10,000+</div>
-                <div className="text-gray-300 text-sm">利用企業数</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-1">98%</div>
-                <div className="text-gray-300 text-sm">満足度</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-1">24/7</div>
-                <div className="text-gray-300 text-sm">サポート</div>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-        
-        {/* Animated AI Powered Consulting Text - Bottom of Hero Section */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none z-[5] h-[120px] md:h-[180px] lg:h-[250px] flex items-end">
-          <motion.div
-            initial={{ x: '100vw' }}
-            animate={{ x: '-100%' }}
-            transition={{
-              duration: 60,
-              repeat: Infinity,
-              ease: 'linear',
-              repeatType: 'loop'
-            }}
-            className="absolute whitespace-nowrap"
-            style={{ bottom: 0 }}
-          >
-            <span className="text-[3rem] md:text-[4.5rem] lg:text-[7rem] font-light text-white/50 tracking-[0.05em] leading-none" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', letterSpacing: '0.08em' }}>
-              AI POWERED CONSULTING &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AI POWERED CONSULTING &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AI POWERED CONSULTING
-            </span>
-          </motion.div>
-        </div>
-        
-        {/* Scroll Indicator */}
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/60"
-        >
-          <ChevronDown size={32} />
-        </motion.div>
-      </section>
-      
-      {/* Features Section with Images */}
-      <section 
-        id="features" 
-        className="relative py-32 px-4 bg-gradient-to-b from-white via-gray-50 to-white"
-      >
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                未来を変える
-              </span>
-              <br />
-              主な機能
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              入力負荷を最小限に、AIによる経営支援を最大限に。<br />
-              最先端の人工知能技術を駆使して、ビジネスのあらゆる側面に革新をもたらします
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
-            {features.map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -5 }}
-                className="group relative overflow-hidden rounded-2xl bg-white border border-gray-200 hover:shadow-xl transition-all duration-300"
-              >
-                {/* Feature Image */}
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={
-                      i === 0 ? 'https://images.unsplash.com/photo-1677442136019-21780ecad995?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' :
-                      i === 1 ? 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' :
-                      i === 2 ? 'https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' :
-                      i === 3 ? 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' :
-                      i === 4 ? 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' :
-                      'https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
-                    }
-                    alt={feature.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className={`absolute top-4 right-4 w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-white shadow-lg`}>
-                    <feature.icon size={24} />
-                  </div>
                 </div>
                 
-                <div className="p-6">
-                  <h3 className="font-bold text-xl mb-3 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+                <div className="grid gap-2">
+                  <Label htmlFor="annualRevenue">年間売上</Label>
+                  <select
+                    id="annualRevenue"
+                    value={companyData.annualRevenue}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, annualRevenue: e.target.value }))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">選択してください</option>
+                    {revenueRanges.map(range => (
+                      <option key={range} value={range}>{range}</option>
+                    ))}
+                  </select>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-          
-          {/* Additional Image Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 items-center mt-20"
-          >
-            <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black lg:order-1">
-              <video
-                src="/AI参謀：AIはコンサルをどう変えるか.mp4"
-                controls
-                className="w-full h-full object-contain"
-                poster="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
-              >
-                お使いのブラウザは動画タグをサポートしていません。
-              </video>
-            </div>
-            <div className="lg:order-2">
-              {/* なぜAIコンサルティングなのか - タイトル */}
-              <h3 className="text-2xl lg:text-3xl font-bold mb-4 text-gray-900">なぜ？AIコンサルティングなのか</h3>
-              {/* AIによるコンサルティングの必要性と理由を説明 */}
-              <p className="text-base lg:text-lg text-gray-600 mb-6 leading-relaxed">
-                従来のコンサルティングは高額で、中小企業には手が届きにくいものでした。
-                しかし、AI技術の進化により、誰もがアクセスできる高品質な経営支援が可能になりました。
-                24時間365日、データに基づいた的確なアドバイスを提供します。
-              </p>
-              {/* AIによるコンサルティングの主な利点 */}
-              <ul className="space-y-3 mb-6">
-                {[
-                  'コスト効率：従来のコンサルティングより大幅に低コスト',
-                  '即時対応：待ち時間ゼロで専門家レベルの分析を提供',
-                  'データドリブン：感情や経験に頼らない、客観的な判断'
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
-                    <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
-                    <span className="text-sm lg:text-base text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="/AI参謀革命.pdf"
-                download="AI参謀革命.pdf"
-                className="inline-flex items-center gap-3 px-5 py-2.5 lg:px-6 lg:py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl text-sm lg:text-base"
-              >
-                <Download size={18} />
-                AI参謀革命をダウンロード
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-      
-      {/* AIによる経営支援の5つのステップ */}
-      <section id="process" className="py-32 px-4 bg-gradient-to-b from-slate-100 via-gray-50 to-slate-100 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                未来の力で解決する
-              </span>
-              <br />
-              <span className="text-gray-900">AIによる経営支援の5つのステップ</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              単なる技術導入ではなく、貴社の具体的なニーズと目標を深く理解し、<br />
-              オーダーメイドのAI戦略を立案・実行します
-            </p>
-          </motion.div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-16">
-            {[
-              {
-                step: '1',
-                title: '課題を聞く',
-                subtitle: 'AIによる深層ヒアリング',
-                desc: '経営者の課題や悩みをAIが丁寧にヒアリング。表面的な問題だけでなく、その根底にある真の課題を特定します。',
-                icon: MessageSquare,
-                color: 'from-sky-300 to-blue-500',
-                image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                step: '2',
-                title: '現状を理解する',
-                subtitle: 'データの可視化と整理',
-                desc: '業務やデータの現状をAIが整理し、改善の出発点を可視化。膨大なデータを偏りなく迅速に処理します。',
-                icon: Database,
-                color: 'from-blue-400 to-indigo-500',
-                image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                step: '3',
-                title: '自動化を提案',
-                subtitle: '効率化の実現',
-                desc: '手作業業務をAIが抽出し、自動化計画を提示。作業効率とデータ精度が向上し、コスト削減を実現します。',
-                icon: Zap,
-                color: 'from-blue-500 to-indigo-600',
-                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                step: '4',
-                title: 'データをつなぐ',
-                subtitle: '全体像の把握',
-                desc: 'システム間の情報を連携し、AIが全体像を把握。経営全体の流れを見える化し、意思決定を支援します。',
-                icon: Globe,
-                color: 'from-indigo-600 to-blue-700',
-                image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                step: '5',
-                title: '参謀として提案',
-                subtitle: '戦略判断の支援',
-                desc: 'データに基づき、AIが課題解決の方向性を提案。市場の変化に迅速に対応し、リスクを最小限に抑えつつ成長機会を最大化します。',
-                icon: Brain,
-                color: 'from-blue-800 to-slate-900',
-                image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="group relative"
-              >
-                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-white/20 h-full flex flex-col">
-                  {/* Step Number */}
-                  <div className={`relative h-32 bg-gradient-to-br ${item.color} flex items-center justify-center`}>
-                    <div className="absolute inset-0 bg-black/10"></div>
-                    <div className="relative z-10 text-center">
-                      <div className="text-5xl font-bold text-white mb-2">{item.step}</div>
-                      <div className={`w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto`}>
-                        <item.icon size={24} className="text-white" />
-                      </div>
-                    </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="website">ウェブサイト</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="website"
+                      value={companyData.website}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, website: e.target.value }))}
+                      placeholder="https://example.com"
+                      className="sm:flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={fetchCompanyIntel}
+                      disabled={isFetchingCompanyIntel}
+                      className="sm:w-40 flex items-center justify-center gap-2"
+                    >
+                      {isFetchingCompanyIntel ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          取得中...
+                        </>
+                      ) : (
+                        <>
+                          <Globe size={16} />
+                          Web検索
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold mb-2 text-gray-900">{item.title}</h3>
-                    <p className="text-sm text-gray-500 mb-3 font-medium">{item.subtitle}</p>
-                    <p className="text-sm text-gray-600 leading-relaxed flex-1">{item.desc}</p>
-                  </div>
-                  
-                  {/* Connecting Line */}
-                  {i < 4 && (
-                    <div className="hidden md:block absolute top-16 -right-3 w-6 h-0.5 bg-gradient-to-r from-gray-300 to-transparent z-0">
-                      <ChevronRight size={16} className="absolute -right-2 top-1/2 -translate-y-1/2 text-gray-300" />
+                  {companyIntelStatus && (
+                    <div className={`text-xs p-2 rounded ${
+                      companyIntelStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                      companyIntelStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                      'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}>
+                      {companyIntelStatus.message}
                     </div>
                   )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
-          
-          {/* CTA Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mt-16"
-          >
-            <div className="inline-block bg-blue-600 rounded-2xl p-8 shadow-2xl">
-              <h3 className="text-2xl font-bold text-white mb-4">
-                貴社の課題もAIで解決できるだろうか？
-              </h3>
-              <p className="text-white/90 mb-6 text-lg">
-                ぜひ私たちサービスをご活用ください。AIの無限の可能性を貴社のビジネスに解き放ち、<br />
-                新たな価値創造を共に実現しましょう。
-              </p>
-              <div className="flex flex-wrap gap-4 justify-center">
-                <motion.a
-                  href="/pricing"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all inline-flex items-center gap-3"
-                >
-                  無料で始める
-                  <ArrowRight size={20} />
-                </motion.a>
-                <motion.a
-                  href="/AI.pdf"
-                  download="AIコンサルティングサービス資料.pdf"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold hover:bg-white/20 transition-all border border-white/30 inline-flex items-center gap-3"
-                >
-                  <Download size={20} />
-                  詳細資料をダウンロード
-                </motion.a>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-      
-      {/* About Section with Images */}
-      <section id="about" className="py-32 px-4 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative"
-            >
-              <div className="relative h-[500px] rounded-3xl overflow-hidden shadow-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
-                  alt="経営会議"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-              </div>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  AIの無限の可能性を
-                </span>
-                <br />
-                貴社のビジネスに解き放つ
-              </h2>
-              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                私たちは、AI技術を活用して経営者の意思決定をサポートする次世代のコンサルティングサービスを提供しています。
-                従来のコンサルティングでは時間とコストがかかっていた課題分析を、AIが24時間365日サポートします。
-              </p>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                単に技術を導入するだけでなく、貴社の具体的なニーズと目標を深く理解し、
-                オーダーメイドのAI戦略を立案・実行します。これにより、事業の成長を加速させ、
-                運用コストを削減し、競争優位性を確立するお手伝いをいたします。
-              </p>
-              <div className="flex gap-4">
-                <Link 
-                  href="/pricing"
-                  className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all inline-block"
-                >
-                  無料で始める
-                </Link>
-                <Link
-                  href="/contact"
-                  className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-all inline-block"
-                >
-                  お問い合わせ
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-          
-          {/* Image Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { 
-                img: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                icon: Zap,
-                title: '迅速な対応',
-                desc: '待ち時間ゼロで即座に分析結果を提供',
-                color: 'from-sky-300 to-blue-500'
-              },
-              { 
-                img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                icon: Target,
-                title: '精度の高い分析',
-                desc: '専門家レベルの深い洞察を提供',
-                color: 'from-blue-500 to-indigo-600'
-              },
-              { 
-                img: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                icon: Shield,
-                title: 'セキュリティ',
-                desc: '企業情報を安全に管理',
-                color: 'from-indigo-600 to-blue-700'
-              },
-              { 
-                img: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                icon: TrendingUp,
-                title: '継続的改善',
-                desc: 'AIが学習し続け精度が向上',
-                color: 'from-blue-800 to-slate-900'
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="companyEmail">メールアドレス</Label>
+                  <Input
+                    id="companyEmail"
+                    type="email"
+                    value={companyData.email}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="info@example.com"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className={`absolute top-4 right-4 w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg`}>
-                    <item.icon size={24} />
-                  </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-2 text-gray-900">{item.title}</h3>
-                  <p className="text-gray-600 text-sm">{item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-      
-      {/* 投資対効果 */}
-      <section id="roi" className="py-32 px-4 bg-gradient-to-b from-white via-slate-50 to-white relative overflow-hidden">
-        {/* Data Visualization Background */}
-        <div className="roi-background"></div>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                確実なリターンを数値で示す
-              </span>
-              <br />
-              AI導入による投資対効果
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              AIコンサルティングは単なる技術導入に留まらず、<br />
-              貴社の事業に具体的な財務的価値をもたらします
-            </p>
-          </motion.div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-            {[
-              {
-                title: 'コスト削減',
-                desc: 'AIによる業務自動化、リソース最適化、エラー率低減により、運用コストを大幅に削減します。',
-                icon: TrendingUp,
-                color: 'from-blue-600 to-indigo-600',
-                metric: '平均30%',
-                metricDesc: 'コスト削減',
-                image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                title: '売上・収益増加',
-                desc: 'データに基づいた顧客行動予測、パーソナライズされた提案、新市場開拓により、売上と収益の増加に貢献します。',
-                icon: Target,
-                color: 'from-blue-600 to-indigo-600',
-                metric: '平均25%',
-                metricDesc: '売上向上',
-                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                title: '業務効率化',
-                desc: '意思決定の迅速化、プロセス改善、従業員の戦略的業務への集中により、組織全体の生産性を向上させます。',
-                icon: Zap,
-                color: 'from-blue-600 to-indigo-600',
-                metric: '平均40%',
-                metricDesc: '効率向上',
-                image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-              {
-                title: 'リスク低減・競争力強化',
-                desc: '市場変動予測、サプライチェーン最適化、品質管理強化によりリスクを低減し、持続的な競争優位性を確立します。',
-                icon: Shield,
-                color: 'from-blue-600 to-indigo-600',
-                metric: '平均50%',
-                metricDesc: 'リスク低減',
-                image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                whileHover={{ y: -10 }}
-                className="group relative overflow-hidden rounded-2xl bg-white shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100"
-              >
-                {/* Background Image */}
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+
+                <div className="grid gap-2 md:col-span-2">
+                  <Label htmlFor="retrievedInfo">取得情報</Label>
+                  <textarea
+                    id="retrievedInfo"
+                    value={companyData.retrievedInfo}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, retrievedInfo: e.target.value }))}
+                    placeholder="Web検索で取得した内容や拠点情報が表示されます"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[120px]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
-                  <div className={`absolute top-4 right-4 w-14 h-14 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg`}>
-                    <item.icon size={28} />
+                  <p className="text-xs text-gray-500">
+                    Firecrawlによる取得結果やメモを保存できます。保存すると「取得情報」フィールドとして記録されます。
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="postalCode">郵便番号</Label>
+                    <Input
+                      id="postalCode"
+                      value={companyData.postalCode}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setCompanyData(prev => ({ ...prev, postalCode: value }))
+                        setPostalCodeStatus(null) // 入力中はステータスをクリア
+                        // 郵便番号が7桁になったら自動的に住所を取得
+                        const cleanPostalCode = value.replace(/[ー-]/g, '')
+                        if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
+                          setPostalCodeStatus({
+                            message: '住所を検索中...',
+                            type: 'info'
+                          })
+                          fetchAddressFromPostalCode(value)
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // フォーカスが外れた時にも住所を取得
+                        const value = e.target.value
+                        const cleanPostalCode = value.replace(/[ー-]/g, '')
+                        if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
+                          setPostalCodeStatus({
+                            message: '住所を検索中...',
+                            type: 'info'
+                          })
+                          fetchAddressFromPostalCode(value)
+                        }
+                      }}
+                      placeholder="150-0001"
+                    />
+                    {postalCodeStatus && (
+                      <div className={`text-xs p-2 rounded ${
+                        postalCodeStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                        postalCodeStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                        'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        {postalCodeStatus.message}
+                      </div>
+                    )}
                   </div>
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <div className="text-3xl font-bold mb-1">{item.metric}</div>
-                    <div className="text-sm text-white/90">{item.metricDesc}</div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="prefecture">都道府県</Label>
+                    <Input
+                      id="prefecture"
+                      value={companyData.prefecture}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, prefecture: e.target.value }))}
+                      placeholder="東京都"
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">市区町村</Label>
+                    <Input
+                      id="city"
+                      value={companyData.city}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="渋谷区"
+                    />
                   </div>
                 </div>
                 
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-3 text-gray-900">{item.title}</h3>
-                  <p className="text-gray-600 leading-relaxed text-sm">{item.desc}</p>
+                <div className="grid gap-2">
+                  <Label htmlFor="address">番地</Label>
+                  <Input
+                    id="address"
+                    value={companyData.address}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="恵比寿1-1-1"
+                  />
                 </div>
-              </motion.div>
-            ))}
-          </div>
-          
-          {/* ROI Summary */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-blue-600 rounded-3xl p-12 text-center text-white shadow-2xl"
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="building">建物名</Label>
+                  <Input
+                    id="building"
+                    value={companyData.building}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, building: e.target.value }))}
+                    placeholder="○○ビル 3F"
+                  />
+                </div>
+                
+                {/* 会社資料アップロード */}
+                <div className="grid gap-2">
+                  <Label>会社資料（任意）</Label>
+                  <FileUpload
+                    files={companyDocuments}
+                    onFilesChange={setCompanyDocuments}
+                    acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                    maxSize={10 * 1024 * 1024}
+                    multiple={true}
+                  />
+                </div>
+                
+                {errors.general && (
+                  <p className="text-sm text-red-500">{errors.general}</p>
+                )}
+                
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(2)}
+                    className="flex-1"
+                  >
+                    戻る
+                  </Button>
+                  <Button
+                    onClick={handleSaveCompany}
+                    disabled={isLoading}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                    完了してダッシュボードへ
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Back to Home */}
+        <div className="text-center mt-6">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <h3 className="text-3xl md:text-4xl font-bold mb-4">
-              投資が確実なリターンとして返ってくることを証明
-            </h3>
-            <p className="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
-              導入によって実現されるコスト削減、売上向上、効率性改善などを明確な数値で示し、<br />
-              貴社の事業に永続的な価値をもたらすための羅針盤となります。
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <motion.a
-                href="/pricing"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-10 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/20 transition-all inline-flex items-center gap-3"
-              >
-                無料で始める
-                <ArrowRight size={20} />
-              </motion.a>
-              <motion.a
-                href="/AI.pdf"
-                download="AIコンサルティングサービス資料.pdf"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-10 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/30 inline-flex items-center gap-3"
-              >
-                <Download size={20} />
-                詳細資料をダウンロード
-              </motion.a>
-            </div>
-          </motion.div>
+            <Home size={18} />
+            <span>トップページに戻る</span>
+          </Link>
         </div>
-      </section>
-      
-      {/* Footer */}
-      <footer id="contact" className="bg-gray-100 text-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-6">
-            {/* Company Info */}
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <img 
-                  src="/info-data/AI-LOGO05.png" 
-                  alt="SolveWise" 
-                  className="h-12 w-auto"
-                />
-                <span className="text-xl font-bold text-gray-900">SolveWise</span>
-              </div>
-              <p className="text-gray-600 text-sm mb-4">
-                AIで経営課題を解決する次世代コンサルティングサービス
-              </p>
-              <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors text-gray-700">
-                  <span className="text-sm">X</span>
-                </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors text-gray-700">
-                  <span className="text-sm">f</span>
-                </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors text-gray-700">
-                  <span className="text-sm">in</span>
-                </a>
-              </div>
-            </div>
-            
-            {/* Product */}
-            <div>
-              <h3 className="font-semibold text-lg mb-4 text-gray-900">サービス</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#features" className="hover:text-gray-900 transition-colors">機能一覧</a></li>
-                <li><a href="#pricing" className="hover:text-gray-900 transition-colors">料金プラン</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">導入事例</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">よくある質問</a></li>
-              </ul>
-            </div>
-            
-            {/* Company */}
-            <div>
-              <h3 className="font-semibold text-lg mb-4 text-gray-900">会社情報</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#about" className="hover:text-gray-900 transition-colors">サービスについて</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">企業情報</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">ニュース</a></li>
-              </ul>
-            </div>
-            
-            {/* Legal & Support */}
-            <div>
-              <h3 className="font-semibold text-lg mb-4 text-gray-900">サポート</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><Link href="/contact" className="hover:text-gray-900 transition-colors">お問い合わせ</Link></li>
-                <li><Link href="/legal/terms-of-service" className="hover:text-gray-900 transition-colors">利用規約</Link></li>
-                <li><Link href="/legal/privacy-policy" className="hover:text-gray-900 transition-colors">プライバシーポリシー</Link></li>
-                <li><Link href="/legal/specific-commercial-transactions" className="hover:text-gray-900 transition-colors">特定商取引法</Link></li>
-              </ul>
-            </div>
-          </div>
-          
-          {/* Copyright */}
-          <div className="border-t border-gray-300 pt-6">
-            <div className="text-center">
-              <p className="text-gray-500 text-sm">
-                © 2026 AI Consulting Inc. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
       </div>
     </div>
   )
 }
 
-// ============================================
-// MAIN PAGE - Landing Page Only
-// ============================================
-export default function Page() {
-  const router = useRouter()
-  
-  return (
-    <LandingPage 
-      onLogin={() => {
-        router.push('/auth/login')
-      }} 
-      onSignup={() => {
-        router.push('/auth/sign-up')
-      }} 
-    />
-  )
-}

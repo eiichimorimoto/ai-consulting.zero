@@ -134,6 +134,12 @@ export default function SignUpPage() {
         throw new Error('ユーザーの作成に失敗しました。Supabaseの応答にユーザーデータが含まれていません。')
       }
 
+      // Supabaseは「再サインアップ」の場合、identities が空配列で返る
+      const identities = (data.user as any)?.identities
+      if (Array.isArray(identities) && identities.length === 0) {
+        throw new Error('このメールアドレスは既に登録されています。メールを確認するか、ログインしてください。')
+      }
+
       // メール送信の状態を確認
       console.log('✅ Signup successful:', {
         userId: data.user.id,
