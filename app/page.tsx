@@ -3,23 +3,21 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Brain, TrendingUp, Users, Zap, BarChart3, FileText, MessageSquare, Target, Lightbulb, Shield } from 'lucide-react'
+import { ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, BarChart3, FileText, MessageSquare, Target, Lightbulb, Shield } from 'lucide-react'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px'
-          }} />
-        </div>
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-900">
+        {/* Background AI Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(/humanoid-ai-robot-presenting-holographic-data-char.jpg)',
+            opacity: 0.4
+          }}
+        />
 
         {/* Animated Dashboard Preview */}
         <div className="absolute inset-0 flex items-center justify-center opacity-30">
@@ -58,56 +56,44 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight"
+            className="text-6xl md:text-8xl font-bold text-white mb-12 leading-tight tracking-tight"
           >
-            貴社の課題を
-            <br />
-            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">
-              未来の力で解決
-            </span>
-            する
+            AIが、
+            <span className="text-blue-400">経営</span>
+            を変える
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-gray-300 mb-4"
+            className="text-xl md:text-2xl text-gray-300 mb-16 font-light leading-relaxed"
           >
-            最先端の人工知能技術を駆使して、ビジネスのあらゆる側面に革新をもたらします。
-          </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="text-lg text-gray-400 mb-12"
-          >
-            データ分析の高度化から業務プロセスの自動化、顧客体験の向上まで。
+            24時間365日、データに基づく戦略的意思決定をサポート
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
           >
             <Link href="/auth/sign-up">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 transition-all"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-6 text-base font-semibold rounded-lg shadow-lg transition-all border border-blue-500"
               >
-                無料で始める
+                サービスを始める
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Link href="/pricing">
+            <Link href="/contact">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-2 border-blue-400/50 text-white hover:bg-blue-500/10 px-8 py-6 text-lg font-semibold rounded-xl backdrop-blur-sm"
+                className="border-2 border-white/30 text-white hover:bg-white/10 px-10 py-6 text-base font-semibold rounded-lg backdrop-blur-sm transition-all"
               >
-                資料をダウンロード
+                お問い合わせ
               </Button>
             </Link>
           </motion.div>
@@ -117,92 +103,113 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="grid grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto"
+            className="grid grid-cols-3 gap-12 mt-24 max-w-4xl mx-auto"
           >
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-white mb-2">10,000+</div>
-              <div className="text-sm text-gray-400">利用企業数</div>
+              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">戦略立案</div>
+              <div className="text-sm text-gray-400 font-light">データ駆動型の意思決定</div>
+            </div>
+            <div className="text-center border-x border-white/20">
+              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">24/7対応</div>
+              <div className="text-sm text-gray-400 font-light">いつでも相談可能</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-white mb-2">98%</div>
-              <div className="text-sm text-gray-400">満足度</div>
+              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">実行支援</div>
+              <div className="text-sm text-gray-400 font-light">継続的なサポート</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-white mb-2">24/7</div>
-              <div className="text-sm text-gray-400">サポート</div>
-            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom Liquid Glass Text */}
+        <div className="absolute bottom-12 left-0 right-0 overflow-hidden pointer-events-none">
+          <motion.div
+            animate={{ x: [0, -2000] }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: 'linear',
+              repeatDelay: 0
+            }}
+            className="whitespace-nowrap"
+          >
+            <h2 className="text-5xl md:text-6xl font-light tracking-[0.2em]"
+              style={{
+                fontFamily: '"SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+                fontWeight: 300,
+                letterSpacing: '0.2em',
+                color: 'white',
+                textShadow: '0 8px 32px rgba(31, 38, 135, 0.37), 0 2px 8px rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.3)',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
+              AI POWERED CONSULTING　　　　AI POWERED CONSULTING　　　　AI POWERED CONSULTING
+            </h2>
           </motion.div>
         </div>
       </section>
 
       {/* Features Section - 未来を変える主な機能 */}
-      <section className="py-24 px-4 relative bg-white">
+      <section id="features" className="py-24 px-4 relative bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              未来を変える<br />主な機能
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6 tracking-wide">
+              <span className="text-blue-600 font-normal">3つの</span>コアサービス
             </h2>
-            <p className="text-lg text-gray-600">
-              AIが24時間365日、あなたのビジネスをサポート。<br />
-              最先端の技術で、経営の課題を解決します。
+            <p className="text-lg text-gray-600 font-light">
+              戦略立案から実行まで、包括的にサポート
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
             {[
               {
-                icon: MessageSquare,
-                title: '24時間AI相談窓口',
-                description: 'いつでもどこでも、AIコンサルタントに相談できます。深夜でも休日でも、即座に回答。',
-                image: '/info-data/feature1.jpg'
+                title: '戦略コンサルティング',
+                description: 'データに基づく戦略立案と意思決定支援',
+                image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
+                number: '01'
               },
               {
-                icon: BarChart3,
-                title: '高精度AI市場予測',
-                description: '膨大なデータを分析し、市場トレンドを予測。先手を打つ戦略立案をサポート。',
-                image: '/info-data/feature2.jpg'
+                title: 'データインテリジェンス',
+                description: '市場分析と競合分析による洞察提供',
+                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80',
+                number: '02'
               },
               {
-                icon: FileText,
-                title: 'AI資料作成支援',
-                description: '提案書や報告書を自動生成。時間を大幅に削減し、クオリティを向上。',
-                image: '/info-data/feature3.jpg'
-              },
-              {
-                icon: Target,
-                title: '競合他社分析',
-                description: '競合の動向を自動収集・分析。差別化戦略の立案をサポート。',
-                image: '/info-data/feature4.jpg'
-              },
-              {
-                icon: Brain,
-                title: 'ビジネス戦略',
-                description: 'データに基づいた戦略提案。経営判断の精度を飛躍的に向上。',
-                image: '/info-data/feature5.jpg'
-              },
-              {
-                icon: Lightbulb,
-                title: 'マイナビAI予測',
-                description: '人材市場のトレンドを予測。最適な採用戦略を提案。',
-                image: '/info-data/feature6.jpg'
+                title: '実行支援',
+                description: '戦略実行のモニタリングと継続的改善',
+                image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80',
+                number: '03'
               }
             ].map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
                 viewport={{ once: true }}
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all group"
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all group border border-gray-100"
               >
-                <div className="relative h-48 bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <feature.icon className="w-20 h-20 text-white/30" />
+                <div className="relative h-64 overflow-hidden">
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      backgroundImage: `url(${feature.image})`
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                  <div className="absolute bottom-6 left-6">
+                    <div className="text-6xl font-light text-white/30 mb-2">{feature.number}</div>
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-gray-600 text-sm">{feature.description}</p>
+                <div className="p-8">
+                  <h3 className="text-2xl font-light text-gray-900 mb-3 tracking-wide">{feature.title}</h3>
+                  <p className="text-gray-600 text-base font-light leading-relaxed">{feature.description}</p>
                 </div>
               </motion.div>
             ))}
@@ -221,10 +228,16 @@ export default function LandingPage() {
               viewport={{ once: true }}
             >
               <div className="relative">
-                <div className="aspect-video bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-2xl overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Users className="w-32 h-32 text-white/30" />
-                  </div>
+                <div className="aspect-video rounded-2xl shadow-2xl overflow-hidden bg-black">
+                  <video 
+                    className="w-full h-full object-cover"
+                    controls
+                    loop
+                    playsInline
+                  >
+                    <source src="/AI参謀：AIはコンサルをどう変えるか.mp4" type="video/mp4" />
+                    お使いのブラウザは動画タグをサポートしていません。
+                  </video>
                 </div>
               </div>
             </motion.div>
@@ -234,60 +247,174 @@ export default function LandingPage() {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                ポイント人材派遣の壁を越える<br />
-                経営の課題を解決
+              <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-8 tracking-wide leading-tight">
+                AIによる<br />
+                <span className="text-blue-600 font-normal">経営課題の解決</span>
               </h2>
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                中小企業が直面する「人材不足」「コスト増」「ノウハウ不足」の3つの壁。
-                これらの課題をAIが解決します。24時間365日稼働するAIコンサルタントが、
-                あなたのビジネスを次のステージへ導きます。
+              <p className="text-gray-600 mb-8 leading-relaxed text-lg font-light">
+                データ分析から戦略立案、実行支援まで。<br />
+                経営の意思決定を、確かな根拠とともに。
               </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-sm">✓</span>
-                  </div>
-                  <span className="text-gray-700">人材コストを最大70%削減</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-sm">✓</span>
-                  </div>
-                  <span className="text-gray-700">24時間365日、休まず稼働</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-sm">✓</span>
-                  </div>
-                  <span className="text-gray-700">専門知識を即座に提供</span>
-                </li>
-              </ul>
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* 5 Steps Section */}
-      <section className="py-24 px-4 relative bg-white">
+      <section id="steps" className="py-24 px-4 relative bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              未来の力で解決する<br />
-              AIによる経営支援の5つのステップ
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6 tracking-wide leading-tight">
+              <span className="text-blue-600 font-normal">5つのステップ</span>で<br />
+              経営支援を実現
             </h2>
-            <p className="text-lg text-gray-600">
-              シンプルな5ステップで、あなたのビジネスを変革します
+            <p className="text-lg text-gray-600 font-light">
+              課題の特定から実行支援まで、体系的にサポート
             </p>
           </div>
 
-          <div className="grid md:grid-cols-5 gap-6">
-            {[
-              { step: '1', title: '初回登録', description: '簡単な情報入力で、すぐに利用開始', color: 'from-blue-500 to-blue-600' },
-              { step: '2', title: '課題の共有', description: 'AIに現在の課題を相談', color: 'from-purple-500 to-purple-600' },
-              { step: '3', title: 'AI分析と提案', description: 'データを分析し、最適な戦略を提案', color: 'from-green-500 to-green-600' },
-              { step: '4', title: 'ハンズオン支援', description: '実行フェーズでも継続サポート', color: 'from-orange-500 to-orange-600' },
-              { step: '5', title: '継続的改善', description: '結果を分析し、さらなる改善を提案', color: 'from-pink-500 to-pink-600' }
+          <div className="relative">
+            {/* Animated rope behind cards */}
+            <div className="hidden md:block absolute top-1/2 left-0 right-0 transform -translate-y-1/2 z-0" style={{ height: '120px' }}>
+              <svg width="100%" height="120" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="ropeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#3B82F6" />
+                    <stop offset="25%" stopColor="#60A5FA" />
+                    <stop offset="50%" stopColor="#3B82F6" />
+                    <stop offset="75%" stopColor="#60A5FA" />
+                    <stop offset="100%" stopColor="#3B82F6" />
+                  </linearGradient>
+                  <filter id="ropeGlow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                
+                {/* Main rope path */}
+                <path 
+                  d="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60" 
+                  stroke="url(#ropeGradient)"
+                  strokeWidth="8" 
+                  strokeLinecap="round"
+                  fill="none"
+                  filter="url(#ropeGlow)"
+                  opacity="0.6"
+                >
+                  <animate 
+                    attributeName="d" 
+                    values="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60;
+                            M 0 60 Q 150 110, 300 60 T 600 60 T 900 60 T 1200 60;
+                            M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60"
+                    dur="4s" 
+                    repeatCount="indefinite"
+                  />
+                </path>
+                
+                {/* Rope highlight */}
+                <path 
+                  d="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60" 
+                  stroke="#BFDBFE"
+                  strokeWidth="4" 
+                  strokeLinecap="round"
+                  fill="none"
+                  opacity="0.4"
+                >
+                  <animate 
+                    attributeName="d" 
+                    values="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60;
+                            M 0 60 Q 150 110, 300 60 T 600 60 T 900 60 T 1200 60;
+                            M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60"
+                    dur="4s" 
+                    repeatCount="indefinite"
+                  />
+                </path>
+                
+                {/* Moving particles along the rope - multiple particles */}
+                <circle r="4" fill="#60A5FA" opacity="0.9">
+                  <animateMotion 
+                    dur="8s" 
+                    repeatCount="indefinite"
+                    path="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60"
+                  />
+                  <animate attributeName="r" values="4;6;4" dur="1s" repeatCount="indefinite" />
+                </circle>
+                
+                <circle r="3" fill="#93C5FD" opacity="0.7">
+                  <animateMotion 
+                    dur="8s" 
+                    repeatCount="indefinite"
+                    path="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60"
+                    begin="2s"
+                  />
+                </circle>
+                
+                <circle r="3" fill="#BFDBFE" opacity="0.8">
+                  <animateMotion 
+                    dur="8s" 
+                    repeatCount="indefinite"
+                    path="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60"
+                    begin="4s"
+                  />
+                </circle>
+                
+                <circle r="5" fill="#3B82F6" opacity="0.6">
+                  <animateMotion 
+                    dur="8s" 
+                    repeatCount="indefinite"
+                    path="M 0 60 Q 150 10, 300 60 T 600 60 T 900 60 T 1200 60"
+                    begin="6s"
+                  />
+                  <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+                </circle>
+              </svg>
+            </div>
+
+            <div className="grid md:grid-cols-5 gap-6 relative z-10">
+              {[
+              { 
+                step: '1', 
+                title: '課題の特定', 
+                subtitle: 'ヒアリングと分析',
+                description: '経営課題の本質を特定し、優先順位を明確化', 
+                color: 'from-blue-500 to-blue-600',
+                icon: MessageSquare
+              },
+              { 
+                step: '2', 
+                title: '現状分析', 
+                subtitle: 'データの可視化',
+                description: '業務とデータの現状を整理し、改善点を可視化', 
+                color: 'from-indigo-500 to-indigo-600',
+                icon: BarChart3
+              },
+              { 
+                step: '3', 
+                title: '戦略立案', 
+                subtitle: 'ソリューション設計',
+                description: 'データに基づく戦略を立案し、実行計画を策定', 
+                color: 'from-blue-600 to-indigo-600',
+                icon: Zap
+              },
+              { 
+                step: '4', 
+                title: '実行支援', 
+                subtitle: '施策の実装',
+                description: '戦略の実行をサポートし、進捗をモニタリング', 
+                color: 'from-indigo-600 to-blue-700',
+                icon: Target
+              },
+              { 
+                step: '5', 
+                title: '継続改善', 
+                subtitle: '効果測定と最適化',
+                description: '成果を測定し、継続的な改善サイクルを実現', 
+                color: 'from-blue-700 to-indigo-700',
+                icon: Brain
+              }
             ].map((item, index) => (
               <motion.div
                 key={index}
@@ -297,13 +424,69 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 className="relative"
               >
-                <div className={`bg-gradient-to-br ${item.color} rounded-xl p-6 text-white shadow-lg h-full`}>
-                  <div className="text-4xl font-bold mb-4 opacity-50">{item.step}</div>
-                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-sm text-white/90">{item.description}</p>
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden h-full hover:shadow-2xl transition-all group">
+                  <div className={`bg-gradient-to-br ${item.color} p-8 text-center relative`}>
+                    <svg width="0" height="0" style={{ position: 'absolute' }}>
+                      <defs>
+                        <filter id={`insetShadow${index}`}>
+                          <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                          <feOffset dx="0" dy="3" result="offsetblur"/>
+                          <feFlood floodColor="rgba(0,0,0,0.5)"/>
+                          <feComposite in2="offsetblur" operator="in"/>
+                          <feMerge>
+                            <feMergeNode/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                    </svg>
+                    <div 
+                      className="text-6xl font-bold text-white mb-4 relative"
+                      style={{
+                        animation: `numberFlow${index} 8s ease-in-out infinite`,
+                        animationDelay: `${index * 1.6}s`
+                      }}
+                    >
+                      <style>{`
+                        @keyframes numberFlow${index} {
+                          0% {
+                            text-shadow: 
+                              inset 2px 2px 4px rgba(0, 0, 0, 0.8),
+                              2px 2px 4px rgba(0, 0, 0, 0.6),
+                              -1px -1px 2px rgba(0, 0, 0, 0.4);
+                            filter: brightness(0.7);
+                          }
+                          50% {
+                            text-shadow: 
+                              0 0 20px rgba(255, 255, 255, 0.8),
+                              0 0 30px rgba(255, 255, 255, 0.6),
+                              2px 2px 4px rgba(255, 255, 255, 0.4);
+                            filter: brightness(1.3);
+                          }
+                          100% {
+                            text-shadow: 
+                              inset 2px 2px 4px rgba(0, 0, 0, 0.8),
+                              2px 2px 4px rgba(0, 0, 0, 0.6),
+                              -1px -1px 2px rgba(0, 0, 0, 0.4);
+                            filter: brightness(0.7);
+                          }
+                        }
+                      `}</style>
+                      {item.step}
+                    </div>
+                    <div className="w-16 h-16 mx-auto bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                      <item.icon className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                  <div className="p-6 bg-white">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                    <p className="text-sm font-semibold text-blue-600 mb-3">{item.subtitle}</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
+                  </div>
                 </div>
               </motion.div>
             ))}
+            </div>
           </div>
 
           <motion.div
@@ -311,21 +494,27 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
             viewport={{ once: true }}
-            className="mt-12 text-center"
+            className="mt-16 text-center"
           >
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white">
-              <h3 className="text-2xl font-bold mb-4">今すぐ無料で始めませんか？</h3>
-              <p className="mb-6">初期費用0円。まずは無料トライアルでAIの力を体験してください。</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="bg-white border-2 border-gray-200 rounded-3xl p-12 shadow-xl">
+              <h3 className="text-3xl md:text-4xl font-light mb-4 text-gray-900">貴社の課題もAIで解決できるだろうか？</h3>
+              <p className="text-lg md:text-xl mb-8 text-gray-600 font-light leading-relaxed">
+                まずは無料相談で、貴社の課題をお聞かせください。<br />
+                最適なAIソリューションをご提案いたします。
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Link href="/auth/sign-up">
-                  <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-xl">
-                    無料で始める
+                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-10 py-7 text-lg font-light rounded-xl shadow-lg hover:shadow-xl transition-all">
+                    無料相談を予約する
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
                 <Link href="/pricing">
-                  <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold rounded-xl">
-                    料金プランを見る
+                  <Button size="lg" variant="outline" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-10 py-7 text-lg font-light rounded-xl">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    サービス資料をダウンロード
                   </Button>
                 </Link>
               </div>
@@ -335,43 +524,32 @@ export default function LandingPage() {
       </section>
 
       {/* Business Value Section */}
-      <section className="py-24 px-4 relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      <section className="py-24 px-4 relative bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-4">
+              <span className="text-blue-600">AIの力を</span><br />
+              貴社のビジネスに
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                AIの導入の壁を越える<br />
-                貴社のビジネスに活きる
-              </h2>
-              <p className="text-gray-300 mb-6 leading-relaxed">
-                「AIは難しい」「コストが高い」「使いこなせない」——
-                そんな不安を解消します。SolveWiseは、専門知識不要で、
-                誰でも簡単にAIの力を活用できるプラットフォームです。
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Shield className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold mb-1">セキュリティ万全</h4>
-                    <p className="text-gray-400 text-sm">企業データを安全に保護</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold mb-1">即座に導入可能</h4>
-                    <p className="text-gray-400 text-sm">複雑な設定は一切不要</p>
-                  </div>
-                </div>
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black">
+                <video 
+                  className="w-full h-full object-cover"
+                  controls
+                  loop
+                  playsInline
+                >
+                  <source src="/video-1765885080626.mp4" type="video/mp4" />
+                  お使いのブラウザは動画タグをサポートしていません。
+                </video>
               </div>
             </motion.div>
             <motion.div
@@ -380,12 +558,15 @@ export default function LandingPage() {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <div className="relative">
-                <div className="aspect-video bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-2xl border border-blue-400/20 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Brain className="w-32 h-32 text-white/20" />
-                  </div>
-                </div>
+              <p className="text-gray-600 mb-8 leading-relaxed text-lg font-light">
+                AI技術を活用し、経営者の意思決定をサポートする次世代のコンサルティングサービス。貴社の具体的なニーズと目標を深く理解し、オーダーメイドのAI戦略を立案・実行します。
+              </p>
+              <div>
+                <Link href="/contact">
+                  <Button size="lg" variant="outline" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-6 text-lg font-light rounded-xl">
+                    お問い合わせ
+                  </Button>
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -396,21 +577,33 @@ export default function LandingPage() {
       <section className="py-24 px-4 relative bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              理想なリターンを教育で示す<br />
-              AI導入による投資対効果
+            <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6">
+              <span className="text-blue-600">確実なリターン</span>を実現する<br />
+              AI導入の投資対効果
             </h2>
-            <p className="text-lg text-gray-600">
-              導入企業の平均ROI（投資対効果）は300%以上
+            <p className="text-lg text-gray-600 font-light leading-relaxed">
+              AIコンサルティングは単なる技術導入に留まらず、<br />
+              貴社の事業に具体的な財務的価値をもたらします
             </p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {[
-              { title: '時間削減', value: '70%', description: '業務時間を大幅削減', icon: '⏱️' },
-              { title: 'コスト削減', value: '50%', description: '人件費・運用コスト削減', icon: '💰' },
-              { title: '売上向上', value: '150%', description: '売上が平均1.5倍に', icon: '📈' },
-              { title: '満足度', value: '98%', description: '顧客満足度', icon: '⭐' }
+              { 
+                title: 'コスト削減', 
+                description: 'AIによる業務自動化とリソース最適化により、運用コストを大幅に削減します。',
+                icon: TrendingDown
+              },
+              { 
+                title: '売上向上', 
+                description: 'データに基づいた顧客行動予測とパーソナライズされた提案により、売上増加に貢献します。',
+                icon: TrendingUp
+              },
+              { 
+                title: '業務効率化', 
+                description: '意思決定の迅速化とプロセス改善により、組織全体の生産性を向上させます。',
+                icon: Zap
+              }
             ].map((item, index) => (
               <motion.div
                 key={index}
@@ -418,48 +611,19 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 text-center"
+                className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:shadow-xl transition-all"
               >
-                <div className="text-4xl mb-4">{item.icon}</div>
-                <div className="text-4xl font-bold text-blue-600 mb-2">{item.value}</div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-1">{item.title}</h4>
-                <p className="text-sm text-gray-600">{item.description}</p>
+                <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center mb-6">
+                  <item.icon className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-light text-gray-900 mb-4">{item.title}</h3>
+                <p className="text-gray-600 leading-relaxed font-light">{item.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
-
-      {/* CTA Section */}
-      <section className="py-24 px-4 relative bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              成長の経営リターンとして<br />
-              すぐに使える名言
-            </h2>
-            <p className="text-xl text-white/90 mb-8">
-              「変化を恐れるな。変化こそが成長の源泉である」
-            </p>
-            <p className="text-lg text-white/80 mb-12">
-              今すぐAIの力で、あなたのビジネスを次のステージへ
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/sign-up">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-10 py-7 text-xl font-bold rounded-xl shadow-xl">
-                  無料トライアルを始める
-                  <ArrowRight className="ml-2 w-6 h-6" />
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
     </div>
   )
 }
+

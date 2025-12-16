@@ -29,15 +29,18 @@ export function Header() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               機能
             </Link>
-            <Link href="#process" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-              導入の流れ
+            <Link href="/#steps" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              5つのステップ
             </Link>
-            <Link href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               料金プラン
+            </Link>
+            <Link href="/contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              お問い合わせ
             </Link>
             <Link href="/auth/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               ログイン
