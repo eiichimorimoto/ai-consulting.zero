@@ -1,42 +1,66 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Mail, Send, Home } from "lucide-react"
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="flex items-center gap-2 text-gray-900 hover:opacity-80 transition-opacity">
-            <svg
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span className="font-semibold text-lg">SolveWise</span>
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Link href="/" className="flex items-center gap-3 text-gray-900 hover:opacity-80 transition-opacity">
+            <Image
+              src="/info-data/AI-LOGO001.png"
+              alt="SolveWise Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
+            <span className="font-light text-xl tracking-wide">SolveWise</span>
           </Link>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 md:p-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="mb-12 text-center">
+          <h1 className="text-3xl md:text-4xl font-light text-gray-900 mb-6">
             お問い合わせ
           </h1>
-          <p className="text-gray-600 mb-12">
+          <p className="text-gray-600 font-light leading-relaxed">
             ご質問やご相談がございましたら、お気軽にお問い合わせください。
-            <br />
-            通常、2営業日以内にご返信いたします。
           </p>
+        </div>
 
-          <form className="space-y-6">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-sm">
+          <iframe 
+            key={Date.now()}
+            src={`https://docs.google.com/forms/d/e/1FAIpQLSdqNJWfVO-xisI5NWDlAHb4hMYC7Km6cay_LJwl0IZJ54RwXQ/viewform?embedded=true&v=${Date.now()}`}
+            width="100%"
+            height="1400"
+            frameBorder="0"
+            marginHeight={0}
+            marginWidth={0}
+            className="w-full"
+          >
+            読み込んでいます...
+          </iframe>
+        </div>
+
+        <div className="mt-12 text-center">
+          <Link
+            href="/"
+            className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-light text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all"
+          >
+            <Home size={18} />
+            <span>トップページに戻る</span>
+          </Link>
+        </div>
+
+        <div style={{display: 'none'}}>
+          <form className="space-y-8">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-light text-gray-700 mb-3">
                 お名前 <span className="text-red-500">*</span>
               </label>
               <input
@@ -44,13 +68,13 @@ export default function ContactPage() {
                 id="name"
                 name="name"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all font-light"
                 placeholder="山田 太郎"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-light text-gray-700 mb-3">
                 メールアドレス <span className="text-red-500">*</span>
               </label>
               <input
@@ -58,26 +82,26 @@ export default function ContactPage() {
                 id="email"
                 name="email"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all font-light"
                 placeholder="example@email.com"
               />
             </div>
 
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="company" className="block text-sm font-light text-gray-700 mb-3">
                 会社名
               </label>
               <input
                 type="text"
                 id="company"
                 name="company"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all font-light"
                 placeholder="株式会社サンプル"
               />
             </div>
 
             <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="subject" className="block text-sm font-light text-gray-700 mb-3">
                 件名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -85,13 +109,13 @@ export default function ContactPage() {
                 id="subject"
                 name="subject"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all font-light"
                 placeholder="お問い合わせの件名"
               />
             </div>
 
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="message" className="block text-sm font-light text-gray-700 mb-3">
                 お問い合わせ内容 <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -99,12 +123,12 @@ export default function ContactPage() {
                 name="message"
                 required
                 rows={8}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all resize-none"
+                className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all resize-none font-light"
                 placeholder="お問い合わせ内容をご記入ください"
               />
             </div>
 
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3 pt-4">
               <input
                 type="checkbox"
                 id="privacy"
@@ -112,7 +136,7 @@ export default function ContactPage() {
                 required
                 className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
               />
-              <label htmlFor="privacy" className="text-sm text-gray-600">
+              <label htmlFor="privacy" className="text-sm text-gray-600 font-light">
                 <Link href="/legal/privacy-policy" className="text-blue-600 hover:underline">
                   プライバシーポリシー
                 </Link>
@@ -122,34 +146,12 @@ export default function ContactPage() {
 
             <button
               type="submit"
-              className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-light hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
             >
-              <Send size={20} />
+              <Send size={18} />
               送信する
             </button>
           </form>
-
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <div className="flex items-center gap-3 text-gray-600">
-              <Mail size={20} />
-              <div>
-                <div className="text-sm font-medium mb-1">メールでのお問い合わせ</div>
-                <a href="mailto:info@solvewise.jp" className="text-blue-600 hover:underline">
-                  info@solvewise.jp
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center">
-            <Link
-              href="/"
-              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <Home size={18} />
-              <span>トップページに戻る</span>
-            </Link>
-          </div>
         </div>
       </main>
     </div>

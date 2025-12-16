@@ -7,17 +7,13 @@ export default function TermsOfServicePage() {
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity">
-            <svg
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span className="font-semibold text-lg">SolveWise</span>
+          <Link href="/" className="flex items-center gap-3 text-white hover:opacity-80 transition-opacity">
+            <img 
+              src="/info-data/AI-LOGO001.png" 
+              alt="SolveWise" 
+              className="h-10 w-auto"
+            />
+            <span className="font-semibold text-sm">SolveWise</span>
           </Link>
         </div>
       </header>
@@ -25,14 +21,14 @@ export default function TermsOfServicePage() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8 md:p-12 shadow-2xl">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h1 className="text-xl md:text-3xl font-bold text-white mb-4">
             利用規約
           </h1>
-          <p className="text-gray-400 mb-12">制定日：2025年11月1日</p>
+          <p className="text-gray-400 mb-12 text-sm">制定日：2025年11月1日</p>
 
           <div className="space-y-8 text-gray-300">
             <section className="prose prose-invert max-w-none">
-              <p className="text-lg leading-relaxed">
+              <p className="text-sm leading-relaxed">
                 本規約（以下「本規約」といいます。）は、
                 <br />
                 株式会社マネジメント総研（以下「当社」といいます。）が運営する
@@ -42,15 +38,15 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第1条（適用）</h2>
-              <p className="text-lg">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第1条（適用）</h2>
+              <p className="text-sm">
                 本規約は、当社とユーザーとの間の一切の関係に適用されます。
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第2条（利用登録）</h2>
-              <p className="text-lg">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第2条（利用登録）</h2>
+              <p className="text-sm">
                 登録希望者は本規約に同意のうえ登録を行い、
                 <br />
                 当社の承認をもって利用契約が成立します。
@@ -58,9 +54,9 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第3条（禁止事項）</h2>
-              <p className="text-lg mb-4">以下の行為を禁止します。</p>
-              <ul className="space-y-3 text-lg list-disc list-inside ml-4">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第3条（禁止事項）</h2>
+              <p className="text-sm mb-4">以下の行為を禁止します。</p>
+              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
                 <li>法令または公序良俗に反する行為</li>
                 <li>サービスの運営を妨げる行為</li>
                 <li>他者の権利侵害</li>
@@ -70,8 +66,8 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第4条（利用料金と支払方法）</h2>
-              <ul className="space-y-3 text-lg list-disc list-inside ml-4">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第4条（利用料金と支払方法）</h2>
+              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
                 <li>料金はサイト上の表示に従います。</li>
                 <li>支払はStripeによるクレジットカード決済です。</li>
                 <li>サブスクリプションは自動更新となります。</li>
@@ -79,23 +75,23 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第5条（免責事項）</h2>
-              <ul className="space-y-3 text-lg list-disc list-inside ml-4">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第5条（免責事項）</h2>
+              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
                 <li>AI出力内容の正確性・有用性は保証しません。</li>
                 <li>本サービスの利用による損害について当社は一切責任を負いません。</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第6条（契約解除）</h2>
-              <p className="text-lg">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第6条（契約解除）</h2>
+              <p className="text-sm">
                 本規約違反があった場合、当社は通知なく契約を解除できます。
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第7条（反社会的勢力の排除）</h2>
-              <ul className="space-y-3 text-lg list-disc list-inside ml-4">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第7条（反社会的勢力の排除）</h2>
+              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
                 <li>ユーザーは反社会的勢力でないことを保証します。</li>
                 <li>違反が判明した場合、当社は即時契約を解除できます。</li>
                 <li>解除による損害について当社は責任を負いません。</li>
@@ -103,8 +99,8 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold text-white mb-4">■ 第8条（準拠法および裁判管轄）</h2>
-              <p className="text-lg">
+              <h2 className="text-xl font-semibold text-white mb-4">■ 第8条（準拠法および裁判管轄）</h2>
+              <p className="text-sm">
                 本規約は日本法に準拠し、
                 <br />
                 名古屋地方裁判所を専属的合意管轄とします。
