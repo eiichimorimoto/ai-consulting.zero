@@ -45,7 +45,7 @@ Has credentials: Yes
 新しいターミナルウィンドウを開いて、以下のコマンドでログを確認できます：
 
 ```bash
-cd /Users/eiichi/Documents/ai-consulting-app
+cd /Users/eiichi/Documents/ai-consulting-zero
 tail -f .next/trace  # ログファイルがあれば
 ```
 
@@ -54,7 +54,7 @@ tail -f .next/trace  # ログファイルがあれば
 新しいターミナルウィンドウで：
 
 ```bash
-cd /Users/eiichi/Documents/ai-consulting-app
+cd /Users/eiichi/Documents/ai-consulting-zero
 npm run dev
 ```
 

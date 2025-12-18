@@ -90,13 +90,18 @@ export default function SignUpPage() {
       console.log('📤 Calling supabase.auth.signUp...')
       console.log('Email:', email)
       console.log('Password length:', password.length)
-      console.log('Redirect URL:', process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/complete-profile`)
+      // 本番/プレビュー/ローカルでドメインが揺れても、メール内リンクを正しいドメインへ固定できるようにする
+      // 例: NEXT_PUBLIC_SITE_URL=https://ai-consulting-zero.vercel.app
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, "")
+      const emailRedirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent("/auth/complete-profile")}`
+      console.log('Redirect URL:', emailRedirectTo)
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/complete-profile`,
+          // メール内リンク → /auth/callback でセッション交換 → /auth/complete-profile(OCR) へ遷移
+          emailRedirectTo,
           // メール確認を強制する（Supabaseの設定に依存）
         },
       })
@@ -125,19 +130,22 @@ export default function SignUpPage() {
         } else if (error.message.includes('Password')) {
           errorMessage = 'パスワードが要件を満たしていません。'
         }
-        
-        throw new Error(errorMessage)
+
+        setError(errorMessage)
+        return
       }
 
       if (!data || !data.user) {
         console.error('❌ No user data in response:', data)
-        throw new Error('ユーザーの作成に失敗しました。Supabaseの応答にユーザーデータが含まれていません。')
+        setError('ユーザーの作成に失敗しました。時間をおいて再度お試しください。')
+        return
       }
 
       // Supabaseは「再サインアップ」の場合、identities が空配列で返る
       const identities = (data.user as any)?.identities
       if (Array.isArray(identities) && identities.length === 0) {
-        throw new Error('このメールアドレスは既に登録されています。メールを確認するか、ログインしてください。')
+        setError('このメールアドレスは既に登録されています。メールを確認するか、ログインしてください。')
+        return
       }
 
       // メール送信の状態を確認

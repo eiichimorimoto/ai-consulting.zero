@@ -2,22 +2,49 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { Orbitron } from 'next/font/google'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, BarChart3, FileText, MessageSquare, Target, Lightbulb, Shield } from 'lucide-react'
+import { Suspense, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+const orbitron = Orbitron({ subsets: ['latin'], weight: ['500', '600', '700'] })
+
+function AuthCodeRedirector() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // フォールバック:
+  // Supabaseのverify後に redirect_to がトップ(/) になってしまっても、
+  // ここに `?code=...` が付いて来た場合は /auth/callback に渡して確実にセッション交換させる。
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (!code) return
+    const next = searchParams.get('next') || '/auth/complete-profile'
+    router.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`)
+  }, [router, searchParams])
+
+  return null
+}
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      <Suspense fallback={null}>
+        <AuthCodeRedirector />
+      </Suspense>
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-900">
         {/* Background AI Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: 'url(/humanoid-ai-robot-presenting-holographic-data-char.jpg)',
-            opacity: 0.4
+            backgroundImage: 'url(/info-data/A_futuristic_cityscape_serves_as_the_backdrop_whe-1766054908806.png)',
+            opacity: 0.3
           }}
         />
+        {/* Smoke overlay (readability + haze) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/25 via-slate-900/45 to-slate-900/65 backdrop-blur-[2px]" />
 
         {/* Animated Dashboard Preview */}
         <div className="absolute inset-0 flex items-center justify-center opacity-30">
@@ -46,10 +73,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/30 backdrop-blur-sm mb-8">
-              <Zap className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-300">AI Powered Consulting</span>
-            </div>
+            {/* NOTE: 上部の固定表示は削除し、下部の横スクロール（1種類の文言のみ）に集約 */}
           </motion.div>
 
           <motion.h1
@@ -120,36 +144,27 @@ export default function LandingPage() {
           </motion.div>
         </div>
 
-        {/* Bottom Liquid Glass Text */}
+        {/* Bottom marquee text (stable version) */}
         <div className="absolute bottom-12 left-0 right-0 overflow-hidden pointer-events-none">
           <motion.div
             animate={{ x: [0, -2000] }}
             transition={{
-              duration: 20,
+              duration: 22,
               repeat: Infinity,
               ease: 'linear',
-              repeatDelay: 0
+              repeatDelay: 0,
             }}
             className="whitespace-nowrap"
+            aria-hidden="true"
           >
-            <h2 className="text-5xl md:text-6xl font-light tracking-[0.2em]"
+            <div
+              className={`${orbitron.className} text-4xl md:text-5xl font-medium tracking-[0.12em] text-amber-100/90 uppercase`}
               style={{
-                fontFamily: '"SF Pro Display", "Helvetica Neue", Arial, sans-serif',
-                fontWeight: 300,
-                letterSpacing: '0.2em',
-                color: 'white',
-                textShadow: '0 8px 32px rgba(31, 38, 135, 0.37), 0 2px 8px rgba(255, 255, 255, 0.3)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.3)',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
+                textShadow: '0 10px 40px rgba(251, 191, 36, 0.18), 0 2px 12px rgba(255, 251, 235, 0.18)',
               }}
             >
-              AI POWERED CONSULTING　　　　AI POWERED CONSULTING　　　　AI POWERED CONSULTING
-            </h2>
+              {'AI Powered Consulting　　　'.repeat(6)}
+            </div>
           </motion.div>
         </div>
       </section>
@@ -547,7 +562,7 @@ export default function LandingPage() {
                   loop
                   playsInline
                 >
-                  <source src="/video-1765885080626.mp4" type="video/mp4" />
+                  <source src="/info-data/video-1766055205064.mp4" type="video/mp4" />
                   お使いのブラウザは動画タグをサポートしていません。
                 </video>
               </div>
@@ -626,4 +641,6 @@ export default function LandingPage() {
     </div>
   )
 }
+
+
 

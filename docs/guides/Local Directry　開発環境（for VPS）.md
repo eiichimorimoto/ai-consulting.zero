@@ -1,7 +1,7 @@
 
 /Users/eiichi/Documents/
 │
-├── 📂 ai-consulting-app/          ← Next.js Webアプリ（現在のワークスペース）
+├── 📂 ai-consulting-zero/          ← Next.js Webアプリ（現在のワークスペース）
 │   │
 │   ├── 📂 app/                    ← Next.js App Router
 │   │   ├── 📂 api/                ← APIエンドポイント
@@ -50,4 +50,4 @@ VPS (XServer / AWS)
 │   └── PostgreSQL
 │
 └── Vercel / VPS
-    └── ai-consulting-app (Next.js)
+    └── ai-consulting-zero (Next.js)

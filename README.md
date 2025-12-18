@@ -28,7 +28,7 @@ AIを活用した経営コンサルティングSaaSアプリケーション
 
 ```bash
 # プロジェクトフォルダに移動
-cd ai-consulting-app
+cd ai-consulting-zero
 
 # Cursorで開く
 cursor .
@@ -173,7 +173,7 @@ git init
 git add .
 git commit -m "Initial commit"
 git branch -M main
-git remote add origin https://github.com/your-username/ai-consulting-app.git
+git remote add origin https://github.com/your-username/ai-consulting-zero.git
 git push -u origin main
 ```
 
@@ -192,15 +192,15 @@ git push -u origin main
 デプロイ後、Supabaseダッシュボードで：
 
 1. 「Authentication」→「URL Configuration」
-2. **Site URL**: Vercelの本番URL（例：`https://ai-consulting.vercel.app`）
-3. **Redirect URLs**: 上記URLを追加
+2. **Site URL**: Vercelの本番URL（例：`https://ai-consulting-zero.vercel.app`）
+3. **Redirect URLs**: 上記URLを追加（例：`https://ai-consulting-zero.vercel.app/auth/callback`、`https://ai-consulting-zero.vercel.app/auth/complete-profile`）
 
 ---
 
 ## プロジェクト構造
 
 ```
-ai-consulting-app/
+ai-consulting-zero/
 ├── src/
 │   ├── app/
 │   │   ├── globals.css      # グローバルスタイル

@@ -38,7 +38,7 @@ npm run test-ocr <ファイルパス>
 
 ```bash
 # 絶対パスで指定
-npm run test-ocr /Users/eiichi/Documents/ai-consulting-app/public/sample.jpg
+npm run test-ocr /Users/eiichi/Documents/ai-consulting-zero/public/sample.jpg
 
 # 相対パスで指定（プロジェクトルートから）
 npm run test-ocr ./public/sample.jpg
