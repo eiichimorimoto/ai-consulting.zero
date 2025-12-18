@@ -58,7 +58,7 @@
 新しいターミナルを開いて、以下を実行：
 
 ```bash
-cd /Users/eiichi/Documents/ai-consulting-app
+cd /Users/eiichi/Documents/ai-consulting-zero
 npm run dev
 ```
 

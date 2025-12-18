@@ -69,7 +69,7 @@ JSONファイルを開くと、以下のような形式の内容が表示され�
 
 #### ステップ4: `.env.local` ファイルを開く
 
-1. プロジェクトのルートディレクトリ（`ai-consulting-app`）に移動
+1. プロジェクトのルートディレクトリ（`ai-consulting-zero`）に移動
 2. `.env.local` ファイルをテキストエディタで開く
    - ファイルが見つからない場合は、新規作成してください
 
@@ -183,11 +183,11 @@ GOOGLE_CLOUD_CREDENTIALS='{"type":"service_account","project_id":"your-project-i
 ターミナルで以下のコマンドを実行：
 
 ```bash
-cd /Users/eiichi/Documents/ai-consulting-app
+cd /Users/eiichi/Documents/ai-consulting-zero
 ```
 
 **または、Finder（Mac）で:**
-1. プロジェクトフォルダ（`ai-consulting-app`）をFinderで開く
+1. プロジェクトフォルダ（`ai-consulting-zero`）をFinderで開く
 2. フォルダ内で右クリック
 3. 「ターミナルで開く」または「サービス」→「ターミナルで開く」を選択
 
@@ -198,7 +198,7 @@ pwd
 
 以下のように表示されればOK：
 ```
-/Users/eiichi/Documents/ai-consulting-app
+/Users/eiichi/Documents/ai-consulting-zero
 ```
 
 #### ステップ3: JSONファイルの場所を確認

@@ -31,28 +31,8 @@ export default function SignUpSuccessPage() {
                 </ul>
               </div>
 
-              <div className="flex flex-col gap-3">
-                <Link
-                  href="/auth/login"
-                  className="inline-block text-blue-600 hover:text-blue-800 font-medium underline underline-offset-4"
-                >
-                  ログインページへ
-                </Link>
-                <p className="text-xs text-gray-500">
-                  メール確認後、ログインできます
-                </p>
-              </div>
             </CardContent>
           </Card>
-          <div className="text-center">
-            <Link 
-              href="/" 
-              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <Home size={18} />
-              <span>トップページに戻る</span>
-            </Link>
-          </div>
         </div>
       </div>
     </div>

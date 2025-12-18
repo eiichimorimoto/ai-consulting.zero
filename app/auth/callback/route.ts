@@ -4,7 +4,9 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
-  const next = requestUrl.searchParams.get("next") || "/auth/complete-profile"
+  const requestedNext = requestUrl.searchParams.get("next")
+  // セキュリティ: open redirect防止（アプリ内パスのみ許可）
+  const next = requestedNext && requestedNext.startsWith("/") ? requestedNext : "/auth/complete-profile"
 
   if (code) {
     const supabase = await createClient()
