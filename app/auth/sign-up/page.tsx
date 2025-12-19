@@ -95,8 +95,12 @@ export default function SignUpPage() {
       // 注意: Supabaseはredirect_toにクエリパラメータを含むURLを正しく処理しない可能性があるため、
       // /auth/callbackのみを指定し、nextパラメータは/app/auth/callback/route.tsでデフォルトとして処理する
       const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, "")
+      // 重要: SupabaseのemailRedirectToは完全なURLである必要がある
+      // また、Supabaseの設定でRedirect URLsに登録されている必要がある
       const emailRedirectTo = `${siteUrl}/auth/callback`
-      console.log('Redirect URL:', emailRedirectTo)
+      console.log('📧 Email redirect URL:', emailRedirectTo)
+      console.log('📧 Site URL from env:', process.env.NEXT_PUBLIC_SITE_URL)
+      console.log('📧 Window origin:', window.location.origin)
       
       const { data, error } = await supabase.auth.signUp({
         email,
