@@ -2,13 +2,15 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Orbitron } from 'next/font/google'
+import { Orbitron, Montserrat, Noto_Sans_JP } from 'next/font/google'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, BarChart3, FileText, MessageSquare, Target, Lightbulb, Shield } from 'lucide-react'
 import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const orbitron = Orbitron({ subsets: ['latin'], weight: ['500', '600', '700'] })
+const montserrat = Montserrat({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800', '900'] })
+const notoSansJP = Noto_Sans_JP({ subsets: ['latin'], weight: ['400', '500', '600', '700'] })
 
 function AuthCodeRedirector() {
   const router = useRouter()
@@ -18,9 +20,18 @@ function AuthCodeRedirector() {
   // Supabaseのverify後に redirect_to がトップ(/) になってしまっても、
   // ここに `?code=...` が付いて来た場合は /auth/callback に渡して確実にセッション交換させる。
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/2243b483-f71e-4f8f-87d2-fb3b3f224408',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:22',message:'AuthCodeRedirector effect',data:{search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     const code = searchParams.get('code')
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/2243b483-f71e-4f8f-87d2-fb3b3f224408',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:25',message:'code check in client',data:{hasCode:!!code,codeValue:code?.substring(0,20)+'...'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     if (!code) return
     const next = searchParams.get('next') || '/auth/complete-profile'
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/2243b483-f71e-4f8f-87d2-fb3b3f224408',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:28',message:'client redirecting to callback',data:{next,redirectTo:`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     router.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`)
   }, [router, searchParams])
 
@@ -80,45 +91,33 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-6xl md:text-8xl font-bold text-white mb-12 leading-tight tracking-tight"
+            className={`text-6xl md:text-8xl font-bold text-white mb-12 leading-tight tracking-tight ${montserrat.className}`}
           >
-            AIが、
-            <span className="text-blue-400">経営</span>
-            を変える
+            Think Next.
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-gray-300 mb-16 font-light leading-relaxed"
+            className={`text-xl md:text-2xl text-gray-300 mb-16 font-light leading-relaxed ${notoSansJP.className}`}
           >
-            24時間365日、データに基づく戦略的意思決定をサポート
+            大手だけの時代は、終わった
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+            className="flex justify-center items-center"
           >
             <Link href="/auth/sign-up">
-              <Button
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-6 text-base font-semibold rounded-lg shadow-lg transition-all border border-blue-500"
+              <button
+                className="inline-flex flex-col items-center px-[50px] py-4 border-none bg-[#06B6D4] text-[#0F172A] cursor-pointer transition-all duration-300 rounded-[4px] hover:bg-[#22D3EE] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
               >
-                サービスを始める
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-white/30 text-white hover:bg-white/10 px-10 py-6 text-base font-semibold rounded-lg backdrop-blur-sm transition-all"
-              >
-                お問い合わせ
-              </Button>
+                <span className="text-[28px] tracking-[4px] leading-none" style={{ fontFamily: "var(--font-bebas-neue), 'Bebas Neue', sans-serif" }}>JOIN AI</span>
+                <span className={`${notoSansJP.className} text-xs font-medium tracking-[1px] mt-1 opacity-80`}>AIを、武器に</span>
+              </button>
             </Link>
           </motion.div>
 
@@ -134,7 +133,7 @@ export default function LandingPage() {
               <div className="text-sm text-gray-400 font-light">データ駆動型の意思決定</div>
             </div>
             <div className="text-center border-x border-white/20">
-              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">24/7対応</div>
+              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">24時間対応</div>
               <div className="text-sm text-gray-400 font-light">いつでも相談可能</div>
             </div>
             <div className="text-center">

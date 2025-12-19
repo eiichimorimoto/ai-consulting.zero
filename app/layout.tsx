@@ -1,12 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, Orbitron } from "next/font/google"
+import { Inter, Orbitron, Montserrat, Noto_Sans_JP, Bebas_Neue } from "next/font/google"
 import "./globals.css"
 import ConditionalHeader from "@/components/ConditionalHeader"
 import { Footer } from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
+const notoSansJP = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "500", "600", "700"] })
+const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: ["400"], variable: "--font-bebas-neue" })
 
 export const metadata: Metadata = {
   title: "SolveWise - AI Powered Consulting",
@@ -38,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${inter.className} ${bebasNeue.variable} antialiased`}>
         <ConditionalHeader />
         {children}
         <Footer />
