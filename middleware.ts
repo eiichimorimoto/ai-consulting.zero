@@ -1,13 +1,10 @@
 import { updateSession } from "./lib/supabase/proxy"
 import { NextResponse, type NextRequest } from "next/server"
-import { writeFile, appendFile } from "fs/promises"
-import { join } from "path"
 
-const LOG_FILE = join(process.cwd(), '.cursor', 'debug.log')
+// Edge Runtimeではファイルシステムへの書き込みができないため、コンソールログのみ使用
 const logToFile = async (data: any) => {
-  try {
-    await appendFile(LOG_FILE, JSON.stringify(data) + '\n', 'utf8')
-  } catch (e) {}
+  // Edge Runtimeではファイルシステムにアクセスできないため、コンソールログのみ
+  console.log('[middleware]', JSON.stringify(data))
 }
 
 export async function middleware(request: NextRequest) {

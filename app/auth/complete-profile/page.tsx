@@ -293,6 +293,8 @@ export default function CompleteProfilePage() {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries()),
       })
       
       if (!response.ok) {
@@ -418,16 +420,20 @@ export default function CompleteProfilePage() {
         errorMessage = error.message
         
         // より分かりやすいエラーメッセージに変換
-        if (error.message.includes('401') || error.message.includes('認証')) {
-          errorMessage = '認証エラーが発生しました。ログインし直してください。'
-        } else if (error.message.includes('429')) {
+        if (error.message.includes('401') || error.message.includes('認証') || error.message.includes('Unauthorized')) {
+          errorMessage = '認証エラーが発生しました。ページを再読み込みしてから再度お試しください。'
+        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
           errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('ECONNREFUSED') || error.message.includes('タイムアウト')) {
           errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
-        } else if (error.message.includes('画像データ')) {
-          errorMessage = '画像データの形式が正しくありません。別の画像を試してください。'
+        } else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
+          errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
         } else if (error.message.includes('PDF') || error.message.includes('pdf')) {
           errorMessage = 'PDFファイルは現在サポートされていません。名刺をスキャンして画像ファイル（JPEG、PNG）として保存し、その画像をアップロードしてください。'
+        } else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
+          errorMessage = '処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。'
+        } else if (error.message.includes('500') || error.message.includes('サーバー')) {
+          errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
         }
       }
       
