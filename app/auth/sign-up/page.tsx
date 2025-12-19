@@ -92,8 +92,10 @@ export default function SignUpPage() {
       console.log('Password length:', password.length)
       // 本番/プレビュー/ローカルでドメインが揺れても、メール内リンクを正しいドメインへ固定できるようにする
       // 例: NEXT_PUBLIC_SITE_URL=https://ai-consulting-zero.vercel.app
+      // 注意: Supabaseはredirect_toにクエリパラメータを含むURLを正しく処理しない可能性があるため、
+      // /auth/callbackのみを指定し、nextパラメータは/app/auth/callback/route.tsでデフォルトとして処理する
       const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, "")
-      const emailRedirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent("/auth/complete-profile")}`
+      const emailRedirectTo = `${siteUrl}/auth/callback`
       console.log('Redirect URL:', emailRedirectTo)
       
       const { data, error } = await supabase.auth.signUp({
