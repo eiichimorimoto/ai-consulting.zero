@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Inter, Orbitron, Montserrat, Noto_Sans_JP, Bebas_Neue } from "next/font/google"
 import "./globals.css"
 import ConditionalHeader from "@/components/ConditionalHeader"
-import { Footer } from "@/components/footer"
+import ConditionalFooter from "@/components/ConditionalFooter"
 
 const inter = Inter({ subsets: ["latin"] })
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
@@ -44,7 +44,7 @@ export default function RootLayout({
       <body className={`${inter.className} ${bebasNeue.variable} antialiased`}>
         <ConditionalHeader />
         {children}
-        <Footer />
+        <ConditionalFooter />
       </body>
     </html>
   )

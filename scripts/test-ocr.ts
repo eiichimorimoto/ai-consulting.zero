@@ -40,12 +40,11 @@ async function testOCR(imagePath: string) {
     process.exit(1)
   }
 
-  // ファイルを読み込んでBase64に変換
+  // ファイルを読み込んでBufferとして保持
   const fileBuffer = fs.readFileSync(imagePath)
-  const base64Image = fileBuffer.toString("base64")
 
-  console.log("✅ 画像をBase64に変換しました")
-  console.log("   Base64サイズ:", base64Image.length, "文字")
+  console.log("✅ 画像ファイルを読み込みました")
+  console.log("   ファイルサイズ:", fileBuffer.length, "バイト")
 
   // MIMEタイプの判定
   const ext = path.extname(imagePath).toLowerCase()
@@ -69,7 +68,7 @@ async function testOCR(imagePath: string) {
 
     // generateObjectを使用して構造化データを取得
     const { object } = await generateObject({
-      model: anthropic("claude-3-5-sonnet-20241022"),
+      model: anthropic("claude-sonnet-4-5-20250929"),
       schema: businessCardSchema,
       messages: [
         {
@@ -84,9 +83,9 @@ async function testOCR(imagePath: string) {
 住所は都道府県から始まる完全な形式で抽出してください。`,
             },
             {
-              type: "file",
-              data: base64Image,
-              mimeType: mimeType,
+              type: "image",
+              image: fileBuffer,
+              mediaType: mimeType,
             },
           ],
         },

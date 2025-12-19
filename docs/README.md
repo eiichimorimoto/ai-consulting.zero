@@ -1,6 +1,6 @@
 # 📚 ドキュメント一覧
 
-AI Consulting App のドキュメントをカテゴリ別に整理しています。
+AI Consulting Zero のドキュメントをカテゴリ別に整理しています。
 
 ---
 
