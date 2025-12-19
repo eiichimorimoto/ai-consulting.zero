@@ -1,5 +1,5 @@
 -- ==============================================
--- AI CONSULTING APP - SUPABASE SCHEMA
+-- AI CONSULTING ZERO - SUPABASE SCHEMA
 -- ==============================================
 -- Organization: eiichimorimoto'sOrg
 -- Project Name: ai^consulting-zero

@@ -128,7 +128,7 @@ export async function POST(request: Request) {
 
       console.log("📤 generateObjectを呼び出します...")
       const generatePromise = generateObject({
-        model: anthropic("claude-3-5-sonnet-20241022"),
+        model: anthropic("claude-sonnet-4-5-20250929"),
         schema: businessCardSchema,
         messages: [
           {
@@ -143,9 +143,9 @@ export async function POST(request: Request) {
 住所は都道府県から始まる完全な形式で抽出してください。`,
               },
               {
-                type: "file",
-                data: image, // base64データ（prefixなし）
-                mimeType: mimeType || "image/jpeg", // PDF対応
+                type: "image",
+                image: Buffer.from(image, "base64"), // base64をBufferに変換
+                mediaType: mimeType || "image/jpeg", // PDF対応
               },
             ],
           },
@@ -239,6 +239,21 @@ export async function POST(request: Request) {
               details: "JPEGまたはPNG形式の画像をアップロードしてください。",
             },
             { status: 400 }
+          )
+        } else if (
+          claudeError.message.includes("Unsupported model version") ||
+          claudeError.message.includes("specification version") ||
+          claudeError.message.includes("v1") ||
+          claudeError.message.includes("v2")
+        ) {
+          console.error("💡 ヒント: モデルバージョンの問題です")
+          console.error("   AI SDK 5はv2仕様のモデルのみをサポートしています")
+          return NextResponse.json(
+            {
+              error: "モデルバージョンの問題が発生しました",
+              details: "AI SDK 5はv2仕様のモデルのみをサポートしています。モデル名を確認してください。",
+            },
+            { status: 500 }
           )
         }
       }

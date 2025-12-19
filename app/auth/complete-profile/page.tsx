@@ -297,71 +297,116 @@ export default function CompleteProfilePage() {
         headers: Object.fromEntries(response.headers.entries()),
       })
       
+      // レスポンスのContent-Typeを確認
+      const contentType = response.headers.get('content-type') || ''
+      console.log('📋 レスポンスContent-Type:', contentType)
+      
+      // レスポンス本文を取得（エラー/成功の両方で使用）
+      const responseText = await response.text()
+      console.log('📋 レスポンス本文（生）:', responseText?.substring(0, 500) || '(空)')
+      console.log('📋 レスポンス本文の長さ:', responseText?.length || 0)
+      
       if (!response.ok) {
         // エラーレスポンスの内容を取得
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`
         let errorData: any = null
         
-        console.error('❌ OCR API エラー:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok,
-          headers: Object.fromEntries(response.headers.entries()),
-        })
+        // 詳細なエラー情報をログに出力（安全に取得）
+        try {
+          const errorInfo: any = {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            contentType,
+            responseTextLength: responseText?.length || 0,
+            responseTextPreview: responseText?.substring(0, 200) || '(空)',
+          }
+          
+          // response.urlが利用可能な場合のみ追加
+          try {
+            errorInfo.url = response.url
+          } catch (e) {
+            errorInfo.url = '(取得不可)'
+          }
+          
+          // ヘッダーを安全に取得
+          try {
+            errorInfo.headers = Object.fromEntries(response.headers.entries())
+          } catch (e) {
+            errorInfo.headers = '(取得不可)'
+          }
+          
+          console.error('❌ OCR API エラー:', errorInfo)
+          console.error('❌ レスポンスステータス:', response.status)
+          console.error('❌ レスポンスステータステキスト:', response.statusText)
+          console.error('❌ Content-Type:', contentType)
+          console.error('❌ レスポンス本文の長さ:', responseText?.length || 0)
+          console.error('❌ レスポンス本文（最初の500文字）:', responseText?.substring(0, 500) || '(空)')
+        } catch (logError) {
+          console.error('❌ エラー情報のログ出力に失敗:', logError)
+          console.error('❌ レスポンスステータス:', response.status)
+          console.error('❌ レスポンス本文:', responseText?.substring(0, 500) || '(空)')
+        }
         
         try {
-          const contentType = response.headers.get('content-type')
-          console.log('📋 レスポンスContent-Type:', contentType)
-          
-          if (contentType && contentType.includes('application/json')) {
-            const responseText = await response.text()
-            console.log('📋 レスポンス本文（生）:', responseText)
-            
-            if (responseText && responseText.trim() !== '') {
-              try {
-                errorData = JSON.parse(responseText)
-                console.error('❌ OCR API エラー (JSON):', errorData)
-                
-                // エラーメッセージを構築（複数の可能性を確認）
-                errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
-                
-                // 空のオブジェクトの場合は、ステータスコードから推測
-                if (Object.keys(errorData).length === 0) {
-                  if (response.status === 401) {
-                    errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
-                  } else if (response.status === 500) {
-                    errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
-                  } else {
-                    errorMessage = `エラーが発生しました (HTTP ${response.status})`
-                  }
+          if (contentType.includes('application/json') && responseText && responseText.trim() !== '') {
+            try {
+              errorData = JSON.parse(responseText)
+              console.error('❌ OCR API エラー (JSON):', errorData)
+              
+              // エラーメッセージを構築（複数の可能性を確認）
+              errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
+              
+              // 空のオブジェクトの場合は、ステータスコードから推測
+              if (Object.keys(errorData).length === 0) {
+                console.warn('⚠️ エラーデータが空のオブジェクトです')
+                if (response.status === 401) {
+                  errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
+                } else if (response.status === 500) {
+                  errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
+                } else {
+                  errorMessage = `エラーが発生しました (HTTP ${response.status})`
                 }
-              } catch (jsonParseError) {
-                console.error('❌ JSON解析エラー:', jsonParseError)
-                errorMessage = responseText || errorMessage
-              }
-            } else {
-              console.error('❌ レスポンス本文が空です')
-              if (response.status === 401) {
-                errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
               } else {
-                errorMessage = `エラーが発生しました (HTTP ${response.status})`
+                console.log('✅ エラーメッセージを取得:', errorMessage)
               }
+            } catch (jsonParseError) {
+              console.error('❌ JSON解析エラー:', jsonParseError)
+              console.error('❌ 解析しようとしたテキスト:', responseText?.substring(0, 200))
+              errorMessage = responseText || errorMessage
             }
           } else {
-            const textData = await response.text()
-            console.error('❌ OCR API エラー (Text):', textData)
-            errorMessage = textData || errorMessage
+            console.error('❌ OCR API エラー (Text):', responseText?.substring(0, 200))
+            errorMessage = responseText || errorMessage
+            
+            // ステータスコードに基づくエラーメッセージ
+            if (response.status === 401) {
+              errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
+            } else if (response.status === 500) {
+              errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
+            } else if (response.status === 429) {
+              errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
+            } else if (response.status === 503) {
+              errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
+            }
           }
         } catch (parseError) {
           console.error('❌ エラーレスポンスの解析に失敗:', parseError)
+          console.error('❌ 解析エラーの詳細:', parseError instanceof Error ? parseError.message : String(parseError))
           errorMessage = `エラーが発生しました (HTTP ${response.status})`
         }
         
         throw new Error(errorMessage)
       }
       
-      // レスポンスをJSONとして解析
-      const result = await response.json()
+      // 成功レスポンスをJSONとして解析
+      let result: any
+      try {
+        result = JSON.parse(responseText)
+      } catch (jsonError) {
+        console.error('❌ レスポンスJSON解析エラー:', jsonError)
+        throw new Error('サーバーからの応答が正しい形式ではありません')
+      }
       console.log('✅ OCR API結果:', result)
       
       // エラーチェック

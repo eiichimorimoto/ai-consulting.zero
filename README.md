@@ -1,4 +1,4 @@
-# AI Consulting App
+# AI Consulting Zero
 
 AIを活用した経営コンサルティングSaaSアプリケーション
 

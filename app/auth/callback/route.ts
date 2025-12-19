@@ -11,12 +11,55 @@ const logToFile = async (data: any) => {
 }
 
 export async function GET(request: Request) {
-  // #region agent log
-  await logToFile({location:'app/auth/callback/route.ts:5',message:'callback entry',data:{fullUrl:request.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
-  // #endregion
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const requestedNext = requestUrl.searchParams.get("next")
+  const urlError = requestUrl.searchParams.get("error")
+  const errorDescription = requestUrl.searchParams.get("error_description")
+  
+  // デバッグログ: リクエストの詳細を記録
+  const debugInfo = {
+    fullUrl: request.url,
+    pathname: requestUrl.pathname,
+    hasCode: !!code,
+    codeLength: code?.length || 0,
+    requestedNext,
+    hasError: !!urlError,
+    error: urlError,
+    errorDescription,
+    allParams: Object.fromEntries(requestUrl.searchParams)
+  }
+  
+  // #region agent log
+  await logToFile({location:'app/auth/callback/route.ts:13',message:'callback entry',data:debugInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  // #endregion
+  
+  console.log('[auth/callback] ===== CALLBACK ENTRY =====')
+  console.log('[auth/callback] Full URL:', request.url)
+  console.log('[auth/callback] Pathname:', requestUrl.pathname)
+  console.log('[auth/callback] Code:', code ? `present (${code.length} chars)` : 'missing')
+  console.log('[auth/callback] Next param:', requestedNext || 'not provided')
+  console.log('[auth/callback] Error:', urlError || 'none')
+  console.log('[auth/callback] Error description:', errorDescription || 'none')
+  console.log('[auth/callback] All params:', Object.fromEntries(requestUrl.searchParams))
+  
+  // エラーパラメータがある場合（例: code期限切れ）
+  if (urlError) {
+    console.error('[auth/callback] Error parameter detected:', {
+      error: urlError,
+      errorDescription
+    })
+    // #region agent log
+    await logToFile({location:'app/auth/callback/route.ts:35',message:'error parameter detected',data:{error:urlError,errorDescription},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+    // #endregion
+    
+    // エラーの種類によってリダイレクト先を決定
+    if (urlError === 'access_denied' || errorDescription?.includes('expired') || errorDescription?.includes('invalid')) {
+      console.warn('[auth/callback] Code expired or invalid, redirecting to login')
+      return NextResponse.redirect(new URL("/auth/login", request.url))
+    }
+  }
+  
   // セキュリティ: open redirect防止（アプリ内パスのみ許可）
   const next = requestedNext && requestedNext.startsWith("/") ? requestedNext : "/auth/complete-profile"
 
@@ -52,29 +95,79 @@ export async function GET(request: Request) {
   
   if (error) {
     // #region agent log
-    await logToFile({location:'app/auth/callback/route.ts:33',message:'exchange error redirecting to login',data:{errorMessage:error.message,errorStatus:error.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+    await logToFile({location:'app/auth/callback/route.ts:33',message:'exchange error',data:{errorMessage:error.message,errorStatus:error.status,errorName:error.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
     // #endregion
     console.error('[auth/callback] Session exchange error:', {
       message: error.message,
       status: error.status,
       name: error.name
     })
-    // エラー時はログインページにリダイレクト
+    
+    // エラーの種類によってリダイレクト先を決定
+    // codeが無効または期限切れの場合、ログインページにリダイレクト
+    // ただし、新規登録のメール確認の場合、プロフィール画面に遷移させる
+    const errorMessage = error.message.toLowerCase()
+    if (errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('code')) {
+      console.warn('[auth/callback] Code expired or invalid, redirecting to login')
+      return NextResponse.redirect(new URL("/auth/login", request.url))
+    }
+    
+    // その他のエラーの場合もログインページにリダイレクト
+    console.warn('[auth/callback] Unknown error, redirecting to login')
     return NextResponse.redirect(new URL("/auth/login", request.url))
   }
 
   // セッション交換成功
   // #region agent log
-  await logToFile({location:'app/auth/callback/route.ts:44',message:'success redirecting to profile',data:{next,userId:data?.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  await logToFile({location:'app/auth/callback/route.ts:44',message:'session exchange success',data:{userId:data?.user?.id,email:data?.user?.email,emailConfirmed:data?.user?.email_confirmed_at},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
   // #endregion
-  console.log('[auth/callback] Session exchange successful, redirecting to:', next)
+  console.log('[auth/callback] Session exchange successful')
   console.log('[auth/callback] User authenticated:', {
     userId: data?.user?.id,
-    email: data?.user?.email
+    email: data?.user?.email,
+    emailConfirmed: data?.user?.email_confirmed_at,
+    createdAt: data?.user?.created_at
   })
   
-  // メール確認成功 - 個人情報・会社情報入力画面（プロフィール/OCR画面）にリダイレクト
-  return NextResponse.redirect(new URL(next, request.url))
+  // プロフィールの状態を確認
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, name, company_id')
+    .eq('user_id', data.user.id)
+    .single()
+  
+  console.log('[auth/callback] Profile check:', {
+    hasProfile: !!profile,
+    profileName: profile?.name,
+    hasCompanyId: !!profile?.company_id,
+    profileError: profileError?.message
+  })
+  
+  // プロフィールが未完成の場合（nameが'User'またはcompany_idが存在しない）はプロフィール登録画面へ
+  // 新規登録の場合は必ずプロフィール登録画面へ
+  const isProfileIncomplete = !profile || !profile.name || profile.name === 'User' || !profile.company_id
+  
+  if (isProfileIncomplete) {
+    console.log('[auth/callback] Profile incomplete, redirecting to complete-profile', {
+      hasProfile: !!profile,
+      profileName: profile?.name,
+      hasCompanyId: !!profile?.company_id
+    })
+    // #region agent log
+    await logToFile({location:'app/auth/callback/route.ts:66',message:'redirecting to complete-profile',data:{isProfileIncomplete,hasProfile:!!profile,profileName:profile?.name,hasCompanyId:!!profile?.company_id,reason:'profile incomplete'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+    // #endregion
+    return NextResponse.redirect(new URL("/auth/complete-profile", request.url))
+  }
+  
+  // プロフィールが完成している場合は、リクエストされたnextパラメータまたはダッシュボードへ
+  const finalNext = next || "/dashboard"
+  console.log('[auth/callback] Profile complete, redirecting to:', finalNext)
+  // #region agent log
+  await logToFile({location:'app/auth/callback/route.ts:75',message:'redirecting to final destination',data:{finalNext,userId:data?.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  // #endregion
+  
+  // メール確認成功 - プロフィールが完成していればダッシュボード、未完成ならプロフィール登録画面へ
+  return NextResponse.redirect(new URL(finalNext, request.url))
 }
 
 

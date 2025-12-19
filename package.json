@@ -12,7 +12,7 @@
     "test-ocr": "tsx scripts/test-ocr.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.10",
+    "@ai-sdk/anthropic": "^2.0.56",
     "@anthropic-ai/sdk": "^0.36.1",
     "@google-cloud/vision": "^5.3.4",
     "@hookform/resolvers": "^5.2.2",
@@ -53,7 +53,7 @@
     "framer-motion": "^11.15.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.468.0",
-    "next": "^16.0.7",
+    "next": "^16.1.0",
     "next-themes": "^0.4.6",
     "openai": "^6.10.0",
     "react": "^19.2.1",
@@ -73,7 +73,7 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.16.0",
-    "eslint-config-next": "^16.0.7",
+    "eslint-config-next": "^16.1.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "tsx": "^4.19.2",
