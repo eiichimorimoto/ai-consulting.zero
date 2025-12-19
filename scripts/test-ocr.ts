@@ -69,7 +69,7 @@ async function testOCR(imagePath: string) {
 
     // generateObjectを使用して構造化データを取得
     const { object } = await generateObject({
-      model: anthropic("claude-sonnet-4-20250514"),
+      model: anthropic("claude-3-5-sonnet-20241022"),
       schema: businessCardSchema,
       messages: [
         {

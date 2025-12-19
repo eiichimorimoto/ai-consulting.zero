@@ -112,12 +112,23 @@ export async function POST(request: Request) {
 
       console.log("🔗 Anthropic Claude APIに接続中...")
       console.log("📸 画像をAnthropic Claude APIに送信します...")
+      console.log("📊 画像データ情報:", {
+        imageLength: image.length,
+        mimeType: mimeType || "image/jpeg",
+        estimatedSizeKB: Math.round(image.length * 0.75 / 1024), // base64は約1.33倍なので0.75で概算
+      })
 
       const startTime = Date.now()
 
       // generateObjectを使用して構造化データを取得（テストスクリプトと同じロジック）
-      const { object } = await generateObject({
-        model: anthropic("claude-sonnet-4-20250514"),
+      // タイムアウトを60秒に設定（画像処理には時間がかかる場合がある）
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("OCR処理がタイムアウトしました（60秒）")), 60000)
+      })
+
+      console.log("📤 generateObjectを呼び出します...")
+      const generatePromise = generateObject({
+        model: anthropic("claude-3-5-sonnet-20241022"),
         schema: businessCardSchema,
         messages: [
           {
@@ -141,6 +152,11 @@ export async function POST(request: Request) {
         ],
       })
 
+      console.log("⏳ generateObjectの完了を待機中...")
+      const generateResult = await Promise.race([generatePromise, timeoutPromise]) as { object: any }
+      const { object } = generateResult
+      console.log("✅ generateObjectが完了しました")
+
       const endTime = Date.now()
       const duration = endTime - startTime
 
@@ -149,41 +165,85 @@ export async function POST(request: Request) {
       console.log("📋 抽出された情報:", JSON.stringify(object, null, 2))
 
       // fullNameとpersonNameの互換性を確保
-      const result = {
+      const ocrResult = {
         ...object,
         personName: object.fullName || object.personName,
         personNameKana: object.personNameKana,
       }
 
       // 結果を返す（テストスクリプトと同じ形式）
-      return NextResponse.json({ data: result })
+      return NextResponse.json({ data: ocrResult })
     } catch (claudeError) {
       console.error("❌ Claude API error:", claudeError)
+      console.error("❌ Error type:", typeof claudeError)
+      console.error("❌ Error constructor:", claudeError?.constructor?.name)
+      
       if (claudeError instanceof Error) {
         console.error("Error name:", claudeError.name)
         console.error("Error message:", claudeError.message)
         console.error("Error stack:", claudeError.stack)
+        
+        // エラーの詳細をJSON形式で出力（オブジェクトの場合）
+        try {
+          const errorDetails = JSON.stringify(claudeError, Object.getOwnPropertyNames(claudeError), 2)
+          console.error("Error details (JSON):", errorDetails)
+        } catch (e) {
+          console.error("Error details (string):", String(claudeError))
+        }
 
         // よくあるエラーの説明を追加
         if (
           claudeError.message.includes("401") ||
-          claudeError.message.includes("authentication")
+          claudeError.message.includes("authentication") ||
+          claudeError.message.includes("Unauthorized")
         ) {
           console.error("💡 ヒント: ANTHROPIC_API_KEYが無効です")
           console.error("   環境変数ANTHROPIC_API_KEYを確認してください")
-        } else if (claudeError.message.includes("429")) {
+          return NextResponse.json(
+            {
+              error: "API認証エラーが発生しました",
+              details: "ANTHROPIC_API_KEYが無効です。環境変数を確認してください。",
+            },
+            { status: 401 }
+          )
+        } else if (claudeError.message.includes("429") || claudeError.message.includes("rate limit")) {
           console.error("💡 ヒント: APIレート制限に達しました")
           console.error("   しばらく待ってから再度お試しください")
+          return NextResponse.json(
+            {
+              error: "APIの利用制限に達しました",
+              details: "しばらく待ってから再度お試しください。",
+            },
+            { status: 429 }
+          )
         } else if (
           claudeError.message.includes("network") ||
-          claudeError.message.includes("ECONNREFUSED")
+          claudeError.message.includes("ECONNREFUSED") ||
+          claudeError.message.includes("fetch failed") ||
+          claudeError.message.includes("タイムアウト")
         ) {
           console.error("💡 ヒント: ネットワークエラーが発生しました")
           console.error("   インターネット接続を確認してください")
+          return NextResponse.json(
+            {
+              error: "ネットワークエラーが発生しました",
+              details: "インターネット接続を確認してください。",
+            },
+            { status: 503 }
+          )
+        } else if (claudeError.message.includes("Invalid image") || claudeError.message.includes("image")) {
+          console.error("💡 ヒント: 画像データが無効です")
+          return NextResponse.json(
+            {
+              error: "画像データの形式が正しくありません",
+              details: "JPEGまたはPNG形式の画像をアップロードしてください。",
+            },
+            { status: 400 }
+          )
         }
       }
 
-      // エラーを返す
+      // その他のエラーを返す
       return NextResponse.json(
         {
           error: "名刺の読み取りに失敗しました",
