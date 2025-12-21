@@ -14,7 +14,12 @@ let detectedLocalUrl = null;
 
 let browserOpened = false;
 
-const nextProcess = spawn(process.execPath, [nextBin, 'dev'], {
+// 安定優先: 既定は Webpack で dev 起動（Turbopack はキャッシュ破損で落ちることがあるため）
+// Turbopack を使いたい場合は `NEXT_DEV_ENGINE=turbopack` を環境変数で指定する。
+const engine = (process.env.NEXT_DEV_ENGINE || 'webpack').toLowerCase();
+const devArgs = [nextBin, 'dev', engine === 'turbopack' ? '--turbo' : '--webpack'];
+
+const nextProcess = spawn(process.execPath, devArgs, {
   env: process.env,
   stdio: ['inherit', 'pipe', 'pipe'],
 });

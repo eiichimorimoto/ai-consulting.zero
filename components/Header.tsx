@@ -15,7 +15,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
             <img 
-              src="/info-data/AI-LOGO001.png" 
+              src="/info-data/AI-LOGO007.png" 
               alt="SolveWise" 
               className="h-10 w-auto"
             />

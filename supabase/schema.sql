@@ -24,7 +24,6 @@ CREATE TABLE companies (
   prefecture VARCHAR(20),
   city VARCHAR(100),
   address TEXT,
-  building VARCHAR(255),
   
   -- 連絡先
   phone VARCHAR(20),

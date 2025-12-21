@@ -83,3 +83,4 @@ NEXT_PUBLIC_SITE_URL=https://ai-consulting-zero.vercel.app
 
 これにより、Supabaseの設定が不完全でも、アプリケーション側で確実にプロフィール画面にリダイレクトされます。
 
+

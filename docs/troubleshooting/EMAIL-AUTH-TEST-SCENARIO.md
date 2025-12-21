@@ -127,3 +127,4 @@ grep "callback entry" .cursor/debug.log
 - ❌ トップページにリダイレクトされている
 - ❌ ログにエラーが記録されている
 
+

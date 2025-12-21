@@ -28,7 +28,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-3 mb-4">
               <img 
-                src="/info-data/AI-LOGO001.png" 
+                src="/info-data/AI-LOGO007.png" 
                 alt="SolveWise" 
                 className="h-10 w-auto"
               />

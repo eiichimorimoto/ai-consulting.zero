@@ -67,7 +67,6 @@ export default function SettingsContent({ user, profile, company, subscription }
     prefecture: company?.prefecture || '',
     city: company?.city || '',
     address: company?.address || '',
-    building: company?.building || '',
     phone: company?.phone || '',
     fax: company?.fax || '',
     email: company?.email || '',
@@ -451,7 +450,6 @@ export default function SettingsContent({ user, profile, company, subscription }
           prefecture: companyData.prefecture || null,
           city: companyData.city || null,
           address: companyData.address || null,
-          building: companyData.building || null,
           phone: companyData.phone || null,
           fax: companyData.fax || null,
           email: companyData.email || null,
@@ -865,19 +863,11 @@ export default function SettingsContent({ user, profile, company, subscription }
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="address">番地</Label>
+                <Label htmlFor="address">町名番地以下</Label>
                 <Input
                   id="address"
                   value={companyData.address}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="building">建物名</Label>
-                <Input
-                  id="building"
-                  value={companyData.building}
-                  onChange={(e) => setCompanyData(prev => ({ ...prev, building: e.target.value }))}
                 />
               </div>
             </div>

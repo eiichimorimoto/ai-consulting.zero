@@ -11,7 +11,8 @@ export async function createClient() {
 
   const cookieStore = await cookies()
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  // NOTE: Database型（generated types）未導入のため any を明示して `never` 推論を回避
+  return createServerClient<any>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll()

@@ -166,3 +166,4 @@ cat .cursor/debug.log | tail -50
 [auth/callback] Code expired or invalid, redirecting to login
 ```
 
+
