@@ -295,3 +295,72 @@ html {
 .strength-strong {
   background-color: #059669;
 }
+
+/* ========== ClaudeDesign1220 アニメーションスタイル ========== */
+
+/* フォント（next/font使用時は不要だが、念のため） */
+.font-bebas {
+  font-family: var(--font-bebas-neue), 'Bebas Neue', sans-serif;
+}
+
+/* 光線レイのアニメーション */
+@keyframes ray-pulse {
+  0%, 100% {
+    opacity: 0.1;
+    height: 30vmax;
+  }
+  50% {
+    opacity: 0.4;
+    height: 50vmax;
+  }
+}
+
+.animate-ray-pulse {
+  animation: ray-pulse 8s ease-in-out infinite;
+}
+
+/* グローオーブのアニメーション */
+@keyframes orb-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.8;
+  }
+}
+
+.animate-orb-pulse {
+  animation: orb-pulse 8s ease-in-out infinite;
+}
+
+/* センター配置のオーブ用 */
+@keyframes orb-pulse-center {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 0.8;
+  }
+}
+
+.animate-orb-pulse-center {
+  animation: orb-pulse-center 8s ease-in-out infinite;
+}
+
+/* ティッカーアニメーション */
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker-scroll {
+  animation: ticker-scroll 25s linear infinite;
+}

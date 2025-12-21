@@ -3,6 +3,9 @@ import { NextResponse } from "next/server"
 import { generateObject } from "ai"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
+import { convertPdfBufferToPngBuffer } from "@/lib/ocr/pdf-to-png"
+
+export const runtime = "nodejs"
 
 // 名刺情報のZodスキーマ定義（参考コードに合わせて調整）
 const businessCardSchema = z.object({
@@ -112,9 +115,11 @@ export async function POST(request: Request) {
 
       console.log("🔗 Anthropic Claude APIに接続中...")
       console.log("📸 画像をAnthropic Claude APIに送信します...")
+      const isPdf = (mimeType || "").toLowerCase().includes("pdf")
       console.log("📊 画像データ情報:", {
         imageLength: image.length,
         mimeType: mimeType || "image/jpeg",
+        isPdf,
         estimatedSizeKB: Math.round(image.length * 0.75 / 1024), // base64は約1.33倍なので0.75で概算
       })
 
@@ -127,6 +132,24 @@ export async function POST(request: Request) {
       })
 
       console.log("📤 generateObjectを呼び出します...")
+      // PDFはClaudeが直接受け付けないため、先にPNGへ変換する
+      let imageBuffer: Buffer
+      let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
+
+      if (isPdf) {
+        const pdfBuffer = Buffer.from(image, "base64")
+        const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
+        imageBuffer = pngBuffer
+        mediaTypeForClaude = "image/png"
+      } else {
+        imageBuffer = Buffer.from(image, "base64")
+        const mt = (mimeType || "image/jpeg").toLowerCase()
+        if (mt.includes("png")) mediaTypeForClaude = "image/png"
+        else if (mt.includes("gif")) mediaTypeForClaude = "image/gif"
+        else if (mt.includes("webp")) mediaTypeForClaude = "image/webp"
+        else mediaTypeForClaude = "image/jpeg"
+      }
+
       const generatePromise = generateObject({
         model: anthropic("claude-sonnet-4-5-20250929"),
         schema: businessCardSchema,
@@ -144,8 +167,8 @@ export async function POST(request: Request) {
               },
               {
                 type: "image",
-                image: Buffer.from(image, "base64"), // base64をBufferに変換
-                mediaType: mimeType || "image/jpeg", // PDF対応
+                image: imageBuffer,
+                mediaType: mediaTypeForClaude,
               },
             ],
           },

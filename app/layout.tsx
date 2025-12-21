@@ -5,11 +5,25 @@ import "./globals.css"
 import ConditionalHeader from "@/components/ConditionalHeader"
 import ConditionalFooter from "@/components/ConditionalFooter"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+})
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
-const notoSansJP = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "500", "600", "700"] })
-const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: ["400"], variable: "--font-bebas-neue" })
+const notoSansJP = Noto_Sans_JP({ 
+  subsets: ["latin"], 
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-noto",
+  display: "swap",
+})
+const bebasNeue = Bebas_Neue({ 
+  subsets: ["latin"], 
+  weight: ["400"], 
+  variable: "--font-bebas-neue",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: "SolveWise - AI Powered Consulting",
@@ -40,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ja">
+    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${bebasNeue.variable}`}>
       <body className={`${inter.className} ${bebasNeue.variable} antialiased`}>
         <ConditionalHeader />
         {children}

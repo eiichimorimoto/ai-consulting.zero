@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Camera, Upload, CheckCircle, Loader2, Home, Building2, User, X, Globe } from 'lucide-react'
+import { Camera, Upload, CheckCircle, Loader2, Home, Building2, User, X, Globe, FileText } from 'lucide-react'
 import Link from 'next/link'
 import FileUpload from '@/components/FileUpload'
 
@@ -35,10 +36,95 @@ export default function CompleteProfilePage() {
   const router = useRouter()
   const [step, setStep] = useState(1) // 1: 名刺OCR, 2: プロフィール入力, 3: 会社情報入力
   const [scanStep, setScanStep] = useState(1) // 1: アップロード, 2: 処理中, 3: 結果確認
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<{
+    dataUrl: string
+    mimeType: string
+    name: string
+  } | null>(null)
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false)
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null)
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // PDFプレビュー用のObject URLは、ダイアログを閉じたタイミングで解放する（onOpenChangeで処理）
+
+  const splitJapaneseAddressForCompanyForm = (fullAddress: string, prefecture?: string, city?: string) => {
+    // 名刺OCRの住所（例: 愛知県名古屋市中村区名駅1-1-1 JPタワー名古屋25階）を
+    // 「都道府県 / 市区町村 / 町名番地以下」に分割する
+    const raw = (fullAddress || "").replace(/[〒]/g, "").trim()
+    if (!raw) return { prefecture: "", city: "", street: "" }
+
+    // 1) 郵便番号APIから確定できる都道府県/市区町村がある場合は、それを優先して“残り”を作る
+    if (prefecture && city && raw.startsWith(`${prefecture}${city}`)) {
+      return { prefecture, city, street: raw.slice(`${prefecture}${city}`.length).trim() }
+    }
+    if (prefecture && raw.startsWith(prefecture)) {
+      const rest = raw.slice(prefecture.length)
+      if (city && rest.startsWith(city)) {
+        return { prefecture, city, street: rest.slice(city.length).trim() }
+      }
+    }
+
+    // 2) フォールバック: 住所文字列だけから推定（推測ではなく“単純分割”）
+    const mPref = raw.match(/^(.*?[都道府県])/)
+    const parsedPref = mPref?.[1] || ""
+    const afterPref = parsedPref ? raw.slice(parsedPref.length) : raw
+    const mCity =
+      afterPref.match(/^(.+?市.+?区)/) ||
+      afterPref.match(/^(.+?(?:市|区|町|村))/)
+    const parsedCity = mCity?.[1] || ""
+    const afterCity = parsedCity ? afterPref.slice(parsedCity.length) : afterPref
+    return {
+      prefecture: prefecture || parsedPref,
+      city: city || parsedCity,
+      street: afterCity.trim(),
+    }
+  }
+
+  const createPdfObjectUrlFromDataUrl = (dataUrl: string): string => {
+    // data:application/pdf;base64,xxxxx をBlob URLに変換（大きなdata URLの直接openが失敗するブラウザ対策）
+    const match = dataUrl.match(/^data:application\/pdf;base64,(.+)$/i)
+    if (!match) return dataUrl
+
+    const base64 = match[1]
+    const binaryString = atob(base64)
+    const len = binaryString.length
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    const blob = new Blob([bytes], { type: 'application/pdf' })
+    return URL.createObjectURL(blob)
+  }
+
+  const openPdfPreview = () => {
+    if (!uploadedFile?.dataUrl) return
+
+    // 既存URLがあれば解放
+    if (pdfViewerUrl) {
+      URL.revokeObjectURL(pdfViewerUrl)
+      setPdfViewerUrl(null)
+    }
+
+    const url = createPdfObjectUrlFromDataUrl(uploadedFile.dataUrl)
+    setPdfViewerUrl(url)
+    setPdfViewerOpen(true)
+  }
+
+  const openPdfInNewTab = () => {
+    if (!uploadedFile?.dataUrl) return
+    // プレビュー用URLとは別に、別タブ用に新しいURLを生成（プレビューを閉じても別タブが壊れないように）
+    const url = createPdfObjectUrlFromDataUrl(uploadedFile.dataUrl)
+    const opened = window.open(url, '_blank', 'noopener,noreferrer')
+    if (!opened) {
+      alert('ポップアップがブロックされました。ブラウザ設定でこのサイトのポップアップを許可してください。')
+      return
+    }
+    if (url.startsWith('blob:')) {
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    }
+  }
   
   // ステップ状態の変更をログに記録
   React.useEffect(() => {
@@ -73,12 +159,13 @@ export default function CompleteProfilePage() {
     prefecture: '',
     city: '',
     address: '',
-    building: '',
     retrievedInfo: '',
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
+  const [companyIntelMeta, setCompanyIntelMeta] = useState<Record<string, any> | null>(null)
   const [isFetchingCompanyIntel, setIsFetchingCompanyIntel] = useState(false)
   const [companyIntelStatus, setCompanyIntelStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [useExternalCompanySources, setUseExternalCompanySources] = useState(true)
   
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -191,12 +278,14 @@ export default function CompleteProfilePage() {
     })
     
     if (file) {
-      // ファイルタイプの確認（画像のみ）
-      const isImage = file.type.startsWith('image/')
+      // ファイルタイプの確認（画像 or PDF）
+      const fileNameLower = (file.name || '').toLowerCase()
+      const isImage = (file.type || '').startsWith('image/')
+      const isPdf = (file.type || '').toLowerCase() === 'application/pdf' || fileNameLower.endsWith('.pdf')
       
-      if (!isImage) {
+      if (!isImage && !isPdf) {
         console.error('❌ 無効なファイル形式:', file.type)
-        setErrors({ ocr: '画像ファイル（JPEG、PNG）を選択してください。PDFファイルは現在サポートされていません。' })
+        setErrors({ ocr: '画像ファイル（JPEG、PNG）またはPDFファイルを選択してください。' })
         return
       }
       
@@ -208,7 +297,16 @@ export default function CompleteProfilePage() {
           dataUrlLength: result?.length,
           hasData: !!result,
         })
-        setUploadedImage(result)
+        const dataUrlMatch = result?.match(/^data:([^;]+);base64,(.+)$/)
+        const mimeTypeFromDataUrl = dataUrlMatch?.[1] || file.type || 'application/octet-stream'
+        if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
+        setPdfViewerOpen(false)
+        setPdfViewerUrl(null)
+        setUploadedFile({
+          dataUrl: result,
+          mimeType: mimeTypeFromDataUrl,
+          name: file.name,
+        })
         setScanStep(2)
         console.log('🔄 processOCRを呼び出します（画像データを直接渡します）...')
         // 画像データを直接渡してOCR処理を開始
@@ -260,6 +358,9 @@ export default function CompleteProfilePage() {
       
       // 認証状態を事前に確認
       const supabase = createClient()
+      if (!supabase) {
+        throw new Error('Supabaseが設定されていません')
+      }
       const { data: { user }, error: authCheckError } = await supabase.auth.getUser()
       
       if (authCheckError || !user) {
@@ -474,7 +575,7 @@ export default function CompleteProfilePage() {
         } else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
           errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
         } else if (error.message.includes('PDF') || error.message.includes('pdf')) {
-          errorMessage = 'PDFファイルは現在サポートされていません。名刺をスキャンして画像ファイル（JPEG、PNG）として保存し、その画像をアップロードしてください。'
+          errorMessage = 'PDFの処理に失敗しました。別のPDFをお試しください（1ページ目を使用します）。'
         } else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
           errorMessage = '処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。'
         } else if (error.message.includes('500') || error.message.includes('サーバー')) {
@@ -587,11 +688,11 @@ export default function CompleteProfilePage() {
       })
       
       // OCR結果から郵便番号が取得された場合、郵便番号から都道府県と市区町村を取得
-      // その際、OCRで読み取った元の住所は建物名に保存
+      // その際、OCRで読み取った住所から「都道府県+市区町村」を引いた残りを「町名番地以下」にセットする
       if (newCompanyData.postalCode) {
         console.log('📍 OCR結果から郵便番号を検出、住所を取得します:', newCompanyData.postalCode)
         
-        // OCRで読み取った元の住所を保存（建物名にセットするため）
+        // OCRで読み取った元の住所を保存（町名番地以下の抽出に使う）
         const originalAddress = newCompanyData.address || ''
         console.log('📝 OCRで読み取った元の住所を保存:', originalAddress)
         
@@ -609,6 +710,7 @@ export default function CompleteProfilePage() {
               const prefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
               const city = result.address2 || ''
               const address = result.address3 || ''
+              const split = splitJapaneseAddressForCompanyForm(originalAddress, prefecture, city)
               
               console.log('✅ 郵便番号から住所を取得:', { prefecture, city, address })
               
@@ -617,12 +719,11 @@ export default function CompleteProfilePage() {
                 ...prev,
                 prefecture: prefecture || prev.prefecture,
                 city: city || prev.city,
-                address: address || prev.address,
-                // OCRで読み取った元の住所を建物名にセット
-                building: originalAddress || prev.building,
+                // 町名番地以下（例: 名駅1-1-1 JPタワー名古屋25階）
+                address: (split.street || address || prev.address),
               }))
               
-              console.log('✅ 住所情報をセットしました（建物名に元の住所を保存）')
+              console.log('✅ 住所情報をセットしました（町名番地以下を抽出）')
             }
           } catch (error) {
             console.error('❌ 郵便番号検索エラー:', error)
@@ -636,7 +737,7 @@ export default function CompleteProfilePage() {
       console.log('🔵 現在のstep状態:', step)
       
       // 状態をクリーンアップ
-      setUploadedImage(null)
+      setUploadedFile(null)
       setOcrResult(null)
       setErrors({})
       setScanStep(1)
@@ -857,13 +958,22 @@ export default function CompleteProfilePage() {
                   correctFullAddress,
                   similarity
                 })
-                
-                // 正しい住所で上書き
-                correctedData.address = correctFullAddress
-                
-                warnings.push(
-                  `郵便番号（${ocrData.postalCode}）と読み取った住所が一致しなかったため、正しい住所に自動修正しました。修正前: ${ocrAddress.substring(0, 50)}... → 修正後: ${correctFullAddress.substring(0, 50)}...`
-                )
+
+                // 町名番地以下（数字等）が含まれる“それらしい全文住所”は保持し、都道府県/市区町村は会社フォーム側で補完する
+                const looksLikeFullAddress =
+                  (ocrAddress.includes(correctPrefecture) || ocrAddress.includes(correctCity)) && /\d/.test(ocrAddress)
+
+                if (!looksLikeFullAddress) {
+                  // 正しい住所（郵便番号由来）で上書き（町名番地以下が取れない場合のフォールバック）
+                  correctedData.address = correctFullAddress
+                  warnings.push(
+                    `郵便番号（${ocrData.postalCode}）と読み取った住所が一致しなかったため、住所を自動修正しました。修正前: ${ocrAddress.substring(0, 50)}... → 修正後: ${correctFullAddress.substring(0, 50)}...`
+                  )
+                } else {
+                  warnings.push(
+                    `郵便番号（${ocrData.postalCode}）に対応する住所と一部異なる可能性があります（町名番地以下を優先して保持）。名刺画像と照合して確認してください。`
+                  )
+                }
                 
                 // 住所が間違っていた場合、電話番号も確認が必要な可能性があることを警告
                 if (ocrData.phone) {
@@ -1055,22 +1165,61 @@ export default function CompleteProfilePage() {
       const response = await fetch('/api/company-intel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website: companyData.website }),
+        body: JSON.stringify({
+          website: companyData.website,
+          forceExternalSearch: useExternalCompanySources,
+          options: {
+            industries,
+            employeeRanges,
+            revenueRanges,
+          },
+        }),
       })
 
-      const result = await response.json()
+      let result: any = null
+      try {
+        result = await response.json()
+      } catch {
+        // noop
+      }
       if (!response.ok) {
-        throw new Error(result?.error || 'Web情報の取得に失敗しました')
+        const base = result?.error || 'Web情報の取得に失敗しました'
+        const details = result?.details ? `\n${String(result.details).slice(0, 300)}` : ''
+        const meta = result?.meta ? `\n(${JSON.stringify(result.meta).slice(0, 300)})` : ''
+        throw new Error(`${base}${details}${meta}`)
       }
 
       const intel = result?.data || {}
+      setCompanyIntelMeta(result?.meta || null)
       setCompanyIntel(intel)
       setCompanyData(prev => ({
         ...prev,
         industry: intel.industry || prev.industry,
         employeeCount: intel.employeeCount || prev.employeeCount,
         annualRevenue: intel.annualRevenue || prev.annualRevenue,
-        retrievedInfo: intel.summary || intel.rawNotes || prev.retrievedInfo,
+        // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
+        retrievedInfo: (() => {
+          const lines: string[] = []
+          // 主要製品/サービスは取得情報のトップに
+          if (Array.isArray(intel.products) && intel.products.length > 0) {
+            lines.push(`- 主要製品: ${intel.products.slice(0, 5).join(' / ')}`)
+          }
+          if (Array.isArray(intel.services) && intel.services.length > 0) {
+            lines.push(`- 主要サービス: ${intel.services.slice(0, 5).join(' / ')}`)
+          }
+          // 最新の売上/従業員数も見えるように表示（上場企業の一次情報優先）
+          if (intel.latestRevenueText) {
+            lines.push(`- 売上高(最新): ${intel.latestRevenueText}`)
+          }
+          if (intel.latestEmployeesText) {
+            lines.push(`- 従業員数(最新): ${intel.latestEmployeesText}`)
+          }
+          if (Array.isArray(intel.extraBullets) && intel.extraBullets.length > 0) {
+            lines.push(...intel.extraBullets.map((line: string) => `- ${line}`))
+          }
+          if (lines.length > 0) return lines.join('\n')
+          return intel.summary || intel.rawNotes || prev.retrievedInfo
+        })(),
       }))
 
       setCompanyIntelStatus({
@@ -1272,7 +1421,6 @@ export default function CompleteProfilePage() {
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
-            building: companyData.building || null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .select()
@@ -1366,7 +1514,6 @@ export default function CompleteProfilePage() {
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
-            building: companyData.building || null,
             documents_urls: allDocuments.length > 0 ? allDocuments : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
@@ -1464,13 +1611,13 @@ export default function CompleteProfilePage() {
                     </div>
                     <h3 className="text-lg font-semibold mb-2">名刺をアップロード</h3>
                     <p className="text-gray-600 text-sm mb-6">
-                      名刺の画像（JPEG、PNG）をアップロードすると、自動で情報を読み取ります
+                      名刺の画像（JPEG、PNG）またはPDFをアップロードすると、自動で情報を読み取ります
                     </p>
                   </div>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,application/pdf"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
@@ -1577,18 +1724,78 @@ export default function CompleteProfilePage() {
                   )}
                   
                   {/* アップロードした名刺画像の表示 */}
-                  {uploadedImage && (
+                  {uploadedFile?.dataUrl && (
                     <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
                       <h4 className="font-semibold mb-3">アップロードした名刺</h4>
                       <div className="flex justify-center">
-                        <img
-                          src={uploadedImage}
-                          alt="アップロードした名刺"
-                          className="max-w-full h-auto max-h-96 rounded-lg shadow-md object-contain"
-                        />
+                        {uploadedFile.mimeType.toLowerCase().includes('pdf') ? (
+                          <div className="w-full max-w-xl border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-6 h-6 text-red-600" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{uploadedFile.name}</p>
+                                <p className="text-xs text-gray-600">PDF（1ページ目を解析します）</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={openPdfPreview}
+                              >
+                                PDFを開く
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={uploadedFile.dataUrl}
+                            alt="アップロードした名刺"
+                            className="max-w-full h-auto max-h-96 rounded-lg shadow-md object-contain"
+                          />
+                        )}
                       </div>
                     </div>
                   )}
+
+                  {/* PDF表示（ポップアップがブロックされた場合のフォールバック） */}
+                  <Dialog
+                    open={pdfViewerOpen}
+                    onOpenChange={(open) => {
+                      if (!open && pdfViewerUrl) {
+                        URL.revokeObjectURL(pdfViewerUrl)
+                        setPdfViewerUrl(null)
+                      }
+                      setPdfViewerOpen(open)
+                    }}
+                  >
+                    <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl h-[calc(100vh-2rem)] max-h-[90vh] p-0 overflow-hidden">
+                      <div className="flex h-full flex-col">
+                        <div className="border-b bg-white px-4 py-3">
+                          <DialogHeader>
+                            <DialogTitle>PDFプレビュー</DialogTitle>
+                          </DialogHeader>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3">
+                          <p className="text-sm text-gray-600 truncate">{uploadedFile?.name}</p>
+                          <Button type="button" variant="outline" onClick={openPdfInNewTab}>
+                            別タブで開く
+                          </Button>
+                        </div>
+
+                        <div className="flex-1 bg-gray-50 p-2">
+                          {pdfViewerUrl ? (
+                            <iframe
+                              title="PDF Preview"
+                              src={pdfViewerUrl}
+                              className="h-full w-full rounded-md bg-white"
+                            />
+                          ) : (
+                            <div className="text-sm text-gray-600">PDFを表示できませんでした。</div>
+                          )}
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   
                   <div className="bg-gray-50 rounded-lg p-4 mb-4">
                     <h4 className="font-semibold mb-3 text-lg">読み取り結果</h4>
@@ -1667,7 +1874,7 @@ export default function CompleteProfilePage() {
                       variant="outline"
                       onClick={() => {
                         setScanStep(1)
-                        setUploadedImage(null)
+                        setUploadedFile(null)
                         setOcrResult(null)
                         setOcrValidation(null)
                         setErrors({})
@@ -1990,6 +2197,15 @@ export default function CompleteProfilePage() {
                       )}
                     </Button>
                   </div>
+                  <label className="flex items-center gap-2 text-xs text-gray-600 select-none">
+                    <input
+                      type="checkbox"
+                      checked={useExternalCompanySources}
+                      onChange={(e) => setUseExternalCompanySources(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    外部企業情報サイトも検索する（従業員数/年商/拠点などの補完に有効）
+                  </label>
                   {companyIntelStatus && (
                     <div className={`text-xs p-2 rounded ${
                       companyIntelStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
@@ -2013,17 +2229,74 @@ export default function CompleteProfilePage() {
                 </div>
 
                 <div className="grid gap-2 md:col-span-2">
-                  <Label htmlFor="retrievedInfo">取得情報</Label>
+                  <Label htmlFor="retrievedInfo">追加情報</Label>
                   <textarea
                     id="retrievedInfo"
                     value={companyData.retrievedInfo}
                     onChange={(e) => setCompanyData(prev => ({ ...prev, retrievedInfo: e.target.value }))}
-                    placeholder="Web検索で取得した内容や拠点情報が表示されます"
+                    placeholder="Web検索で取得した内容（製品、工場、支店、店舗数など）が表示されます"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[120px]"
                   />
                   <p className="text-xs text-gray-500">
-                    Firecrawlによる取得結果やメモを保存できます。保存すると「取得情報」フィールドとして記録されます。
+                    取得結果やメモを保存できます。保存すると「追加情報」フィールドとして記録されます。
                   </p>
+                  {companyIntelMeta && (
+                    <details className="mt-2 rounded border border-gray-200 bg-gray-50 p-3">
+                      <summary className="cursor-pointer text-xs font-medium text-gray-700">
+                        デバッグ: 取得テキスト（プレビュー）
+                      </summary>
+                      <div className="mt-2 space-y-2">
+                        <div className="text-[11px] text-gray-600">
+                          method: {String(companyIntelMeta.method || '')}
+                          {companyIntelMeta.firecrawlStatus ? ` / firecrawlStatus: ${companyIntelMeta.firecrawlStatus}` : ''}
+                        </div>
+                        {(companyIntelMeta.directDetails || companyIntelMeta.directException) && (
+                          <div>
+                            <div className="text-[11px] font-semibold text-gray-700 mb-1">公式HP取得エラー詳細</div>
+                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
+{String(companyIntelMeta.directDetails || companyIntelMeta.directException || '(なし)')}
+                            </pre>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-[11px] font-semibold text-gray-700 mb-1">公式HPプレビュー</div>
+                          <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
+{String(companyIntelMeta.officialPreview || '(なし)')}
+                          </pre>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-semibold text-gray-700 mb-1">外部情報サイトプレビュー</div>
+                          <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
+{String(companyIntelMeta.externalPreview || '(なし)')}
+                          </pre>
+                        </div>
+                        {companyIntelMeta.externalMeta && (
+                          <div>
+                            <div className="text-[11px] font-semibold text-gray-700 mb-1">外部検索ログ（queries / results / fetchLogs）</div>
+                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-72 overflow-auto">
+{JSON.stringify(companyIntelMeta.externalMeta, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        {companyIntelMeta.directDetails && (
+                          <div>
+                            <div className="text-[11px] font-semibold text-gray-700 mb-1">通常fetchエラー詳細</div>
+                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
+{String(companyIntelMeta.directDetails || '(なし)')}
+                            </pre>
+                          </div>
+                        )}
+                        {companyIntelMeta.directException && (
+                          <div>
+                            <div className="text-[11px] font-semibold text-gray-700 mb-1">通常fetch例外</div>
+                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
+{String(companyIntelMeta.directException || '(なし)')}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4">
@@ -2093,22 +2366,12 @@ export default function CompleteProfilePage() {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="address">番地</Label>
+                  <Label htmlFor="address">町名番地以下</Label>
                   <Input
                     id="address"
                     value={companyData.address}
                     onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
-                    placeholder="恵比寿1-1-1"
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="building">建物名</Label>
-                  <Input
-                    id="building"
-                    value={companyData.building}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, building: e.target.value }))}
-                    placeholder="○○ビル 3F"
+                    placeholder="名駅1-1-1 JPタワー名古屋25階"
                   />
                 </div>
                 

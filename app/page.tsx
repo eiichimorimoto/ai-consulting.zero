@@ -5,168 +5,25 @@ import Link from 'next/link'
 import { Orbitron, Montserrat, Noto_Sans_JP } from 'next/font/google'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, BarChart3, FileText, MessageSquare, Target, Lightbulb, Shield } from 'lucide-react'
-import { Suspense, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import LandingHero from '@/components/LandingHero'
 
 const orbitron = Orbitron({ subsets: ['latin'], weight: ['500', '600', '700'] })
 const montserrat = Montserrat({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800', '900'] })
 const notoSansJP = Noto_Sans_JP({ subsets: ['latin'], weight: ['400', '500', '600', '700'] })
 
-function AuthCodeRedirector() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  // フォールバック:
-  // Supabaseのverify後に redirect_to がトップ(/) になってしまっても、
-  // ここに `?code=...` が付いて来た場合は /auth/callback に渡して確実にセッション交換させる。
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/2243b483-f71e-4f8f-87d2-fb3b3f224408',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:22',message:'AuthCodeRedirector effect',data:{search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    const code = searchParams.get('code')
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/2243b483-f71e-4f8f-87d2-fb3b3f224408',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:25',message:'code check in client',data:{hasCode:!!code,codeValue:code?.substring(0,20)+'...'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    if (!code) return
-    const next = searchParams.get('next') || '/auth/complete-profile'
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/2243b483-f71e-4f8f-87d2-fb3b3f224408',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:28',message:'client redirecting to callback',data:{next,redirectTo:`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    router.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`)
-  }, [router, searchParams])
-
-  return null
-}
+// AuthCodeRedirectorは削除しました
+// middleware.tsでサーバー側でリダイレクト処理を行っているため、
+// クライアント側での重複処理は無限ループの原因となります
+// function AuthCodeRedirector() {
+//   // この処理はmiddleware.tsで実行されています
+//   return null
+// }
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <Suspense fallback={null}>
-        <AuthCodeRedirector />
-      </Suspense>
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-900">
-        {/* Background AI Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(/info-data/A_futuristic_cityscape_serves_as_the_backdrop_whe-1766054908806.png)',
-            opacity: 0.3
-          }}
-        />
-        {/* Smoke overlay (readability + haze) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/25 via-slate-900/45 to-slate-900/65 backdrop-blur-[2px]" />
-
-        {/* Animated Dashboard Preview */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.5 }}
-            className="w-full max-w-6xl mx-auto px-4"
-          >
-            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-2xl border border-blue-400/20 p-8">
-              {/* Mock Dashboard Elements */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="h-24 bg-blue-500/20 rounded-lg animate-pulse" />
-                <div className="h-24 bg-indigo-500/20 rounded-lg animate-pulse delay-100" />
-                <div className="h-24 bg-purple-500/20 rounded-lg animate-pulse delay-200" />
-              </div>
-              <div className="h-48 bg-blue-500/10 rounded-lg animate-pulse delay-300" />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            {/* NOTE: 上部の固定表示は削除し、下部の横スクロール（1種類の文言のみ）に集約 */}
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className={`text-6xl md:text-8xl font-bold text-white mb-12 leading-tight tracking-tight ${montserrat.className}`}
-          >
-            Think Next.
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className={`text-xl md:text-2xl text-gray-300 mb-16 font-light leading-relaxed ${notoSansJP.className}`}
-          >
-            大手だけの時代は、終わった
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex justify-center items-center"
-          >
-            <Link href="/auth/sign-up">
-              <button
-                className="inline-flex flex-col items-center px-[50px] py-4 border-none bg-[#06B6D4] text-[#0F172A] cursor-pointer transition-all duration-300 rounded-[4px] hover:bg-[#22D3EE] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
-              >
-                <span className="text-[28px] tracking-[4px] leading-none" style={{ fontFamily: "var(--font-bebas-neue), 'Bebas Neue', sans-serif" }}>JOIN AI</span>
-                <span className={`${notoSansJP.className} text-xs font-medium tracking-[1px] mt-1 opacity-80`}>AIを、武器に</span>
-              </button>
-            </Link>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="grid grid-cols-3 gap-12 mt-24 max-w-4xl mx-auto"
-          >
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">戦略立案</div>
-              <div className="text-sm text-gray-400 font-light">データ駆動型の意思決定</div>
-            </div>
-            <div className="text-center border-x border-white/20">
-              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">24時間対応</div>
-              <div className="text-sm text-gray-400 font-light">いつでも相談可能</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-light text-white mb-3 tracking-wide">実行支援</div>
-              <div className="text-sm text-gray-400 font-light">継続的なサポート</div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Bottom marquee text (stable version) */}
-        <div className="absolute bottom-12 left-0 right-0 overflow-hidden pointer-events-none">
-          <motion.div
-            animate={{ x: [0, -2000] }}
-            transition={{
-              duration: 22,
-              repeat: Infinity,
-              ease: 'linear',
-              repeatDelay: 0,
-            }}
-            className="whitespace-nowrap"
-            aria-hidden="true"
-          >
-            <div
-              className={`${orbitron.className} text-4xl md:text-5xl font-medium tracking-[0.12em] text-amber-100/90 uppercase`}
-              style={{
-                textShadow: '0 10px 40px rgba(251, 191, 36, 0.18), 0 2px 12px rgba(255, 251, 235, 0.18)',
-              }}
-            >
-              {'AI Powered Consulting　　　'.repeat(6)}
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      {/* Hero Section - ClaudeDesign1220デザイン */}
+      <LandingHero />
 
       {/* Features Section - 未来を変える主な機能 */}
       <section id="features" className="py-24 px-4 relative bg-white">
