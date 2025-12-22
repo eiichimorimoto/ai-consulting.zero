@@ -136,6 +136,21 @@ const guessCompanyName = (text: string) => {
   return ""
 }
 
+/**
+ * 会社名から法人格（株式会社、有限会社等）を除去して、カナ変換用の名称を取得
+ */
+const stripCorporateSuffix = (name: string): string => {
+  if (!name) return ""
+  // 法人格を除去
+  return name
+    .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|学校法人|社会福祉法人|宗教法人|特定非営利活動法人|NPO法人)\s*/g, "")
+    .replace(/\s*(株式会社|有限会社|合同会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|学校法人|社会福祉法人|宗教法人|特定非営利活動法人|NPO法人)$/g, "")
+    .replace(/（株）|㈱|\(株\)/g, "")
+    .replace(/（有）|㈲|\(有\)/g, "")
+    .replace(/（合）|\(合\)/g, "")
+    .trim()
+}
+
 const extractPdfLinksFromHtml = (html: string) => {
   // href="...pdf" を雑に抽出（IRページのE-IRリンクから決算短信/有報PDFを拾う用途）
   const links = new Set<string>()
@@ -210,9 +225,238 @@ const shouldTreatAsStale = (text: string, maxAgeYears = 2) => {
 }
 
 const guessStockCodeFromText = (text: string) => {
-  // 例: "証券コード：4684" / "証券コード 4684"
-  const m = text.match(/証券コード\s*[:：]?\s*(\d{4})/)
-  return m?.[1] || ""
+  // 例: "証券コード：4684" / "証券コード 4684" / "コード: 4684"
+  const patterns = [
+    /証券コード\s*[:：]?\s*(\d{4})/,
+    /銘柄コード\s*[:：]?\s*(\d{4})/,
+    /コード\s*[:：]\s*(\d{4})(?!\d)/, // 4桁のみ
+    /(?:東証|TSE|プライム|スタンダード|グロース)\s*[:：]?\s*(\d{4})/,
+  ]
+  for (const pattern of patterns) {
+    const m = text.match(pattern)
+    if (m) return m[1]
+  }
+  return ""
+}
+
+/**
+ * 上場企業かどうかを厳密に判定
+ * @returns { isListed: boolean, stockCode: string, confidence: string, reasons: string[] }
+ */
+const detectListedCompany = (
+  text: string, 
+  internalLinks: string[]
+): { isListed: boolean; stockCode: string; confidence: 'high' | 'medium' | 'low'; reasons: string[] } => {
+  const reasons: string[] = []
+  let score = 0
+  
+  // 1. 証券コードの検出（高信頼度）
+  const stockCode = guessStockCodeFromText(text)
+  if (stockCode) {
+    score += 50
+    reasons.push(`証券コード検出: ${stockCode}`)
+  }
+  
+  // 2. 上場市場の記載確認（高信頼度）
+  const marketPatterns = [
+    { pattern: /東京証券取引所/, name: '東京証券取引所' },
+    { pattern: /東証(?:プライム|スタンダード|グロース|一部|二部|マザーズ|JASDAQ)/, name: '東証市場' },
+    { pattern: /(?:プライム|スタンダード|グロース)市場/, name: '市場区分' },
+    { pattern: /上場企業/, name: '上場企業記載' },
+    { pattern: /上場会社/, name: '上場会社記載' },
+    { pattern: /(?:名証|札証|福証)/, name: '地方証券取引所' },
+  ]
+  for (const { pattern, name } of marketPatterns) {
+    if (pattern.test(text)) {
+      score += 30
+      reasons.push(`市場記載: ${name}`)
+    }
+  }
+  
+  // 3. IRページの存在確認（高信頼度）
+  const irPatterns = [
+    /\/ir\//i,
+    /\/investor/i,
+    /\/stockholder/i,
+    /\/kabunushi/i,
+    /IR情報/,
+    /投資家情報/,
+    /株主・投資家/,
+  ]
+  const hasIrPage = internalLinks.some(link => 
+    irPatterns.some(pattern => pattern.test(link))
+  ) || irPatterns.some(pattern => pattern.test(text))
+  
+  if (hasIrPage) {
+    score += 40
+    reasons.push('IRページ検出')
+  }
+  
+  // 4. 有価証券報告書・決算短信の記載確認（高信頼度）
+  const irDocPatterns = [
+    { pattern: /有価証券報告書/, name: '有価証券報告書' },
+    { pattern: /決算短信/, name: '決算短信' },
+    { pattern: /四半期報告書/, name: '四半期報告書' },
+    { pattern: /株主総会/, name: '株主総会' },
+    { pattern: /配当/, name: '配当情報' },
+    { pattern: /株価/, name: '株価情報' },
+    { pattern: /EDINET/, name: 'EDINET' },
+    { pattern: /TDnet/, name: 'TDnet' },
+  ]
+  for (const { pattern, name } of irDocPatterns) {
+    if (pattern.test(text)) {
+      score += 15
+      reasons.push(`IR関連記載: ${name}`)
+    }
+  }
+  
+  // 5. 資本金の規模（参考情報）
+  const capitalMatch = text.match(/資本金\s*[:：]?\s*([\d,]+)\s*(百万円|億円|万円|円)/)
+  if (capitalMatch) {
+    const amount = parseInt(capitalMatch[1].replace(/,/g, ''))
+    const unit = capitalMatch[2]
+    let capitalYen = amount
+    if (unit === '億円') capitalYen = amount * 100000000
+    else if (unit === '百万円') capitalYen = amount * 1000000
+    else if (unit === '万円') capitalYen = amount * 10000
+    
+    // 資本金1億円以上は上場企業の可能性が高い
+    if (capitalYen >= 100000000) {
+      score += 10
+      reasons.push(`資本金: ${capitalMatch[0]}`)
+    }
+  }
+  
+  // 6. 従業員数の規模（参考情報）
+  const employeeMatch = text.match(/従業員(?:数)?\s*[:：]?\s*([\d,]+)\s*(?:名|人)/)
+  if (employeeMatch) {
+    const employees = parseInt(employeeMatch[1].replace(/,/g, ''))
+    // 従業員1000人以上は上場企業の可能性が高い
+    if (employees >= 1000) {
+      score += 5
+      reasons.push(`従業員数: ${employees}名`)
+    }
+  }
+  
+  // 判定
+  let confidence: 'high' | 'medium' | 'low' = 'low'
+  let isListed = false
+  
+  if (score >= 70) {
+    confidence = 'high'
+    isListed = true
+  } else if (score >= 40) {
+    confidence = 'medium'
+    isListed = true
+  } else if (score >= 20) {
+    confidence = 'low'
+    isListed = true
+  }
+  
+  return { isListed, stockCode, confidence, reasons }
+}
+
+/**
+ * テキストから都道府県を抽出（住所パターンから抽出）
+ */
+const extractPrefectureFromText = (text: string): string | null => {
+  const prefectures = [
+    "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+    "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+    "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
+    "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
+    "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+    "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
+    "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
+  ]
+  
+  // 住所パターンで抽出（〒の後や、住所:の後など）
+  // 例: 〒460-0002 愛知県名古屋市... / 住所：東京都渋谷区...
+  const addressPattern = /(?:〒[\d\-]+\s*|住所[:：]\s*|所在地[:：]\s*|本社[:：]\s*)([^\s]{2,4}(?:都|道|府|県))/
+  const match = text.match(addressPattern)
+  if (match) {
+    const found = prefectures.find(p => match[1].includes(p.replace(/都|道|府|県$/, "")))
+    if (found) return found
+  }
+  
+  // フォールバック: 単純な都道府県名の検索（ただし住所文脈で出現するもののみ）
+  for (const pref of prefectures) {
+    // 住所らしい文脈で出現しているか確認
+    const prefPattern = new RegExp(`(?:〒|住所|所在地|本社)[^]*?${pref.replace(/都|道|府|県$/, "")}(?:都|道|府|県)`)
+    if (prefPattern.test(text)) return pref
+  }
+  
+  return null
+}
+
+/**
+ * テキストから市区町村を抽出
+ */
+const extractCityFromText = (text: string): string | null => {
+  // 「〜市」「〜区」「〜町」「〜村」を抽出
+  const m = text.match(/([^\s]{1,10}(?:市|区|町|村))/)
+  return m?.[1] || null
+}
+
+/**
+ * 住所の一致度をチェック（同名他社の排除用）
+ * @returns 0-100のスコア（高いほど一致）
+ */
+const checkAddressMatch = (
+  text: string,
+  targetPrefecture: string,
+  targetCity: string,
+  targetAddress: string
+): { score: number; matchedPrefecture: boolean; matchedCity: boolean; reason: string } => {
+  const normalizedText = text.replace(/\s+/g, "")
+  let score = 0
+  let matchedPrefecture = false
+  let matchedCity = false
+  const reasons: string[] = []
+  
+  // 都道府県の一致チェック
+  if (targetPrefecture) {
+    const prefInText = extractPrefectureFromText(normalizedText)
+    if (prefInText === targetPrefecture) {
+      score += 40
+      matchedPrefecture = true
+      reasons.push(`都道府県一致: ${targetPrefecture}`)
+    } else if (prefInText && prefInText !== targetPrefecture) {
+      // 異なる都道府県が明示されている場合はマイナス
+      score -= 50
+      reasons.push(`都道府県不一致: ${prefInText} != ${targetPrefecture}`)
+    }
+  }
+  
+  // 市区町村の一致チェック
+  if (targetCity) {
+    const cityInText = extractCityFromText(normalizedText)
+    // 完全一致または部分一致
+    if (cityInText && (cityInText === targetCity || normalizedText.includes(targetCity))) {
+      score += 30
+      matchedCity = true
+      reasons.push(`市区町村一致: ${targetCity}`)
+    } else if (cityInText && targetCity && !normalizedText.includes(targetCity.replace(/市|区|町|村/g, ""))) {
+      // 異なる市区町村が明示されている場合
+      score -= 30
+      reasons.push(`市区町村不一致: ${cityInText}`)
+    }
+  }
+  
+  // 詳細住所の部分一致チェック
+  if (targetAddress) {
+    // 番地や建物名の一部が含まれているか
+    const addressParts = targetAddress.replace(/[〒\-ー−]/g, "").split(/[\s,、]/).filter(p => p.length > 1)
+    for (const part of addressParts) {
+      if (normalizedText.includes(part)) {
+        score += 10
+        reasons.push(`住所部分一致: ${part}`)
+        break
+      }
+    }
+  }
+  
+  return { score, matchedPrefecture, matchedCity, reason: reasons.join(", ") }
 }
 
 const buildKnownExternalSources = (stockCode: string) => {
@@ -311,6 +555,18 @@ interface CompanyIntelResult {
   industry?: string | null
   employeeCount?: string | null
   annualRevenue?: string | null
+  /** 会社名（カナ）- 株式会社等を除いた形式 */
+  companyNameKana?: string | null
+  /** 設立日（YYYY-MM-DD形式） */
+  establishedDate?: string | null
+  /** 代表者名 */
+  representativeName?: string | null
+  /** 会社電話番号 */
+  phone?: string | null
+  /** FAX番号 */
+  fax?: string | null
+  /** 事業内容（主要な事業/製品/サービスの説明） */
+  businessDescription?: string | null
   products?: string[]
   services?: string[]
   branches?: string[]
@@ -324,9 +580,9 @@ interface CompanyIntelResult {
    * 例: ["主要サービス: ...", "拠点: 東京/大阪", ...]
    */
   extraBullets?: string[]
-  /** 最新の売上高（売上収益）を“資料記載のまま”返す（例: 46,984百万円 / 469億8,400万円） */
+  /** 最新の売上高（売上収益）を"資料記載のまま"返す（例: 46,984百万円 / 469億8,400万円） */
   latestRevenueText?: string | null
-  /** 最新の従業員数を“資料記載のまま”返す（例: 1,234名） */
+  /** 最新の従業員数を"資料記載のまま"返す（例: 1,234名） */
   latestEmployeesText?: string | null
   /** 最新数値の出典（可能ならPDF URL） */
   latestFactsSource?: string | null
@@ -336,6 +592,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const website = (body?.website as string | undefined)?.trim()
+    const companyName = (body?.companyName as string | undefined)?.trim() || ""
+    // 住所情報（同名他社の排除に使用）
+    const companyAddress = (body?.companyAddress as string | undefined)?.trim() || ""
+    const companyPrefecture = (body?.companyPrefecture as string | undefined)?.trim() || ""
+    const companyCity = (body?.companyCity as string | undefined)?.trim() || ""
     const forceExternalSearch = Boolean(body?.forceExternalSearch)
     const options = body?.options as
       | {
@@ -433,7 +694,62 @@ export async function POST(request: Request) {
     }
 
     const combinedOfficialText = `${safeSlice(scrapedContent, 9000)}\n\n${safeSlice(internalCrawlText, 9000)}`
-    const companyNameGuess = guessCompanyName(combinedOfficialText)
+    // フロントから渡された会社名を優先、なければテキストから推測
+    const companyNameGuess = companyName || guessCompanyName(combinedOfficialText)
+    
+    // 内部リンクのリストを取得（上場判定に使用）
+    const internalLinks = homepageHtml ? extractInternalLinksFromHtml(homepageHtml, normalizedUrl) : []
+    
+    // 上場企業かどうかを厳密に判定
+    const listedDetection = detectListedCompany(combinedOfficialText, internalLinks)
+    const stockCode = listedDetection.stockCode
+    const isListedCompany = listedDetection.isListed
+    
+    console.log("📊 上場判定（詳細）:", {
+      isListed: listedDetection.isListed,
+      stockCode: listedDetection.stockCode,
+      confidence: listedDetection.confidence,
+      reasons: listedDetection.reasons,
+    })
+    
+    // 住所情報を取得（フロントから渡された情報を優先）
+    // 市区町村から都道府県を推測するマッピング（主要都市）
+    const cityToPrefecture: Record<string, string> = {
+      "名古屋市": "愛知県", "豊田市": "愛知県", "岡崎市": "愛知県", "一宮市": "愛知県",
+      "横浜市": "神奈川県", "川崎市": "神奈川県", "相模原市": "神奈川県",
+      "大阪市": "大阪府", "堺市": "大阪府", "東大阪市": "大阪府",
+      "神戸市": "兵庫県", "姫路市": "兵庫県", "西宮市": "兵庫県",
+      "京都市": "京都府", "福岡市": "福岡県", "北九州市": "福岡県",
+      "札幌市": "北海道", "仙台市": "宮城県", "広島市": "広島県",
+      "さいたま市": "埼玉県", "川口市": "埼玉県",
+      "千葉市": "千葉県", "船橋市": "千葉県", "松戸市": "千葉県",
+      "新潟市": "新潟県", "静岡市": "静岡県", "浜松市": "静岡県",
+      "岐阜市": "岐阜県", "四日市市": "三重県", "津市": "三重県",
+    }
+    
+    // 市区町村から都道府県を推測
+    const inferPrefectureFromCity = (city: string): string | null => {
+      if (!city) return null
+      // 完全一致
+      if (cityToPrefecture[city]) return cityToPrefecture[city]
+      // 部分一致（「名古屋市中川区」→「名古屋市」）
+      for (const [c, p] of Object.entries(cityToPrefecture)) {
+        if (city.startsWith(c) || city.includes(c)) return p
+      }
+      return null
+    }
+    
+    const officialCity = companyCity || extractCityFromText(combinedOfficialText) || ""
+    // 都道府県: フロントから渡された値 > 市区町村から推測 > 公式HPから抽出
+    const officialPrefecture = companyPrefecture || inferPrefectureFromCity(officialCity) || extractPrefectureFromText(combinedOfficialText) || ""
+    const officialAddress = companyAddress || ""
+    
+    console.log("📍 住所情報:", { 
+      officialPrefecture, 
+      officialCity, 
+      officialAddress: officialAddress.slice(0, 30),
+      source: companyPrefecture ? "フロント" : inferPrefectureFromCity(officialCity) ? "市区町村から推測" : "公式HP"
+    })
 
     // 1c. 公式HPだけで不足しそうなら、外部企業情報サイト等も検索（BRAVE_SEARCH_API_KEYがある場合のみ）
     let externalText = ""
@@ -449,41 +765,61 @@ export async function POST(request: Request) {
       if (shouldSearch) {
         const qBase = companyNameGuess ? companyNameGuess : new URL(normalizedUrl).hostname
         const currentYear = new Date().getFullYear()
-        const preferredSites = [
-          // 金融/IR集約（最新年度が出やすい）
+        const origin = new URL(normalizedUrl).origin
+        const officialDomain = new URL(normalizedUrl).hostname
+        
+        // 上場企業と非上場企業で検索戦略を分ける
+        const preferredSitesListed = [
+          // 上場企業向け: 金融/IR集約サイト（信頼性が高い）
           "irbank.net",
           "kabutan.jp",
           "finance.yahoo.co.jp",
-          // 採用/会社概要（従業員数が出やすい）
+          "ullet.com",
+          "buffett-code.com",
+        ] as const
+        
+        const preferredSitesUnlisted = [
+          // 非上場企業向け: 採用サイト（会社名+ドメインで特定しやすい）
           "job.rikunabi.com",
           "mynavi.jp",
           "wantedly.com",
-          // 企業DB/PR（補助）
-          "salesnow.jp",
+          "en-japan.com",
+          // 企業DB（ただし同名他社混入リスクあり）
           "baseconnect.in",
-          "prtimes.jp",
         ] as const
+        
+        const preferredSites = isListedCompany ? preferredSitesListed : preferredSitesUnlisted
 
-        const queries = [
-          `${qBase} 売上高 最新 ${currentYear}`,
-          `${qBase} 年商 最新 ${currentYear}`,
-          `${qBase} 従業員数 最新`,
-          `${qBase} 会社概要 従業員数 売上高`,
-          // サイト指定（上から順に優先）
-          `${qBase} 売上高 ${currentYear} site:${preferredSites[0]}`,
-          `${qBase} 売上高 ${currentYear} site:${preferredSites[1]}`,
-          `${qBase} 売上高 ${currentYear} site:${preferredSites[2]}`,
-          `${qBase} 従業員数 site:${preferredSites[3]}`,
-          `${qBase} 会社概要 site:${preferredSites[4]}`,
-          `${qBase} 会社概要 従業員数 site:${preferredSites[5]}`,
-        ].filter(Boolean)
+        // 検索クエリを上場・非上場で分ける
+        let queries: string[]
+        if (isListedCompany) {
+          // 上場企業: 証券コードを使って精度を上げる
+          queries = [
+            `${stockCode} ${qBase} 売上高 ${currentYear}`,
+            `${stockCode} 従業員数`,
+            `${qBase} 売上高 最新 ${currentYear}`,
+            `${qBase} 会社概要 従業員数 売上高`,
+            `${stockCode} site:${preferredSites[0]}`,
+            `${stockCode} site:${preferredSites[1]}`,
+          ].filter(Boolean)
+        } else {
+          // 非上場企業: 公式ドメインを含めて精度を上げる（同名他社を除外）
+          queries = [
+            `"${qBase}" "${officialDomain}" 会社概要`,
+            `"${qBase}" 従業員数 "${officialDomain}"`,
+            `"${qBase}" site:${preferredSites[0]}`,
+            `"${qBase}" site:${preferredSites[1]}`,
+            `"${qBase}" site:${preferredSites[2]}`,
+          ].filter(Boolean)
+        }
+        
+        console.log("🔍 外部検索クエリ:", { isListedCompany, queries: queries.slice(0, 3) })
 
         const results: BraveWebResult[] = []
-        for (const q of queries.slice(0, 6)) {
-          results.push(...(await braveWebSearch(q, 6)))
+        for (const q of queries.slice(0, 5)) {
+          results.push(...(await braveWebSearch(q, 5)))
         }
 
-        const origin = new URL(normalizedUrl).origin
         const uniq = new Map<string, BraveWebResult>()
         for (const r of results) {
           if (!r.url) continue
@@ -494,7 +830,7 @@ export async function POST(request: Request) {
         const preferredDomainScore = (url: string) => {
           try {
             const host = new URL(url).hostname
-            const hit = preferredSites.findIndex((d) => host === d || host.endsWith(`.${d}`))
+            const hit = (preferredSites as readonly string[]).findIndex((d) => host === d || host.endsWith(`.${d}`))
             if (hit >= 0) return 50 - hit
             return 0
           } catch {
@@ -502,8 +838,23 @@ export async function POST(request: Request) {
           }
         }
 
+        // 非上場企業の場合、会社名が含まれているかで信頼性を判定
+        const companyNameMatchScore = (r: BraveWebResult) => {
+          if (isListedCompany) return 0 // 上場企業は証券コードで特定できるので不要
+          
+          const text = `${r.title || ""} ${r.description || ""}`.toLowerCase()
+          const nameToCheck = companyNameGuess.replace(/株式会社|有限会社|合同会社/g, "").trim().toLowerCase()
+          
+          // 会社名が完全に含まれている場合は高スコア
+          if (text.includes(nameToCheck)) return 20
+          
+          // 公式ドメインが含まれている場合も信頼性が高い
+          if (text.includes(officialDomain)) return 15
+          
+          return 0
+        }
+
         const keywordScore = (r: BraveWebResult) => {
-          const currentYear = new Date().getFullYear()
           const text = `${r.title || ""} ${r.description || ""}`.toLowerCase()
           let score = 0
           if (text.includes("売上")) score += 5
@@ -518,10 +869,20 @@ export async function POST(request: Request) {
         const ranked = Array.from(uniq.values())
           .map((r: any) => ({
             ...r,
-            _score: preferredDomainScore(r.url) + keywordScore(r),
+            _score: preferredDomainScore(r.url) + keywordScore(r) + companyNameMatchScore(r),
+            _companyNameMatch: companyNameMatchScore(r),
           }))
+          // 非上場企業の場合、会社名マッチスコアが0のものは除外（同名他社の可能性が高い）
+          .filter((r: any) => isListedCompany || r._companyNameMatch > 0 || preferredDomainScore(r.url) > 0)
           .sort((a: any, b: any) => b._score - a._score)
-          .slice(0, 10)
+          .slice(0, isListedCompany ? 10 : 5) // 非上場は絞り込む
+
+        console.log("📋 外部検索結果:", { 
+          isListedCompany, 
+          totalResults: uniq.size, 
+          filteredResults: ranked.length,
+          topResults: ranked.slice(0, 3).map((r: any) => ({ url: r.url, score: r._score, nameMatch: r._companyNameMatch }))
+        })
 
         const chunks: string[] = []
         const fetched: string[] = []
@@ -529,19 +890,57 @@ export async function POST(request: Request) {
         for (const r of ranked) {
           try {
             const { ok, status, contentType, html, text } = await fetchHtmlToText(r.url, 12_000)
+            
+            // 非上場企業の場合、取得したテキストにも会社名が含まれているか確認
+            const nameToCheck = companyNameGuess.replace(/株式会社|有限会社|合同会社/g, "").trim()
+            const textContainsCompanyName = isListedCompany || 
+              (text && (text.includes(nameToCheck) || text.includes(officialDomain)))
+            
+            // 非上場企業の場合、住所マッチングで同名他社を排除
+            let addressMatch = { score: 0, matchedPrefecture: false, matchedCity: false, reason: "" }
+            let isAddressConflict = false
+            // 住所情報が十分にある場合のみ住所マッチングを実施
+            const hasValidAddress = officialPrefecture && officialPrefecture.length > 0
+            if (!isListedCompany && text && hasValidAddress) {
+              addressMatch = checkAddressMatch(text, officialPrefecture, officialCity, officialAddress)
+              // 住所が明確に異なる場合（都道府県が違う）は同名他社と判断
+              // ただし、都道府県が一致している場合や、住所情報が見つからない場合は除外しない
+              if (addressMatch.score < -30 && addressMatch.reason.includes("都道府県不一致")) {
+                isAddressConflict = true
+                console.log("⚠️ 住所不一致で除外:", { url: r.url, addressMatch })
+              }
+            }
+            
             fetchLogs.push({
               url: r.url,
               ok,
               status,
               contentType,
-              title: r.title,
-              description: r.description,
+              title: (r as any).title,
+              description: (r as any).description,
               preview: safeSlice(text || stripHtmlToText(html || ""), 400),
+              companyNameVerified: textContainsCompanyName,
+              addressMatch: addressMatch,
+              isAddressConflict,
             })
+            
             if (!ok || !text) continue
+            
+            // 非上場企業で会社名が含まれていない場合はスキップ（誤情報防止）
+            if (!isListedCompany && !textContainsCompanyName) {
+              console.log("⚠️ 外部情報スキップ（会社名不一致）:", r.url)
+              continue
+            }
+            
+            // 住所が明確に異なる場合はスキップ（同名他社）
+            if (isAddressConflict) {
+              console.log("⚠️ 外部情報スキップ（住所不一致、同名他社の可能性）:", r.url, addressMatch.reason)
+              continue
+            }
+            
             fetched.push(r.url)
             chunks.push(
-              `(外部情報: ${r.url})\n(title: ${r.title || ""})\n(desc: ${r.description || ""})\n${safeSlice(text, 2500)}`
+              `(外部情報: ${r.url})\n(title: ${(r as any).title || ""})\n(desc: ${(r as any).description || ""})\n${safeSlice(text, 2500)}`
             )
           } catch (e) {
             fetchLogs.push({ url: r.url, ok: false, error: String(e) })
@@ -550,13 +949,26 @@ export async function POST(request: Request) {
         externalText = chunks.join("\n\n")
         externalMeta = {
           forced: forceExternalSearch,
+          isListedCompany,
+          listedDetection: {
+            stockCode: listedDetection.stockCode || null,
+            confidence: listedDetection.confidence,
+            reasons: listedDetection.reasons,
+          },
+          officialAddress: { prefecture: officialPrefecture, city: officialCity, address: officialAddress.slice(0, 30) },
           braveKey: true,
           braveKeyLength: braveKey.length,
           needsEmployee,
           needsRevenue,
           needsLocations,
           queries,
-          results: ranked.map((r: any) => ({ url: r.url, title: r.title, description: r.description, score: r._score })),
+          results: ranked.map((r: any) => ({ 
+            url: r.url, 
+            title: r.title, 
+            description: r.description, 
+            score: r._score,
+            companyNameMatch: r._companyNameMatch,
+          })),
           externalPages: fetched,
           externalPagesCount: fetched.length,
           fetchLogs,
@@ -564,7 +976,7 @@ export async function POST(request: Request) {
       } else if (!hasBraveKey && forceExternalSearch) {
         // 検索APIが無い場合のフォールバック:
         // 上場企業（証券コードが取れる）なら、既知の外部サイトを確定URLで参照して突合する
-        const stockCode = guessStockCodeFromText(combinedOfficialText)
+        // stockCodeは既に上で取得済み
         const candidates = buildKnownExternalSources(stockCode)
         const chunks: string[] = []
         const fetched: string[] = []
@@ -706,11 +1118,19 @@ export async function POST(request: Request) {
       }
     }
 
+    // 会社名から法人格を除去した名称を取得（カナ変換用）
+    const companyNameWithoutCorp = stripCorporateSuffix(companyNameGuess)
+
     const prompt = `あなたは企業調査アシスタントです。入力された企業WebサイトURLおよび外部検索結果（ある場合）を根拠に、企業情報を抽出して返してください。
 
 目的:
-- フォームに自動セットする項目は「業種 / 従業員数 / 年間売上」の3つ
-- これら3項目はフロント側でプルダウン選択式。下記の候補リストから「最も近いもの」を必ず選び、候補の文字列をそのまま返す（候補に合致しない場合はnull）。
+- フォームに自動セットする項目は「業種 / 従業員数 / 年間売上 / 会社名（カナ） / 設立日 / 代表者名 / 電話番号 / FAX / 事業内容」
+- 業種/従業員数/年間売上の3項目はフロント側でプルダウン選択式。下記の候補リストから「最も近いもの」を必ず選び、候補の文字列をそのまま返す（候補に合致しない場合はnull）。
+- 会社名（カナ）は、法人格（株式会社、有限会社等）を除いた会社名をカタカナで返す。英語名がある場合は英語名をそのまま返す。
+- 設立日は「YYYY-MM-DD」形式（例: "1990-04-01"）で返す。月/日が不明な場合は「YYYY-01-01」形式で年のみ返す。
+- 代表者名は「代表取締役社長」「代表取締役」「CEO」等の役職を除いた氏名のみを返す。
+- 電話番号/FAXは「03-1234-5678」のような形式で返す。
+- 事業内容は、主要な事業/製品/サービスを簡潔に説明した文章（100〜200文字程度）で返す。
 - それ以外で取得できた有用情報は「取得情報」欄に流し込めるよう、箇条書き（短い1行）としてextraBulletsに入れる
 
 制約:
@@ -721,17 +1141,24 @@ export async function POST(request: Request) {
 - 年度が2023年以前など古い記載しか見つからない場合、「最新」であることを確認できない限り、annualRevenue/employeeCount は null にする（フォームを誤って埋めないため）。ただし extraBullets に「古い記載しか見つからない」旨を必ず出す。
 - 売上/従業員数は、可能な限り「年度/期間」と「参照元URL」を添える（extraBulletsに入れる）。例: "売上高(2025年3月期): 469億8,400万円（出典: <URL>）"
 - 外部サイトの情報は誤りが混ざるため、公式サイト/一次情報と矛盾する場合は採用しない（採用しない場合でも extraBullets に「矛盾検出」のメモを出す）。
-- extraBullets は「入力項目以外」の情報のみ（業種/従業員数/年間売上は入れない）
+- extraBullets は「入力項目以外」の情報のみ（業種/従業員数/年間売上/設立日/代表者名/電話番号/FAX/事業内容は入れない）
 - extraBullets は日本語で、1項目=1行の短文。最大12件まで
 - URLが会社サイトでない/情報が薄い場合も、無理に埋めずnullを返す
 - 候補から選ぶ時は、取得できた数値/表現を候補の範囲に寄せる（例: 従業員120名→「100-299名」、売上12億→「10-50億円」）
 - extraBullets の先頭には、可能なら「主要製品/主要サービス/主要事業」の情報を最優先で入れる（例: "主要製品: 〜", "主要サービス: 〜"）。複数ある場合は代表的なものに絞る。
+- companyNameKana（会社名カナ）は、法人格を除いた会社名をカタカナに変換して返す。英語名がある場合は英語名をそのまま返す（例: "ピーシーエー" または "PCA"）。
 
 必ず下記のJSON構造で、JSONのみを返してください:
 {
   "industry": string|null,
   "employeeCount": string|null,
   "annualRevenue": string|null,
+  "companyNameKana": string|null,
+  "establishedDate": string|null,
+  "representativeName": string|null,
+  "phone": string|null,
+  "fax": string|null,
+  "businessDescription": string|null,
   "products": string[],
   "services": string[],
   "branches": string[],
@@ -745,6 +1172,12 @@ export async function POST(request: Request) {
 
 WebサイトURL:
 ${normalizedUrl}
+
+会社名（フォームから入力済み）:
+${companyNameGuess || "(未入力)"}
+
+会社名（法人格除去後、カナ変換の参考）:
+${companyNameWithoutCorp || "(未入力)"}
 
 プルダウン候補（この文字列から選択して返す）:
 - 業種候補: ${industries.length ? industries.join(" / ") : "(未提供)"}

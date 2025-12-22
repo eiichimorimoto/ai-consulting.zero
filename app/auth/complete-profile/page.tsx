@@ -155,10 +155,15 @@ export default function CompleteProfilePage() {
     annualRevenue: '',
     website: '',
     email: '', // 会社のemailを追加
+    phone: '', // 会社電話番号
+    fax: '', // FAX番号
     postalCode: '',
     prefecture: '',
     city: '',
     address: '',
+    establishedDate: '', // 設立日
+    representativeName: '', // 代表者名
+    businessDescription: '', // 事業内容（追加情報）
     retrievedInfo: '',
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
@@ -166,6 +171,7 @@ export default function CompleteProfilePage() {
   const [isFetchingCompanyIntel, setIsFetchingCompanyIntel] = useState(false)
   const [companyIntelStatus, setCompanyIntelStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [useExternalCompanySources, setUseExternalCompanySources] = useState(true)
+  const [showWebSearchHelp, setShowWebSearchHelp] = useState(false)
   
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -657,7 +663,8 @@ export default function CompleteProfilePage() {
         website: ocrResult.website || '',
         postalCode: ocrResult.postalCode || '',
         address: ocrResult.address || '',
-        email: ocrResult.email || '', // 会社のemailを追加
+        email: ocrResult.email || '',
+        phone: ocrResult.phone || '', // 会社電話番号（名刺の電話番号を会社電話としてもセット）
       }
       
       console.log('📝 セットするプロフィールデータ:', newProfileData)
@@ -680,6 +687,7 @@ export default function CompleteProfilePage() {
         postalCode: newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== '' ? newCompanyData.postalCode : prev.postalCode,
         address: newCompanyData.address || prev.address,
         email: newCompanyData.email || prev.email,
+        phone: newCompanyData.phone || prev.phone, // 会社電話番号
       }))
       
       console.log('✅ 会社データをセットしました:', {
@@ -1167,6 +1175,11 @@ export default function CompleteProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           website: companyData.website,
+          companyName: companyData.name, // 会社名を渡す
+          // 住所情報（同名他社の排除に使用）
+          companyAddress: companyData.address,
+          companyPrefecture: companyData.prefecture,
+          companyCity: companyData.city,
           forceExternalSearch: useExternalCompanySources,
           options: {
             industries,
@@ -1197,16 +1210,35 @@ export default function CompleteProfilePage() {
         industry: intel.industry || prev.industry,
         employeeCount: intel.employeeCount || prev.employeeCount,
         annualRevenue: intel.annualRevenue || prev.annualRevenue,
+        // 会社名（カナ）をセット（取得できた場合のみ）
+        nameKana: intel.companyNameKana || prev.nameKana,
+        // 設立日をセット（取得できた場合のみ）
+        establishedDate: intel.establishedDate || prev.establishedDate,
+        // 代表者名をセット（取得できた場合のみ）
+        representativeName: intel.representativeName || prev.representativeName,
+        // FAXをセット（取得できた場合のみ）
+        fax: intel.fax || prev.fax,
+        // 電話番号をセット（取得できた場合のみ、既存値がなければ）
+        phone: prev.phone || intel.phone || '',
+        // 事業内容（追加情報）- 主要製品/サービス/その他情報を箇条書きでセット
+        businessDescription: (() => {
+          const lines: string[] = []
+          // 主要製品/サービスは事業内容のトップに
+          if (Array.isArray(intel.products) && intel.products.length > 0) {
+            lines.push(`主要製品: ${intel.products.slice(0, 5).join(' / ')}`)
+          }
+          if (Array.isArray(intel.services) && intel.services.length > 0) {
+            lines.push(`主要サービス: ${intel.services.slice(0, 5).join(' / ')}`)
+          }
+          if (intel.businessDescription) {
+            lines.push(intel.businessDescription)
+          }
+          if (lines.length > 0) return lines.join('\n')
+          return prev.businessDescription
+        })(),
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
         retrievedInfo: (() => {
           const lines: string[] = []
-          // 主要製品/サービスは取得情報のトップに
-          if (Array.isArray(intel.products) && intel.products.length > 0) {
-            lines.push(`- 主要製品: ${intel.products.slice(0, 5).join(' / ')}`)
-          }
-          if (Array.isArray(intel.services) && intel.services.length > 0) {
-            lines.push(`- 主要サービス: ${intel.services.slice(0, 5).join(' / ')}`)
-          }
           // 最新の売上/従業員数も見えるように表示（上場企業の一次情報優先）
           if (intel.latestRevenueText) {
             lines.push(`- 売上高(最新): ${intel.latestRevenueText}`)
@@ -1416,11 +1448,16 @@ export default function CompleteProfilePage() {
             employee_count: companyData.employeeCount || null,
             annual_revenue: companyData.annualRevenue || null,
             website: companyData.website || null,
-            email: companyData.email || null, // 会社のemailを追加
+            email: companyData.email || null,
+            phone: companyData.phone || null, // 会社電話番号
+            fax: companyData.fax || null, // FAX番号
             postal_code: companyData.postalCode || null,
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
+            established_date: companyData.establishedDate || null, // 設立日
+            representative_name: companyData.representativeName || null, // 代表者名
+            business_description: companyData.businessDescription || companyData.retrievedInfo || null, // 事業内容
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .select()
@@ -1509,11 +1546,16 @@ export default function CompleteProfilePage() {
             employee_count: companyData.employeeCount || null,
             annual_revenue: companyData.annualRevenue || null,
             website: companyData.website || null,
-            email: companyData.email || null, // 会社のemailを追加
+            email: companyData.email || null,
+            phone: companyData.phone || null, // 会社電話番号
+            fax: companyData.fax || null, // FAX番号
             postal_code: companyData.postalCode || null,
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
+            established_date: companyData.establishedDate || null, // 設立日
+            representative_name: companyData.representativeName || null, // 代表者名
+            business_description: companyData.businessDescription || companyData.retrievedInfo || null, // 事業内容
             documents_urls: allDocuments.length > 0 ? allDocuments : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
@@ -2098,6 +2140,115 @@ export default function CompleteProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* ウェブサイト入力とWeb検索ボタン（トップに配置） */}
+                <div className="grid gap-2 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="website" className="font-semibold">ウェブサイト</Label>
+                    <button
+                      type="button"
+                      onClick={() => setShowWebSearchHelp(true)}
+                      className="w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 text-white text-xs font-bold flex items-center justify-center transition-colors"
+                      title="Web検索について"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="website"
+                      value={companyData.website}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, website: e.target.value }))}
+                      placeholder="https://example.com"
+                      className="sm:flex-1 bg-white"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={fetchCompanyIntel}
+                      disabled={isFetchingCompanyIntel}
+                      className="sm:w-40 flex items-center justify-center gap-2 bg-white hover:bg-blue-50"
+                    >
+                      {isFetchingCompanyIntel ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          取得中...
+                        </>
+                      ) : (
+                        <>
+                          <Globe size={16} />
+                          Web検索
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    会社のウェブサイトから業種・従業員数・売上などの情報を自動取得します
+                  </p>
+                  <label className="flex items-center gap-2 text-xs text-gray-600 select-none">
+                    <input
+                      type="checkbox"
+                      checked={useExternalCompanySources}
+                      onChange={(e) => setUseExternalCompanySources(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    外部企業情報サイトも検索する（従業員数/年商/拠点などの補完に有効）
+                  </label>
+                  {companyIntelStatus && (
+                    <div className={`text-xs p-2 rounded ${
+                      companyIntelStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                      companyIntelStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                      'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}>
+                      {companyIntelStatus.message}
+                    </div>
+                  )}
+                </div>
+
+                {/* Web検索ヘルプポップアップ */}
+                {showWebSearchHelp && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowWebSearchHelp(false)}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-900">Web検索について</h3>
+                        <button
+                          type="button"
+                          onClick={() => setShowWebSearchHelp(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <p>
+                          <strong>Web検索機能</strong>は、入力されたウェブサイトから会社情報を自動的に取得し、フォームに入力する機能です。
+                        </p>
+                        <p className="font-semibold">取得できる情報:</p>
+                        <ul className="list-disc list-inside space-y-1 text-gray-600">
+                          <li>業種</li>
+                          <li>従業員数</li>
+                          <li>年間売上</li>
+                          <li>会社名（カナ）</li>
+                          <li>主要製品・サービス</li>
+                          <li>拠点情報</li>
+                        </ul>
+                        <p className="text-xs text-gray-500 mt-4">
+                          ※ 「外部企業情報サイトも検索する」にチェックを入れると、求人サイトや企業データベースからも情報を補完します。
+                        </p>
+                      </div>
+                      <div className="mt-6 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowWebSearchHelp(false)}
+                          className="px-6"
+                        >
+                          閉じる
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid gap-2">
                   <Label htmlFor="companyName">会社名 <span className="text-red-500">*</span></Label>
                   <Input
@@ -2117,6 +2268,83 @@ export default function CompleteProfilePage() {
                     value={companyData.nameKana}
                     onChange={(e) => setCompanyData(prev => ({ ...prev, nameKana: e.target.value }))}
                     placeholder="カブシキガイシャサンプル"
+                  />
+                </div>
+
+                {/* 住所情報（会社名カナの下に配置） */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="postalCode">郵便番号</Label>
+                    <Input
+                      id="postalCode"
+                      value={companyData.postalCode}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setCompanyData(prev => ({ ...prev, postalCode: value }))
+                        setPostalCodeStatus(null) // 入力中はステータスをクリア
+                        // 郵便番号が7桁になったら自動的に住所を取得
+                        const cleanPostalCode = value.replace(/[ー-]/g, '')
+                        if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
+                          setPostalCodeStatus({
+                            message: '住所を検索中...',
+                            type: 'info'
+                          })
+                          fetchAddressFromPostalCode(value)
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // フォーカスが外れた時にも住所を取得
+                        const value = e.target.value
+                        const cleanPostalCode = value.replace(/[ー-]/g, '')
+                        if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
+                          setPostalCodeStatus({
+                            message: '住所を検索中...',
+                            type: 'info'
+                          })
+                          fetchAddressFromPostalCode(value)
+                        }
+                      }}
+                      placeholder="150-0001"
+                    />
+                    {postalCodeStatus && (
+                      <div className={`text-xs p-2 rounded ${
+                        postalCodeStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                        postalCodeStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                        'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        {postalCodeStatus.message}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="prefecture">都道府県</Label>
+                    <Input
+                      id="prefecture"
+                      value={companyData.prefecture}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, prefecture: e.target.value }))}
+                      placeholder="東京都"
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">市区町村</Label>
+                    <Input
+                      id="city"
+                      value={companyData.city}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="渋谷区"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="address">町名番地以下</Label>
+                  <Input
+                    id="address"
+                    value={companyData.address}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="名駅1-1-1 JPタワー名古屋25階"
                   />
                 </div>
                 
@@ -2165,56 +2393,6 @@ export default function CompleteProfilePage() {
                       <option key={range} value={range}>{range}</option>
                     ))}
                   </select>
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="website">ウェブサイト</Label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                      id="website"
-                      value={companyData.website}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, website: e.target.value }))}
-                      placeholder="https://example.com"
-                      className="sm:flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={fetchCompanyIntel}
-                      disabled={isFetchingCompanyIntel}
-                      className="sm:w-40 flex items-center justify-center gap-2"
-                    >
-                      {isFetchingCompanyIntel ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          取得中...
-                        </>
-                      ) : (
-                        <>
-                          <Globe size={16} />
-                          Web検索
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <label className="flex items-center gap-2 text-xs text-gray-600 select-none">
-                    <input
-                      type="checkbox"
-                      checked={useExternalCompanySources}
-                      onChange={(e) => setUseExternalCompanySources(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                    外部企業情報サイトも検索する（従業員数/年商/拠点などの補完に有効）
-                  </label>
-                  {companyIntelStatus && (
-                    <div className={`text-xs p-2 rounded ${
-                      companyIntelStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                      companyIntelStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                      'bg-blue-50 text-blue-700 border border-blue-200'
-                    }`}>
-                      {companyIntelStatus.message}
-                    </div>
-                  )}
                 </div>
                 
                 <div className="grid gap-2">
@@ -2297,82 +2475,6 @@ export default function CompleteProfilePage() {
                       </div>
                     </details>
                   )}
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="postalCode">郵便番号</Label>
-                    <Input
-                      id="postalCode"
-                      value={companyData.postalCode}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setCompanyData(prev => ({ ...prev, postalCode: value }))
-                        setPostalCodeStatus(null) // 入力中はステータスをクリア
-                        // 郵便番号が7桁になったら自動的に住所を取得
-                        const cleanPostalCode = value.replace(/[ー-]/g, '')
-                        if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
-                          setPostalCodeStatus({
-                            message: '住所を検索中...',
-                            type: 'info'
-                          })
-                          fetchAddressFromPostalCode(value)
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // フォーカスが外れた時にも住所を取得
-                        const value = e.target.value
-                        const cleanPostalCode = value.replace(/[ー-]/g, '')
-                        if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
-                          setPostalCodeStatus({
-                            message: '住所を検索中...',
-                            type: 'info'
-                          })
-                          fetchAddressFromPostalCode(value)
-                        }
-                      }}
-                      placeholder="150-0001"
-                    />
-                    {postalCodeStatus && (
-                      <div className={`text-xs p-2 rounded ${
-                        postalCodeStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                        postalCodeStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                        'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
-                        {postalCodeStatus.message}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="prefecture">都道府県</Label>
-                    <Input
-                      id="prefecture"
-                      value={companyData.prefecture}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, prefecture: e.target.value }))}
-                      placeholder="東京都"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="city">市区町村</Label>
-                    <Input
-                      id="city"
-                      value={companyData.city}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="渋谷区"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="address">町名番地以下</Label>
-                  <Input
-                    id="address"
-                    value={companyData.address}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
-                    placeholder="名駅1-1-1 JPタワー名古屋25階"
-                  />
                 </div>
                 
                 {/* 会社資料アップロード */}
