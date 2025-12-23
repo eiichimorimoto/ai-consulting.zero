@@ -132,17 +132,42 @@ export async function POST(request: Request) {
       })
 
       console.log("📤 generateObjectを呼び出します...")
-      // Claude APIはPDFを直接処理できるため、PDFの場合は直接送信を試みる
-      // 失敗した場合はPNG変換にフォールバック
+      // Claude APIはPDFを直接処理できないため、PDFの場合はPNGに変換してから送信
       let imageBuffer: Buffer
-      let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf"
+      let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
 
       if (isPdf) {
-        // まずPDFを直接送信を試みる
-        const pdfBuffer = Buffer.from(image, "base64")
-        imageBuffer = pdfBuffer
-        mediaTypeForClaude = "application/pdf"
-        console.log("📄 PDFを直接Claude APIに送信します")
+        try {
+          const pdfBuffer = Buffer.from(image, "base64")
+          const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
+          imageBuffer = pngBuffer
+          mediaTypeForClaude = "image/png"
+          console.log("✅ PDF→PNG変換が成功しました")
+        } catch (pdfError) {
+          const errorMsg = pdfError instanceof Error ? pdfError.message : String(pdfError)
+          console.error("❌ PDF変換エラー:", errorMsg)
+          
+          // Vercel環境でpoppler-utilsが利用できない場合のエラー
+          if (errorMsg.includes("pdftoppm") || errorMsg.includes("poppler") || errorMsg.includes("ENOENT") || errorMsg.includes("spawn") || errorMsg.includes("見つかりません")) {
+            return NextResponse.json(
+              {
+                error: "PDF処理が現在利用できません",
+                details: "申し訳ございませんが、現在の環境ではPDFファイルの処理ができません。名刺の画像をJPEGまたはPNG形式で撮影・スキャンしてアップロードしてください。",
+                suggestion: "PDFファイルの場合は、画像として保存（スクリーンショットやスキャン）してからアップロードしてください。",
+              },
+              { status: 503 }
+            )
+          }
+          
+          // その他のPDF変換エラー
+          return NextResponse.json(
+            {
+              error: "PDFファイルの変換に失敗しました",
+              details: errorMsg,
+            },
+            { status: 500 }
+          )
+        }
       } else {
         imageBuffer = Buffer.from(image, "base64")
         const mt = (mimeType || "image/jpeg").toLowerCase()
@@ -189,78 +214,7 @@ export async function POST(request: Request) {
       })
 
       console.log("⏳ generateObjectの完了を待機中...")
-      let generateResult: { object: any }
-      try {
-        generateResult = await Promise.race([generatePromise, timeoutPromise]) as { object: any }
-      } catch (pdfDirectError) {
-        // PDFを直接送信した場合、エラーが発生したらPNG変換を試みる
-        if (isPdf && mediaTypeForClaude === "application/pdf") {
-          console.warn("⚠️ PDFの直接処理に失敗、PNG変換を試みます:", pdfDirectError)
-          try {
-            const pdfBuffer = Buffer.from(image, "base64")
-            const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
-            imageBuffer = pngBuffer
-            mediaTypeForClaude = "image/png"
-            
-            // PNG変換後、再度OCRを試みる
-            const retryGeneratePromise = generateObject({
-              model: anthropic("claude-sonnet-4-5-20250929"),
-              schema: businessCardSchema,
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text",
-                      text: `この名刺画像から情報を抽出してください。日本語の名刺です。
-
-【重要】読み取り精度を最大限に高めるため、以下を注意深く確認してください：
-- 文字が小さくても、かすれていても、可能な限り正確に読み取ってください
-- フォントの種類（明朝体、ゴシック体など）に関わらず、すべての文字を認識してください
-- 背景色や影があっても、文字を正確に抽出してください
-- 縦書き・横書きの両方に対応してください
-
-【抽出ルール】
-- 読み取れる情報のみを抽出し、読み取れない項目は空のままにしてください
-- 郵便番号は「〒」マークの後の数字（例: 453-0012）を抽出してください
-- 住所は都道府県から始まる完全な形式で抽出してください（例: 東京都渋谷区...）
-- 電話番号はハイフンを含む形式で抽出してください（例: 03-1234-5678）
-- メールアドレスは完全な形式で抽出してください（@マークを含む）
-- 会社名、部署名、役職名は正確に抽出してください
-- ウェブサイトURLは http:// または https:// を含む完全な形式で抽出してください`,
-                    },
-                    {
-                      type: "image",
-                      image: imageBuffer,
-                      mediaType: mediaTypeForClaude,
-                    },
-                  ],
-                },
-              ],
-            })
-            generateResult = await Promise.race([retryGeneratePromise, timeoutPromise]) as { object: any }
-            console.log("✅ PNG変換後のOCRが成功しました")
-          } catch (pngConvertError) {
-            const errorMsg = pngConvertError instanceof Error ? pngConvertError.message : String(pngConvertError)
-            console.error("❌ PNG変換も失敗:", errorMsg)
-            
-            // PNG変換も失敗した場合
-            if (errorMsg.includes("pdftoppm") || errorMsg.includes("poppler") || errorMsg.includes("ENOENT") || errorMsg.includes("spawn") || errorMsg.includes("見つかりません")) {
-              return NextResponse.json(
-                {
-                  error: "PDF処理が現在利用できません",
-                  details: "申し訳ございませんが、現在の環境ではPDFファイルの処理ができません。名刺の画像をJPEGまたはPNG形式で撮影・スキャンしてアップロードしてください。",
-                  suggestion: "PDFファイルの場合は、画像として保存（スクリーンショットやスキャン）してからアップロードしてください。",
-                },
-                { status: 503 }
-              )
-            }
-            throw pngConvertError
-          }
-        } else {
-          throw pdfDirectError
-        }
-      }
+      const generateResult = await Promise.race([generatePromise, timeoutPromise]) as { object: any }
       const { object } = generateResult
       console.log("✅ generateObjectが完了しました")
 
