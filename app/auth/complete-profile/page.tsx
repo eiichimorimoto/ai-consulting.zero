@@ -462,7 +462,19 @@ export default function CompleteProfilePage() {
               console.error('❌ OCR API エラー (JSON):', errorData)
               
               // エラーメッセージを構築（複数の可能性を確認）
-              errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
+              // errorとdetailsを結合して表示（より詳細な情報を提供）
+              const errorText = errorData.error || ''
+              const detailsText = errorData.details || ''
+              const suggestionText = errorData.suggestion || ''
+              
+              if (errorText && detailsText) {
+                errorMessage = `${errorText}\n${detailsText}`
+                if (suggestionText) {
+                  errorMessage += `\n${suggestionText}`
+                }
+              } else {
+                errorMessage = errorText || detailsText || errorData.message || errorMessage
+              }
               
               // 空のオブジェクトの場合は、ステータスコードから推測
               if (Object.keys(errorData).length === 0) {
@@ -494,7 +506,12 @@ export default function CompleteProfilePage() {
             } else if (response.status === 429) {
               errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
             } else if (response.status === 503) {
-              errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
+              // 503エラーの場合、APIからのメッセージを優先（PDF処理エラーの可能性）
+              if (errorMessage && (errorMessage.includes('PDF') || errorMessage.includes('JPEGまたはPNG'))) {
+                // APIからのメッセージをそのまま使用
+              } else {
+                errorMessage = 'サービスが一時的に利用できません。しばらく待ってから再度お試しください。'
+              }
             }
           }
         } catch (parseError) {
@@ -581,7 +598,12 @@ export default function CompleteProfilePage() {
         } else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
           errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
         } else if (error.message.includes('PDF') || error.message.includes('pdf')) {
-          errorMessage = 'PDFの処理に失敗しました。別のPDFをお試しください（1ページ目を使用します）。'
+          // APIからのエラーメッセージを優先（既に適切なメッセージが設定されている場合）
+          if (error.message.includes('PDF処理が現在利用できません') || error.message.includes('JPEGまたはPNG形式')) {
+            errorMessage = error.message // APIからのメッセージをそのまま使用
+          } else {
+            errorMessage = 'PDFの処理に失敗しました。名刺の画像をJPEGまたはPNG形式で撮影・スキャンしてアップロードしてください。'
+          }
         } else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
           errorMessage = '処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。'
         } else if (error.message.includes('500') || error.message.includes('サーバー')) {
