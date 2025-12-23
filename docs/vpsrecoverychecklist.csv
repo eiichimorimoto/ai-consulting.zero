@@ -1,0 +1,16 @@
+チェック項目,タイミング,コマンド/確認内容,重要度
+Git状態確認,開発開始時,git status,必須
+ポート競合確認,サーバー起動前,"lsof -i :3000, netstat -tuln | grep 3000",必須
+既存プロセス停止,ポート使用時,"pkill -f ""next"", kill -9 <PID>",必須
+環境変数確認,開発開始時,ls -la | grep .env,必須
+キャッシュ状態,エラー時,rm -rf .next .turbo,推奨
+node_modules整合性,依存関係変更後,npm ci,推奨
+動作確認,変更前,npm run dev → ブラウザテスト,必須
+安全なコミット作成,変更前,git commit -m "変更前: 動作確認済み",必須
+タグ作成,動作確認後,"git tag working-$(date +%Y%m%d-%H%M)",推奨
+ビルドチェック,変更後,npm run build,必須
+既存機能確認,変更後,主要ページのブラウザテスト,必須
+変更内容確認,コミット前,git diff,必須
+コミット,動作確認後,git commit -m "feat: [説明]",必須
+サーバー停止,開発終了時,"pkill -f ""next""",推奨
+バックアップpush,開発終了時,git push origin <branch>,推奨
