@@ -147,11 +147,12 @@ export async function POST(request: Request) {
           console.error("❌ PDF変換エラー:", errorMsg)
           
           // Vercel環境でpoppler-utilsが利用できない場合のエラー
-          if (errorMsg.includes("pdftoppm") || errorMsg.includes("poppler") || errorMsg.includes("ENOENT") || errorMsg.includes("spawn")) {
+          if (errorMsg.includes("pdftoppm") || errorMsg.includes("poppler") || errorMsg.includes("ENOENT") || errorMsg.includes("spawn") || errorMsg.includes("見つかりません")) {
             return NextResponse.json(
               {
                 error: "PDF処理が現在利用できません",
-                details: "PDFファイルの処理にはシステムツールが必要ですが、現在の環境では利用できません。JPEGまたはPNG形式の画像でアップロードしてください。",
+                details: "申し訳ございませんが、現在の環境ではPDFファイルの処理ができません。名刺の画像をJPEGまたはPNG形式で撮影・スキャンしてアップロードしてください。",
+                suggestion: "PDFファイルの場合は、画像として保存（スクリーンショットやスキャン）してからアップロードしてください。",
               },
               { status: 503 }
             )
