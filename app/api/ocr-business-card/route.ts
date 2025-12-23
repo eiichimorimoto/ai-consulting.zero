@@ -137,10 +137,35 @@ export async function POST(request: Request) {
       let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
 
       if (isPdf) {
-        const pdfBuffer = Buffer.from(image, "base64")
-        const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
-        imageBuffer = pngBuffer
-        mediaTypeForClaude = "image/png"
+        try {
+          const pdfBuffer = Buffer.from(image, "base64")
+          const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
+          imageBuffer = pngBuffer
+          mediaTypeForClaude = "image/png"
+        } catch (pdfError) {
+          const errorMsg = pdfError instanceof Error ? pdfError.message : String(pdfError)
+          console.error("❌ PDF変換エラー:", errorMsg)
+          
+          // Vercel環境でpoppler-utilsが利用できない場合のエラー
+          if (errorMsg.includes("pdftoppm") || errorMsg.includes("poppler") || errorMsg.includes("ENOENT") || errorMsg.includes("spawn")) {
+            return NextResponse.json(
+              {
+                error: "PDF処理が現在利用できません",
+                details: "PDFファイルの処理にはシステムツールが必要ですが、現在の環境では利用できません。JPEGまたはPNG形式の画像でアップロードしてください。",
+              },
+              { status: 503 }
+            )
+          }
+          
+          // その他のPDF変換エラー
+          return NextResponse.json(
+            {
+              error: "PDFファイルの変換に失敗しました",
+              details: errorMsg,
+            },
+            { status: 500 }
+          )
+        }
       } else {
         imageBuffer = Buffer.from(image, "base64")
         const mt = (mimeType || "image/jpeg").toLowerCase()
