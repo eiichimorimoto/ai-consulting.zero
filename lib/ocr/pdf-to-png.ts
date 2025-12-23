@@ -5,7 +5,8 @@
  * - フォールバック: poppler-utils が利用可能な場合はそれを使用
  */
 
-import * as pdfjsLib from "pdfjs-dist"
+// Node.js環境ではlegacyビルドを使用
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf"
 import { createCanvas } from "canvas"
 import { execFile } from "node:child_process"
 import { promises as fs } from "node:fs"
@@ -15,13 +16,6 @@ import path from "node:path"
 import { promisify } from "node:util"
 
 const execFileAsync = promisify(execFile)
-
-// pdfjs-distのWorker設定（Node.js環境用）
-// Node.js環境ではWorkerを使用しない
-if (typeof window === "undefined") {
-  // @ts-ignore - Node.js環境ではWorkerは不要
-  pdfjsLib.GlobalWorkerOptions.workerSrc = false
-}
 
 type ConvertOptions = {
   /** 1始まり */
