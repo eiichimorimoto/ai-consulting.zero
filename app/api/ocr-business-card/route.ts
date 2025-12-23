@@ -134,6 +134,7 @@ export async function POST(request: Request) {
       console.log("📤 generateObjectを呼び出します...")
       // PDFはClaudeが直接受け付けないため、先にPNGへ変換する
       let imageBuffer: Buffer
+      let backImageBuffer: Buffer | null = null // 裏面用
       let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
 
       if (isPdf) {
@@ -141,6 +142,18 @@ export async function POST(request: Request) {
         const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
         imageBuffer = pngBuffer
         mediaTypeForClaude = "image/png"
+        
+        // PDFの2ページ目（裏面）があれば取得を試みる
+        try {
+          const backPngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 2, scaleTo: 2048 })
+          if (backPngBuffer && backPngBuffer.length > 0) {
+            backImageBuffer = backPngBuffer
+            console.log("📄 PDFの2ページ目（裏面）を検出しました")
+          }
+        } catch (e) {
+          // 2ページ目がない場合は無視
+          console.log("📄 PDFは1ページのみです（裏面なし）")
+        }
       } else {
         imageBuffer = Buffer.from(image, "base64")
         const mt = (mimeType || "image/jpeg").toLowerCase()
@@ -177,8 +190,54 @@ export async function POST(request: Request) {
 
       console.log("⏳ generateObjectの完了を待機中...")
       const generateResult = await Promise.race([generatePromise, timeoutPromise]) as { object: any }
-      const { object } = generateResult
+      let { object } = generateResult
       console.log("✅ generateObjectが完了しました")
+      
+      // 表面でウェブサイトが取得できなかった場合、裏面を検索
+      if (!object.website && backImageBuffer) {
+        console.log("🔄 表面にウェブサイトがないため、裏面を検索します...")
+        try {
+          const backGeneratePromise = generateObject({
+            model: anthropic("claude-sonnet-4-5-20250929"),
+            schema: z.object({
+              website: z.string().optional().describe("ウェブサイトURL"),
+            }),
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `この名刺の裏面画像からウェブサイトURL（ホームページアドレス）を抽出してください。
+URLが見つからない場合は空のままにしてください。
+http://やhttps://で始まるURL、または〜.co.jp、〜.comなどのドメイン形式を探してください。`,
+                  },
+                  {
+                    type: "image",
+                    image: backImageBuffer,
+                    mediaType: "image/png",
+                  },
+                ],
+              },
+            ],
+          })
+          
+          const backTimeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error("裏面OCR処理がタイムアウトしました")), 30000)
+          })
+          
+          const backResult = await Promise.race([backGeneratePromise, backTimeoutPromise]) as { object: { website?: string } }
+          if (backResult.object.website) {
+            console.log("✅ 裏面からウェブサイトを取得しました:", backResult.object.website)
+            object = { ...object, website: backResult.object.website }
+          } else {
+            console.log("📄 裏面にもウェブサイトは見つかりませんでした")
+          }
+        } catch (backError) {
+          console.warn("⚠️ 裏面のOCR処理でエラーが発生しました（続行）:", backError)
+          // 裏面のエラーは無視して続行
+        }
+      }
 
       const endTime = Date.now()
       const duration = endTime - startTime
