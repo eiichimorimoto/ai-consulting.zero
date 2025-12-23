@@ -1,13 +1,11 @@
 /**
- * PDF(バッファ)を pdfjs-dist を使って PNG(バッファ)に変換する。
+ * PDF(バッファ)を poppler-utils の `pdftoppm` を使って PNG(バッファ)に変換する。
  * - Claude API は PDF を直接受け付けないため、OCR前に画像化が必要
- * - pdfjs-distを使用することで、Vercelのサーバーレス環境でも動作
- * - フォールバック: poppler-utils が利用可能な場合はそれを使用
+ * - macOS(Homebrew): `brew install poppler`
+ * - Ubuntu/Debian: `sudo apt-get install poppler-utils`
+ * - 注意: Vercelのサーバーレス環境では poppler-utils が利用できないため、PDF処理は失敗します
  */
 
-// Node.js環境ではlegacyビルドを使用
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf"
-import { createCanvas } from "canvas"
 import { execFile } from "node:child_process"
 import { promises as fs } from "node:fs"
 import fssync from "node:fs"
@@ -35,50 +33,7 @@ function getPdftoppmCommand(): { cmd: string; argsPrefix: string[] } {
 }
 
 /**
- * pdfjs-distを使用してPDFをPNGに変換（Vercel環境対応）
- */
-async function convertPdfWithPdfJs(
-  pdfBuffer: Buffer,
-  pageNumber: number,
-  scaleTo: number
-): Promise<Buffer> {
-  try {
-    // PDFドキュメントを読み込む
-    const loadingTask = pdfjsLib.getDocument({
-      data: pdfBuffer,
-      useSystemFonts: true,
-    })
-    const pdf = await loadingTask.promise
-
-    // 指定されたページを取得（1始まりなので-1）
-    const page = await pdf.getPage(pageNumber - 1)
-
-    // ビューポートを計算（スケールを考慮）
-    const viewport = page.getViewport({ scale: 1.0 })
-    const scale = scaleTo / Math.max(viewport.width, viewport.height)
-    const scaledViewport = page.getViewport({ scale })
-
-    // Canvasを作成
-    const canvas = createCanvas(scaledViewport.width, scaledViewport.height)
-    const context = canvas.getContext("2d")
-
-    // PDFページをCanvasにレンダリング
-    // @ts-ignore - pdfjs-distとcanvasパッケージの型定義の不一致
-    await page.render({
-      canvasContext: context as any,
-      viewport: scaledViewport,
-    }).promise
-
-    // CanvasをPNG Bufferに変換
-    return canvas.toBuffer("image/png")
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    throw new Error(`pdfjs-distによるPDF変換に失敗しました: ${msg}`)
-  }
-}
-
-/**
- * poppler-utilsを使用してPDFをPNGに変換（フォールバック）
+ * poppler-utilsを使用してPDFをPNGに変換
  */
 async function convertPdfWithPoppler(
   pdfBuffer: Buffer,
@@ -140,20 +95,8 @@ export async function convertPdfBufferToPngBuffer(
   const page = options.page ?? 1
   const scaleTo = options.scaleTo ?? 2048
 
-  // まずpdfjs-distで試す（Vercel環境対応）
-  try {
-    return await convertPdfWithPdfJs(pdfBuffer, page, scaleTo)
-  } catch (pdfJsError) {
-    console.warn("⚠️ pdfjs-distによる変換に失敗、poppler-utilsにフォールバック:", pdfJsError)
-    
-    // pdfjs-distが失敗した場合、poppler-utilsにフォールバック
-    try {
-      return await convertPdfWithPoppler(pdfBuffer, page, scaleTo)
-    } catch (popplerError) {
-      // 両方失敗した場合、pdfjs-distのエラーを優先（より一般的なエラー）
-      throw pdfJsError
-    }
-  }
+  // poppler-utilsを使用してPDFをPNGに変換
+  return await convertPdfWithPoppler(pdfBuffer, page, scaleTo)
 }
 
 
