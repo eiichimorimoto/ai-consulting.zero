@@ -16,3 +16,5 @@ ALTER TABLE public.companies
 -- - 既存データの building は削除されます（復元したい場合は事前にバックアップしてください）。
 
 
+
+

@@ -23,3 +23,5 @@ COMMENT ON COLUMN companies.retrieved_info IS 'Web検索で取得した会社情
 -- WHERE table_name = 'companies'
 -- ORDER BY ordinal_position;
 
+
+
