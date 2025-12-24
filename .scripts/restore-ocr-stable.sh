@@ -67,3 +67,4 @@ echo ""
 echo "✅ OCR機能を安定版($LATEST_TAG)に戻しました"
 echo "   動作確認: npm run dev"
 
+
