@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LineChart, IndustryChart } from './DashboardCharts'
 import { useRouter } from 'next/navigation'
-import '../app/dashboard/dashboard.css'
 
 interface Profile {
   name: string
@@ -47,11 +46,97 @@ function getWeekLabels(count: number) {
   return weeks
 }
 
+interface MarketData {
+  usdJpy: { week: string; value: number }[]
+  nikkei: { week: string; value: number }[]
+  longRate: { week: string; value: number }[]
+  shortRate: { week: string; value: number }[]
+}
+
+interface LocalInfo {
+  laborCosts: {
+    current: number
+    change: number
+    monthlyData: { month: string; value: number }[]
+    sources: any[]
+  }
+  events: { title: string; url: string; description: string; date: string }[]
+  infrastructure: { title: string; url: string; description: string; status: string }[]
+  weather: {
+    current: { temp: number; icon: string; desc: string }
+    week: { day: string; date: string; icon: string; temp: number }[]
+  }
+  traffic: { title: string; url: string; description: string; status: string }[]
+  _debug?: {
+    searchArea: string
+    searchTimestamp: string
+    laborCosts?: any
+    events?: any
+    infrastructure?: any
+    weather?: any
+    apiKeyConfigured: boolean
+  }
+}
+
+interface IndustryTrends {
+  domestic: { week: string; value: number }[]
+  export: { week: string; value: number }[]
+}
+
+interface SWOTAnalysis {
+  strengths: string[]
+  weaknesses: string[]
+  opportunities: string[]
+  threats: string[]
+}
+
+interface WorldNews {
+  title: string
+  url: string
+  description: string
+  published: string
+  category: 'economy' | 'policy' | 'market'
+}
+
+interface IndustryForecast {
+  orderTrend: { trend: 'up' | 'neutral' | 'down'; value: string; description: string }
+  materialPrice: { trend: 'up' | 'neutral' | 'down'; value: string; description: string }
+  equipmentInvestment: { trend: 'up' | 'neutral' | 'down'; value: string; description: string }
+}
+
 export default function DashboardClient({ profile, company, subscription }: DashboardClientProps) {
   const router = useRouter()
   const [currentTime, setCurrentTime] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [marketData, setMarketData] = useState<MarketData | null>(null)
+  const [localInfo, setLocalInfo] = useState<LocalInfo | null>(null)
+  const [industryTrends, setIndustryTrends] = useState<IndustryTrends | null>(null)
+  const [swotAnalysis, setSwotAnalysis] = useState<SWOTAnalysis | null>(null)
+  const [worldNews, setWorldNews] = useState<WorldNews[]>([])
+  const [industryForecast, setIndustryForecast] = useState<IndustryForecast | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState<Record<string, boolean>>({})
+  const [lastUpdated, setLastUpdated] = useState<Record<string, string>>({})
+  const [swotInfoOpen, setSwotInfoOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [debugPanelOpen, setDebugPanelOpen] = useState(false)
   const weeks = getWeekLabels(8)
+
+  interface Notification {
+    id: string
+    type: 'system' | 'data' | 'action' | 'alert'
+    title: string
+    message: string
+    action?: {
+      label: string
+      onClick: () => void
+    }
+    timestamp: Date
+    read: boolean
+    icon?: string
+  }
 
   useEffect(() => {
     const updateTime = () => {
@@ -69,12 +154,222 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     return () => clearInterval(interval)
   }, [])
 
+  // 個別データ取得関数
+  const fetchSectionData = async (sectionType: string, forceRefresh = false) => {
+    try {
+      setRefreshing(prev => ({ ...prev, [sectionType]: true }))
+      
+      let endpoint = ''
+      switch (sectionType) {
+        case 'market':
+          endpoint = '/api/dashboard/market'
+          break
+        case 'local-info':
+          endpoint = '/api/dashboard/local-info'
+          break
+        case 'industry-trends':
+          endpoint = '/api/dashboard/industry-trends'
+          break
+        case 'swot-analysis':
+          endpoint = '/api/dashboard/swot-analysis'
+          break
+        case 'world-news':
+          endpoint = '/api/dashboard/world-news'
+          break
+        case 'industry-forecast':
+          endpoint = '/api/dashboard/industry-forecast'
+          break
+        default:
+          return
+      }
+
+      // 強制更新の場合はキャッシュを無視
+      const url = forceRefresh ? `${endpoint}?refresh=true` : endpoint
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': forceRefresh ? 'no-cache' : 'default'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      const data = result.data
+      const updatedAt = result.updatedAt || new Date().toISOString()
+
+      // データをセット
+      switch (sectionType) {
+        case 'market':
+          setMarketData(data)
+          break
+        case 'local-info':
+          setLocalInfo(data)
+          break
+        case 'industry-trends':
+          setIndustryTrends(data)
+          break
+        case 'swot-analysis':
+          setSwotAnalysis(data)
+          break
+        case 'world-news':
+          setWorldNews(data)
+          break
+        case 'industry-forecast':
+          setIndustryForecast(data)
+          break
+      }
+
+      // 更新時刻を記録
+      const now = new Date()
+      const updatedTime = new Date(updatedAt)
+      const diffMinutes = Math.floor((now.getTime() - updatedTime.getTime()) / (1000 * 60))
+      const timeText = diffMinutes < 1 ? 'たった今' : diffMinutes < 60 ? `${diffMinutes}分前` : `${Math.floor(diffMinutes / 60)}時間前`
+      setLastUpdated(prev => ({ ...prev, [sectionType]: timeText }))
+    } catch (error) {
+      console.error(`Failed to fetch ${sectionType}:`, error)
+    } finally {
+      setRefreshing(prev => ({ ...prev, [sectionType]: false }))
+    }
+  }
+
+  // 初回データ取得
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // 並列でデータを取得
+        await Promise.all([
+          fetchSectionData('market'),
+          fetchSectionData('local-info'),
+          fetchSectionData('industry-trends'),
+          fetchSectionData('swot-analysis'),
+          fetchSectionData('world-news'),
+          fetchSectionData('industry-forecast'),
+        ])
+      } catch (error) {
+        console.error('Dashboard data fetch error:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  // 通知データの取得
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      // モック通知データ（実際にはSupabaseから取得）
+      const mockNotifications: Notification[] = [
+        {
+          id: '1',
+          type: 'alert',
+          title: '為替レートの大きな変動',
+          message: 'USD/JPYが156.50円を突破しました。輸出企業への影響にご注意ください。',
+          action: {
+            label: '詳細を見る',
+            onClick: () => {
+              scrollToSection('market-section')
+              setNotificationsOpen(false)
+            }
+          },
+          timestamp: new Date(Date.now() - 10 * 60 * 1000), // 10分前
+          read: false,
+          icon: '📈'
+        },
+        {
+          id: '2',
+          type: 'data',
+          title: '業界動向データが更新されました',
+          message: '機械部品業界の最新データ（3ヶ月分）が利用可能です。',
+          action: {
+            label: '業界動向を見る',
+            onClick: () => {
+              scrollToSection('industry-trends-section')
+              setNotificationsOpen(false)
+            }
+          },
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2時間前
+          read: false,
+          icon: '📊'
+        },
+        {
+          id: '3',
+          type: 'action',
+          title: '新しい相談履歴があります',
+          message: '昨日の相談セッションの分析結果が準備できました。',
+          action: {
+            label: '履歴を見る',
+            onClick: () => {
+              router.push('/dashboard/history')
+              setNotificationsOpen(false)
+            }
+          },
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1日前
+          read: false,
+          icon: '💬'
+        },
+        {
+          id: '4',
+          type: 'system',
+          title: 'システムメンテナンスのお知らせ',
+          message: '12月25日 2:00-4:00にメンテナンスを実施します。',
+          timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3日前
+          read: true,
+          icon: '🔧'
+        },
+        {
+          id: '5',
+          type: 'alert',
+          title: '注目の世界情勢',
+          message: 'EV部品市場に関する重要なニュースが追加されました。',
+          action: {
+            label: '世界情勢を見る',
+            onClick: () => {
+              scrollToSection('world-news-section')
+              setNotificationsOpen(false)
+            }
+          },
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5時間前
+          read: false,
+          icon: '🌍'
+        }
+      ]
+      setNotifications(mockNotifications)
+      setUnreadCount(mockNotifications.filter(n => !n.read).length)
+    }
+    fetchNotifications()
+  }, [])
+
   const getInitials = (name: string) => {
     const cleanName = name.replace(/\s+/g, '')
     return cleanName.length >= 2 ? cleanName.slice(0, 2) : cleanName.slice(0, 1)
   }
 
   const companyName = company?.name || '株式会社サンプル工業'
+
+  // セクションにスクロールする関数
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      const headerOffset = 80 // ヘッダーの高さ分のオフセット
+      const elementPosition = element.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
+    }
+    // モバイルの場合、サイドバーを閉じる
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false)
+    }
+  }
   const companyInitial = companyName.charAt(0)
   const planName = subscription?.plan === 'pro' ? 'プロプラン' : subscription?.plan === 'basic' ? 'ベーシックプラン' : 'フリープラン'
 
@@ -128,20 +423,20 @@ export default function DashboardClient({ profile, company, subscription }: Dash
             </div>
             <div className="nav-section">
               <div className="nav-section-title">情報</div>
-              <a className="nav-item" onClick={() => router.push('/dashboard/market')}>
+              <a className="nav-item" onClick={() => scrollToSection('market-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                 </svg>
                 マーケット概況
               </a>
-              <a className="nav-item" onClick={() => router.push('/dashboard/local')}>
+              <a className="nav-item" onClick={() => scrollToSection('local-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
                 地域情報
               </a>
-              <a className="nav-item" onClick={() => router.push('/dashboard/world')}>
+              <a className="nav-item" onClick={() => scrollToSection('world-news-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
@@ -151,13 +446,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
             </div>
             <div className="nav-section">
               <div className="nav-section-title">分析</div>
-              <a className="nav-item" onClick={() => router.push('/dashboard/industry')}>
+              <a className="nav-item" onClick={() => scrollToSection('industry-trends-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <path d="M18 20V10M12 20V4M6 20v-6"/>
                 </svg>
                 業界動向
               </a>
-              <a className="nav-item" onClick={() => router.push('/dashboard/company-analysis')}>
+              <a className="nav-item" onClick={() => scrollToSection('swot-analysis-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <rect x="3" y="3" width="7" height="7"/>
                   <rect x="14" y="3" width="7" height="7"/>
@@ -176,13 +471,6 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 </svg>
                 アカウント設定
               </Link>
-              <a className="nav-item" onClick={() => router.push('/dashboard/billing')}>
-                <svg className="nav-icon" viewBox="0 0 24 24">
-                  <rect x="1" y="4" width="22" height="16" rx="2"/>
-                  <path d="M1 10h22"/>
-                </svg>
-                お支払い
-              </a>
             </div>
           </nav>
           <div className="sidebar-footer">
@@ -208,9 +496,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               <button className="header-btn">
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
               </button>
-              <button className="header-btn">
+              <button 
+                className="header-btn" 
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                style={{ position: 'relative' }}
+              >
                 <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-                <span className="notification-dot"></span>
+                {unreadCount > 0 && <span className="notification-dot"></span>}
               </button>
             </div>
           </header>
@@ -240,7 +532,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               </div>
             </section>
 
-            <section className="market-section">
+            <section id="market-section" className="market-section">
               <div className="section-header">
                 <h2 className="section-title">
                   <svg viewBox="0 0 24 24">
@@ -248,85 +540,161 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </svg>
                   マーケット概況
                 </h2>
-                <span className="update-time">5分前更新</span>
+                <div className="section-header-right">
+                  <span className="update-time">
+                    {refreshing['market'] ? '更新中...' : lastUpdated['market'] ? `${lastUpdated['market']}更新` : '読み込み中...'}
+                  </span>
+                  <button 
+                    className="refresh-btn" 
+                    onClick={() => fetchSectionData('market', true)}
+                    disabled={refreshing['market']}
+                    title="更新"
+                  >
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      className={refreshing['market'] ? 'spinning' : ''}
+                      style={{ width: '16px', height: '16px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                    >
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="market-grid">
-                <div className="market-card">
-                  <div className="market-card-header">
-                    <span className="market-label">USD/JPY</span>
-                    <span className="market-change up">+0.32%</span>
-                  </div>
-                  <div className="market-value">¥156.42</div>
-                  <div className="chart-container">
-                    <LineChart
-                      canvasId="chartUsdJpy"
-                      tooltipId="tooltipUsdJpy"
-                      data={[
-                        { value: 154.20, week: weeks[0] }, { value: 153.85, week: weeks[1] }, { value: 155.10, week: weeks[2] },
-                        { value: 154.75, week: weeks[3] }, { value: 156.20, week: weeks[4] }, { value: 155.80, week: weeks[5] },
-                        { value: 156.85, week: weeks[6] }, { value: 156.42, week: weeks[7] }
-                      ]}
-                      options={{ prefix: '¥', lineColor: '#6366F1' }}
-                    />
-                  </div>
-                </div>
-                <div className="market-card">
-                  <div className="market-card-header">
-                    <span className="market-label">日経平均</span>
-                    <span className="market-change up">+1.24%</span>
-                  </div>
-                  <div className="market-value">¥39,847</div>
-                  <div className="chart-container">
-                    <LineChart
-                      canvasId="chartNikkei"
-                      tooltipId="tooltipNikkei"
-                      data={[
-                        { value: 38200, week: weeks[0] }, { value: 38650, week: weeks[1] }, { value: 38100, week: weeks[2] },
-                        { value: 39200, week: weeks[3] }, { value: 38900, week: weeks[4] }, { value: 39500, week: weeks[5] },
-                        { value: 39950, week: weeks[6] }, { value: 39847, week: weeks[7] }
-                      ]}
-                      options={{ prefix: '¥', lineColor: '#10B981' }}
-                    />
-                  </div>
-                </div>
-                <div className="market-card">
-                  <div className="market-card-header">
-                    <span className="market-label">長期金利（10年）</span>
-                    <span className="market-change down">-0.05%</span>
-                  </div>
-                  <div className="market-value">1.085%</div>
-                  <div className="chart-container">
-                    <LineChart
-                      canvasId="chartLongRate"
-                      tooltipId="tooltipLongRate"
-                      data={[
-                        { value: 1.12, week: weeks[0] }, { value: 1.15, week: weeks[1] }, { value: 1.10, week: weeks[2] },
-                        { value: 1.08, week: weeks[3] }, { value: 1.11, week: weeks[4] }, { value: 1.09, week: weeks[5] },
-                        { value: 1.10, week: weeks[6] }, { value: 1.085, week: weeks[7] }
-                      ]}
-                      options={{ unit: '%', lineColor: '#EF4444' }}
-                    />
-                  </div>
-                </div>
-                <div className="market-card">
-                  <div className="market-card-header">
-                    <span className="market-label">短期金利</span>
-                    <span className="market-change up">+0.10%</span>
-                  </div>
-                  <div className="market-value">0.25%</div>
-                  <div className="chart-container">
-                    <LineChart
-                      canvasId="chartShortRate"
-                      tooltipId="tooltipShortRate"
-                      data={[
-                        { value: 0.10, week: weeks[0] }, { value: 0.10, week: weeks[1] }, { value: 0.15, week: weeks[2] },
-                        { value: 0.15, week: weeks[3] }, { value: 0.20, week: weeks[4] }, { value: 0.20, week: weeks[5] },
-                        { value: 0.25, week: weeks[6] }, { value: 0.25, week: weeks[7] }
-                      ]}
-                      options={{ unit: '%', lineColor: '#F59E0B' }}
-                    />
-                  </div>
-                </div>
+                {loading ? (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px' }}>読み込み中...</div>
+                ) : (
+                  <>
+                    <div className="market-card">
+                      <div className="market-card-header">
+                        <span className="market-label">USD/JPY</span>
+                        {marketData?.usdJpy && marketData.usdJpy.length > 1 && (
+                          <span className={`market-change ${marketData.usdJpy[marketData.usdJpy.length - 1].value > marketData.usdJpy[0].value ? 'up' : 'down'}`}>
+                            {((marketData.usdJpy[marketData.usdJpy.length - 1].value / marketData.usdJpy[0].value - 1) * 100).toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="market-value">¥{marketData?.usdJpy?.[marketData.usdJpy.length - 1]?.value.toFixed(2) || '156.42'}</div>
+                      <div className="chart-container">
+                        {marketData?.usdJpy ? (
+                          <LineChart
+                            canvasId="chartUsdJpy"
+                            tooltipId="tooltipUsdJpy"
+                            data={marketData.usdJpy.map(d => ({ value: d.value, week: d.week, date: d.date || d.week }))}
+                            options={{ prefix: '¥', lineColor: '#6366F1' }}
+                          />
+                        ) : (
+                          <LineChart
+                            canvasId="chartUsdJpy"
+                            tooltipId="tooltipUsdJpy"
+                            data={weeks.map((w, i) => {
+                              const d = new Date()
+                              d.setDate(d.getDate() - (7 - i) * 7)
+                              return { value: 154.20 + i * 0.3, week: w, date: d.toISOString() }
+                            })}
+                            options={{ prefix: '¥', lineColor: '#6366F1' }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="market-card">
+                      <div className="market-card-header">
+                        <span className="market-label">日経平均</span>
+                        {marketData?.nikkei && marketData.nikkei.length > 1 && (
+                          <span className={`market-change ${marketData.nikkei[marketData.nikkei.length - 1].value > marketData.nikkei[0].value ? 'up' : 'down'}`}>
+                            {((marketData.nikkei[marketData.nikkei.length - 1].value / marketData.nikkei[0].value - 1) * 100).toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="market-value">¥{marketData?.nikkei?.[marketData.nikkei.length - 1]?.value.toLocaleString() || '39,847'}</div>
+                      <div className="chart-container">
+                        {marketData?.nikkei ? (
+                          <LineChart
+                            canvasId="chartNikkei"
+                            tooltipId="tooltipNikkei"
+                            data={marketData.nikkei.map(d => ({ value: d.value, week: d.week, date: d.date || d.week }))}
+                            options={{ prefix: '¥', lineColor: '#10B981' }}
+                          />
+                        ) : (
+                          <LineChart
+                            canvasId="chartNikkei"
+                            tooltipId="tooltipNikkei"
+                            data={weeks.map((w, i) => {
+                              const d = new Date()
+                              d.setDate(d.getDate() - (7 - i) * 7)
+                              return { value: 38200 + i * 200, week: w, date: d.toISOString() }
+                            })}
+                            options={{ prefix: '¥', lineColor: '#10B981' }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="market-card">
+                      <div className="market-card-header">
+                        <span className="market-label">長期金利（10年）</span>
+                        {marketData?.longRate && marketData.longRate.length > 1 && (
+                          <span className={`market-change ${marketData.longRate[marketData.longRate.length - 1].value > marketData.longRate[0].value ? 'up' : 'down'}`}>
+                            {((marketData.longRate[marketData.longRate.length - 1].value / marketData.longRate[0].value - 1) * 100).toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="market-value">{marketData?.longRate?.[marketData.longRate.length - 1]?.value.toFixed(3) || '1.085'}%</div>
+                      <div className="chart-container">
+                        {marketData?.longRate ? (
+                          <LineChart
+                            canvasId="chartLongRate"
+                            tooltipId="tooltipLongRate"
+                            data={marketData.longRate.map(d => ({ value: d.value, week: d.week, date: d.date || d.week }))}
+                            options={{ unit: '%', lineColor: '#EF4444' }}
+                          />
+                        ) : (
+                          <LineChart
+                            canvasId="chartLongRate"
+                            tooltipId="tooltipLongRate"
+                            data={weeks.map((w, i) => {
+                              const d = new Date()
+                              d.setDate(d.getDate() - (7 - i) * 7)
+                              return { value: 1.12 - i * 0.01, week: w, date: d.toISOString() }
+                            })}
+                            options={{ unit: '%', lineColor: '#EF4444' }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="market-card">
+                      <div className="market-card-header">
+                        <span className="market-label">短期金利</span>
+                        {marketData?.shortRate && marketData.shortRate.length > 1 && (
+                          <span className={`market-change ${marketData.shortRate[marketData.shortRate.length - 1].value > marketData.shortRate[0].value ? 'up' : 'down'}`}>
+                            {((marketData.shortRate[marketData.shortRate.length - 1].value / marketData.shortRate[0].value - 1) * 100).toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="market-value">{marketData?.shortRate?.[marketData.shortRate.length - 1]?.value.toFixed(2) || '0.25'}%</div>
+                      <div className="chart-container">
+                        {marketData?.shortRate ? (
+                          <LineChart
+                            canvasId="chartShortRate"
+                            tooltipId="tooltipShortRate"
+                            data={marketData.shortRate.map(d => ({ value: d.value, week: d.week, date: d.date || d.week }))}
+                            options={{ unit: '%', lineColor: '#F59E0B' }}
+                          />
+                        ) : (
+                          <LineChart
+                            canvasId="chartShortRate"
+                            tooltipId="tooltipShortRate"
+                            data={weeks.map((w, i) => {
+                              const d = new Date()
+                              d.setDate(d.getDate() - (7 - i) * 7)
+                              return { value: 0.10 + i * 0.02, week: w, date: d.toISOString() }
+                            })}
+                            options={{ unit: '%', lineColor: '#F59E0B' }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -393,15 +761,47 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               </div>
             </section>
 
-            <section className="local-section">
+            <section id="local-section" className="local-section">
               <div className="section-header">
                 <h2 className="section-title">
                   <svg viewBox="0 0 24 24">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                     <circle cx="12" cy="10" r="3"/>
                   </svg>
-                  {company?.prefecture || '名古屋'}エリア情報
+                  {company?.city || '名古屋市'}エリア情報
                 </h2>
+                <div className="section-header-right">
+                  <span className="update-time">
+                    {refreshing['local-info'] ? '更新中...' : lastUpdated['local-info'] ? `${lastUpdated['local-info']}更新` : '読み込み中...'}
+                  </span>
+                  <button 
+                    className="refresh-btn" 
+                    onClick={() => fetchSectionData('local-info', true)}
+                    disabled={refreshing['local-info']}
+                    title="更新"
+                  >
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      className={refreshing['local-info'] ? 'spinning' : ''}
+                      style={{ width: '16px', height: '16px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                    >
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                    </svg>
+                  </button>
+                  <button 
+                    className="debug-btn" 
+                    onClick={() => setDebugPanelOpen(!debugPanelOpen)}
+                    title="デバッグ情報"
+                  >
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      style={{ width: '16px', height: '16px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                    >
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 16v-4M12 8h.01"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="local-grid">
                 <div className="local-card">
@@ -416,13 +816,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <span className="local-title">労務費動向</span>
                   </div>
                   <div className="local-highlight">
-                    <span className="local-value">1,077</span>
+                    <span className="local-value">{localInfo?.laborCosts?.current?.toLocaleString() || '1,077'}</span>
                     <span className="local-unit">円/時</span>
-                    <span className="local-change up">+3.5%</span>
+                    <span className="local-change up">+{localInfo?.laborCosts?.change || 3.5}%</span>
                   </div>
                   <div className="local-content">
                     {company?.prefecture || '愛知県'}最低賃金（10月改定）<br/>
-                    製造業求人倍率: 1.82倍
+                    {company?.industry || '製造業'}求人倍率: 1.82倍
                   </div>
                 </div>
                 <div className="local-card">
@@ -436,18 +836,31 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <span className="local-title">注目イベント</span>
                   </div>
                   <div className="local-list">
-                    <div className="local-list-item">
-                      <span className="local-list-dot"></span>
-                      ものづくりワールド名古屋（1/22-24）
-                    </div>
-                    <div className="local-list-item">
-                      <span className="local-list-dot"></span>
-                      中部DXセミナー（1/30）
-                    </div>
-                    <div className="local-list-item">
-                      <span className="local-list-dot"></span>
-                      {company?.prefecture || '愛知県'}中小企業展（2/5-6）
-                    </div>
+                    {localInfo?.events && localInfo.events.length > 0 ? (
+                      localInfo.events.slice(0, 3).map((event, idx) => (
+                        <div key={idx} className="local-list-item">
+                          <span className="local-list-dot"></span>
+                          <a href={event.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {event.title || `イベント${idx + 1}`} {event.date ? `(${event.date})` : ''}
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="local-list-item">
+                          <span className="local-list-dot"></span>
+                          ものづくりワールド名古屋（1/22-24）
+                        </div>
+                        <div className="local-list-item">
+                          <span className="local-list-dot"></span>
+                          中部DXセミナー（1/30）
+                        </div>
+                        <div className="local-list-item">
+                          <span className="local-list-dot"></span>
+                          {company?.prefecture || '愛知県'}中小企業展（2/5-6）
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="local-card">
@@ -461,18 +874,38 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <span className="local-title">インフラ情報</span>
                   </div>
                   <div className="local-list">
-                    <div className="local-list-item">
-                      <span className="local-list-dot" style={{ background: 'var(--warning)' }}></span>
-                      {company?.prefecture || '名古屋'}高速: 工事規制（〜1/15）
-                    </div>
-                    <div className="local-list-item">
-                      <span className="local-list-dot" style={{ background: 'var(--success)' }}></span>
-                      電力供給: 安定（予備率12%）
-                    </div>
-                    <div className="local-list-item">
-                      <span className="local-list-dot" style={{ background: 'var(--success)' }}></span>
-                      {company?.prefecture || '名古屋'}港: 通常運行
-                    </div>
+                    {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
+                      localInfo.infrastructure.slice(0, 3).map((item, idx) => (
+                        <div key={idx} className="local-list-item">
+                          <span 
+                            className="local-list-dot" 
+                            style={{ 
+                              background: item.status === 'error' ? 'var(--danger)' : 
+                                         item.status === 'warning' ? 'var(--warning)' : 
+                                         'var(--success)' 
+                            }}
+                          ></span>
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {item.title || `インフラ情報${idx + 1}`}
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="local-list-item">
+                          <span className="local-list-dot" style={{ background: 'var(--warning)' }}></span>
+                          {company?.city || '名古屋市'}高速: 工事規制（〜1/15）
+                        </div>
+                        <div className="local-list-item">
+                          <span className="local-list-dot" style={{ background: 'var(--success)' }}></span>
+                          電力供給: 安定（予備率12%）
+                        </div>
+                        <div className="local-list-item">
+                          <span className="local-list-dot" style={{ background: 'var(--success)' }}></span>
+                          {company?.city || '名古屋市'}港: 通常運行
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="local-card">
@@ -486,22 +919,206 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <span className="local-title">週間天気</span>
                   </div>
                   <div className="local-weather-main">
-                    <span className="weather-icon">☀️</span>
+                    <span className="weather-icon">{localInfo?.weather?.current?.icon || '☀️'}</span>
                     <div>
-                      <div className="weather-temp">8°C</div>
-                      <div className="weather-desc">晴れ / 配送影響なし</div>
+                      <div className="weather-temp">{localInfo?.weather?.current?.temp || 8}°C</div>
+                      <div className="weather-desc">{localInfo?.weather?.current?.desc || '晴れ / 配送影響なし'}</div>
                     </div>
                   </div>
                   <div className="weather-week">
-                    <div className="weather-day"><div className="weather-day-name">火</div><div className="weather-day-icon">☀️</div></div>
-                    <div className="weather-day"><div className="weather-day-name">水</div><div className="weather-day-icon">⛅</div></div>
-                    <div className="weather-day"><div className="weather-day-name">木</div><div className="weather-day-icon">🌧️</div></div>
-                    <div className="weather-day"><div className="weather-day-name">金</div><div className="weather-day-icon">☀️</div></div>
-                    <div className="weather-day"><div className="weather-day-name">土</div><div className="weather-day-icon">☀️</div></div>
+                    {localInfo?.weather?.week?.map((day, idx) => (
+                      <div key={idx} className="weather-day">
+                        <div className="weather-day-name">{day.day}</div>
+                        <div className="weather-day-date" style={{ fontSize: '10px', color: 'var(--text-light)', marginTop: '2px' }}>{day.date}</div>
+                        <div className="weather-day-icon">{day.icon}</div>
+                      </div>
+                    )) || (
+                      <>
+                        <div className="weather-day"><div className="weather-day-name">火</div><div className="weather-day-icon">☀️</div></div>
+                        <div className="weather-day"><div className="weather-day-name">水</div><div className="weather-day-icon">⛅</div></div>
+                        <div className="weather-day"><div className="weather-day-name">木</div><div className="weather-day-icon">🌧️</div></div>
+                        <div className="weather-day"><div className="weather-day-name">金</div><div className="weather-day-icon">☀️</div></div>
+                        <div className="weather-day"><div className="weather-day-name">土</div><div className="weather-day-icon">☀️</div></div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </section>
+
+            {/* デバッグパネル */}
+            {debugPanelOpen && localInfo?._debug && (
+              <div className="debug-panel">
+                <div className="debug-panel-header">
+                  <h3>地域情報 デバッグ情報</h3>
+                  <button onClick={() => setDebugPanelOpen(false)}>×</button>
+                </div>
+                <div className="debug-panel-content">
+                  <div className="debug-section">
+                    <h4>検索エリア・業種</h4>
+                    <p>検索エリア: {localInfo._debug.searchArea}</p>
+                    <p>業種: {localInfo._debug.industry || '未設定'}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-light)' }}>
+                      検索時刻: {new Date(localInfo._debug.searchTimestamp).toLocaleString('ja-JP')}
+                    </p>
+                    <p style={{ fontSize: '12px', color: localInfo._debug.apiKeyConfigured ? 'var(--success)' : 'var(--danger)' }}>
+                      APIキー設定: {localInfo._debug.apiKeyConfigured ? '✓ 設定済み' : '✗ 未設定'}
+                    </p>
+                  </div>
+
+                  {localInfo._debug.laborCosts && (
+                    <div className="debug-section">
+                      <h4>労務費検索</h4>
+                      <p>検索クエリ数: {localInfo._debug.laborCosts.searchQueries?.length || 0}</p>
+                      <details>
+                        <summary>検索クエリ一覧</summary>
+                        <ul>
+                          {localInfo._debug.laborCosts.searchQueries?.map((q: string, i: number) => (
+                            <li key={i} style={{ fontSize: '12px', marginBottom: '4px' }}>{q}</li>
+                          ))}
+                        </ul>
+                      </details>
+                      <details>
+                        <summary>検索結果ログ</summary>
+                        {localInfo._debug.laborCosts.searchLogs?.map((log: any, i: number) => (
+                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px' }}>
+                            <p style={{ fontWeight: '600', fontSize: '12px' }}>クエリ: {log.query}</p>
+                            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              結果数: {log.resultCount || 0} / 検証済み: {log.verifiedCount || log.results?.length || 0}
+                            </p>
+                            {log.results && log.results.length > 0 && (
+                              <details style={{ marginTop: '4px' }}>
+                                <summary style={{ fontSize: '11px', cursor: 'pointer' }}>結果詳細</summary>
+                                {log.results.map((r: any, j: number) => (
+                                  <div key={j} style={{ marginTop: '4px', padding: '4px', fontSize: '11px' }}>
+                                    <p><strong>{r.title || 'タイトルなし'}</strong></p>
+                                    <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
+                                    <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '10px', color: 'var(--primary)' }}>
+                                      {r.url}
+                                    </a>
+                                  </div>
+                                ))}
+                              </details>
+                            )}
+                          </div>
+                        ))}
+                      </details>
+                      <p style={{ fontSize: '12px', marginTop: '8px' }}>
+                        抽出された時給: {localInfo._debug.laborCosts.extractedValue || 'N/A'}円
+                      </p>
+                    </div>
+                  )}
+
+                  {localInfo._debug.events && (
+                    <div className="debug-section">
+                      <h4>イベント検索</h4>
+                      <p>検索クエリ: {localInfo._debug.events.searchQuery}</p>
+                      <p>結果数: {localInfo._debug.events.resultCount || 0} / 検証済み: {localInfo._debug.events.verifiedCount || localInfo._debug.events.allResults?.length || 0}</p>
+                      <details>
+                        <summary>検索結果</summary>
+                        {localInfo._debug.events.allResults?.map((r: any, i: number) => (
+                          <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px', fontSize: '12px' }}>
+                            <p><strong>{r.title || 'タイトルなし'}</strong></p>
+                            <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
+                            <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--primary)' }}>
+                              {r.url}
+                            </a>
+                          </div>
+                        ))}
+                      </details>
+                    </div>
+                  )}
+
+                  {localInfo._debug.infrastructure && (
+                    <div className="debug-section">
+                      <h4>インフラ情報検索</h4>
+                      <p>検索クエリ数: {localInfo._debug.infrastructure.searchQueries?.length || 0}</p>
+                      <p>総結果数: {localInfo._debug.infrastructure.totalResults || 0}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        検証済み結果数: {localInfo._debug.infrastructure.searchLogs?.reduce((sum: number, log: any) => sum + (log.verifiedCount || 0), 0) || 0}
+                      </p>
+                      <details>
+                        <summary>検索結果ログ</summary>
+                        {localInfo._debug.infrastructure.searchLogs?.map((log: any, i: number) => (
+                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px' }}>
+                            <p style={{ fontWeight: '600', fontSize: '12px' }}>クエリ: {log.query}</p>
+                            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              結果数: {log.resultCount || 0} / 検証済み: {log.verifiedCount || log.results?.length || 0}
+                            </p>
+                            {log.results && log.results.length > 0 && (
+                              <details style={{ marginTop: '4px' }}>
+                                <summary style={{ fontSize: '11px', cursor: 'pointer' }}>結果詳細</summary>
+                                {log.results.map((r: any, j: number) => (
+                                  <div key={j} style={{ marginTop: '4px', padding: '4px', fontSize: '11px' }}>
+                                    <p><strong>{r.title || 'タイトルなし'}</strong></p>
+                                    <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
+                                    <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '10px', color: 'var(--primary)' }}>
+                                      {r.url}
+                                    </a>
+                                  </div>
+                                ))}
+                              </details>
+                            )}
+                          </div>
+                        ))}
+                      </details>
+                    </div>
+                  )}
+
+                  {localInfo._debug.traffic && (
+                    <div className="debug-section">
+                      <h4>トラフィック情報検索</h4>
+                      <p>検索クエリ数: {localInfo._debug.traffic.searchQueries?.length || 0}</p>
+                      <p>総結果数: {localInfo._debug.traffic.totalResults || 0}</p>
+                      <details>
+                        <summary>検索結果ログ</summary>
+                        {localInfo._debug.traffic.searchLogs?.map((log: any, i: number) => (
+                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px' }}>
+                            <p style={{ fontWeight: '600', fontSize: '12px' }}>クエリ: {log.query}</p>
+                            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              結果数: {log.resultCount || 0} / 検証済み: {log.verifiedCount || log.results?.length || 0}
+                            </p>
+                            {log.results && log.results.length > 0 && (
+                              <details style={{ marginTop: '4px' }}>
+                                <summary style={{ fontSize: '11px', cursor: 'pointer' }}>結果詳細</summary>
+                                {log.results.map((r: any, j: number) => (
+                                  <div key={j} style={{ marginTop: '4px', padding: '4px', fontSize: '11px' }}>
+                                    <p><strong>{r.title || 'タイトルなし'}</strong></p>
+                                    <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
+                                    <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '10px', color: 'var(--primary)' }}>
+                                      {r.url}
+                                    </a>
+                                  </div>
+                                ))}
+                              </details>
+                            )}
+                          </div>
+                        ))}
+                      </details>
+                    </div>
+                  )}
+                  {localInfo._debug.weather && (
+                    <div className="debug-section">
+                      <h4>天気情報検索</h4>
+                      <p>検索クエリ: {localInfo._debug.weather.searchQuery}</p>
+                      <p>結果数: {localInfo._debug.weather.resultCount || 0} / 検証済み: {localInfo._debug.weather.verifiedCount || localInfo._debug.weather.searchResults?.length || 0}</p>
+                      <details>
+                        <summary>検索結果</summary>
+                        {localInfo._debug.weather.searchResults?.map((r: any, i: number) => (
+                          <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px', fontSize: '12px' }}>
+                            <p><strong>{r.title || 'タイトルなし'}</strong></p>
+                            <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
+                            <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--primary)' }}>
+                              {r.url}
+                            </a>
+                          </div>
+                        ))}
+                      </details>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <section className="company-section">
               <div className="section-header">
@@ -527,11 +1144,40 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <div className="profile-stat-label">従業員</div>
                   </div>
                   <div className="profile-stat">
-                    <div className="profile-stat-value">{company?.annual_revenue ? `${(company.annual_revenue / 100000000).toFixed(1)}億` : '8.2億'}</div>
+                    <div className="profile-stat-value">
+                      {(() => {
+                        const revenue = company?.annual_revenue
+                        if (!revenue) return '未設定'
+                        // 数値の場合
+                        if (typeof revenue === 'number') {
+                          return `${(revenue / 100000000).toFixed(1)}億`
+                        }
+                        // 文字列の場合（"8.2億"など）
+                        if (typeof revenue === 'string') {
+                          // 数値が含まれているかチェック
+                          const numMatch = revenue.match(/(\d+\.?\d*)/)
+                          if (numMatch) {
+                            const num = parseFloat(numMatch[1])
+                            // 億が含まれている場合はそのまま、そうでなければ億を追加
+                            if (revenue.includes('億')) {
+                              return revenue
+                            } else if (num >= 100000000) {
+                              return `${(num / 100000000).toFixed(1)}億`
+                            } else if (num >= 10000) {
+                              return `${(num / 10000).toFixed(1)}万円`
+                            } else {
+                              return `${num.toLocaleString()}円`
+                            }
+                          }
+                          return revenue
+                        }
+                        return '未設定'
+                      })()}
+                    </div>
                     <div className="profile-stat-label">年間売上</div>
                   </div>
                   <div className="profile-stat">
-                    <div className="profile-stat-value">120</div>
+                    <div className="profile-stat-value">{company?.business_partners || '未設定'}</div>
                     <div className="profile-stat-label">取引先</div>
                   </div>
                   <div className="profile-stat">
@@ -551,9 +1197,30 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </svg>
                   企業分析 & 市場動向
                 </h2>
+                <div className="section-header-right">
+                  <button 
+                    className="refresh-btn" 
+                    onClick={() => {
+                      fetchSectionData('industry-trends', true)
+                      fetchSectionData('swot-analysis', true)
+                      fetchSectionData('world-news', true)
+                      fetchSectionData('industry-forecast', true)
+                    }}
+                    disabled={refreshing['industry-trends'] || refreshing['swot-analysis'] || refreshing['world-news'] || refreshing['industry-forecast']}
+                    title="全て更新"
+                  >
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      className={(refreshing['industry-trends'] || refreshing['swot-analysis'] || refreshing['world-news'] || refreshing['industry-forecast']) ? 'spinning' : ''}
+                      style={{ width: '16px', height: '16px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                    >
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="analysis-grid">
-                <div className="analysis-card">
+                <div id="industry-trends-section" className="analysis-card">
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
@@ -561,7 +1228,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </svg>
                       業界動向（{company?.industry || '機械部品'}）
                     </h4>
-                    <span className="badge badge-success">成長</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-success">成長</span>
+                      <button 
+                        className="refresh-btn-small" 
+                        onClick={() => fetchSectionData('industry-trends', true)}
+                        disabled={refreshing['industry-trends']}
+                        title="更新"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className={refreshing['industry-trends'] ? 'spinning' : ''}
+                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="industry-chart-container">
                     <IndustryChart />
@@ -569,28 +1252,116 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   <div className="trend-legend">
                     <div className="trend-item">
                       <span className="trend-dot" style={{ background: 'var(--primary)' }}></span>
-                      <span className="trend-label">国内需要</span>
+                      <span className="trend-label">国内需要（前年比成長率）</span>
                       <span className="trend-value" style={{ color: 'var(--success)' }}>+4.2%</span>
                     </div>
                     <div className="trend-item">
                       <span className="trend-dot" style={{ background: 'var(--accent)' }}></span>
-                      <span className="trend-label">輸出</span>
+                      <span className="trend-label">輸出（前年比成長率）</span>
                       <span className="trend-value" style={{ color: 'var(--success)' }}>+7.8%</span>
                     </div>
                   </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px', textAlign: 'center' }}>
+                    データ: ログイン日を起点に3ヶ月遡った週別の業界成長率推移
+                  </p>
                 </div>
-                <div className="analysis-card">
+                <div id="swot-analysis-section" className="analysis-card" style={{ position: 'relative' }}>
                   <div className="analysis-card-header">
-                    <h4 className="analysis-card-title">
+                    <h4 className="analysis-card-title" style={{ position: 'relative' }}>
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
                         <rect x="3" y="3" width="7" height="7"/>
                         <rect x="14" y="3" width="7" height="7"/>
                         <rect x="3" y="14" width="7" height="7"/>
                         <rect x="14" y="14" width="7" height="7"/>
                       </svg>
-                      SWOT分析
+                      SWOT分析（強み・弱み・機会・脅威の分析）
+                      <button
+                        className="info-icon-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSwotInfoOpen(!swotInfoOpen)
+                        }}
+                        style={{
+                          marginLeft: '6px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-secondary)',
+                        }}
+                        title="SWOT分析について"
+                      >
+                        <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                          <circle cx="12" cy="12" r="10"/>
+                          <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                      </button>
                     </h4>
-                    <span className="badge badge-warning">AI分析</span>
+                    {swotInfoOpen && (
+                      <>
+                        <div
+                          style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999,
+                          }}
+                          onClick={() => setSwotInfoOpen(false)}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '0',
+                            marginTop: '8px',
+                            padding: '12px',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            zIndex: 1000,
+                            fontSize: '13px',
+                            lineHeight: '1.6',
+                            minWidth: '280px',
+                            maxWidth: '400px',
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600' }}>SWOT分析とは</h5>
+                          <p style={{ margin: '0 0 8px 0', color: 'var(--text-secondary)' }}>
+                            <strong>強み（Strengths）</strong>: 会社の優位性や技術力<br/>
+                            <strong>弱み（Weaknesses）</strong>: 課題や改善点<br/>
+                            <strong>機会（Opportunities）</strong>: 市場の成長機会<br/>
+                            <strong>脅威（Threats）</strong>: 競合やリスク
+                          </p>
+                          <p style={{ margin: '0', fontSize: '12px', color: 'var(--text-light)' }}>
+                            外部情報とHP情報を基にAIが分析します
+                          </p>
+                        </div>
+                      </>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-warning">AI分析</span>
+                      <button 
+                        className="refresh-btn-small" 
+                        onClick={() => fetchSectionData('swot-analysis', true)}
+                        disabled={refreshing['swot-analysis']}
+                        title="更新"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className={refreshing['swot-analysis'] ? 'spinning' : ''}
+                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="swot-grid">
                     <div className="swot-item strength">
@@ -611,7 +1382,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                   </div>
                 </div>
-                <div className="analysis-card">
+                <div id="world-news-section" className="analysis-card">
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
@@ -620,7 +1391,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </svg>
                       注目の世界情勢
                     </h4>
-                    <span className="badge badge-info">業界関連</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-info">業界関連</span>
+                      <button 
+                        className="refresh-btn-small" 
+                        onClick={() => fetchSectionData('world-news', true)}
+                        disabled={refreshing['world-news']}
+                        title="更新"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className={refreshing['world-news'] ? 'spinning' : ''}
+                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="news-list">
                     <div className="news-item">
@@ -655,7 +1442,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </svg>
                       業界予測（6ヶ月）
                     </h4>
-                    <span className="badge badge-success">ポジティブ</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-success">ポジティブ</span>
+                      <button 
+                        className="refresh-btn-small" 
+                        onClick={() => fetchSectionData('industry-forecast', true)}
+                        disabled={refreshing['industry-forecast']}
+                        title="更新"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className={refreshing['industry-forecast'] ? 'spinning' : ''}
+                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="forecast-list">
                     <div className="forecast-item">
@@ -703,7 +1506,127 @@ export default function DashboardClient({ profile, company, subscription }: Dash
           </div>
         </main>
       </div>
+
+      {/* 通知パネル */}
+      <div className={`notifications-panel ${notificationsOpen ? 'open' : ''}`}>
+        <div className="notifications-panel-header">
+          <h3 className="notifications-panel-title">通知</h3>
+          <button 
+            className="notifications-close-btn"
+            onClick={() => setNotificationsOpen(false)}
+          >
+            <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div className="notifications-list">
+          {notifications.length === 0 ? (
+            <div className="notifications-empty">
+              <svg viewBox="0 0 24 24" style={{ width: '48px', height: '48px', stroke: 'var(--text-light)', fill: 'none', strokeWidth: 1.5, marginBottom: '12px' }}>
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+              </svg>
+              <p style={{ color: 'var(--text-light)', fontSize: '14px' }}>通知はありません</p>
+            </div>
+          ) : (
+            notifications.map((notification) => {
+              const timeAgo = (() => {
+                const now = new Date()
+                const diff = now.getTime() - notification.timestamp.getTime()
+                const minutes = Math.floor(diff / (1000 * 60))
+                const hours = Math.floor(diff / (1000 * 60 * 60))
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+                
+                if (minutes < 1) return 'たった今'
+                if (minutes < 60) return `${minutes}分前`
+                if (hours < 24) return `${hours}時間前`
+                return `${days}日前`
+              })()
+
+              const typeColors = {
+                system: 'var(--text-secondary)',
+                data: 'var(--primary)',
+                action: 'var(--accent)',
+                alert: 'var(--warning)'
+              }
+
+              return (
+                <div 
+                  key={notification.id} 
+                  className={`notification-item ${!notification.read ? 'unread' : ''}`}
+                  onClick={() => {
+                    if (notification.action) {
+                      notification.action.onClick()
+                    }
+                  }}
+                >
+                  <div className="notification-icon" style={{ color: typeColors[notification.type] }}>
+                    {notification.icon || (
+                      notification.type === 'system' ? '🔧' :
+                      notification.type === 'data' ? '📊' :
+                      notification.type === 'action' ? '💬' : '⚠️'
+                    )}
+                  </div>
+                  <div className="notification-content">
+                    <div className="notification-header">
+                      <h4 className="notification-title">{notification.title}</h4>
+                      {!notification.read && <span className="notification-unread-dot"></span>}
+                    </div>
+                    <p className="notification-message">{notification.message}</p>
+                    <div className="notification-footer">
+                      <span className="notification-time">{timeAgo}</span>
+                      {notification.action && (
+                        <button 
+                          className="notification-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            notification.action?.onClick()
+                          }}
+                        >
+                          {notification.action.label}
+                          <svg viewBox="0 0 24 24" style={{ width: '12px', height: '12px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+        {notifications.length > 0 && (
+          <div className="notifications-panel-footer">
+            <button 
+              className="notifications-mark-all-read"
+              onClick={() => {
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+                setUnreadCount(0)
+              }}
+            >
+              全て既読にする
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 通知パネルのオーバーレイ */}
+      {notificationsOpen && (
+        <div 
+          className="notifications-overlay"
+          onClick={() => setNotificationsOpen(false)}
+        />
+      )}
+
+      {/* デバッグパネルのオーバーレイ */}
+      {debugPanelOpen && (
+        <div 
+          className="notifications-overlay"
+          onClick={() => setDebugPanelOpen(false)}
+        />
+      )}
     </>
-  )
-}
+      )
+    }
 
