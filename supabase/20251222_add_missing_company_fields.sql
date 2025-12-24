@@ -25,3 +25,4 @@ COMMENT ON COLUMN companies.retrieved_info IS 'Web検索で取得した会社情
 
 
 
+

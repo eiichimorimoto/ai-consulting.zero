@@ -1458,43 +1458,53 @@ export default function CompleteProfilePage() {
         : (companyData.retrievedInfo ? { summary: companyData.retrievedInfo } : null)
       
       if (!companyId) {
-        // 会社を作成
+        // 会社を作成（APIルート経由でService Roleクライアントを使用）
         console.log('📝 新しい会社を作成します:', companyData.name)
         
-        const { data: newCompany, error: companyError } = await supabase
-          .from('companies')
-          .insert({
-            name: companyData.name,
-            name_kana: companyData.nameKana || null,
-            industry: companyData.industry || null,
-            employee_count: companyData.employeeCount || null,
-            annual_revenue: companyData.annualRevenue || null,
-            website: companyData.website || null,
-            email: companyData.email || null,
-            phone: companyData.phone || null, // 会社電話番号
-            fax: companyData.fax || null, // FAX番号
-            postal_code: companyData.postalCode || null,
-            prefecture: companyData.prefecture || null,
-            city: companyData.city || null,
-            address: companyData.address || null,
-            established_date: companyData.establishedDate || null, // 設立日
-            representative_name: companyData.representativeName || null, // 代表者名
-            business_description: companyData.businessDescription || companyData.retrievedInfo || null, // 事業内容
-            ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
-          })
-          .select()
-          .single()
-        
-        if (companyError) {
-          console.error('Company insert error:', companyError)
-          throw new Error(`会社情報の作成に失敗しました: ${companyError.message || companyError.code || '不明なエラー'}`)
+        // 必須フィールドのチェック
+        if (!companyData.name || companyData.name.trim() === '') {
+          throw new Error('会社名は必須です。会社名を入力してください。')
         }
         
-        if (!newCompany || !newCompany.id) {
+        // APIルートを呼び出して会社を作成（Service Roleクライアントを使用）
+        const response = await fetch('/api/create-company', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: companyData.name,
+            name_kana: companyData.nameKana,
+            industry: companyData.industry,
+            employee_count: companyData.employeeCount,
+            annual_revenue: companyData.annualRevenue,
+            website: companyData.website,
+            email: companyData.email,
+            phone: companyData.phone,
+            fax: companyData.fax,
+            postal_code: companyData.postalCode,
+            prefecture: companyData.prefecture,
+            city: companyData.city,
+            address: companyData.address,
+            established_date: companyData.establishedDate,
+            representative_name: companyData.representativeName,
+            business_description: companyData.businessDescription || companyData.retrievedInfo,
+            retrieved_info: retrievedInfoPayload,
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          console.error('Company insert error:', result)
+          throw new Error(result.error || result.details || '会社情報の作成に失敗しました')
+        }
+
+        if (!result.data || !result.data.id) {
           throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）')
         }
-        
-        companyId = newCompany.id
+
+        companyId = result.data.id
         console.log('✅ 会社作成完了:', companyId)
 
         // 会社資料をアップロード（会社作成後）
