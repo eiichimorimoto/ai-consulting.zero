@@ -170,23 +170,3 @@ web_modules/
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-
-# Backup files
-*.backup
-*.backup-*
-* 2.ts
-* 2.tsx
-* 2.js
-* 2.jsx
-
-# Test files
-scripts/test-*.js
-scripts/test-*.ts
-
-# Workspace files
-*.code-workspace
-
-# Temporary files
-node
-ai-consulting-zero@*
-info-data/

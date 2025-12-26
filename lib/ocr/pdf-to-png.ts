@@ -3,7 +3,6 @@
  * - Claude API は PDF を直接受け付けないため、OCR前に画像化が必要
  * - macOS(Homebrew): `brew install poppler`
  * - Ubuntu/Debian: `sudo apt-get install poppler-utils`
- * - 注意: Vercelのサーバーレス環境では poppler-utils が利用できないため、PDF処理は失敗します
  */
 
 import { execFile } from "node:child_process"
@@ -32,20 +31,19 @@ function getPdftoppmCommand(): { cmd: string; argsPrefix: string[] } {
   return { cmd: "pdftoppm", argsPrefix: [] }
 }
 
-/**
- * poppler-utilsを使用してPDFをPNGに変換
- */
-async function convertPdfWithPoppler(
+export async function convertPdfBufferToPngBuffer(
   pdfBuffer: Buffer,
-  pageNumber: number,
-  scaleTo: number
+  options: ConvertOptions = {}
 ): Promise<Buffer> {
+  const page = options.page ?? 1
+  const scaleTo = options.scaleTo ?? 2048
+
   const tempDir = path.join(os.tmpdir(), `pdf-to-png-${Date.now()}-${Math.random().toString(16).slice(2)}`)
   await fs.mkdir(tempDir, { recursive: true })
 
   const tempPdfPath = path.join(tempDir, "input.pdf")
   const outPrefix = path.join(tempDir, "page")
-  const outPngPath = `${outPrefix}-${pageNumber}.png`
+  const outPngPath = `${outPrefix}-${page}.png`
 
   try {
     await fs.writeFile(tempPdfPath, pdfBuffer)
@@ -55,9 +53,9 @@ async function convertPdfWithPoppler(
       ...argsPrefix,
       "-png",
       "-f",
-      String(pageNumber),
+      String(page),
       "-l",
-      String(pageNumber),
+      String(page),
       "-scale-to",
       String(scaleTo),
       tempPdfPath,
@@ -65,9 +63,11 @@ async function convertPdfWithPoppler(
     ]
 
     await execFileAsync(cmd, args)
+
     return await fs.readFile(outPngPath)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
+    // よくある: poppler未導入 / PATH未設定
     if (msg.toLowerCase().includes("enoent") || msg.toLowerCase().includes("spawn")) {
       throw new Error(
         [
@@ -78,25 +78,15 @@ async function convertPdfWithPoppler(
         ].join("\n")
       )
     }
-    throw new Error(`poppler-utilsによるPDF変換に失敗しました: ${msg}`)
+    throw new Error(`PDF→PNG変換に失敗しました: ${msg}`)
   } finally {
+    // 一時ディレクトリを丸ごと削除（ファイルが残っても致命ではない）
     try {
       await fs.rm(tempDir, { recursive: true, force: true })
     } catch {
       // noop
     }
   }
-}
-
-export async function convertPdfBufferToPngBuffer(
-  pdfBuffer: Buffer,
-  options: ConvertOptions = {}
-): Promise<Buffer> {
-  const page = options.page ?? 1
-  const scaleTo = options.scaleTo ?? 2048
-
-  // poppler-utilsを使用してPDFをPNGに変換
-  return await convertPdfWithPoppler(pdfBuffer, page, scaleTo)
 }
 
 

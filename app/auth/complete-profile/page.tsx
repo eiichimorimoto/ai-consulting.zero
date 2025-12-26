@@ -155,15 +155,10 @@ export default function CompleteProfilePage() {
     annualRevenue: '',
     website: '',
     email: '', // 会社のemailを追加
-    phone: '', // 会社電話番号
-    fax: '', // FAX番号
     postalCode: '',
     prefecture: '',
     city: '',
     address: '',
-    establishedDate: '', // 設立日
-    representativeName: '', // 代表者名
-    businessDescription: '', // 事業内容（追加情報）
     retrievedInfo: '',
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
@@ -462,19 +457,7 @@ export default function CompleteProfilePage() {
               console.error('❌ OCR API エラー (JSON):', errorData)
               
               // エラーメッセージを構築（複数の可能性を確認）
-              // errorとdetailsを結合して表示（より詳細な情報を提供）
-              const errorText = errorData.error || ''
-              const detailsText = errorData.details || ''
-              const suggestionText = errorData.suggestion || ''
-              
-              if (errorText && detailsText) {
-                errorMessage = `${errorText}\n${detailsText}`
-                if (suggestionText) {
-                  errorMessage += `\n${suggestionText}`
-                }
-              } else {
-                errorMessage = errorText || detailsText || errorData.message || errorMessage
-              }
+              errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
               
               // 空のオブジェクトの場合は、ステータスコードから推測
               if (Object.keys(errorData).length === 0) {
@@ -506,12 +489,7 @@ export default function CompleteProfilePage() {
             } else if (response.status === 429) {
               errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
             } else if (response.status === 503) {
-              // 503エラーの場合、APIからのメッセージを優先（PDF処理エラーの可能性）
-              if (errorMessage && (errorMessage.includes('PDF') || errorMessage.includes('JPEGまたはPNG'))) {
-                // APIからのメッセージをそのまま使用
-              } else {
-                errorMessage = 'サービスが一時的に利用できません。しばらく待ってから再度お試しください。'
-              }
+              errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
             }
           }
         } catch (parseError) {
@@ -598,12 +576,7 @@ export default function CompleteProfilePage() {
         } else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
           errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
         } else if (error.message.includes('PDF') || error.message.includes('pdf')) {
-          // APIからのエラーメッセージを優先（既に適切なメッセージが設定されている場合）
-          if (error.message.includes('PDF処理が現在利用できません') || error.message.includes('JPEGまたはPNG形式')) {
-            errorMessage = error.message // APIからのメッセージをそのまま使用
-          } else {
-            errorMessage = 'PDFの処理に失敗しました。名刺の画像をJPEGまたはPNG形式で撮影・スキャンしてアップロードしてください。'
-          }
+          errorMessage = 'PDFの処理に失敗しました。別のPDFをお試しください（1ページ目を使用します）。'
         } else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
           errorMessage = '処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。'
         } else if (error.message.includes('500') || error.message.includes('サーバー')) {
@@ -685,8 +658,7 @@ export default function CompleteProfilePage() {
         website: ocrResult.website || '',
         postalCode: ocrResult.postalCode || '',
         address: ocrResult.address || '',
-        email: ocrResult.email || '',
-        phone: ocrResult.phone || '', // 会社電話番号（名刺の電話番号を会社電話としてもセット）
+        email: ocrResult.email || '', // 会社のemailを追加
       }
       
       console.log('📝 セットするプロフィールデータ:', newProfileData)
@@ -709,7 +681,6 @@ export default function CompleteProfilePage() {
         postalCode: newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== '' ? newCompanyData.postalCode : prev.postalCode,
         address: newCompanyData.address || prev.address,
         email: newCompanyData.email || prev.email,
-        phone: newCompanyData.phone || prev.phone, // 会社電話番号
       }))
       
       console.log('✅ 会社データをセットしました:', {
@@ -1234,33 +1205,16 @@ export default function CompleteProfilePage() {
         annualRevenue: intel.annualRevenue || prev.annualRevenue,
         // 会社名（カナ）をセット（取得できた場合のみ）
         nameKana: intel.companyNameKana || prev.nameKana,
-        // 設立日をセット（取得できた場合のみ）
-        establishedDate: intel.establishedDate || prev.establishedDate,
-        // 代表者名をセット（取得できた場合のみ）
-        representativeName: intel.representativeName || prev.representativeName,
-        // FAXをセット（取得できた場合のみ）
-        fax: intel.fax || prev.fax,
-        // 電話番号をセット（取得できた場合のみ、既存値がなければ）
-        phone: prev.phone || intel.phone || '',
-        // 事業内容（追加情報）- 主要製品/サービス/その他情報を箇条書きでセット
-        businessDescription: (() => {
-          const lines: string[] = []
-          // 主要製品/サービスは事業内容のトップに
-          if (Array.isArray(intel.products) && intel.products.length > 0) {
-            lines.push(`主要製品: ${intel.products.slice(0, 5).join(' / ')}`)
-          }
-          if (Array.isArray(intel.services) && intel.services.length > 0) {
-            lines.push(`主要サービス: ${intel.services.slice(0, 5).join(' / ')}`)
-          }
-          if (intel.businessDescription) {
-            lines.push(intel.businessDescription)
-          }
-          if (lines.length > 0) return lines.join('\n')
-          return prev.businessDescription
-        })(),
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
         retrievedInfo: (() => {
           const lines: string[] = []
+          // 主要製品/サービスは取得情報のトップに
+          if (Array.isArray(intel.products) && intel.products.length > 0) {
+            lines.push(`- 主要製品: ${intel.products.slice(0, 5).join(' / ')}`)
+          }
+          if (Array.isArray(intel.services) && intel.services.length > 0) {
+            lines.push(`- 主要サービス: ${intel.services.slice(0, 5).join(' / ')}`)
+          }
           // 最新の売上/従業員数も見えるように表示（上場企業の一次情報優先）
           if (intel.latestRevenueText) {
             lines.push(`- 売上高(最新): ${intel.latestRevenueText}`)
@@ -1458,53 +1412,38 @@ export default function CompleteProfilePage() {
         : (companyData.retrievedInfo ? { summary: companyData.retrievedInfo } : null)
       
       if (!companyId) {
-        // 会社を作成（APIルート経由でService Roleクライアントを使用）
+        // 会社を作成
         console.log('📝 新しい会社を作成します:', companyData.name)
         
-        // 必須フィールドのチェック
-        if (!companyData.name || companyData.name.trim() === '') {
-          throw new Error('会社名は必須です。会社名を入力してください。')
+        const { data: newCompany, error: companyError } = await supabase
+          .from('companies')
+          .insert({
+            name: companyData.name,
+            name_kana: companyData.nameKana || null,
+            industry: companyData.industry || null,
+            employee_count: companyData.employeeCount || null,
+            annual_revenue: companyData.annualRevenue || null,
+            website: companyData.website || null,
+            email: companyData.email || null, // 会社のemailを追加
+            postal_code: companyData.postalCode || null,
+            prefecture: companyData.prefecture || null,
+            city: companyData.city || null,
+            address: companyData.address || null,
+            ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
+          })
+          .select()
+          .single()
+        
+        if (companyError) {
+          console.error('Company insert error:', companyError)
+          throw new Error(`会社情報の作成に失敗しました: ${companyError.message || companyError.code || '不明なエラー'}`)
         }
         
-        // APIルートを呼び出して会社を作成（Service Roleクライアントを使用）
-        const response = await fetch('/api/create-company', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: companyData.name,
-            name_kana: companyData.nameKana,
-            industry: companyData.industry,
-            employee_count: companyData.employeeCount,
-            annual_revenue: companyData.annualRevenue,
-            website: companyData.website,
-            email: companyData.email,
-            phone: companyData.phone,
-            fax: companyData.fax,
-            postal_code: companyData.postalCode,
-            prefecture: companyData.prefecture,
-            city: companyData.city,
-            address: companyData.address,
-            established_date: companyData.establishedDate,
-            representative_name: companyData.representativeName,
-            business_description: companyData.businessDescription || companyData.retrievedInfo,
-            retrieved_info: retrievedInfoPayload,
-          }),
-        })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-          console.error('Company insert error:', result)
-          throw new Error(result.error || result.details || '会社情報の作成に失敗しました')
-        }
-
-        if (!result.data || !result.data.id) {
+        if (!newCompany || !newCompany.id) {
           throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）')
         }
-
-        companyId = result.data.id
+        
+        companyId = newCompany.id
         console.log('✅ 会社作成完了:', companyId)
 
         // 会社資料をアップロード（会社作成後）
@@ -1578,16 +1517,11 @@ export default function CompleteProfilePage() {
             employee_count: companyData.employeeCount || null,
             annual_revenue: companyData.annualRevenue || null,
             website: companyData.website || null,
-            email: companyData.email || null,
-            phone: companyData.phone || null, // 会社電話番号
-            fax: companyData.fax || null, // FAX番号
+            email: companyData.email || null, // 会社のemailを追加
             postal_code: companyData.postalCode || null,
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
-            established_date: companyData.establishedDate || null, // 設立日
-            representative_name: companyData.representativeName || null, // 代表者名
-            business_description: companyData.businessDescription || companyData.retrievedInfo || null, // 事業内容
             documents_urls: allDocuments.length > 0 ? allDocuments : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })

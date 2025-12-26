@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-// Build timestamp: 2025-12-23T12:00:00Z - Force cache invalidation
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
