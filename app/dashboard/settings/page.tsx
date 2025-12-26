@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import Image from "next/image"
-import { Settings, Home } from "lucide-react"
+import { Settings, ArrowLeft, Home } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import LogoutButton from "@/components/LogoutButton"
@@ -48,25 +48,25 @@ export default async function SettingsPage() {
         <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-3">
+              <Link href="/dashboard" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <ArrowLeft className="h-6 w-6 text-gray-600" />
+              </Link>
+              <Link href="/dashboard" className="flex items-center gap-3">
                 <Image
-                  src="/info-data/AI-LOGO007.png"
+                  src="/info-data/AI-LOGO001.png"
                   alt="SolveWise"
                   width={40}
                   height={40}
                   className="h-10 w-auto"
                 />
-                <span className="text-lg font-bold text-gray-900">SolveWise</span>
-              </Link>
-              <Link href="/dashboard" className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-blue-600 transition-colors cursor-pointer">
-                <Image
-                  src="/info-data/arrow-left01.png"
-                  alt="戻る"
-                  width={18}
-                  height={18}
-                  className="w-[18px] h-[18px] transform scale-x-[-1]"
-                />
-                <span className="text-xs">戻る</span>
+                <div>
+                  <span className="text-lg font-bold text-gray-900">
+                    SolveWise
+                  </span>
+                  <p className="text-xs hidden sm:block text-gray-600">
+                    経営課題をAIで解決
+                  </p>
+                </div>
               </Link>
             </div>
             <div className="flex items-center gap-6">
@@ -108,7 +108,7 @@ export default async function SettingsPage() {
               <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
                 <Settings className="w-6 h-6 text-purple-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">アカウント設定</h1>
+              <h1 className="text-3xl font-bold text-gray-900">設定</h1>
             </div>
             <p className="text-gray-600 ml-16">アカウント、プラン、請求情報を管理できます</p>
           </div>
