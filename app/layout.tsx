@@ -4,6 +4,7 @@ import { Inter, Orbitron, Montserrat, Noto_Sans_JP, Bebas_Neue } from "next/font
 import "./globals.css"
 import ConditionalHeader from "@/components/ConditionalHeader"
 import ConditionalFooter from "@/components/ConditionalFooter"
+import FloatingDiagnosis from "@/components/FloatingDiagnosis"
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -59,6 +60,7 @@ export default function RootLayout({
         <ConditionalHeader />
         {children}
         <ConditionalFooter />
+        <FloatingDiagnosis />
       </body>
     </html>
   )

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Orbitron, Montserrat, Noto_Sans_JP } from 'next/font/google'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, BarChart3, FileText, MessageSquare, Target, Lightbulb, Shield } from 'lucide-react'
+import { ArrowRight, Brain, TrendingUp, TrendingDown, Zap, BarChart3, MessageSquare, Target } from 'lucide-react'
 import LandingHero from '@/components/LandingHero'
 
 const orbitron = Orbitron({ subsets: ['latin'], weight: ['500', '600', '700'] })
@@ -494,6 +494,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
     </div>
   )
 }

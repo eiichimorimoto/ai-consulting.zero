@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { AlertTriangle, Home, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
+import { AlertTriangle, Home, CheckCircle, Eye, EyeOff, FileText } from "lucide-react"
 import { checkPasswordStrength } from "@/lib/auth-utils"
 
 export default function SignUpPage() {
@@ -22,9 +22,29 @@ export default function SignUpPage() {
   const [passwordStrength, setPasswordStrength] = useState<ReturnType<typeof checkPasswordStrength> | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showRepeatPassword, setShowRepeatPassword] = useState(false)
+  const [fromDiagnosis, setFromDiagnosis] = useState(false)
+  const [pendingDiagnosis, setPendingDiagnosis] = useState<any>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const supabaseReady = isSupabaseConfigured()
+
+  // 診断フローから来たかどうかをチェック
+  useEffect(() => {
+    const from = searchParams.get('from')
+    if (from === 'diagnosis') {
+      setFromDiagnosis(true)
+      // sessionStorageから診断データを取得
+      const savedDiagnosis = sessionStorage.getItem('pendingDiagnosis')
+      if (savedDiagnosis) {
+        try {
+          setPendingDiagnosis(JSON.parse(savedDiagnosis))
+        } catch (e) {
+          console.error('Failed to parse pending diagnosis:', e)
+        }
+      }
+    }
+  }, [searchParams])
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -264,6 +284,36 @@ export default function SignUpPage() {
         profileCreated: 'Processing...',
       })
       
+      // 診断フローからの場合、診断レポートを保存してリダイレクト
+      if (fromDiagnosis && pendingDiagnosis) {
+        try {
+          console.log('📊 Saving diagnosis report...')
+          const reportResponse = await fetch('/api/register-and-save-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: data.user.email,
+              companyName: email.split('@')[0] + '様', // 仮の会社名
+              reportData: pendingDiagnosis,
+            }),
+          })
+          
+          const reportResult = await reportResponse.json()
+          
+          if (reportResult.success && reportResult.reportId) {
+            // sessionStorageをクリア
+            sessionStorage.removeItem('pendingDiagnosis')
+            // 診断レポートページへリダイレクト
+            router.push(`/diagnosis/${reportResult.reportId}`)
+            return
+          }
+        } catch (reportError) {
+          console.error('Failed to save diagnosis report:', reportError)
+        }
+        // エラーの場合もsessionStorageをクリア
+        sessionStorage.removeItem('pendingDiagnosis')
+      }
+      
       router.push("/auth/sign-up-success")
     } catch (error: unknown) {
       console.error('❌ Signup error details:', error)
@@ -376,10 +426,38 @@ export default function SignUpPage() {
             </Card>
           )}
 
+          {/* 診断フローからの場合のメッセージ */}
+          {fromDiagnosis && pendingDiagnosis && (
+            <Card className="border-blue-200 bg-blue-50 shadow-md mb-4">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-800">診断レポートの準備ができています</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      アカウント作成が完了すると、診断レポートの完全版をご覧いただけます。
+                    </p>
+                    <div className="mt-2 p-2 bg-blue-100 rounded text-sm">
+                      <span className="text-blue-800 font-semibold">総合スコア: </span>
+                      <span className={`font-bold ${pendingDiagnosis.overallScore >= 60 ? 'text-green-600' : pendingDiagnosis.overallScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {pendingDiagnosis.overallScore}/100
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shadow-2xl border border-gray-200 bg-white">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">新規登録</CardTitle>
-              <CardDescription>アカウントを作成してAIコンサルティングを始めましょう</CardDescription>
+              <CardDescription>
+                {fromDiagnosis 
+                  ? 'アカウントを作成して完全な診断レポートを受け取りましょう'
+                  : 'アカウントを作成してAIコンサルティングを始めましょう'
+                }
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSignUp}>
@@ -493,7 +571,12 @@ export default function SignUpPage() {
                     className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
                     disabled={isLoading || !supabaseReady}
                   >
-                    {isLoading ? "登録中..." : "アカウントを作成"}
+                    {isLoading 
+                      ? "登録中..." 
+                      : fromDiagnosis 
+                        ? "アカウントを作成して診断レポートを見る" 
+                        : "アカウントを作成"
+                    }
                   </Button>
                 </div>
                 <div className="mt-6 text-center text-sm text-gray-600">
