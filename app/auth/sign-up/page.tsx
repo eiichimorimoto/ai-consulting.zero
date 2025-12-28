@@ -451,7 +451,9 @@ export default function SignUpPage() {
 
           <Card className="shadow-2xl border border-gray-200 bg-white">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">新規登録</CardTitle>
+              <CardTitle className="text-2xl font-bold">
+                {fromDiagnosis ? '無料新規登録' : '新規登録'}
+              </CardTitle>
               <CardDescription>
                 {fromDiagnosis 
                   ? 'アカウントを作成して完全な診断レポートを受け取りましょう'

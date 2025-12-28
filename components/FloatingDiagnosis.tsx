@@ -104,7 +104,7 @@ export default function FloatingDiagnosis() {
           className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-lg rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all animate-pulse hover:animate-none"
         >
           <BarChart2 className="w-6 h-6" />
-          <span>無料診断</span>
+          <span>AI無料診断スタート</span>
         </button>
       )}
 
@@ -114,7 +114,7 @@ export default function FloatingDiagnosis() {
           {/* ヘッダー */}
           <div className="bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 flex justify-between items-center sticky top-0">
             <div className="text-white">
-              <div className="font-bold text-sm">Webサイト無料診断</div>
+              <div className="font-bold text-sm">貴社Webサイトの状況診断を行います</div>
               <div className="text-xs text-red-100">30秒で課題を発見</div>
             </div>
             <button
@@ -136,7 +136,7 @@ export default function FloatingDiagnosis() {
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com"
+                  placeholder="貴社サイトのURLを入力してください"
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   disabled={isAnalyzing}
                   onKeyDown={(e) => {

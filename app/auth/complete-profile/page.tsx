@@ -160,6 +160,13 @@ export default function CompleteProfilePage() {
     city: '',
     address: '',
     retrievedInfo: '',
+    // Web検索から取得する追加フィールド
+    establishedDate: '',
+    representativeName: '',
+    companyPhone: '', // 会社代表電話
+    fax: '',
+    businessDescription: '',
+    capital: '',
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
   const [companyIntelMeta, setCompanyIntelMeta] = useState<Record<string, any> | null>(null)
@@ -1205,6 +1212,12 @@ export default function CompleteProfilePage() {
         annualRevenue: intel.annualRevenue || prev.annualRevenue,
         // 会社名（カナ）をセット（取得できた場合のみ）
         nameKana: intel.companyNameKana || prev.nameKana,
+        // Web検索から取得した追加情報をセット
+        establishedDate: intel.establishedDate || prev.establishedDate,
+        representativeName: intel.representativeName || prev.representativeName,
+        companyPhone: intel.phone || prev.companyPhone,
+        fax: intel.fax || prev.fax,
+        businessDescription: intel.businessDescription || prev.businessDescription,
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
         retrievedInfo: (() => {
           const lines: string[] = []
@@ -1424,11 +1437,18 @@ export default function CompleteProfilePage() {
             employee_count: companyData.employeeCount || null,
             annual_revenue: companyData.annualRevenue || null,
             website: companyData.website || null,
-            email: companyData.email || null, // 会社のemailを追加
+            email: companyData.email || null,
             postal_code: companyData.postalCode || null,
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
+            // Web検索から取得した追加フィールド
+            established_date: companyData.establishedDate || null,
+            representative_name: companyData.representativeName || null,
+            phone: companyData.companyPhone || null,
+            fax: companyData.fax || null,
+            business_description: companyData.businessDescription || null,
+            capital: companyData.capital || null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .select()
@@ -1517,12 +1537,19 @@ export default function CompleteProfilePage() {
             employee_count: companyData.employeeCount || null,
             annual_revenue: companyData.annualRevenue || null,
             website: companyData.website || null,
-            email: companyData.email || null, // 会社のemailを追加
+            email: companyData.email || null,
             postal_code: companyData.postalCode || null,
             prefecture: companyData.prefecture || null,
             city: companyData.city || null,
             address: companyData.address || null,
             documents_urls: allDocuments.length > 0 ? allDocuments : null,
+            // Web検索から取得した追加フィールド
+            established_date: companyData.establishedDate || null,
+            representative_name: companyData.representativeName || null,
+            phone: companyData.companyPhone || null,
+            fax: companyData.fax || null,
+            business_description: companyData.businessDescription || null,
+            capital: companyData.capital || null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .eq('id', companyId)
@@ -2114,7 +2141,7 @@ export default function CompleteProfilePage() {
                       type="button"
                       onClick={() => setShowWebSearchHelp(true)}
                       className="w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 text-white text-xs font-bold flex items-center justify-center transition-colors"
-                      title="Web検索について"
+                      title="Web情報取得について"
                     >
                       ?
                     </button>
@@ -2129,20 +2156,19 @@ export default function CompleteProfilePage() {
                     />
                     <Button
                       type="button"
-                      variant="outline"
                       onClick={fetchCompanyIntel}
                       disabled={isFetchingCompanyIntel}
-                      className="sm:w-40 flex items-center justify-center gap-2 bg-white hover:bg-blue-50"
+                      className="sm:w-44 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
                     >
                       {isFetchingCompanyIntel ? (
                         <>
-                          <Loader2 size={16} className="animate-spin" />
+                          <Loader2 size={18} className="animate-spin" />
                           取得中...
                         </>
                       ) : (
                         <>
-                          <Globe size={16} />
-                          Web検索
+                          <Globe size={18} />
+                          Web情報取得
                         </>
                       )}
                     </Button>
@@ -2175,7 +2201,7 @@ export default function CompleteProfilePage() {
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowWebSearchHelp(false)}>
                     <div className="bg-white rounded-lg shadow-xl max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-gray-900">Web検索について</h3>
+                        <h3 className="text-lg font-bold text-gray-900">Web情報取得について</h3>
                         <button
                           type="button"
                           onClick={() => setShowWebSearchHelp(false)}
@@ -2186,7 +2212,7 @@ export default function CompleteProfilePage() {
                       </div>
                       <div className="space-y-3 text-sm text-gray-700">
                         <p>
-                          <strong>Web検索機能</strong>は、入力されたウェブサイトから会社情報を自動的に取得し、フォームに入力する機能です。
+                          <strong>Web情報取得機能</strong>は、入力されたウェブサイトから会社情報を自動的に取得し、フォームに入力する機能です。
                         </p>
                         <p className="font-semibold">取得できる情報:</p>
                         <ul className="list-disc list-inside space-y-1 text-gray-600">
@@ -2378,7 +2404,7 @@ export default function CompleteProfilePage() {
                     id="retrievedInfo"
                     value={companyData.retrievedInfo}
                     onChange={(e) => setCompanyData(prev => ({ ...prev, retrievedInfo: e.target.value }))}
-                    placeholder="Web検索で取得した内容（製品、工場、支店、店舗数など）が表示されます"
+                    placeholder="Web情報取得で取得した内容（製品、工場、支店、店舗数など）が表示されます"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[120px]"
                   />
                   <p className="text-xs text-gray-500">
