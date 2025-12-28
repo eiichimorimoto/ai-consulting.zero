@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Globe, Loader2, ArrowLeft, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap, RefreshCw } from 'lucide-react'
+import { Globe, Loader2, ArrowLeft, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap, RefreshCw, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import '../dashboard.css'
 
@@ -17,10 +17,15 @@ interface DiagnosisResult {
     impact: string
   }[]
   metrics?: {
-    performance: number
-    accessibility: number
-    bestPractices: number
-    seo: number
+    mobileScore: number
+    desktopScore: number
+    seoScore: number
+    accessibilityScore: number
+    hasSSL: boolean
+    isMobileFriendly: boolean
+    fcp: number
+    lcp: number
+    cls: string
   }
   url?: string
 }
@@ -34,9 +39,9 @@ export default function WebsiteAnalysisPage() {
   const [result, setResult] = useState<DiagnosisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // 会社情報を取得して自動分析
+  // 会社情報を取得（分析は実行しない）
   useEffect(() => {
-    const fetchCompanyAndAnalyze = async () => {
+    const fetchCompany = async () => {
       try {
         const supabase = createClient()
         if (!supabase) {
@@ -81,9 +86,6 @@ export default function WebsiteAnalysisPage() {
         setCompanyUrl(company.website)
         setCompanyName(company.name || '')
         setIsLoading(false)
-
-        // 自動で分析開始
-        await runAnalysis(company.website)
       } catch (err: any) {
         console.error('Error fetching company:', err)
         setError('会社情報の取得に失敗しました')
@@ -91,10 +93,12 @@ export default function WebsiteAnalysisPage() {
       }
     }
 
-    fetchCompanyAndAnalyze()
+    fetchCompany()
   }, [router])
 
-  const runAnalysis = async (url: string) => {
+  const runAnalysis = async () => {
+    if (!companyUrl) return
+
     setIsAnalyzing(true)
     setError(null)
     setResult(null)
@@ -103,29 +107,28 @@ export default function WebsiteAnalysisPage() {
       const response = await fetch('/api/diagnose-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: companyUrl }),
       })
 
-      const data = await response.json()
+      const responseData = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || '分析に失敗しました')
+        throw new Error(responseData.error || '分析に失敗しました')
       }
 
+      // APIレスポンスの data フィールドから取得
+      const data = responseData.data || responseData
+
       setResult({
-        ...data,
-        url,
+        overallScore: data.overallScore,
+        topIssues: data.topIssues || [],
+        metrics: data.metrics,
+        url: data.url || companyUrl,
       })
     } catch (err: any) {
       setError(err.message || '分析中にエラーが発生しました')
     } finally {
       setIsAnalyzing(false)
-    }
-  }
-
-  const handleRefresh = () => {
-    if (companyUrl) {
-      runAnalysis(companyUrl)
     }
   }
 
@@ -146,9 +149,22 @@ export default function WebsiteAnalysisPage() {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200'
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200'
       case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'info': return 'bg-blue-100 text-blue-800 border-blue-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getSeverityLabel = (severity: string) => {
+    switch (severity) {
+      case 'critical': return '重大'
+      case 'high': return '高'
+      case 'warning': return '警告'
+      case 'medium': return '中'
+      case 'info': return '情報'
+      default: return severity
     }
   }
 
@@ -159,6 +175,16 @@ export default function WebsiteAnalysisPage() {
       case 'mobile': return <Smartphone className="w-5 h-5" />
       case 'seo': return <TrendingUp className="w-5 h-5" />
       default: return <AlertTriangle className="w-5 h-5" />
+    }
+  }
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'performance': return 'パフォーマンス'
+      case 'security': return 'セキュリティ'
+      case 'mobile': return 'モバイル'
+      case 'seo': return 'SEO'
+      default: return category
     }
   }
 
@@ -193,21 +219,6 @@ export default function WebsiteAnalysisPage() {
           </div>
           <div className="nav-section">
             <div className="nav-section-title">分析</div>
-            <a className="nav-item" onClick={() => router.push('/dashboard/industry')}>
-              <svg className="nav-icon" viewBox="0 0 24 24">
-                <path d="M18 20V10M12 20V4M6 20v-6"/>
-              </svg>
-              業界動向
-            </a>
-            <a className="nav-item" onClick={() => router.push('/dashboard/company-analysis')}>
-              <svg className="nav-icon" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7"/>
-                <rect x="14" y="3" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/>
-              </svg>
-              企業分析
-            </a>
             <a className="nav-item active" onClick={() => router.push('/dashboard/website-analysis')}>
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10"/>
@@ -250,33 +261,18 @@ export default function WebsiteAnalysisPage() {
                 )}
               </div>
             </div>
-            {result && (
-              <button
-                onClick={handleRefresh}
-                disabled={isAnalyzing}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                再分析
-              </button>
-            )}
           </div>
 
           {/* Loading State */}
-          {(isLoading || isAnalyzing) && (
+          {isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-900">
-                {isLoading ? '会社情報を取得中...' : 'Webサイトを分析中...'}
-              </p>
-              <p className="text-gray-600 mt-2">
-                {isAnalyzing && 'Google PageSpeed Insightsでサイトを分析しています'}
-              </p>
+              <p className="text-lg font-medium text-gray-900">会社情報を取得中...</p>
             </div>
           )}
 
           {/* Error */}
-          {error && !isLoading && !isAnalyzing && (
+          {error && !isLoading && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-4">
               <AlertTriangle className="w-6 h-6 text-red-600 mt-0.5" />
               <div>
@@ -294,6 +290,37 @@ export default function WebsiteAnalysisPage() {
             </div>
           )}
 
+          {/* Ready to Analyze - ボタン表示 */}
+          {!isLoading && !error && !result && !isAnalyzing && companyUrl && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <Globe className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Webサイト分析の準備ができました</h2>
+              <p className="text-gray-600 mb-6">
+                {companyName}のWebサイト（{companyUrl}）を分析します。<br/>
+                Google PageSpeed Insightsを使用して、パフォーマンス、SEO、セキュリティなどを診断します。
+              </p>
+              <button
+                onClick={runAnalysis}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Play className="w-6 h-6" />
+                Webサイト分析を開始
+              </button>
+            </div>
+          )}
+
+          {/* Analyzing State */}
+          {isAnalyzing && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-900">Webサイトを分析中...</p>
+              <p className="text-gray-600 mt-2">
+                Google PageSpeed Insightsでサイトを分析しています。<br/>
+                通常30〜60秒程度かかります。
+              </p>
+            </div>
+          )}
+
           {/* Results */}
           {result && !isAnalyzing && (
             <div className="space-y-6">
@@ -301,7 +328,17 @@ export default function WebsiteAnalysisPage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-gray-900">診断結果</h2>
-                  <span className="text-sm text-gray-500">{result.url}</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-500">{result.url}</span>
+                    <button
+                      onClick={runAnalysis}
+                      disabled={isAnalyzing}
+                      className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                      再分析
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-8">
                   <div className="text-center">
@@ -326,36 +363,77 @@ export default function WebsiteAnalysisPage() {
                 </div>
               </div>
 
-              {/* Metrics */}
+              {/* Detailed Metrics */}
               {result.metrics && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                    <Zap className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.performance)}`} />
-                    <div className={`text-2xl font-bold ${getScoreColor(result.metrics.performance)}`}>
-                      {result.metrics.performance}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4">詳細メトリクス</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Smartphone className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.mobileScore)}`} />
+                      <div className={`text-2xl font-bold ${getScoreColor(result.metrics.mobileScore)}`}>
+                        {result.metrics.mobileScore}
+                      </div>
+                      <div className="text-sm text-gray-600">モバイル</div>
                     </div>
-                    <div className="text-sm text-gray-600">パフォーマンス</div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Zap className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.desktopScore)}`} />
+                      <div className={`text-2xl font-bold ${getScoreColor(result.metrics.desktopScore)}`}>
+                        {result.metrics.desktopScore}
+                      </div>
+                      <div className="text-sm text-gray-600">デスクトップ</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.seoScore)}`} />
+                      <div className={`text-2xl font-bold ${getScoreColor(result.metrics.seoScore)}`}>
+                        {result.metrics.seoScore}
+                      </div>
+                      <div className="text-sm text-gray-600">SEO</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <CheckCircle className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.accessibilityScore)}`} />
+                      <div className={`text-2xl font-bold ${getScoreColor(result.metrics.accessibilityScore)}`}>
+                        {result.metrics.accessibilityScore}
+                      </div>
+                      <div className="text-sm text-gray-600">アクセシビリティ</div>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                    <CheckCircle className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.accessibility)}`} />
-                    <div className={`text-2xl font-bold ${getScoreColor(result.metrics.accessibility)}`}>
-                      {result.metrics.accessibility}
+                  
+                  {/* Core Web Vitals */}
+                  <h3 className="text-md font-semibold text-gray-800 mb-3">Core Web Vitals</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="text-sm text-gray-600 mb-1">FCP (初回コンテンツ描画)</div>
+                      <div className={`text-xl font-bold ${result.metrics.fcp <= 1800 ? 'text-green-500' : result.metrics.fcp <= 3000 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {(result.metrics.fcp / 1000).toFixed(2)}秒
+                      </div>
+                      <div className="text-xs text-gray-500">目標: 1.8秒以下</div>
                     </div>
-                    <div className="text-sm text-gray-600">アクセシビリティ</div>
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="text-sm text-gray-600 mb-1">LCP (最大コンテンツ描画)</div>
+                      <div className={`text-xl font-bold ${result.metrics.lcp <= 2500 ? 'text-green-500' : result.metrics.lcp <= 4000 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {(result.metrics.lcp / 1000).toFixed(2)}秒
+                      </div>
+                      <div className="text-xs text-gray-500">目標: 2.5秒以下</div>
+                    </div>
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="text-sm text-gray-600 mb-1">CLS (レイアウトシフト)</div>
+                      <div className={`text-xl font-bold ${parseFloat(result.metrics.cls) <= 0.1 ? 'text-green-500' : parseFloat(result.metrics.cls) <= 0.25 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {result.metrics.cls}
+                      </div>
+                      <div className="text-xs text-gray-500">目標: 0.1以下</div>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                    <Shield className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.bestPractices)}`} />
-                    <div className={`text-2xl font-bold ${getScoreColor(result.metrics.bestPractices)}`}>
-                      {result.metrics.bestPractices}
+
+                  {/* SSL & Mobile Friendly */}
+                  <div className="flex gap-4">
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${result.metrics.hasSSL ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <Shield className="w-4 h-4" />
+                      SSL: {result.metrics.hasSSL ? '対応済み' : '未対応'}
                     </div>
-                    <div className="text-sm text-gray-600">ベストプラクティス</div>
-                  </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                    <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.seo)}`} />
-                    <div className={`text-2xl font-bold ${getScoreColor(result.metrics.seo)}`}>
-                      {result.metrics.seo}
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${result.metrics.isMobileFriendly ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <Smartphone className="w-4 h-4" />
+                      モバイル対応: {result.metrics.isMobileFriendly ? '良好' : '要改善'}
                     </div>
-                    <div className="text-sm text-gray-600">SEO</div>
                   </div>
                 </div>
               )}
@@ -376,15 +454,19 @@ export default function WebsiteAnalysisPage() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">{issue.issue}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
+                                {getCategoryLabel(issue.category)}
+                              </span>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
                                 issue.severity === 'critical' ? 'bg-red-200 text-red-800' :
-                                issue.severity === 'warning' ? 'bg-yellow-200 text-yellow-800' :
+                                issue.severity === 'high' ? 'bg-orange-200 text-orange-800' :
+                                issue.severity === 'medium' || issue.severity === 'warning' ? 'bg-yellow-200 text-yellow-800' :
                                 'bg-blue-200 text-blue-800'
                               }`}>
-                                {issue.severity === 'critical' ? '重大' : issue.severity === 'warning' ? '警告' : '情報'}
+                                {getSeverityLabel(issue.severity)}
                               </span>
                             </div>
+                            <div className="font-semibold text-lg mb-1">{issue.issue}</div>
                             <p className="text-sm opacity-80">{issue.impact}</p>
                           </div>
                         </div>
