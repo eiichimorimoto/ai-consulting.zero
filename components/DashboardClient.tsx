@@ -80,30 +80,117 @@ interface LocalInfo {
   }
 }
 
+interface IndustryTrend {
+  category: string
+  title: string
+  description: string
+  direction: 'up' | 'down' | 'stable'
+  strength: 'strong' | 'moderate' | 'weak'
+  impact: string
+  source: string
+}
+
 interface IndustryTrends {
-  domestic: { week: string; value: number }[]
-  export: { week: string; value: number }[]
+  trends: IndustryTrend[]
+  summary: {
+    overallDirection: 'up' | 'down' | 'stable'
+    outlook: string
+    keyFactors: string[]
+  }
+}
+
+interface SWOTItem {
+  point: string
+  evidence: string
+}
+
+interface Competitor {
+  name: string
+  strength: string
+  comparison: string
 }
 
 interface SWOTAnalysis {
-  strengths: string[]
-  weaknesses: string[]
-  opportunities: string[]
-  threats: string[]
+  strengths: SWOTItem[]
+  weaknesses: SWOTItem[]
+  opportunities: SWOTItem[]
+  threats: SWOTItem[]
+  competitors: Competitor[]
+  industryPosition: {
+    ranking: string
+    marketShare: string
+    differentiation: string
+  }
+  reputation: {
+    overall: string
+    positives: string[]
+    negatives: string[]
+    sources: string[]
+  }
+}
+
+interface WorldNewsItem {
+  headline: string
+  summary: string
+  impact: string
+  direction: 'positive' | 'negative' | 'neutral'
+  source: string
+}
+
+interface WorldNewsCategory {
+  category: 'it_tech' | 'ai' | 'economy' | 'conflict' | 'software'
+  title: string
+  items: WorldNewsItem[]
 }
 
 interface WorldNews {
-  title: string
-  url: string
-  description: string
-  published: string
-  category: 'economy' | 'policy' | 'market'
+  categories: WorldNewsCategory[]
+  overallImpact: {
+    summary: string
+    riskLevel: 'high' | 'medium' | 'low'
+    opportunities: string[]
+    threats: string[]
+  }
+}
+
+interface ForecastIndicator {
+  name: string
+  current: string
+  forecast: string
+  trend: 'up' | 'down' | 'stable'
+  confidence: 'high' | 'medium' | 'low'
+}
+
+interface ForecastRisk {
+  risk: string
+  probability: 'high' | 'medium' | 'low'
+  impact: 'high' | 'medium' | 'low'
+  mitigation: string
+}
+
+interface ForecastOpportunity {
+  opportunity: string
+  timing: string
+  action: string
 }
 
 interface IndustryForecast {
-  orderTrend: { trend: 'up' | 'neutral' | 'down'; value: string; description: string }
-  materialPrice: { trend: 'up' | 'neutral' | 'down'; value: string; description: string }
-  equipmentInvestment: { trend: 'up' | 'neutral' | 'down'; value: string; description: string }
+  shortTerm: {
+    period: string
+    outlook: 'positive' | 'neutral' | 'negative'
+    keyFactors: { factor: string; impact: 'positive' | 'negative' | 'neutral'; description: string }[]
+    prediction: string
+  }
+  midTerm: {
+    period: string
+    outlook: 'positive' | 'neutral' | 'negative'
+    keyFactors: { factor: string; impact: 'positive' | 'negative' | 'neutral'; description: string }[]
+    prediction: string
+  }
+  indicators: ForecastIndicator[]
+  risks: ForecastRisk[]
+  opportunities: ForecastOpportunity[]
+  recommendation: string
 }
 
 export default function DashboardClient({ profile, company, subscription }: DashboardClientProps) {
@@ -114,7 +201,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const [localInfo, setLocalInfo] = useState<LocalInfo | null>(null)
   const [industryTrends, setIndustryTrends] = useState<IndustryTrends | null>(null)
   const [swotAnalysis, setSwotAnalysis] = useState<SWOTAnalysis | null>(null)
-  const [worldNews, setWorldNews] = useState<WorldNews[]>([])
+  const [worldNews, setWorldNews] = useState<WorldNews | null>(null)
   const [industryForecast, setIndustryForecast] = useState<IndustryForecast | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState<Record<string, boolean>>({})
@@ -1239,10 +1326,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
                         <path d="M18 20V10M12 20V4M6 20v-6"/>
                       </svg>
-                      業界動向（{company?.industry || '機械部品'}）
+                      業界動向（{company?.industry || '業界'}）
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-success">成長</span>
+                      {industryTrends?.summary?.overallDirection && (
+                        <span className={`badge ${industryTrends.summary.overallDirection === 'up' ? 'badge-success' : industryTrends.summary.overallDirection === 'down' ? 'badge-warning' : 'badge-info'}`}>
+                          {industryTrends.summary.overallDirection === 'up' ? '↗️ 上昇傾向' : industryTrends.summary.overallDirection === 'down' ? '↘️ 下降傾向' : '→ 横ばい'}
+                        </span>
+                      )}
                       <button 
                         className="refresh-btn-small" 
                         onClick={() => fetchSectionData('industry-trends', true)}
@@ -1259,24 +1350,70 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </button>
                     </div>
                   </div>
-                  <div className="industry-chart-container">
-                    <IndustryChart />
-                  </div>
-                  <div className="trend-legend">
-                    <div className="trend-item">
-                      <span className="trend-dot" style={{ background: 'var(--primary)' }}></span>
-                      <span className="trend-label">国内需要（前年比成長率）</span>
-                      <span className="trend-value" style={{ color: 'var(--success)' }}>+4.2%</span>
+                  {industryTrends?.trends ? (
+                    <div style={{ marginTop: '8px' }}>
+                      {industryTrends.trends.slice(0, 6).map((trend, idx) => (
+                        <div key={idx} style={{ 
+                          display: 'flex', 
+                          alignItems: 'flex-start', 
+                          padding: '10px',
+                          marginBottom: '6px',
+                          background: 'var(--bg-main)',
+                          borderRadius: '6px',
+                          gap: '10px'
+                        }}>
+                          <div style={{ 
+                            fontSize: '20px',
+                            lineHeight: '1',
+                            color: trend.direction === 'up' ? 'var(--success)' : trend.direction === 'down' ? 'var(--danger)' : 'var(--text-secondary)'
+                          }}>
+                            {trend.direction === 'up' ? '↗️' : trend.direction === 'down' ? '↘️' : '→'}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ 
+                              fontSize: '12px', 
+                              fontWeight: '600',
+                              color: 'var(--text-primary)',
+                              marginBottom: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              {trend.category}
+                              <span style={{ 
+                                fontSize: '10px', 
+                                padding: '1px 6px', 
+                                borderRadius: '4px',
+                                background: trend.strength === 'strong' ? 'rgba(16,185,129,0.2)' : trend.strength === 'moderate' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.2)',
+                                color: trend.strength === 'strong' ? 'var(--success)' : trend.strength === 'moderate' ? 'var(--warning)' : 'var(--text-secondary)'
+                              }}>
+                                {trend.strength === 'strong' ? '強' : trend.strength === 'moderate' ? '中' : '弱'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{trend.title}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {/* サマリー */}
+                      {industryTrends.summary && (
+                        <div style={{ 
+                          marginTop: '12px', 
+                          padding: '10px', 
+                          background: 'linear-gradient(135deg, var(--primary-light), var(--accent))',
+                          borderRadius: '6px',
+                          color: 'white',
+                          fontSize: '12px'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '4px' }}>📊 見通し</div>
+                          <div>{industryTrends.summary.outlook}</div>
+                        </div>
+                      )}
                     </div>
-                    <div className="trend-item">
-                      <span className="trend-dot" style={{ background: 'var(--accent)' }}></span>
-                      <span className="trend-label">輸出（前年比成長率）</span>
-                      <span className="trend-value" style={{ color: 'var(--success)' }}>+7.8%</span>
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      読み込み中...
                     </div>
-                  </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px', textAlign: 'center' }}>
-                    データ: ログイン日を起点に3ヶ月遡った週別の業界成長率推移
-                  </p>
+                  )}
                 </div>
                 <div id="swot-analysis-section" className="analysis-card" style={{ position: 'relative' }}>
                   <div className="analysis-card-header">
@@ -1376,24 +1513,123 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </button>
                     </div>
                   </div>
-                  <div className="swot-grid">
-                    <div className="swot-item strength">
-                      <div className="swot-label">強み</div>
-                      <div className="swot-content">高精度加工技術、長年の取引実績</div>
+                  {swotAnalysis ? (
+                    <>
+                      <div className="swot-grid">
+                        <div className="swot-item strength">
+                          <div className="swot-label">強み</div>
+                          <div className="swot-content">
+                            {swotAnalysis.strengths?.slice(0, 2).map((s, i) => (
+                              <div key={i} style={{ marginBottom: '4px' }}>
+                                • {typeof s === 'string' ? s : s.point}
+                              </div>
+                            )) || '分析中...'}
+                          </div>
+                        </div>
+                        <div className="swot-item weakness">
+                          <div className="swot-label">弱み</div>
+                          <div className="swot-content">
+                            {swotAnalysis.weaknesses?.slice(0, 2).map((w, i) => (
+                              <div key={i} style={{ marginBottom: '4px' }}>
+                                • {typeof w === 'string' ? w : w.point}
+                              </div>
+                            )) || '分析中...'}
+                          </div>
+                        </div>
+                        <div className="swot-item opportunity">
+                          <div className="swot-label">機会</div>
+                          <div className="swot-content">
+                            {swotAnalysis.opportunities?.slice(0, 2).map((o, i) => (
+                              <div key={i} style={{ marginBottom: '4px' }}>
+                                • {typeof o === 'string' ? o : o.point}
+                              </div>
+                            )) || '分析中...'}
+                          </div>
+                        </div>
+                        <div className="swot-item threat">
+                          <div className="swot-label">脅威</div>
+                          <div className="swot-content">
+                            {swotAnalysis.threats?.slice(0, 2).map((t, i) => (
+                              <div key={i} style={{ marginBottom: '4px' }}>
+                                • {typeof t === 'string' ? t : t.point}
+                              </div>
+                            )) || '分析中...'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 競合企業分析 */}
+                      {swotAnalysis.competitors && swotAnalysis.competitors.length > 0 && (
+                        <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
+                          <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                            🏢 主要競合企業
+                          </h5>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {swotAnalysis.competitors.slice(0, 3).map((c, i) => (
+                              <div key={i} style={{ 
+                                padding: '8px 12px', 
+                                background: 'var(--bg-card)', 
+                                borderRadius: '6px',
+                                border: '1px solid var(--border)',
+                                fontSize: '12px',
+                                flex: '1',
+                                minWidth: '150px'
+                              }}>
+                                <div style={{ fontWeight: '600', marginBottom: '4px' }}>{c.name}</div>
+                                <div style={{ color: 'var(--text-secondary)' }}>{c.strength}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* SNS・口コミ評判 */}
+                      {swotAnalysis.reputation && (
+                        <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
+                          <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                            💬 SNS・口コミ評判
+                          </h5>
+                          <div style={{ fontSize: '13px', marginBottom: '8px' }}>
+                            <span style={{ fontWeight: '500' }}>総合評価: </span>
+                            <span>{swotAnalysis.reputation.overall}</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div>
+                              <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600', marginBottom: '4px' }}>👍 良い評判</div>
+                              {swotAnalysis.reputation.positives?.slice(0, 2).map((p, i) => (
+                                <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {p}</div>
+                              ))}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600', marginBottom: '4px' }}>👎 改善点</div>
+                              {swotAnalysis.reputation.negatives?.slice(0, 2).map((n, i) => (
+                                <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {n}</div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="swot-grid">
+                      <div className="swot-item strength">
+                        <div className="swot-label">強み</div>
+                        <div className="swot-content">読み込み中...</div>
+                      </div>
+                      <div className="swot-item weakness">
+                        <div className="swot-label">弱み</div>
+                        <div className="swot-content">読み込み中...</div>
+                      </div>
+                      <div className="swot-item opportunity">
+                        <div className="swot-label">機会</div>
+                        <div className="swot-content">読み込み中...</div>
+                      </div>
+                      <div className="swot-item threat">
+                        <div className="swot-label">脅威</div>
+                        <div className="swot-content">読み込み中...</div>
+                      </div>
                     </div>
-                    <div className="swot-item weakness">
-                      <div className="swot-label">弱み</div>
-                      <div className="swot-content">デジタル化遅れ、後継者不足</div>
-                    </div>
-                    <div className="swot-item opportunity">
-                      <div className="swot-label">機会</div>
-                      <div className="swot-content">EV部品需要増、国内回帰トレンド</div>
-                    </div>
-                    <div className="swot-item threat">
-                      <div className="swot-label">脅威</div>
-                      <div className="swot-content">海外競合、原材料高騰</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
                 <div id="world-news-section" className="analysis-card">
                   <div className="analysis-card-header">
@@ -1402,10 +1638,10 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
                       </svg>
-                      注目の世界情勢
+                      世界情勢・業界影響
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-info">業界関連</span>
+                      <span className="badge badge-info">5カテゴリ</span>
                       <button 
                         className="refresh-btn-small" 
                         onClick={() => fetchSectionData('world-news', true)}
@@ -1422,29 +1658,64 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </button>
                     </div>
                   </div>
-                  <div className="news-list">
-                    <div className="news-item">
-                      <span className="news-tag economy">経済</span>
-                      <div className="news-content">
-                        <div className="news-title">米国製造業PMI、3ヶ月連続で拡大圏維持</div>
-                        <div className="news-meta">2時間前 • Reuters</div>
+                  {worldNews?.categories ? (
+                    <div className="news-list">
+                      {worldNews.categories.map((cat, catIdx) => (
+                        <div key={catIdx} style={{ marginBottom: '12px' }}>
+                          <div style={{ 
+                            fontSize: '12px', 
+                            fontWeight: '600', 
+                            color: 'var(--text-secondary)',
+                            marginBottom: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            {cat.category === 'it_tech' && '💻'}
+                            {cat.category === 'ai' && '🤖'}
+                            {cat.category === 'economy' && '📈'}
+                            {cat.category === 'conflict' && '⚠️'}
+                            {cat.category === 'software' && '📦'}
+                            {cat.title}
+                          </div>
+                          {cat.items?.slice(0, 1).map((item, itemIdx) => (
+                            <div key={itemIdx} className="news-item">
+                              <span className={`news-tag ${item.direction === 'positive' ? 'economy' : item.direction === 'negative' ? 'policy' : 'market'}`}>
+                                {item.direction === 'positive' ? '↗️ 好影響' : item.direction === 'negative' ? '↘️ 悪影響' : '→ 中立'}
+                              </span>
+                              <div className="news-content">
+                                <div className="news-title">{item.headline}</div>
+                                <div className="news-meta">{item.impact}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                      {/* 総合影響サマリー */}
+                      {worldNews.overallImpact && (
+                        <div style={{ 
+                          marginTop: '12px', 
+                          padding: '10px', 
+                          background: worldNews.overallImpact.riskLevel === 'high' ? 'rgba(239,68,68,0.1)' : worldNews.overallImpact.riskLevel === 'medium' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
+                          borderRadius: '6px',
+                          fontSize: '12px'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                            リスクレベル: {worldNews.overallImpact.riskLevel === 'high' ? '🔴 高' : worldNews.overallImpact.riskLevel === 'medium' ? '🟡 中' : '🟢 低'}
+                          </div>
+                          <div style={{ color: 'var(--text-secondary)' }}>{worldNews.overallImpact.summary}</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="news-list">
+                      <div className="news-item">
+                        <div className="news-content">
+                          <div className="news-title">読み込み中...</div>
+                        </div>
                       </div>
                     </div>
-                    <div className="news-item">
-                      <span className="news-tag policy">政策</span>
-                      <div className="news-content">
-                        <div className="news-title">経産省、中小製造業向けDX支援を拡充へ</div>
-                        <div className="news-meta">5時間前 • 日経</div>
-                      </div>
-                    </div>
-                    <div className="news-item">
-                      <span className="news-tag market">市場</span>
-                      <div className="news-content">
-                        <div className="news-title">自動車部品サプライチェーン、国内回帰が加速</div>
-                        <div className="news-meta">昨日 • 日刊工業</div>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
                 <div className="analysis-card">
                   <div className="analysis-card-header">
@@ -1453,10 +1724,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
-                      業界予測（6ヶ月）
+                      業界予測
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-success">ポジティブ</span>
+                      {industryForecast?.shortTerm?.outlook && (
+                        <span className={`badge ${industryForecast.shortTerm.outlook === 'positive' ? 'badge-success' : industryForecast.shortTerm.outlook === 'negative' ? 'badge-warning' : 'badge-info'}`}>
+                          {industryForecast.shortTerm.outlook === 'positive' ? '↗️ ポジティブ' : industryForecast.shortTerm.outlook === 'negative' ? '↘️ ネガティブ' : '→ 中立'}
+                        </span>
+                      )}
                       <button 
                         className="refresh-btn-small" 
                         onClick={() => fetchSectionData('industry-forecast', true)}
@@ -1473,46 +1748,75 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </button>
                     </div>
                   </div>
-                  <div className="forecast-list">
-                    <div className="forecast-item">
-                      <div className="forecast-icon up">
-                        <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'var(--success)', fill: 'none', strokeWidth: 1.5 }}>
-                          <path d="M23 6l-9.5 9.5-5-5L1 18"/>
-                          <path d="M17 6h6v6"/>
-                        </svg>
+                  {industryForecast ? (
+                    <div style={{ marginTop: '8px' }}>
+                      {/* 短期・中期予測 */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                        <div style={{ padding: '10px', background: 'var(--bg-main)', borderRadius: '6px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>📅 短期（{industryForecast.shortTerm?.period || '3ヶ月'}）</div>
+                          <div style={{ fontSize: '12px', fontWeight: '500' }}>{industryForecast.shortTerm?.prediction?.slice(0, 60)}...</div>
+                        </div>
+                        <div style={{ padding: '10px', background: 'var(--bg-main)', borderRadius: '6px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>📅 中期（{industryForecast.midTerm?.period || '6ヶ月'}）</div>
+                          <div style={{ fontSize: '12px', fontWeight: '500' }}>{industryForecast.midTerm?.prediction?.slice(0, 60)}...</div>
+                        </div>
                       </div>
-                      <div className="forecast-info">
-                        <div className="forecast-title">受注動向</div>
-                        <div className="forecast-desc">自動車・半導体関連の回復継続</div>
-                      </div>
-                      <div className="forecast-value up">+12%</div>
+                      
+                      {/* 主要指標 */}
+                      {industryForecast.indicators && industryForecast.indicators.length > 0 && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>📊 主要指標予測</div>
+                          {industryForecast.indicators.slice(0, 5).map((ind, idx) => (
+                            <div key={idx} style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              padding: '6px 8px',
+                              marginBottom: '4px',
+                              background: 'var(--bg-main)',
+                              borderRadius: '4px',
+                              fontSize: '12px'
+                            }}>
+                              <span style={{ 
+                                fontSize: '14px', 
+                                marginRight: '8px',
+                                color: ind.trend === 'up' ? 'var(--success)' : ind.trend === 'down' ? 'var(--danger)' : 'var(--text-secondary)'
+                              }}>
+                                {ind.trend === 'up' ? '↗️' : ind.trend === 'down' ? '↘️' : '→'}
+                              </span>
+                              <span style={{ flex: 1 }}>{ind.name}</span>
+                              <span style={{ fontWeight: '600', marginRight: '8px' }}>{ind.forecast}</span>
+                              <span style={{ 
+                                fontSize: '10px', 
+                                padding: '1px 4px', 
+                                borderRadius: '3px',
+                                background: ind.confidence === 'high' ? 'rgba(16,185,129,0.2)' : ind.confidence === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.2)'
+                              }}>
+                                {ind.confidence === 'high' ? '高' : ind.confidence === 'medium' ? '中' : '低'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* 経営提言 */}
+                      {industryForecast.recommendation && (
+                        <div style={{ 
+                          padding: '10px', 
+                          background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(6,182,212,0.1))',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border)',
+                          fontSize: '12px'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '4px', color: 'var(--primary)' }}>💡 経営への提言</div>
+                          <div style={{ color: 'var(--text-secondary)' }}>{industryForecast.recommendation}</div>
+                        </div>
+                      )}
                     </div>
-                    <div className="forecast-item">
-                      <div className="forecast-icon neutral">
-                        <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'var(--warning)', fill: 'none', strokeWidth: 1.5 }}>
-                          <path d="M5 12h14"/>
-                        </svg>
-                      </div>
-                      <div className="forecast-info">
-                        <div className="forecast-title">原材料価格</div>
-                        <div className="forecast-desc">鉄鋼・非鉄は高止まり予想</div>
-                      </div>
-                      <div className="forecast-value neutral">横ばい</div>
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      読み込み中...
                     </div>
-                    <div className="forecast-item">
-                      <div className="forecast-icon up">
-                        <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'var(--success)', fill: 'none', strokeWidth: 1.5 }}>
-                          <path d="M23 6l-9.5 9.5-5-5L1 18"/>
-                          <path d="M17 6h6v6"/>
-                        </svg>
-                      </div>
-                      <div className="forecast-info">
-                        <div className="forecast-title">設備投資</div>
-                        <div className="forecast-desc">自動化・省人化投資が活発化</div>
-                      </div>
-                      <div className="forecast-value up">+8%</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </section>
