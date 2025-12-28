@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Globe, Loader2, ArrowLeft, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap } from 'lucide-react'
+import { Globe, Loader2, ArrowLeft, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap, RefreshCw } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import '../dashboard.css'
 
 interface DiagnosisResult {
@@ -26,14 +27,74 @@ interface DiagnosisResult {
 
 export default function WebsiteAnalysisPage() {
   const router = useRouter()
-  const [url, setUrl] = useState('')
+  const [companyUrl, setCompanyUrl] = useState<string | null>(null)
+  const [companyName, setCompanyName] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [result, setResult] = useState<DiagnosisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleAnalyze = async () => {
-    if (!url) return
+  // 会社情報を取得して自動分析
+  useEffect(() => {
+    const fetchCompanyAndAnalyze = async () => {
+      try {
+        const supabase = createClient()
+        if (!supabase) {
+          setError('Supabaseが設定されていません')
+          setIsLoading(false)
+          return
+        }
 
+        // ユーザー情報取得
+        const { data: userData } = await supabase.auth.getUser()
+        if (!userData?.user) {
+          router.push('/auth/login')
+          return
+        }
+
+        // プロファイル取得
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('user_id', userData.user.id)
+          .single()
+
+        if (!profile?.company_id) {
+          setError('会社情報が登録されていません')
+          setIsLoading(false)
+          return
+        }
+
+        // 会社情報取得
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name, website')
+          .eq('id', profile.company_id)
+          .single()
+
+        if (!company?.website) {
+          setError('会社のWebサイトURLが登録されていません。設定画面からURLを追加してください。')
+          setIsLoading(false)
+          return
+        }
+
+        setCompanyUrl(company.website)
+        setCompanyName(company.name || '')
+        setIsLoading(false)
+
+        // 自動で分析開始
+        await runAnalysis(company.website)
+      } catch (err: any) {
+        console.error('Error fetching company:', err)
+        setError('会社情報の取得に失敗しました')
+        setIsLoading(false)
+      }
+    }
+
+    fetchCompanyAndAnalyze()
+  }, [router])
+
+  const runAnalysis = async (url: string) => {
     setIsAnalyzing(true)
     setError(null)
     setResult(null)
@@ -59,6 +120,12 @@ export default function WebsiteAnalysisPage() {
       setError(err.message || '分析中にエラーが発生しました')
     } finally {
       setIsAnalyzing(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    if (companyUrl) {
+      runAnalysis(companyUrl)
     }
   }
 
@@ -166,78 +233,69 @@ export default function WebsiteAnalysisPage() {
       <main className="main-content">
         <div className="p-6 max-w-5xl mx-auto">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Webサイト分析</h1>
-              <p className="text-gray-600">WebサイトのパフォーマンスとSEOを診断します</p>
-            </div>
-          </div>
-
-          {/* Input Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  分析するWebサイトのURL
-                </label>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  disabled={isAnalyzing}
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={handleAnalyze}
-                  disabled={!url || isAnalyzing}
-                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      分析中...
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="w-5 h-5" />
-                      分析開始
-                    </>
-                  )}
-                </button>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Webサイト分析</h1>
+                {companyName && companyUrl && (
+                  <p className="text-gray-600 text-sm">
+                    {companyName} - <a href={companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{companyUrl}</a>
+                  </p>
+                )}
               </div>
             </div>
-            {isAnalyzing && (
-              <div className="mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 animate-pulse" style={{ width: '60%' }}></div>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">Google PageSpeed Insightsでサイトを分析しています...</p>
-              </div>
+            {result && (
+              <button
+                onClick={handleRefresh}
+                disabled={isAnalyzing}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                再分析
+              </button>
             )}
           </div>
 
+          {/* Loading State */}
+          {(isLoading || isAnalyzing) && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-900">
+                {isLoading ? '会社情報を取得中...' : 'Webサイトを分析中...'}
+              </p>
+              <p className="text-gray-600 mt-2">
+                {isAnalyzing && 'Google PageSpeed Insightsでサイトを分析しています'}
+              </p>
+            </div>
+          )}
+
           {/* Error */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+          {error && !isLoading && !isAnalyzing && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-4">
+              <AlertTriangle className="w-6 h-6 text-red-600 mt-0.5" />
               <div>
-                <p className="font-medium text-red-800">分析エラー</p>
-                <p className="text-red-700 text-sm">{error}</p>
+                <p className="font-medium text-red-800 text-lg">エラー</p>
+                <p className="text-red-700">{error}</p>
+                {error.includes('設定画面') && (
+                  <button
+                    onClick={() => router.push('/dashboard/settings')}
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    設定画面へ
+                  </button>
+                )}
               </div>
             </div>
           )}
 
           {/* Results */}
-          {result && (
+          {result && !isAnalyzing && (
             <div className="space-y-6">
               {/* Overall Score */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -357,4 +415,3 @@ export default function WebsiteAnalysisPage() {
     </div>
   )
 }
-
