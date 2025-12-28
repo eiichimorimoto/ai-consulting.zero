@@ -27,6 +27,14 @@
   -webkit-font-smoothing: antialiased;
 }
 
+.dashboard > main,
+.dashboard > .main-content {
+  flex: 1;
+  margin-left: 220px;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
 .sidebar {
   width: 220px;
   background: var(--bg-sidebar);
