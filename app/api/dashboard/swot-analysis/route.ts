@@ -38,10 +38,38 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
 }
 
 const swotSchema = z.object({
-  strengths: z.array(z.string()).describe("強み"),
-  weaknesses: z.array(z.string()).describe("弱み"),
-  opportunities: z.array(z.string()).describe("機会"),
-  threats: z.array(z.string()).describe("脅威"),
+  strengths: z.array(z.object({
+    point: z.string().describe("強みの内容"),
+    evidence: z.string().describe("根拠・出典"),
+  })).describe("強み"),
+  weaknesses: z.array(z.object({
+    point: z.string().describe("弱みの内容"),
+    evidence: z.string().describe("根拠・出典"),
+  })).describe("弱み"),
+  opportunities: z.array(z.object({
+    point: z.string().describe("機会の内容"),
+    evidence: z.string().describe("根拠・出典"),
+  })).describe("機会"),
+  threats: z.array(z.object({
+    point: z.string().describe("脅威の内容"),
+    evidence: z.string().describe("根拠・出典"),
+  })).describe("脅威"),
+  competitors: z.array(z.object({
+    name: z.string().describe("競合企業名"),
+    strength: z.string().describe("競合の強み"),
+    comparison: z.string().describe("自社との比較"),
+  })).describe("主要競合企業"),
+  industryPosition: z.object({
+    ranking: z.string().describe("業界内の位置付け"),
+    marketShare: z.string().describe("市場シェア/占有率"),
+    differentiation: z.string().describe("差別化要因"),
+  }).describe("業界内ポジション"),
+  reputation: z.object({
+    overall: z.string().describe("総合評価"),
+    positives: z.array(z.string()).describe("良い評判"),
+    negatives: z.array(z.string()).describe("悪い評判"),
+    sources: z.array(z.string()).describe("情報源"),
+  }).describe("SNS/口コミ評判"),
 })
 
 export async function GET(request: Request) {
@@ -72,7 +100,7 @@ export async function GET(request: Request) {
 
     const { data: company } = await supabase
       .from('companies')
-      .select('name, industry, website, business_description, retrieved_info')
+      .select('name, industry, website, business_description, retrieved_info, prefecture, employee_count, annual_revenue')
       .eq('id', profile.company_id)
       .single()
 
@@ -83,41 +111,72 @@ export async function GET(request: Request) {
       )
     }
 
-    // 外部情報を検索（会社名・業種・事業内容を活用）
+    // 多角的な外部情報を収集
     const industryQuery = company.industry || ''
     const businessDesc = company.business_description || ''
-    const companyContext = [company.name, industryQuery, businessDesc].filter(Boolean).join(' ')
     
-    const queries = [
-      `${company.name} 強み 特徴 事業`,
-      `${company.name} 課題 問題 改善点`,
-      companyContext ? `${companyContext} 市場 機会 2025 成長` : `${company.name} 市場 機会`,
-      companyContext ? `${companyContext} リスク 脅威 競合` : `${company.name} 業界 リスク`,
-      industryQuery ? `${industryQuery} 業界 動向 分析 2025` : `${company.name} 業界 動向`,
+    // 並列で複数の検索を実行
+    const searchPromises = [
+      // 競合分析
+      braveWebSearch(`${company.name} 競合 ライバル企業 比較`, 5),
+      braveWebSearch(`${industryQuery} 業界 大手企業 ランキング シェア`, 5),
+      // 強み・HP/社長情報
+      braveWebSearch(`${company.name} 強み 特徴 技術力 実績`, 5),
+      braveWebSearch(`${company.name} 代表取締役 社長 経営者 理念`, 3),
+      // 市場機会・取引先
+      braveWebSearch(`${company.name} 取引先 顧客 大手企業`, 5),
+      braveWebSearch(`${industryQuery} 市場規模 成長率 2025 予測`, 5),
+      // SNS・口コミ評判
+      braveWebSearch(`${company.name} 評判 口コミ レビュー`, 5),
+      braveWebSearch(`${company.name} Google評価 クチコミ`, 3),
+      braveWebSearch(`${company.name} 転職 社員 評判`, 3),
+      // 業界ポジション
+      braveWebSearch(`${industryQuery} ${company.prefecture || ''} 企業 シェア 占有率`, 5),
     ]
 
-    const searchResults: any[] = []
-    for (const q of queries) {
-      const results = await braveWebSearch(q, 5)
-      searchResults.push(...results)
-    }
+    const searchResults = await Promise.all(searchPromises)
+    
+    // カテゴリ別に整理
+    const competitorResults = [...searchResults[0], ...searchResults[1]]
+    const strengthResults = [...searchResults[2], ...searchResults[3]]
+    const opportunityResults = [...searchResults[4], ...searchResults[5]]
+    const reputationResults = [...searchResults[6], ...searchResults[7], ...searchResults[8]]
+    const positionResults = searchResults[9]
 
     // 検索結果をテキストにまとめる
-    const searchText = searchResults
-      .slice(0, 10)
-      .map((r: any) => `${r.title || ''}\n${r.description || ''}`)
-      .join('\n\n')
+    const formatResults = (results: any[]) => results
+      .slice(0, 8)
+      .map((r: any) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
+      .join('\n')
 
     const companyInfo = `
+【企業基本情報】
 会社名: ${company.name}
 業種: ${company.industry || '不明'}
+所在地: ${company.prefecture || '不明'}
+従業員数: ${company.employee_count || '不明'}
+売上規模: ${company.annual_revenue || '不明'}
 事業内容: ${company.business_description || '不明'}
+Webサイト: ${company.website || 'なし'}
 取得情報: ${company.retrieved_info ? JSON.stringify(company.retrieved_info) : 'なし'}
-外部検索結果:
-${searchText}
+
+【競合・業界情報】
+${formatResults(competitorResults)}
+
+【強み・経営者情報】
+${formatResults(strengthResults)}
+
+【市場機会・取引先情報】
+${formatResults(opportunityResults)}
+
+【SNS・口コミ評判】
+${formatResults(reputationResults)}
+
+【業界ポジション情報】
+${formatResults(positionResults)}
 `.trim()
 
-    // AIでSWOT分析を実行
+    // AIで包括的なSWOT分析を実行
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json(
@@ -134,24 +193,59 @@ ${searchText}
       messages: [
         {
           role: "user",
-          content: `以下の会社情報と外部検索結果を基に、SWOT分析を行ってください。
+          content: `以下の企業情報と収集した外部情報を基に、包括的なSWOT分析を行ってください。
 
 ${companyInfo}
 
 【分析要件】
-- 強み: 会社の優位性、技術力、実績など
-- 弱み: 課題、不足している要素、改善点など
-- 機会: 市場の成長機会、新規事業の可能性など
-- 脅威: 競合、市場環境の変化、リスクなど
 
-各項目は2-3個の具体的な内容を抽出してください。`,
+1. 強み (Strengths) - 各3項目
+   - HPにおける社長・経営者の情報、企業理念、技術力から推定
+   - 実績、受賞歴、特許などの客観的根拠を含める
+   - 取引先に大手企業があれば強みとして記載
+
+2. 弱み (Weaknesses) - 各3項目
+   - 競合との比較における劣位点
+   - 口コミ・評判から見える課題
+   - 市場での認知度や規模の課題
+
+3. 機会 (Opportunities) - 各3項目
+   - 業界における需要動向と成長機会
+   - 取引先大手企業との取引拡大可能性
+   - 市場シェア拡大の余地
+
+4. 脅威 (Threats) - 各3項目
+   - 主要競合企業の動向
+   - 業界の構造変化リスク
+   - 経済環境・技術変化による影響
+
+5. 競合企業分析 - 主要3社
+   - 競合企業名と強み
+   - この企業との比較ポイント
+
+6. 業界内ポジション
+   - 業界内でのランキング・位置付け
+   - 推定市場シェア・占有率
+   - 差別化要因
+
+7. SNS/口コミ評判
+   - Google評価やSNSでの総合的な評判
+   - 良い評判（3つ）
+   - 改善点・ネガティブな評判（3つ）
+   - 情報源
+
+すべて日本語で、具体的な数値や固有名詞を含めて回答してください。`,
         },
       ],
     })
 
     return NextResponse.json({
       data: object,
-      sources: searchResults.slice(0, 5),
+      company: {
+        name: company.name,
+        industry: company.industry,
+        prefecture: company.prefecture,
+      },
       updatedAt: new Date().toISOString()
     })
 
@@ -166,4 +260,3 @@ ${companyInfo}
     )
   }
 }
-
