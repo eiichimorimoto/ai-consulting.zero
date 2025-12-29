@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { Footer } from './footer'
 
-// ログイン後のページ用の細いフッター（copyrightのみ）
+// アプリ部分用のシンプルフッター（コピーライトのみ）
 function MinimalFooter() {
   return (
     <footer className="bg-white border-t border-gray-200">
@@ -18,16 +18,21 @@ function MinimalFooter() {
 
 export default function ConditionalFooter() {
   const pathname = usePathname()
-  const isAuthPage = pathname?.startsWith('/auth')
-  const isDashboardPage = pathname?.startsWith('/dashboard')
   
-  // ログイン後のページ（ダッシュボード、プロフィール登録完了後など）では細いフッターを表示
-  if (isDashboardPage || (isAuthPage && pathname === '/auth/complete-profile')) {
-    return <MinimalFooter />
+  // LP部分（トップページ、料金、お問い合わせ、法的ページなど）
+  const isLPPage = 
+    pathname === '/' ||
+    pathname === '/pricing' ||
+    pathname === '/contact' ||
+    pathname?.startsWith('/legal')
+  
+  // LP部分では通常のフッター（リンク付き）を表示
+  if (isLPPage) {
+    return <Footer />
   }
   
-  // その他のページ（LP、認証ページなど）では通常のフッターを表示
-  return <Footer />
+  // アプリ部分（登録以降: ダッシュボード、診断、認証関連など）ではシンプルフッター
+  return <MinimalFooter />
 }
 
 

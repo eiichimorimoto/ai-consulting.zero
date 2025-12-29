@@ -4,6 +4,7 @@ import { generateObject } from "ai"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
 import { convertPdfBufferToPngBuffer } from "@/lib/ocr/pdf-to-png"
+import { checkOCRResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
 
@@ -194,8 +195,27 @@ export async function POST(request: Request) {
         personNameKana: object.personNameKana,
       }
 
-      // 結果を返す（テストスクリプトと同じ形式）
-      return NextResponse.json({ data: ocrResult })
+      // ファクトチェックを実行
+      const factCheckResult = checkOCRResult({
+        companyName: ocrResult.companyName,
+        personName: ocrResult.personName,
+        email: ocrResult.email,
+        phone: ocrResult.phone,
+        mobile: ocrResult.mobile,
+        address: ocrResult.address,
+        postalCode: ocrResult.postalCode,
+        department: ocrResult.department,
+        position: ocrResult.position,
+        website: ocrResult.website,
+      })
+
+      console.log("📋 ファクトチェック結果:", JSON.stringify(factCheckResult, null, 2))
+
+      // 結果を返す（ファクトチェック結果を含む）
+      return NextResponse.json({ 
+        data: ocrResult,
+        factCheck: factCheckResult
+      })
     } catch (claudeError) {
       console.error("❌ Claude API error:", claudeError)
       console.error("❌ Error type:", typeof claudeError)

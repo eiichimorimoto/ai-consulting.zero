@@ -290,7 +290,7 @@ export default function WebsiteAnalysisPage() {
             </div>
           )}
 
-          {/* Ready to Analyze - ボタン表示 */}
+          {/* Ready to Analyze - ボタン表示（結果がない時） */}
           {!isLoading && !error && !result && !isAnalyzing && companyUrl && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
               <Globe className="w-16 h-16 text-blue-600 mx-auto mb-4" />
@@ -301,9 +301,9 @@ export default function WebsiteAnalysisPage() {
               </p>
               <button
                 onClick={runAnalysis}
-                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
               >
-                <Play className="w-6 h-6" />
+                <Play className="w-4 h-4" />
                 Webサイト分析を開始
               </button>
             </div>
@@ -321,23 +321,27 @@ export default function WebsiteAnalysisPage() {
             </div>
           )}
 
-          {/* Results */}
+          {/* Results - 結果がある時も同じページに表示 */}
           {result && !isAnalyzing && (
             <div className="space-y-6">
+              {/* 再分析ボタン（結果の上に小さく表示） */}
+              <div className="flex justify-end">
+                <button
+                  onClick={runAnalysis}
+                  disabled={isAnalyzing}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                  再分析
+                </button>
+              </div>
+
               {/* Overall Score */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-gray-900">診断結果</h2>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-gray-500">{result.url}</span>
-                    <button
-                      onClick={runAnalysis}
-                      disabled={isAnalyzing}
-                      className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                      再分析
-                    </button>
                   </div>
                 </div>
                 <div className="flex items-center gap-8">

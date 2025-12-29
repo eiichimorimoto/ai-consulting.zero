@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { checkAIResult } from '@/lib/fact-checker';
 
 // PageSpeed Insights APIを使用してサイトを分析
 async function analyzeWithPageSpeed(url: string) {
@@ -153,6 +154,21 @@ export async function POST(request: Request) {
     // レポートIDを生成（一時的なもの、登録後に正式なものに置き換え）
     const reportId = `preview-${Date.now()}`;
 
+    // ファクトチェックを実行
+    const factCheckResult = checkAIResult({
+      scores: {
+        overall: result.overallScore,
+        mobile: metrics.mobileScore,
+        desktop: metrics.desktopScore,
+        seo: metrics.seoScore,
+        accessibility: metrics.accessibilityScore,
+      },
+      issues: result.topIssues,
+      metrics: metrics,
+    });
+
+    console.log("📋 AI診断ファクトチェック結果:", JSON.stringify(factCheckResult, null, 2));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -161,6 +177,7 @@ export async function POST(request: Request) {
         metrics,
         url,
       },
+      factCheck: factCheckResult,
     });
 
   } catch (error: any) {
@@ -171,4 +188,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
 

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
+import { checkDBUpdate } from "@/lib/fact-checker"
 
 // Service Roleキーを使用してRLSをバイパスするクライアントを作成
 function createServiceRoleClient() {
@@ -216,6 +217,19 @@ export async function POST(request: Request) {
 
     console.log("✅ [create-profile API] Profile created successfully:", profile)
 
+    // ファクトチェックを実行（DB更新）
+    const factCheckResult = checkDBUpdate({
+      operation: 'insert',
+      table: 'profiles',
+      fields: {
+        user_id: userId,
+        name: userName,
+        email: userEmail,
+      },
+    })
+
+    console.log("📋 プロファイル作成ファクトチェック:", JSON.stringify(factCheckResult, null, 2))
+
     // サブスクリプションも確認・作成
     const { data: existingSub } = await supabase
       .from("subscriptions")
@@ -239,7 +253,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { message: "プロファイルを作成しました", profile },
+      { 
+        message: "プロファイルを作成しました", 
+        profile,
+        factCheck: factCheckResult
+      },
       { status: 201 }
     )
   } catch (error) {

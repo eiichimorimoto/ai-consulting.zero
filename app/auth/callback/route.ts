@@ -54,9 +54,17 @@ export async function GET(request: Request) {
     // #endregion
     
     // エラーの種類によってリダイレクト先を決定
-    if (urlError === 'access_denied' || errorDescription?.includes('expired') || errorDescription?.includes('invalid')) {
-      console.warn('[auth/callback] Code expired or invalid, redirecting to login')
-      return NextResponse.redirect(new URL("/auth/login", request.url))
+    if (errorDescription?.includes('expired') || errorDescription?.includes('flow')) {
+      console.warn('[auth/callback] Flow expired, redirecting to error page')
+      return NextResponse.redirect(new URL("/auth/error?error=flow_expired", request.url))
+    }
+    if (urlError === 'access_denied') {
+      console.warn('[auth/callback] Access denied, redirecting to error page')
+      return NextResponse.redirect(new URL("/auth/error?error=access_denied", request.url))
+    }
+    if (errorDescription?.includes('invalid')) {
+      console.warn('[auth/callback] Invalid code, redirecting to error page')
+      return NextResponse.redirect(new URL("/auth/error?error=invalid_code", request.url))
     }
   }
   
@@ -104,17 +112,23 @@ export async function GET(request: Request) {
     })
     
     // エラーの種類によってリダイレクト先を決定
-    // codeが無効または期限切れの場合、ログインページにリダイレクト
-    // ただし、新規登録のメール確認の場合、プロフィール画面に遷移させる
     const errorMessage = error.message.toLowerCase()
-    if (errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('code')) {
-      console.warn('[auth/callback] Code expired or invalid, redirecting to login')
-      return NextResponse.redirect(new URL("/auth/login", request.url))
+    
+    // フロー状態期限切れの場合、エラーページに遷移（再送信オプション付き）
+    if (errorMessage.includes('flow state') || errorMessage.includes('expired')) {
+      console.warn('[auth/callback] Flow state expired, redirecting to error page')
+      return NextResponse.redirect(new URL("/auth/error?error=flow_expired", request.url))
     }
     
-    // その他のエラーの場合もログインページにリダイレクト
-    console.warn('[auth/callback] Unknown error, redirecting to login')
-    return NextResponse.redirect(new URL("/auth/login", request.url))
+    // codeが無効の場合
+    if (errorMessage.includes('invalid') || errorMessage.includes('code')) {
+      console.warn('[auth/callback] Code invalid, redirecting to error page')
+      return NextResponse.redirect(new URL("/auth/error?error=invalid_code", request.url))
+    }
+    
+    // その他のエラーの場合
+    console.warn('[auth/callback] Unknown error, redirecting to error page')
+    return NextResponse.redirect(new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, request.url))
   }
 
   // セッション交換成功

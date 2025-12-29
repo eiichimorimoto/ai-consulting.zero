@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
+import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
 
@@ -235,13 +236,26 @@ ${searchContext}
       ],
     })
 
+    // ファクトチェックを実行（AI生成業界予測結果）
+    const factCheckResult = checkAIResult({
+      content: JSON.stringify(object),
+      issues: (object.forecasts || []).map((f: any) => ({
+        severity: f.confidence === 'high' ? 'info' : f.confidence === 'medium' ? 'warning' : 'error',
+        issue: f.title || f.description || '',
+        category: f.category || 'forecast'
+      })),
+    })
+
+    console.log("📋 業界予測ファクトチェック:", JSON.stringify(factCheckResult, null, 2))
+
     return NextResponse.json({
       data: object,
       company: {
         name: companyName,
         industry: industryQuery,
       },
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      factCheck: factCheckResult
     })
 
   } catch (error) {

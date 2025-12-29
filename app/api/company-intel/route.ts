@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import OpenAI from "openai"
 import { convertPdfBufferToPngBuffer } from "@/lib/ocr/pdf-to-png"
+import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
 
@@ -1292,6 +1293,45 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       ...(parsed.extraBullets || []),
     ].filter(Boolean).slice(0, 12)
 
+    // ファクトチェックを実行（AI結果 + 検索結果）
+    const aiFactCheck = checkAIResult({
+      content: JSON.stringify(parsed),
+      issues: (parsed.extraBullets || []).map((bullet: string) => ({
+        severity: 'info',
+        issue: bullet,
+        category: 'company-intel'
+      })),
+    })
+
+    // 検索結果のソース情報を収集
+    const searchSources: { url: string; title: string }[] = []
+    if (externalMeta?.sources) {
+      externalMeta.sources.forEach((s: any) => {
+        if (s.url) searchSources.push({ url: s.url, title: s.title || '' })
+      })
+    }
+    
+    const searchFactCheck = checkSearchResult({
+      sources: searchSources,
+      query: companyNameGuess || normalizedUrl
+    })
+
+    // 総合ファクトチェック結果
+    const factCheckResult = {
+      ai: aiFactCheck,
+      search: searchFactCheck,
+      overall: {
+        passed: aiFactCheck.passed && searchFactCheck.passed,
+        confidence: Math.round((aiFactCheck.confidence + searchFactCheck.confidence) / 2),
+        level: aiFactCheck.confidence >= 75 && searchFactCheck.confidence >= 75 ? 'high' :
+               aiFactCheck.confidence >= 50 && searchFactCheck.confidence >= 50 ? 'medium' : 'low',
+        summary: `AI結果: ${aiFactCheck.summary}, 検索結果: ${searchFactCheck.summary}`
+      },
+      timestamp: new Date().toISOString()
+    }
+
+    console.log("📋 企業情報ファクトチェック:", JSON.stringify(factCheckResult.overall, null, 2))
+
     return NextResponse.json({
       data: parsed,
       meta: {
@@ -1306,6 +1346,7 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
         revenueOku,
         employeesN,
       },
+      factCheck: factCheckResult,
     })
   } catch (error) {
     console.error("company-intel API error:", error)

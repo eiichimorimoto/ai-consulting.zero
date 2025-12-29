@@ -37,3 +37,4 @@ CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
 COMMENT ON TABLE diagnosis_previews IS 'ランディングページからの無料診断結果';
 COMMENT ON TABLE leads IS 'リード（見込み客）情報';
 
+
