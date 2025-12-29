@@ -400,10 +400,23 @@ export function checkAIResult(data: {
 
     // 課題の具体性チェック
     checkCount++
-    const vagueIssues = data.issues.filter(i => 
-      i.issue.length < 10 || 
-      ['問題', '課題', 'エラー', 'issues'].some(v => i.issue.toLowerCase() === v)
-    )
+    const vagueIssues = data.issues.filter((i: string | { issue?: string; description?: string; text?: string }) => {
+      // issueテキストを取得
+      let issueText = ''
+      if (typeof i === 'string') {
+        issueText = i
+      } else if (i.issue) {
+        issueText = String(i.issue)
+      } else if (i.description) {
+        issueText = String(i.description)
+      } else if (i.text) {
+        issueText = String(i.text)
+      } else {
+        issueText = JSON.stringify(i)
+      }
+      return issueText.length < 10 || 
+        ['問題', '課題', 'エラー', 'issues'].some(v => issueText.toLowerCase() === v)
+    })
 
     if (vagueIssues.length === 0) {
       totalScore += 100

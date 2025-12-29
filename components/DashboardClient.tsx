@@ -341,18 +341,80 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
   }
 
-  // 初回データ取得（ログイン後の初回セッションのみ）
+  // セッションストレージのキー
+  const SESSION_KEY = `dashboard_data_${profile?.id || 'guest'}`
+  const SESSION_INITIALIZED_KEY = `dashboard_initialized_${profile?.id || 'guest'}`
+
+  // キャッシュからデータを復元（全データが揃っている場合のみ成功）
+  const restoreFromCache = () => {
+    try {
+      const cached = sessionStorage.getItem(SESSION_KEY)
+      if (cached) {
+        const data = JSON.parse(cached)
+        // 全ての主要データが存在するかチェック
+        const hasAllData = data.marketData && 
+                          data.industryTrends && 
+                          data.swotAnalysis && 
+                          data.worldNews && 
+                          data.industryForecast
+        
+        if (!hasAllData) {
+          console.log('キャッシュが不完全なため、全データを再取得します')
+          return false
+        }
+        
+        setMarketData(data.marketData)
+        setIndustryTrends(data.industryTrends)
+        setSwotAnalysis(data.swotAnalysis)
+        setWorldNews(data.worldNews)
+        setIndustryForecast(data.industryForecast)
+        if (data.lastUpdated) setLastUpdated(data.lastUpdated)
+        console.log('キャッシュからデータを復元しました')
+        return true
+      }
+    } catch (e) {
+      console.error('Failed to restore cache:', e)
+    }
+    return false
+  }
+
+  // データをキャッシュに保存
+  const saveToCache = () => {
+    try {
+      const data = {
+        marketData,
+        industryTrends,
+        swotAnalysis,
+        worldNews,
+        industryForecast,
+        lastUpdated,
+        savedAt: Date.now()
+      }
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(data))
+    } catch (e) {
+      console.error('Failed to save cache:', e)
+    }
+  }
+
+  // データ変更時にキャッシュを更新
+  useEffect(() => {
+    if (marketData || industryTrends || swotAnalysis || worldNews || industryForecast) {
+      saveToCache()
+    }
+  }, [marketData, industryTrends, swotAnalysis, worldNews, industryForecast])
+
+  // 初回データ取得（ログイン後の初回セッションのみ全データ取得）
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
         
         // セッションで初回かどうかをチェック
-        const sessionKey = `dashboard_initialized_${profile?.id || 'guest'}`
-        const isFirstLoad = !sessionStorage.getItem(sessionKey)
+        const isFirstLoad = !sessionStorage.getItem(SESSION_INITIALIZED_KEY)
         
-        if (isFirstLoad) {
-          // 初回ログイン時は全データを取得
+        // 全データを取得する関数
+        const fetchAllData = async () => {
+          console.log('全データを取得中...')
           await Promise.all([
             fetchSectionData('market'),
             fetchSectionData('local-info', true),
@@ -361,11 +423,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
             fetchSectionData('world-news'),
             fetchSectionData('industry-forecast'),
           ])
+        }
+        
+        if (isFirstLoad) {
+          // 初回ログイン時は全データを取得
+          await fetchAllData()
           // 初回フラグをセット
-          sessionStorage.setItem(sessionKey, Date.now().toString())
+          sessionStorage.setItem(SESSION_INITIALIZED_KEY, Date.now().toString())
         } else {
-          // 初回以降はエリア情報のみ自動更新
-          await fetchSectionData('local-info', true)
+          // 初回以降はキャッシュからデータを復元
+          const restored = restoreFromCache()
+          if (!restored) {
+            // キャッシュがない・不完全な場合は全データを取得
+            await fetchAllData()
+          } else {
+            // キャッシュがある場合はエリア情報のみ更新
+            await fetchSectionData('local-info', true)
+          }
         }
       } catch (error) {
         console.error('Dashboard data fetch error:', error)
