@@ -35,9 +35,9 @@ interface SettingsContentProps {
   subscription: any
 }
 
-export default function SettingsContent({ user, profile, company, subscription }: SettingsContentProps) {
+export default function SettingsContent({ user, profile, company, subscription, initialTab }: SettingsContentProps & { initialTab?: string }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('account')
+  const [activeTab, setActiveTab] = useState(initialTab || 'account')
   const [isLoading, setIsLoading] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
