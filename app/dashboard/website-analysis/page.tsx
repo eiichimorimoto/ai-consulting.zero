@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Globe, Loader2, ArrowLeft, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap, RefreshCw, Play } from 'lucide-react'
+import { Globe, Loader2, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap, RefreshCw, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import '../dashboard.css'
 
 interface DiagnosisResult {
   overallScore: number
@@ -189,81 +186,29 @@ export default function WebsiteAnalysisPage() {
   }
 
   return (
-    <div className="dashboard">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <Link href="/" className="logo">
-            <Image
-              src="/info-data/AI-LOGO007.png"
-              alt="SolveWise"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-            />
-            <span className="logo-text">SolveWise</span>
-          </Link>
-        </div>
-        <nav className="sidebar-nav">
-          <div className="nav-section">
-            <div className="nav-section-title">メイン</div>
-            <Link href="/dashboard" className="nav-item">
-              <svg className="nav-icon" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-              ダッシュボード
-            </Link>
-          </div>
-          <div className="nav-section">
-            <div className="nav-section-title">分析</div>
-            <a className="nav-item active" onClick={() => router.push('/dashboard/website-analysis')}>
-              <svg className="nav-icon" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-              Webサイト分析
-            </a>
-          </div>
-          <div className="nav-section">
-            <div className="nav-section-title">設定</div>
-            <Link href="/dashboard/settings" className="nav-item">
-              <svg className="nav-icon" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-              </svg>
-              アカウント設定
-            </Link>
-          </div>
-        </nav>
-      </aside>
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* ヘッダーはConditionalHeaderで表示 */}
+      
       {/* Main Content */}
-      <main className="main-content">
-        <div className="p-6 max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Webサイト分析</h1>
-                {companyName && companyUrl && (
-                  <p className="text-gray-600 text-sm">
-                    {companyName} - <a href={companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{companyUrl}</a>
-                  </p>
-                )}
-              </div>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* ページタイトル */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+              <Globe className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Webサイト分析</h1>
+              {companyName && companyUrl && (
+                <p className="text-gray-600 text-sm">
+                  {companyName} - <a href={companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{companyUrl}</a>
+                </p>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Loading State */}
+        {/* Loading State */}
           {isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
@@ -496,7 +441,6 @@ export default function WebsiteAnalysisPage() {
               </div>
             </div>
           )}
-        </div>
       </main>
     </div>
   )

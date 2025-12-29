@@ -334,6 +334,65 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
   // ファクトチェックを実行
   const verifiedResults = await factCheckSearchResults(searchResults, query, 'weather')
   
+  // 異常気象・気象警報を検索
+  const alertQuery = `${area} 気象警報 注意報 ${loginDate.getMonth() + 1}月`
+  const alertResults = await braveWebSearch(alertQuery, 5)
+  
+  // 異常気象アラートを抽出
+  const alerts: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[] = []
+  const alertKeywords = {
+    extreme: ['特別警報', '大雨特別警報', '暴風特別警報', '高潮特別警報', '大雪特別警報', '緊急'],
+    severe: ['警報', '暴風警報', '大雨警報', '洪水警報', '大雪警報', '高潮警報', '波浪警報'],
+    warning: ['注意報', '強風注意報', '大雨注意報', '雷注意報', '乾燥注意報', '霜注意報', '着雪注意報', '融雪注意報', '濃霧注意報', '低温注意報', '高温注意報']
+  }
+  
+  for (const result of alertResults) {
+    const text = `${result.title} ${result.description}`.toLowerCase()
+    
+    // 特別警報チェック
+    for (const keyword of alertKeywords.extreme) {
+      if (text.includes(keyword.toLowerCase())) {
+        alerts.push({
+          type: 'extreme',
+          title: `🚨 ${keyword}発令中`,
+          description: result.description?.slice(0, 100) || result.title,
+          severity: 'extreme'
+        })
+        break
+      }
+    }
+    
+    // 警報チェック
+    if (alerts.length === 0) {
+      for (const keyword of alertKeywords.severe) {
+        if (text.includes(keyword.toLowerCase())) {
+          alerts.push({
+            type: 'severe',
+            title: `⚠️ ${keyword}発令中`,
+            description: result.description?.slice(0, 100) || result.title,
+            severity: 'severe'
+          })
+          break
+        }
+      }
+    }
+    
+    // 注意報チェック
+    if (alerts.length === 0) {
+      for (const keyword of alertKeywords.warning) {
+        if (text.includes(keyword.toLowerCase())) {
+          alerts.push({
+            type: 'warning',
+            title: `ℹ️ ${keyword}発令中`,
+            description: result.description?.slice(0, 100) || result.title,
+            severity: 'warning'
+          })
+          break
+        }
+      }
+    }
+  }
+  
   // 週間天気データを生成（ログイン日を含む1週間）
   const weekDays = ['日', '月', '火', '水', '木', '金', '土']
   const weekWeather = []
@@ -349,19 +408,35 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
       temp: 8 + Math.random() * 5
     })
   }
+  
+  // 現在の天気説明（警報がある場合は反映）
+  let currentDesc = '晴れ / 配送影響なし'
+  if (alerts.length > 0) {
+    if (alerts[0].severity === 'extreme') {
+      currentDesc = '⚠️ 異常気象 / 配送に影響あり'
+    } else if (alerts[0].severity === 'severe') {
+      currentDesc = '注意 / 配送遅延の可能性'
+    } else {
+      currentDesc = '晴れ / 一部注意報あり'
+    }
+  }
 
   return {
     current: {
       temp: 8,
-      icon: '☀️',
-      desc: '晴れ / 配送影響なし'
+      icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : alerts.length > 0 && alerts[0].severity === 'severe' ? '⛈️' : '☀️',
+      desc: currentDesc
     },
     week: weekWeather,
+    alerts: alerts.slice(0, 3), // 最大3件まで
     _debug: {
       searchQuery: query,
+      alertQuery: alertQuery,
       resultCount: searchResults.length,
+      alertResultCount: alertResults.length,
       verifiedCount: verifiedResults.length,
-      searchResults: verifiedResults
+      searchResults: verifiedResults,
+      alertsFound: alerts.length
     }
   }
 }

@@ -67,6 +67,7 @@ interface LocalInfo {
   weather: {
     current: { temp: number; icon: string; desc: string }
     week: { day: string; date: string; icon: string; temp: number }[]
+    alerts?: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[]
   }
   traffic: { title: string; url: string; description: string; status: string }[]
   logistics?: { title: string; url: string; description: string; category: string; status: string }[]
@@ -340,21 +341,32 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
   }
 
-  // 初回データ取得（ページロード時のみ）
+  // 初回データ取得（ログイン後の初回セッションのみ）
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
         
-        // 並列でデータを取得（初回のみ）
-        await Promise.all([
-          fetchSectionData('market'),
-          fetchSectionData('local-info', true), // エリア情報は常に最新を取得
-          fetchSectionData('industry-trends'),
-          fetchSectionData('swot-analysis'),
-          fetchSectionData('world-news'),
-          fetchSectionData('industry-forecast'),
-        ])
+        // セッションで初回かどうかをチェック
+        const sessionKey = `dashboard_initialized_${profile?.id || 'guest'}`
+        const isFirstLoad = !sessionStorage.getItem(sessionKey)
+        
+        if (isFirstLoad) {
+          // 初回ログイン時は全データを取得
+          await Promise.all([
+            fetchSectionData('market'),
+            fetchSectionData('local-info', true),
+            fetchSectionData('industry-trends'),
+            fetchSectionData('swot-analysis'),
+            fetchSectionData('world-news'),
+            fetchSectionData('industry-forecast'),
+          ])
+          // 初回フラグをセット
+          sessionStorage.setItem(sessionKey, Date.now().toString())
+        } else {
+          // 初回以降はエリア情報のみ自動更新
+          await fetchSectionData('local-info', true)
+        }
       } catch (error) {
         console.error('Dashboard data fetch error:', error)
       } finally {
@@ -363,7 +375,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
 
     fetchDashboardData()
-  }, [])
+  }, [profile?.id])
 
   // 画面がアクティブになったときにエリア情報を更新
   useEffect(() => {
@@ -611,7 +623,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
             {/* アップグレードボタン（フリープラン・ベーシックプランの場合表示） */}
             {subscription?.plan !== 'pro' && (
               <button
-                onClick={() => router.push('/pricing')}
+                onClick={() => router.push('/dashboard/settings?tab=plan')}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -1247,6 +1259,51 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </>
                     )}
                   </div>
+                  {/* 異常気象アラート */}
+                  {localInfo?.weather?.alerts && localInfo.weather.alerts.length > 0 && (
+                    <div style={{ 
+                      marginTop: '10px', 
+                      padding: '8px 10px', 
+                      background: localInfo.weather.alerts[0].severity === 'extreme' 
+                        ? 'rgba(239, 68, 68, 0.15)' 
+                        : localInfo.weather.alerts[0].severity === 'severe'
+                        ? 'rgba(245, 158, 11, 0.15)'
+                        : 'rgba(59, 130, 246, 0.15)',
+                      borderRadius: '6px',
+                      borderLeft: `3px solid ${
+                        localInfo.weather.alerts[0].severity === 'extreme' 
+                          ? '#ef4444' 
+                          : localInfo.weather.alerts[0].severity === 'severe'
+                          ? '#f59e0b'
+                          : '#3b82f6'
+                      }`
+                    }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        marginBottom: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: localInfo.weather.alerts[0].severity === 'extreme' 
+                          ? '#ef4444' 
+                          : localInfo.weather.alerts[0].severity === 'severe'
+                          ? '#f59e0b'
+                          : '#3b82f6'
+                      }}>
+                        <span>{localInfo.weather.alerts[0].severity === 'extreme' ? '🚨' : localInfo.weather.alerts[0].severity === 'severe' ? '⚠️' : 'ℹ️'}</span>
+                        {localInfo.weather.alerts[0].title}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        {localInfo.weather.alerts[0].description}
+                      </div>
+                      {localInfo.weather.alerts.length > 1 && (
+                        <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '4px' }}>
+                          +{localInfo.weather.alerts.length - 1}件の気象警報
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
               </div>

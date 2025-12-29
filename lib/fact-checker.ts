@@ -367,7 +367,14 @@ export function checkAIResult(data: {
   // 課題の重複チェック
   if (data.issues && data.issues.length > 0) {
     checkCount++
-    const issueTexts = data.issues.map(i => i.issue.toLowerCase())
+    // issuesが文字列配列またはオブジェクト配列に対応
+    const issueTexts = data.issues.map((i: string | { issue?: string; description?: string; text?: string }) => {
+      if (typeof i === 'string') return i.toLowerCase()
+      if (i.issue) return String(i.issue).toLowerCase()
+      if (i.description) return String(i.description).toLowerCase()
+      if (i.text) return String(i.text).toLowerCase()
+      return JSON.stringify(i).toLowerCase()
+    })
     const uniqueIssues = new Set(issueTexts)
 
     if (uniqueIssues.size === issueTexts.length) {
