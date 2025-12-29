@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
+import { checkAIResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
 
@@ -239,6 +240,19 @@ ${companyInfo}
       ],
     })
 
+    // ファクトチェックを実行（AI生成SWOT分析結果）
+    const factCheckResult = checkAIResult({
+      content: JSON.stringify(object),
+      issues: [
+        ...(object.strengths || []).map((s: any) => ({ severity: 'info', issue: s.title || s, category: 'strength' })),
+        ...(object.weaknesses || []).map((w: any) => ({ severity: 'warning', issue: w.title || w, category: 'weakness' })),
+        ...(object.opportunities || []).map((o: any) => ({ severity: 'info', issue: o.title || o, category: 'opportunity' })),
+        ...(object.threats || []).map((t: any) => ({ severity: 'warning', issue: t.title || t, category: 'threat' })),
+      ],
+    })
+
+    console.log("📋 SWOT分析ファクトチェック:", JSON.stringify(factCheckResult, null, 2))
+
     return NextResponse.json({
       data: object,
       company: {
@@ -246,7 +260,8 @@ ${companyInfo}
         industry: company.industry,
         prefecture: company.prefecture,
       },
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      factCheck: factCheckResult
     })
 
   } catch (error) {
