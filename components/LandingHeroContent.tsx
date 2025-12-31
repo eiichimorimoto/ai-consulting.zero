@@ -2,15 +2,20 @@ import Link from "next/link";
 
 export default function LandingHeroContent() {
   const features = [
-    { title: "戦略立案", desc: "データ駆動型の意思決定" },
-    { title: "24時間対応", desc: "いつでも相談可能" },
-    { title: "実行支援", desc: "継続的なサポート" },
+    { title: "戦略立案", desc: "AIが、データ駆動型の意思決定を支援" },
+    { title: "24時間対応", desc: "AIが、いつでも相談に対応" },
+    { title: "実行支援", desc: "AIが、継続的にサポート" },
   ];
 
   return (
     <>
       {/* メインコンテンツ */}
       <div className="relative z-10 text-center">
+        {/* タグライン */}
+        <p className="text-sm md:text-base text-cyan-400/80 tracking-[0.3em] uppercase mb-6 font-medium">
+          中小企業のためのAI経営コンサルティング
+        </p>
+        
         {/* メインコピー */}
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tight mb-4 drop-shadow-[0_0_60px_rgba(6,182,212,0.3)]">
           Think Next.
@@ -18,7 +23,7 @@ export default function LandingHeroContent() {
 
         {/* サブコピー */}
         <p className="text-lg md:text-2xl text-white/80 mb-12">
-          大手だけの時代は、終わった
+          AIがあなたの経営参謀になる時代へ
         </p>
 
         {/* CTAボタン */}
