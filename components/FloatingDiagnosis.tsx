@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ChevronDown, Loader2, AlertTriangle, BarChart2 } from 'lucide-react';
+import { ChevronDown, Loader2, AlertTriangle, BarChart2, CheckCircle2, Circle } from 'lucide-react';
 
 interface DiagnosisResult {
   overallScore: number;
@@ -22,8 +22,54 @@ export default function FloatingDiagnosis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
+
+  // 分析ステップの定義
+  const analysisSteps = [
+    { label: 'サイトに接続中...', duration: 2000 },
+    { label: 'ページ構造を解析中...', duration: 3000 },
+    { label: 'パフォーマンスを測定中...', duration: 5000 },
+    { label: 'SEO要素をチェック中...', duration: 4000 },
+    { label: 'セキュリティを確認中...', duration: 3000 },
+    { label: 'AIが課題を分析中...', duration: 8000 },
+    { label: 'レポートを生成中...', duration: 3000 },
+  ];
+
+  // 分析中のステップ進行
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setCurrentStep(0);
+      return;
+    }
+
+    let stepIndex = 0;
+    const advanceStep = () => {
+      if (stepIndex < analysisSteps.length - 1) {
+        stepIndex++;
+        setCurrentStep(stepIndex);
+      }
+    };
+
+    // 各ステップの時間に応じて進行
+    const timers: NodeJS.Timeout[] = [];
+    let accumulatedTime = 0;
+    
+    analysisSteps.forEach((step, index) => {
+      if (index > 0) {
+        accumulatedTime += analysisSteps[index - 1].duration;
+        const timer = setTimeout(() => {
+          setCurrentStep(index);
+        }, accumulatedTime);
+        timers.push(timer);
+      }
+    });
+
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, [isAnalyzing]);
 
   // ダッシュボード、認証ページ、診断ページでは非表示
   const hiddenPaths = ['/dashboard', '/auth/', '/diagnosis/'];
@@ -159,11 +205,52 @@ export default function FloatingDiagnosis() {
               </div>
 
               {isAnalyzing && (
-                <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-red-500 to-red-600 animate-pulse" style={{ width: '60%' }}></div>
+                <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                  {/* 進捗バー */}
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-3">
+                    <div 
+                      className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-1000 ease-out"
+                      style={{ width: `${Math.min(95, ((currentStep + 1) / analysisSteps.length) * 100)}%` }}
+                    />
                   </div>
-                  <p className="text-gray-500 text-xs mt-1 text-center">分析中...（約30秒）</p>
+                  
+                  {/* 進捗ステップリスト */}
+                  <div className="space-y-1.5">
+                    {analysisSteps.map((step, index) => (
+                      <div 
+                        key={index}
+                        className={`flex items-center gap-2 text-xs transition-all duration-300 ${
+                          index < currentStep 
+                            ? 'text-green-600' 
+                            : index === currentStep 
+                              ? 'text-red-600 font-medium' 
+                              : 'text-gray-300'
+                        }`}
+                      >
+                        {index < currentStep ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                        ) : index === currentStep ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500 flex-shrink-0" />
+                        ) : (
+                          <Circle className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                        )}
+                        <span>{step.label}</span>
+                        {index === currentStep && (
+                          <span className="ml-auto text-[10px] text-gray-400 animate-pulse">実行中</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 推定残り時間 */}
+                  <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                    <span className="text-[10px] text-gray-400">
+                      ステップ {currentStep + 1} / {analysisSteps.length}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-medium">
+                      約{Math.max(5, 30 - currentStep * 4)}秒
+                    </span>
+                  </div>
                 </div>
               )}
 

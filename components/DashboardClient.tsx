@@ -342,9 +342,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
   }
 
-  // セッションストレージのキー（v5: タイムスケジュール追加）
-  const SESSION_KEY = `dashboard_data_v5_${profile?.id || 'guest'}`
-  const SESSION_INITIALIZED_KEY = `dashboard_initialized_v5_${profile?.id || 'guest'}`
+  // セッションストレージのキー（v9: ログアウトまでキャッシュ保持、自動更新なし）
+  const SESSION_KEY = `dashboard_data_v9_${profile?.id || 'guest'}`
+  const SESSION_INITIALIZED_KEY = `dashboard_initialized_v9_${profile?.id || 'guest'}`
 
   // キャッシュからデータを復元（全データが揃っている場合のみ成功）
   const restoreFromCache = () => {
@@ -352,8 +352,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
       const cached = sessionStorage.getItem(SESSION_KEY)
       if (cached) {
         const data = JSON.parse(cached)
-        // 全ての主要データが存在するかチェック
+        // 全ての主要データが存在するかチェック（localInfoも含む）
         const hasAllData = data.marketData && 
+                          data.localInfo &&
                           data.industryTrends && 
                           data.swotAnalysis && 
                           data.worldNews && 
@@ -365,12 +366,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         }
         
         setMarketData(data.marketData)
+        setLocalInfo(data.localInfo)
         setIndustryTrends(data.industryTrends)
         setSwotAnalysis(data.swotAnalysis)
         setWorldNews(data.worldNews)
         setIndustryForecast(data.industryForecast)
         if (data.lastUpdated) setLastUpdated(data.lastUpdated)
-        console.log('キャッシュからデータを復元しました')
+        console.log('✅ キャッシュからデータを復元しました（localInfo含む）')
         return true
       }
     } catch (e) {
@@ -379,11 +381,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     return false
   }
 
-  // データをキャッシュに保存
+  // データをキャッシュに保存（localInfoも含む）
   const saveToCache = () => {
     try {
       const data = {
         marketData,
+        localInfo,
         industryTrends,
         swotAnalysis,
         worldNews,
@@ -397,9 +400,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
   }
 
-  // データ変更時にキャッシュを更新
+  // データ変更時にキャッシュを更新（localInfoも含む）
   useEffect(() => {
-    if (marketData || industryTrends || swotAnalysis || worldNews || industryForecast) {
+    if (marketData || localInfo || industryTrends || swotAnalysis || worldNews || industryForecast) {
       saveToCache()
     }
   }, [marketData, industryTrends, swotAnalysis, worldNews, industryForecast])
@@ -428,19 +431,20 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         
         if (isFirstLoad) {
           // 初回ログイン時は全データを取得
+          console.log('🚀 初回ログイン: 全データを取得します')
           await fetchAllData()
           // 初回フラグをセット
           sessionStorage.setItem(SESSION_INITIALIZED_KEY, Date.now().toString())
         } else {
-          // 初回以降はキャッシュからデータを復元
+          // 初回以降はキャッシュからデータを復元（自動更新しない）
+          console.log('📦 キャッシュからデータを復元します（自動更新なし）')
           const restored = restoreFromCache()
           if (!restored) {
             // キャッシュがない・不完全な場合は全データを取得
+            console.log('⚠️ キャッシュが不完全なため、全データを取得します')
             await fetchAllData()
-          } else {
-            // キャッシュがある場合はエリア情報のみ更新
-            await fetchSectionData('local-info', true)
           }
+          // キャッシュがある場合は何もしない（手動更新のみ）
         }
       } catch (error) {
         console.error('Dashboard data fetch error:', error)
@@ -452,20 +456,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     fetchDashboardData()
   }, [profile?.id])
 
-  // 画面がアクティブになったときにエリア情報を更新
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !loading) {
-        // 画面がアクティブになったらエリア情報を更新
-        fetchSectionData('local-info', true)
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [loading])
+  // 画面がアクティブになったときの処理
+  // ※ 自動更新は行わない（ユーザー要望：ログアウトまでキャッシュを保持）
+  // 手動で更新ボタンをクリックした場合のみ更新される
 
   // 通知データの取得
   useEffect(() => {
@@ -1229,12 +1222,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             }}>
                               <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                                 {c.name}
+                                {c.unit && <span style={{ fontSize: '8px', marginLeft: '4px', color: 'var(--text-light)' }}>({c.unit})</span>}
                               </div>
                               <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
                                 {c.isJpy ? `¥${c.priceJpy?.toLocaleString()}` : `¥${c.priceJpy?.toLocaleString()}`}
                               </div>
                               <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '2px' }}>
-                                {!c.isJpy && `(${c.price} ${c.unit})`}
+                                {!c.isJpy && c.price && `(${c.price} ${c.unit})`}
                               </div>
                               <div style={{ 
                                 fontSize: '10px', 
@@ -1261,13 +1255,15 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               opacity: 0.7
                             }}>
                               <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                                {c.name} <span style={{ fontSize: '8px' }}>(参考値)</span>
+                                {c.name}
+                                {c.unit && <span style={{ fontSize: '8px', marginLeft: '4px', color: 'var(--text-light)' }}>({c.unit})</span>}
+                                <span style={{ fontSize: '8px', marginLeft: '4px' }}>(参考値)</span>
                               </div>
                               <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
                                 ¥{c.priceJpy?.toLocaleString()}
                               </div>
                               <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '2px' }}>
-                                {!c.isJpy && `(${c.price} ${c.unit})`}
+                                {!c.isJpy && c.price && `(${c.price} ${c.unit})`}
                               </div>
                               <div style={{ 
                                 fontSize: '10px', 
@@ -1401,7 +1397,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
                       </svg>
                     </div>
-                    <span className="local-title">労務費動向</span>
+                    <span className="local-title">人件費動向</span>
                   </div>
                   {/* メイン時給表示 + 説明 */}
                   <div style={{ 
@@ -1494,13 +1490,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>下限</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#0369a1' }}>
-                            {localInfo?.laborCosts?.comparison?.industryRange?.min?.toLocaleString() || '1,100'}円
+                            {localInfo?.laborCosts?.comparison?.industryHourlyRange?.min?.toLocaleString() || '1,100'}円
                           </div>
                         </div>
                         <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>上限</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#0369a1' }}>
-                            {localInfo?.laborCosts?.comparison?.industryRange?.max?.toLocaleString() || '1,600'}円
+                            {localInfo?.laborCosts?.comparison?.industryHourlyRange?.max?.toLocaleString() || '1,600'}円
                           </div>
                         </div>
                       </div>

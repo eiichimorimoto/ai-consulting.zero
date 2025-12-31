@@ -55,7 +55,7 @@ export default function CompleteProfilePage() {
     const raw = (fullAddress || "").replace(/[〒]/g, "").trim()
     if (!raw) return { prefecture: "", city: "", street: "" }
 
-    // 1) 郵便番号APIから確定できる都道府県/市区町村がある場合は、それを優先して“残り”を作る
+    // 1) 郵便番号APIから確定できる都道府県/市区町村がある場合は、それを優先して"残り"を作る
     if (prefecture && city && raw.startsWith(`${prefecture}${city}`)) {
       return { prefecture, city, street: raw.slice(`${prefecture}${city}`.length).trim() }
     }
@@ -66,7 +66,7 @@ export default function CompleteProfilePage() {
       }
     }
 
-    // 2) フォールバック: 住所文字列だけから推定（推測ではなく“単純分割”）
+    // 2) フォールバック: 住所文字列だけから推定（推測ではなく"単純分割"）
     const mPref = raw.match(/^(.*?[都道府県])/)
     const parsedPref = mPref?.[1] || ""
     const afterPref = parsedPref ? raw.slice(parsedPref.length) : raw
@@ -80,6 +80,81 @@ export default function CompleteProfilePage() {
       city: city || parsedCity,
       street: afterCity.trim(),
     }
+  }
+
+  /**
+   * DB保存直前に住所データを正規化する
+   * - prefecture/cityが空でaddressに都道府県・市区町村が含まれている場合は自動分割
+   * - 名刺OCR情報を優先し、郵便番号APIで補完
+   * - 優先順位: 1) 既存のprefecture/city 2) addressから抽出 3) 郵便番号APIから取得
+   */
+  const normalizeAddressForSave = async (data: typeof companyData): Promise<{
+    prefecture: string
+    city: string
+    address: string
+  }> => {
+    let { prefecture, city, address } = data
+    const postalCode = data.postalCode
+
+    console.log('📍 住所正規化開始:', { prefecture, city, address, postalCode })
+
+    // Step 1: prefecture/cityが空でaddressに都道府県・市区町村が含まれている場合
+    if ((!prefecture || !city) && address) {
+      const split = splitJapaneseAddressForCompanyForm(address, prefecture, city)
+      console.log('📝 addressから住所を分割:', split)
+      
+      if (!prefecture && split.prefecture) {
+        prefecture = split.prefecture
+      }
+      if (!city && split.city) {
+        city = split.city
+      }
+      // addressから県・市を除去して町名番地以下のみにする
+      if (split.street) {
+        address = split.street
+      }
+    }
+
+    // Step 2: まだ空の場合、郵便番号APIから取得を試みる
+    if ((!prefecture || !city) && postalCode) {
+      const cleanPostalCode = postalCode.replace(/[〒ー-]/g, '')
+      if (/^\d{7}$/.test(cleanPostalCode)) {
+        try {
+          console.log('📮 郵便番号APIから住所を補完:', cleanPostalCode)
+          const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
+          const response = await fetch(apiUrl)
+          const apiData = await response.json()
+          
+          if (apiData.status === 200 && apiData.results && apiData.results.length > 0) {
+            const result = apiData.results[0]
+            const apiPref = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
+            const apiCity = result.address2 || ''
+            
+            console.log('✅ 郵便番号APIから取得:', { apiPref, apiCity })
+            
+            if (!prefecture && apiPref) {
+              prefecture = apiPref
+            }
+            if (!city && apiCity) {
+              city = apiCity
+            }
+            
+            // addressから重複する県・市を除去
+            if (address && prefecture && address.startsWith(prefecture)) {
+              address = address.slice(prefecture.length).trim()
+            }
+            if (address && city && address.startsWith(city)) {
+              address = address.slice(city.length).trim()
+            }
+          }
+        } catch (error) {
+          console.error('❌ 郵便番号API補完エラー:', error)
+        }
+      }
+    }
+
+    console.log('✅ 住所正規化完了:', { prefecture, city, address })
+    return { prefecture, city, address }
   }
 
   const createPdfObjectUrlFromDataUrl = (dataUrl: string): string => {
@@ -1428,6 +1503,10 @@ export default function CompleteProfilePage() {
         // 会社を作成
         console.log('📝 新しい会社を作成します:', companyData.name)
         
+        // DB保存直前に住所を正規化（県・市・町名番地を適切に分割）
+        const normalizedAddress = await normalizeAddressForSave(companyData)
+        console.log('📍 正規化済み住所:', normalizedAddress)
+        
         const { data: newCompany, error: companyError } = await supabase
           .from('companies')
           .insert({
@@ -1439,9 +1518,9 @@ export default function CompleteProfilePage() {
             website: companyData.website || null,
             email: companyData.email || null,
             postal_code: companyData.postalCode || null,
-            prefecture: companyData.prefecture || null,
-            city: companyData.city || null,
-            address: companyData.address || null,
+            prefecture: normalizedAddress.prefecture || null,
+            city: normalizedAddress.city || null,
+            address: normalizedAddress.address || null,
             // Web検索から取得した追加フィールド
             established_date: companyData.establishedDate || null,
             representative_name: companyData.representativeName || null,
@@ -1528,6 +1607,10 @@ export default function CompleteProfilePage() {
           ? [...existingDocuments, ...documentPaths]
           : documentPaths
 
+        // DB保存直前に住所を正規化（県・市・町名番地を適切に分割）
+        const normalizedAddress = await normalizeAddressForSave(companyData)
+        console.log('📍 正規化済み住所（更新）:', normalizedAddress)
+
         const { error: updateError } = await supabase
           .from('companies')
           .update({
@@ -1539,9 +1622,9 @@ export default function CompleteProfilePage() {
             website: companyData.website || null,
             email: companyData.email || null,
             postal_code: companyData.postalCode || null,
-            prefecture: companyData.prefecture || null,
-            city: companyData.city || null,
-            address: companyData.address || null,
+            prefecture: normalizedAddress.prefecture || null,
+            city: normalizedAddress.city || null,
+            address: normalizedAddress.address || null,
             documents_urls: allDocuments.length > 0 ? allDocuments : null,
             // Web検索から取得した追加フィールド
             established_date: companyData.establishedDate || null,
