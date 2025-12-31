@@ -126,6 +126,9 @@ export async function GET(request: Request) {
           role: "user",
           content: `以下の企業情報と検索結果を基に、業界動向を分析してください。
 
+【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+※ 日付・期間を含む記載は本日を起点とすること
+
 【企業情報】
 会社名: ${company?.name || '不明'}
 業種: ${industry || '不明'}

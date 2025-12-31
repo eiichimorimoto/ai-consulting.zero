@@ -240,6 +240,9 @@ ${formatResults(positionResults)}
           role: "user",
           content: `以下の企業情報と収集した外部情報を基に、包括的なSWOT分析を行ってください。
 
+【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+※ 日付を含む記載は必ず本日以降の未来日を使用すること
+
 ${companyInfo}
 
 【分析要件】

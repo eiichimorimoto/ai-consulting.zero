@@ -6,6 +6,7 @@ import { z } from "zod"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
+export const maxDuration = 120 // 2分のタイムアウト
 
 const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
   const controller = new AbortController()
@@ -77,7 +78,7 @@ const forecastSchema = z.object({
     timing: z.string().describe("タイミング"),
     action: z.string().describe("推奨アクション"),
   })).describe("成長機会"),
-  recommendation: z.string().describe("経営への提言"),
+  recommendation: z.string().describe("経営への提言（必ず3項目、句点で区切る。形式：「①【カテゴリ】施策名と数値目標：期限と具体的効果」。例：「①【コスト】在庫20%削減：3月末までに運転資金500万円確保。②【売上】新規顧客5社開拓：上期中に年商10%増を目指す。③【効率】残業30%削減：4月から業務自動化で人件費年200万円圧縮」のような具体的数値必須）"),
 })
 
 export async function GET(request: Request) {
@@ -198,6 +199,8 @@ ${formatResults([...searchResults[8], ...searchResults[9]])}
           role: "user",
           content: `以下の企業「${companyName}」（${industryQuery || businessDesc}）の情報と収集した外部情報を基に、包括的な業界予測を行ってください。
 
+【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+
 ${searchContext}
 
 【分析要件】
@@ -227,8 +230,18 @@ ${searchContext}
 5. 成長機会（3つ）
    - タイミングと推奨アクション
 
-6. 経営への提言
-   - 具体的なアドバイス
+6. 経営への提言（必ず3項目、句点「。」で区切る）
+   - 形式：「①【カテゴリ】施策名と数値目標：期限と具体的金額効果」
+   - 必須要素：施策名、数値目標（%や件数）、期限（〇月まで、上期中など）、金額効果（〇万円、〇%増など）
+   - 抽象的な提言は禁止。「強化する」「検討する」ではなく「20%削減」「5社開拓」のような具体的数値で記載
+   - **期限は必ず本日の日付以降の未来日を設定すること**（例：本日が2024年12月なら「2025年3月」「2025年度上期」など）
+
+【重要な制約】
+- 公開情報のみに基づいて提言すること
+- 溶接作業、特定の製造工程など、確認できない具体的な作業内容は推測しない
+- 具体的な作業内容が不明な場合は「機械化」「自動化」「ロボット化」「DX推進」など汎用的な表現を使用
+- 企業の実態が確認できない事項は、業界一般の傾向として提言する
+- 期限・目標年度は本日の日付を基準に未来の日付を設定すること（過去の日付は禁止）
 
 すべて日本語で、${companyName}の事業に特化した内容で回答してください。
 数値や固有名詞を含め、具体的に記載してください。`,
