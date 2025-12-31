@@ -118,54 +118,115 @@ const MINIMUM_WAGE_2024: Record<string, number> = {
   '岩手': 952, '沖縄': 952,
 }
 
-// 業種別平均時給データ（2024年・求人サイト集計ベース）
+// 業種別賃金データ（2024年・厚生労働省 賃金構造基本統計調査ベース）
 // 出典: 厚生労働省 賃金構造基本統計調査、各種求人サイト統計
-const INDUSTRY_WAGE_DATA: Record<string, { average: number; range: { min: number; max: number }; trend: number }> = {
-  '製造業': { average: 1180, range: { min: 1000, max: 1500 }, trend: 2.8 },
-  '建設業': { average: 1350, range: { min: 1100, max: 1800 }, trend: 4.2 },
-  '情報通信業': { average: 1450, range: { min: 1200, max: 2000 }, trend: 5.1 },
-  'IT': { average: 1450, range: { min: 1200, max: 2000 }, trend: 5.1 },
-  '運輸業': { average: 1200, range: { min: 1000, max: 1500 }, trend: 3.5 },
-  '物流': { average: 1200, range: { min: 1000, max: 1500 }, trend: 3.5 },
-  '卸売業': { average: 1150, range: { min: 980, max: 1400 }, trend: 2.3 },
-  '小売業': { average: 1080, range: { min: 950, max: 1300 }, trend: 2.0 },
-  '飲食業': { average: 1050, range: { min: 950, max: 1200 }, trend: 3.2 },
-  '飲食': { average: 1050, range: { min: 950, max: 1200 }, trend: 3.2 },
-  '宿泊業': { average: 1100, range: { min: 980, max: 1300 }, trend: 3.8 },
-  '医療': { average: 1300, range: { min: 1100, max: 1600 }, trend: 2.5 },
-  '介護': { average: 1150, range: { min: 1000, max: 1350 }, trend: 4.0 },
-  '福祉': { average: 1150, range: { min: 1000, max: 1350 }, trend: 4.0 },
-  '教育': { average: 1250, range: { min: 1050, max: 1500 }, trend: 1.8 },
-  '金融': { average: 1400, range: { min: 1150, max: 1800 }, trend: 2.2 },
-  '不動産': { average: 1280, range: { min: 1050, max: 1600 }, trend: 2.0 },
-  'サービス業': { average: 1100, range: { min: 950, max: 1350 }, trend: 2.8 },
-  '農業': { average: 1050, range: { min: 950, max: 1200 }, trend: 3.0 },
-  '水産業': { average: 1080, range: { min: 950, max: 1250 }, trend: 2.5 },
+// 正社員の平均月収・年収を含む
+const INDUSTRY_WAGE_DATA: Record<string, { 
+  hourly: number; // パート・アルバイト時給（円）
+  hourlyRange: { min: number; max: number }; // パート時給レンジ（円）
+  monthly: number; // 正社員平均月収（万円）
+  yearly: number; // 正社員平均年収（万円）
+  monthlyRange: { min: number; max: number }; // 月収レンジ（万円）
+  trend: number; // 年間上昇率（%）
+  keywords: string[]; // マッチング用キーワード
+}> = {
+  '製造業': { hourly: 1180, hourlyRange: { min: 1050, max: 1400 }, monthly: 32, yearly: 450, monthlyRange: { min: 25, max: 45 }, trend: 2.8, keywords: ['製造', '工場', 'メーカー', '生産', '組立', '加工', '機械'] },
+  '建設業': { hourly: 1350, hourlyRange: { min: 1150, max: 1800 }, monthly: 38, yearly: 520, monthlyRange: { min: 28, max: 55 }, trend: 4.2, keywords: ['建設', '建築', '土木', '工事', '施工', '設備', 'ゼネコン'] },
+  '情報通信業': { hourly: 1450, hourlyRange: { min: 1200, max: 2200 }, monthly: 42, yearly: 580, monthlyRange: { min: 30, max: 70 }, trend: 5.1, keywords: ['IT', '情報', 'システム', 'ソフトウェア', 'プログラム', 'エンジニア', 'Web', 'アプリ', 'DX', 'デジタル'] },
+  '運輸業': { hourly: 1200, hourlyRange: { min: 1050, max: 1500 }, monthly: 30, yearly: 420, monthlyRange: { min: 24, max: 42 }, trend: 3.5, keywords: ['運輸', '物流', '運送', '配送', 'トラック', '倉庫', '宅配', '貨物'] },
+  '卸売業': { hourly: 1150, hourlyRange: { min: 1000, max: 1400 }, monthly: 33, yearly: 460, monthlyRange: { min: 26, max: 48 }, trend: 2.3, keywords: ['卸売', '卸', '商社', '問屋', '仲卸', '流通'] },
+  '小売業': { hourly: 1080, hourlyRange: { min: 1000, max: 1300 }, monthly: 28, yearly: 380, monthlyRange: { min: 22, max: 40 }, trend: 2.0, keywords: ['小売', '販売', '店舗', 'スーパー', 'コンビニ', '百貨店'] },
+  '飲食業': { hourly: 1050, hourlyRange: { min: 1000, max: 1250 }, monthly: 26, yearly: 350, monthlyRange: { min: 20, max: 38 }, trend: 3.2, keywords: ['飲食', 'レストラン', '食品', '外食', 'フード', '調理'] },
+  '宿泊業': { hourly: 1100, hourlyRange: { min: 1000, max: 1350 }, monthly: 27, yearly: 370, monthlyRange: { min: 21, max: 40 }, trend: 3.8, keywords: ['宿泊', 'ホテル', '旅館', '観光', 'ツーリズム'] },
+  '医療': { hourly: 1300, hourlyRange: { min: 1100, max: 1800 }, monthly: 35, yearly: 480, monthlyRange: { min: 28, max: 60 }, trend: 2.5, keywords: ['医療', '病院', 'クリニック', '診療', '看護', '薬局'] },
+  '介護福祉': { hourly: 1150, hourlyRange: { min: 1050, max: 1400 }, monthly: 27, yearly: 370, monthlyRange: { min: 22, max: 38 }, trend: 4.0, keywords: ['介護', '福祉', 'ケア', '高齢者', '障害者', 'デイサービス'] },
+  '教育': { hourly: 1250, hourlyRange: { min: 1100, max: 1600 }, monthly: 32, yearly: 440, monthlyRange: { min: 25, max: 50 }, trend: 1.8, keywords: ['教育', '学校', '塾', '研修', '講師', 'スクール'] },
+  '金融保険': { hourly: 1400, hourlyRange: { min: 1200, max: 1800 }, monthly: 40, yearly: 550, monthlyRange: { min: 30, max: 70 }, trend: 2.2, keywords: ['金融', '銀行', '保険', '証券', 'ファイナンス', '投資'] },
+  '不動産': { hourly: 1280, hourlyRange: { min: 1100, max: 1600 }, monthly: 35, yearly: 480, monthlyRange: { min: 26, max: 55 }, trend: 2.0, keywords: ['不動産', '住宅', 'マンション', '賃貸', '仲介'] },
+  'サービス業': { hourly: 1100, hourlyRange: { min: 1000, max: 1400 }, monthly: 28, yearly: 380, monthlyRange: { min: 22, max: 42 }, trend: 2.8, keywords: ['サービス', 'コンサル', '人材', '広告', 'イベント'] },
+  '農林水産': { hourly: 1050, hourlyRange: { min: 1000, max: 1250 }, monthly: 25, yearly: 340, monthlyRange: { min: 20, max: 35 }, trend: 3.0, keywords: ['農業', '農林', '水産', '漁業', '畜産'] },
+}
+
+// 従業員規模による賃金補正係数
+const EMPLOYEE_SIZE_FACTOR: Record<string, number> = {
+  '1-9': 0.85,      // 10人未満
+  '10-29': 0.90,    // 10-29人
+  '30-99': 0.95,    // 30-99人
+  '100-299': 1.00,  // 100-299人（基準）
+  '300-999': 1.08,  // 300-999人
+  '1000+': 1.15,    // 1000人以上
+}
+
+// 業種をマッチング
+function matchIndustry(companyIndustry: string, companyDescription?: string): string {
+  const searchText = `${companyIndustry} ${companyDescription || ''}`.toLowerCase()
+  
+  let bestMatch = 'サービス業'
+  let maxScore = 0
+  
+  for (const [industryName, data] of Object.entries(INDUSTRY_WAGE_DATA)) {
+    let score = 0
+    for (const keyword of data.keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        score += keyword.length // 長いキーワードほど高スコア
+      }
+    }
+    if (score > maxScore) {
+      maxScore = score
+      bestMatch = industryName
+    }
+  }
+  
+  return bestMatch
+}
+
+// 従業員規模カテゴリを判定
+function getEmployeeSizeCategory(employeeCount: string | number | null): string {
+  if (!employeeCount) return '30-99'
+  
+  const count = typeof employeeCount === 'string' 
+    ? parseInt(employeeCount.replace(/[^0-9]/g, '')) 
+    : employeeCount
+    
+  if (count < 10) return '1-9'
+  if (count < 30) return '10-29'
+  if (count < 100) return '30-99'
+  if (count < 300) return '100-299'
+  if (count < 1000) return '300-999'
+  return '1000+'
 }
 
 // 労務費データを取得（月別グラフ用）- 改善版
-async function getLaborCosts(prefecture: string, city: string, industry: string) {
+// 会社の業種、所在地、従業員規模を考慮して実態に近い数値を算出
+async function getLaborCosts(
+  prefecture: string, 
+  city: string, 
+  industry: string,
+  employeeCount?: string | number | null,
+  businessDescription?: string
+) {
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
   const prefName = prefecture.replace(/[都道府県]/g, '')
-  const industryQuery = industry ? `${industry} ` : ''
   
   // 都道府県の最低賃金を取得
   const minimumWage = MINIMUM_WAGE_2024[prefName] || 1000
   
-  // 業種別の平均賃金を取得
-  let industryData = INDUSTRY_WAGE_DATA['サービス業'] // デフォルト
-  for (const [key, data] of Object.entries(INDUSTRY_WAGE_DATA)) {
-    if (industry && industry.includes(key)) {
-      industryData = data
-      break
-    }
-  }
+  // 業種をスマートにマッチング
+  const matchedIndustryName = matchIndustry(industry, businessDescription)
+  const industryData = INDUSTRY_WAGE_DATA[matchedIndustryName]
   
-  // 外部検索で最新の労務費情報を取得（補足情報として）
+  // 従業員規模による補正
+  const sizeCategory = getEmployeeSizeCategory(employeeCount)
+  const sizeFactor = EMPLOYEE_SIZE_FACTOR[sizeCategory]
+  
+  // 地域補正係数（東京を1.0として）
+  const regionFactor = minimumWage / 1163
+  
+  // 外部検索で最新の労務費情報を取得（月収・年収ベースで検索）
   const queries = [
-    `${prefName} ${industryQuery}平均時給 2024 2025`,
-    `${prefName} 最低賃金 2024`,
-    `${industryQuery}業界 平均賃金 2024`,
+    `${prefName} ${matchedIndustryName} 正社員 平均年収 2024`,
+    `${matchedIndustryName} 業界 平均月収 給与 2024`,
+    `${prefName} ${industry} 賃金 給与水準`,
   ]
 
   const results: any[] = []
@@ -173,7 +234,6 @@ async function getLaborCosts(prefecture: string, city: string, industry: string)
   
   for (const q of queries) {
     const searchResults = await braveWebSearch(q, 3)
-    // ファクトチェックを実行
     const verifiedResults = await factCheckSearchResults(searchResults, q, 'labor')
     results.push(...verifiedResults)
     searchLogs.push({
@@ -183,74 +243,110 @@ async function getLaborCosts(prefecture: string, city: string, industry: string)
     })
   }
 
-  // 検索結果から追加の数値情報を抽出
-  let searchBasedValue = 0
+  // 検索結果から年収・月収の数値を抽出
+  let searchBasedYearly = 0
+  let searchBasedMonthly = 0
   if (results.length > 0) {
-    const numbers = results
-      .map(r => {
-        const text = (r.description || r.title || '').replace(/[^\d]/g, ' ')
-        const matches = text.match(/\d{3,4}/g)
-        return matches ? matches.map(Number).filter((n: number) => n > 900 && n < 3000) : []
-      })
-      .flat()
-    if (numbers.length > 0) {
-      searchBasedValue = Math.round(numbers.reduce((a, b) => a + b, 0) / numbers.length)
+    for (const r of results) {
+      const text = (r.description || r.title || '')
+      
+      // 年収パターン（300万〜800万程度）
+      const yearlyMatch = text.match(/年収[：:\s]*(\d{3,4})[万]?|(\d{3,4})[万]?円.*年収/i)
+      if (yearlyMatch) {
+        const value = parseInt(yearlyMatch[1] || yearlyMatch[2])
+        if (value >= 250 && value <= 1200) {
+          searchBasedYearly = value
+        }
+      }
+      
+      // 月収パターン（20万〜60万程度）
+      const monthlyMatch = text.match(/月収[：:\s]*(\d{2,3})[万]?|(\d{2,3})[万]?円.*月収/i)
+      if (monthlyMatch) {
+        const value = parseInt(monthlyMatch[1] || monthlyMatch[2])
+        if (value >= 18 && value <= 80) {
+          searchBasedMonthly = value
+        }
+      }
     }
   }
-
-  // 地域補正係数（東京を1.0として）
-  const regionFactor = minimumWage / 1163
   
-  // 最終的な推定時給（業種平均 × 地域補正）
-  const estimatedWage = Math.round(industryData.average * regionFactor)
+  // 最終的な推定月収（業種平均 × 地域補正 × 規模補正）
+  const baseMonthly = industryData.monthly
+  const estimatedMonthly = Math.round(baseMonthly * regionFactor * sizeFactor)
   
-  // 検索結果がある場合は加味
-  const finalWage = searchBasedValue > 0 
-    ? Math.round((estimatedWage * 0.7) + (searchBasedValue * 0.3))
-    : estimatedWage
+  // 検索結果がある場合は加味（信頼性に応じて重み付け）
+  const finalMonthly = searchBasedMonthly > 0 
+    ? Math.round((estimatedMonthly * 0.6) + (searchBasedMonthly * 0.4))
+    : estimatedMonthly
+    
+  // 年収を算出（月収×14〜16ヶ月分：賞与考慮）
+  const bonusMultiplier = 14 + (sizeFactor - 0.85) * 5 // 規模が大きいほど賞与が多い
+  const finalYearly = searchBasedYearly > 0
+    ? Math.round((finalMonthly * bonusMultiplier * 0.6) + (searchBasedYearly * 0.4))
+    : Math.round(finalMonthly * bonusMultiplier)
+  
+  // 時給換算（月160時間として）
+  const finalHourly = Math.round((finalMonthly * 10000) / 160)
 
   // 月別データを生成（過去6ヶ月・実際のトレンドに基づく）
-  const monthlyTrend = industryData.trend / 12 // 月間トレンド
+  const monthlyTrend = industryData.trend / 12
   const monthlyData = []
   const now = new Date()
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    // 過去に遡るほど低く、最新に近づくほど高い
-    const trendAdjustment = (5 - i) * (monthlyTrend / 100) * finalWage
+    const trendAdjustment = (5 - i) * (monthlyTrend / 100) * finalMonthly
     monthlyData.push({
       month: `${date.getMonth() + 1}月`,
-      value: Math.round(finalWage - (5 - i) * (monthlyTrend / 100) * finalWage + trendAdjustment)
+      value: Math.round((finalMonthly - (5 - i) * (monthlyTrend / 100) * finalMonthly + trendAdjustment) * 10000) // 円単位
     })
   }
 
   return {
-    current: finalWage,
+    current: finalHourly, // 時給（互換性のため残す）
+    monthly: finalMonthly, // 月収（万円）
+    yearly: finalYearly, // 年収（万円）
     change: industryData.trend,
     monthlyData,
-    // 同業種比較情報を追加
     comparison: {
-      industryName: industry || 'サービス業',
-      industryAverage: industryData.average,
-      industryRange: industryData.range,
+      industryName: matchedIndustryName,
+      industryAverage: finalHourly, // 地域・業種平均時給（円）
+      industryMonthly: industryData.monthly,
+      industryYearly: industryData.yearly,
+      // 時給レンジのバリデーション: 最低1000円以上であること（最低賃金対策）
+      industryHourlyRange: {
+        min: Math.max(industryData.hourlyRange.min, minimumWage),
+        max: industryData.hourlyRange.max >= 1000 ? industryData.hourlyRange.max : 1600
+      },
+      industryMonthlyRange: industryData.monthlyRange, // 正社員月収レンジ（万円）
       industryTrend: industryData.trend,
       minimumWage: minimumWage,
       prefecture: prefName,
-      vsIndustryAverage: finalWage - industryData.average,
-      vsMinimumWage: finalWage - minimumWage,
+      employeeSize: sizeCategory,
+      sizeFactor: sizeFactor,
+      regionFactor: regionFactor,
+      vsIndustryMonthly: finalMonthly - industryData.monthly,
+      vsIndustryYearly: finalYearly - industryData.yearly,
     },
     sources: results.slice(0, 3),
     dataSource: {
       minimumWage: '厚生労働省 地域別最低賃金（2024年10月改定）',
-      industryWage: '厚生労働省 賃金構造基本統計調査 + 主要求人サイト統計',
+      industryWage: '厚生労働省 賃金構造基本統計調査（2024年）',
       lastUpdated: '2024年10月',
     },
     _debug: {
       searchQueries: queries,
       searchLogs,
-      calculatedValue: estimatedWage,
-      searchBasedValue,
-      finalValue: finalWage,
+      matchedIndustry: matchedIndustryName,
+      sizeCategory,
+      sizeFactor,
       regionFactor,
+      baseMonthly,
+      estimatedMonthly,
+      searchBasedMonthly,
+      searchBasedYearly,
+      finalMonthly,
+      finalYearly,
+      finalHourly,
     }
   }
 }
@@ -639,7 +735,7 @@ export async function GET(request: Request) {
 
     const { data: company } = await supabase
       .from('companies')
-      .select('prefecture, city, industry')
+      .select('prefecture, city, industry, business_description, employee_count')
       .eq('id', profile.company_id)
       .single()
 
@@ -650,10 +746,28 @@ export async function GET(request: Request) {
       )
     }
 
+    // 会社情報をデバッグログ出力（問題追跡用）
+    console.log('📍 会社情報（DB取得結果）:', {
+      prefecture_raw: company.prefecture,
+      city_raw: company.city,
+      industry: company.industry,
+      employee_count: company.employee_count
+    })
+
     const prefecture = company.prefecture || '愛知県'
     const city = company.city || '名古屋市'
     const industry = company.industry || ''
+    const businessDescription = company.business_description || ''
+    const employeeCount = company.employee_count || null
     const loginDate = new Date()
+    
+    // デフォルト値を使用した場合は警告ログ
+    if (!company.prefecture) {
+      console.warn('⚠️ prefecture がDBに保存されていません。デフォルト値（愛知県）を使用します。')
+    }
+    if (!company.city) {
+      console.warn('⚠️ city がDBに保存されていません。デフォルト値（名古屋市）を使用します。')
+    }
 
     // 強制更新パラメータをチェック
     const { searchParams } = new URL(request.url)
@@ -682,9 +796,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // 各データを並列取得（業種情報を含める）
+    // 各データを並列取得（業種・会社規模情報を含める）
     const [laborCosts, events, infrastructure, weather, traffic, logistics] = await Promise.all([
-      getLaborCosts(prefecture, city, industry),
+      getLaborCosts(prefecture, city, industry, employeeCount, businessDescription),
       getEvents(prefecture, city, industry),
       getInfrastructure(prefecture, city, industry),
       getWeather(prefecture, city, loginDate),
@@ -695,6 +809,15 @@ export async function GET(request: Request) {
     // デバッグ情報を収集
     const debugInfo = {
       searchArea: `${prefecture}${city}`,
+      // DB取得結果（問題追跡用）
+      companyDbData: {
+        prefecture_raw: company.prefecture || null,
+        city_raw: company.city || null,
+        prefecture_used: prefecture,
+        city_used: city,
+        isDefaultPrefecture: !company.prefecture,
+        isDefaultCity: !company.city
+      },
       industry: industry || '未設定',
       searchTimestamp: new Date().toISOString(),
       laborCosts: laborCosts._debug,
@@ -708,10 +831,14 @@ export async function GET(request: Request) {
 
     const localInfoData = {
       laborCosts: {
-        current: laborCosts.current,
+        current: laborCosts.current, // 時給（円）
+        monthly: laborCosts.monthly, // 月収（万円）
+        yearly: laborCosts.yearly, // 年収（万円）
         change: laborCosts.change,
         monthlyData: laborCosts.monthlyData,
-        sources: laborCosts.sources
+        comparison: laborCosts.comparison, // 業界比較情報
+        sources: laborCosts.sources,
+        dataSource: laborCosts.dataSource,
       },
       events: events.events,
       infrastructure: infrastructure.items,

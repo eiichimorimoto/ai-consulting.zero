@@ -188,7 +188,7 @@ export default function WebsiteAnalysisPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* ヘッダーはConditionalHeaderで表示 */}
-      
+
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ページタイトル */}
@@ -197,18 +197,18 @@ export default function WebsiteAnalysisPage() {
             <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
               <Globe className="w-6 h-6 text-blue-600" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Webサイト分析</h1>
-              {companyName && companyUrl && (
-                <p className="text-gray-600 text-sm">
-                  {companyName} - <a href={companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{companyUrl}</a>
-                </p>
-              )}
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Webサイト分析</h1>
+                {companyName && companyUrl && (
+                  <p className="text-gray-600 text-sm">
+                    {companyName} - <a href={companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{companyUrl}</a>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Loading State */}
+          {/* Loading State */}
           {isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
