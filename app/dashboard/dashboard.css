@@ -32,7 +32,6 @@
   flex: 1;
   margin-left: 220px;
   min-height: 100vh;
-  overflow-y: auto;
 }
 
 .sidebar {

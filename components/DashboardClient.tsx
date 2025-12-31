@@ -741,41 +741,52 @@ export default function DashboardClient({ profile, company, subscription }: Dash
           </div>
         </aside>
         <main className="main">
-          <header className="header">
-            <div className="header-left">
-              <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                <span></span><span></span><span></span>
-              </button>
-              <h1 className="page-title">ダッシュボード</h1>
-            </div>
-            <div className="header-right">
-              <span className="current-time">{currentTime}</span>
-              <button className="header-btn">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              </button>
-              <button 
-                className="header-btn" 
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                style={{ position: 'relative' }}
-              >
-                <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-                {unreadCount > 0 && <span className="notification-dot"></span>}
-              </button>
-            </div>
-          </header>
-          <div className="content">
-            <section className="welcome-section">
+          {/* Header + Welcome帯 固定ラッパー */}
+          <div style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: '220px',
+            right: 0,
+            zIndex: 100,
+            background: 'var(--bg-main, #f8fafc)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+          }}>
+            <header className="header">
+              <div className="header-left">
+                <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                  <span></span><span></span><span></span>
+                </button>
+                <h1 className="page-title">ダッシュボード</h1>
+              </div>
+              <div className="header-right">
+                <button className="header-btn">
+                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </button>
+                <button 
+                  className="header-btn" 
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  style={{ position: 'relative' }}
+                >
+                  <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+                  {unreadCount > 0 && <span className="notification-dot"></span>}
+                </button>
+              </div>
+            </header>
+            <section className="welcome-section" style={{ 
+              margin: 0,
+              padding: 0
+            }}>
               <div style={{
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%)',
-                borderRadius: '16px',
-                padding: '20px 24px',
+                borderRadius: '0',
+                padding: '16px 24px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 position: 'relative',
                 overflow: 'hidden',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+                borderBottom: '1px solid rgba(148, 163, 184, 0.25)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
               }}>
                 {/* AI風ニューラルネットワーク背景パターン */}
                 <svg 
@@ -864,43 +875,93 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </span>
                   </div>
                 </div>
-                <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  {/* 日時表示 */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: '2px'
+                  }}>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      color: '#64748b',
+                      fontWeight: '500'
+                    }}>{currentTime}</span>
+                  </div>
+                  
+                  {/* 相談履歴ボタン */}
+                  <button 
+                    onClick={() => router.push('/dashboard/consultation-history')}
+                    style={{
+                      padding: '8px 14px',
+                      background: 'rgba(100, 116, 139, 0.1)',
+                      color: '#475569',
+                      border: '1px solid rgba(100, 116, 139, 0.2)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'rgba(100, 116, 139, 0.15)'
+                      e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.3)'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'rgba(100, 116, 139, 0.1)'
+                      e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)'
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" style={{ width: '12px', height: '12px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                      <path d="M12 8v4l3 3"/>
+                      <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    相談履歴
+                  </button>
+                  
+                  {/* AIコンサルタントに相談ボタン */}
                   <button 
                     onClick={() => router.push('/dashboard/ai-consultant')}
                     style={{
-                      padding: '10px 18px',
+                      padding: '8px 16px',
                       background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '20px',
-                      fontSize: '12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
                       transition: 'all 0.2s ease',
-                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                      boxShadow: '0 3px 10px rgba(99, 102, 241, 0.25)'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)'
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 5px 14px rgba(99, 102, 241, 0.35)'
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)'
+                      e.currentTarget.style.boxShadow = '0 3px 10px rgba(99, 102, 241, 0.25)'
                     }}
                   >
-                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                    <svg viewBox="0 0 24 24" style={{ width: '12px', height: '12px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
                       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                     </svg>
-                    AIコンサルタントに相談
+                    AIに相談
                   </button>
                 </div>
               </div>
             </section>
+          </div>
+          {/* 固定ラッパー終了 */}
 
-
+          <div className="content" style={{ paddingTop: '180px' }}>
             {/* 情報セクション大見出し */}
             <div className="section-category-wrapper">
               <div className="section-category-header">
@@ -2550,70 +2611,222 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           SWOT分析は、企業の<strong style={{ color: 'var(--text-primary)' }}>内部環境（強み・弱み）</strong>と<strong style={{ color: 'var(--text-primary)' }}>外部環境（機会・脅威）</strong>を整理し、戦略立案に活用するフレームワークです。強みを活かし機会を捉え、弱みを補い脅威に備える施策を検討します。
                         </p>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         {/* 強み */}
                         <div style={{ 
-                          padding: '12px', 
-                          borderRadius: '8px', 
-                          background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                          borderLeft: '3px solid #10b981'
+                          padding: '16px', 
+                          borderRadius: '12px', 
+                          background: 'linear-gradient(145deg, #ffffff, #f0fdf4)',
+                          border: '1px solid rgba(16, 185, 129, 0.2)',
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
                         }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', marginBottom: '8px' }}>
-                            S｜強み
-                          </div>
-                          {swotAnalysis.strengths?.slice(0, 3).map((s, i) => (
-                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(16,185,129,0.3)' }}>
-                              {typeof s === 'string' ? s : s.point}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <div style={{ 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '8px', 
+                              background: 'linear-gradient(135deg, #10b981, #34d399)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+                            }}>
+                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>S</span>
                             </div>
-                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                            <div>
+                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>強み</div>
+                              <div style={{ fontSize: '9px', color: '#64748b' }}>Strengths</div>
+                            </div>
+                          </div>
+                          {swotAnalysis.strengths?.slice(0, 3).map((s, i) => {
+                            const text = typeof s === 'string' ? s : s.point;
+                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
+                            return (
+                              <div key={i} style={{ 
+                                fontSize: '11px', 
+                                color: '#1e293b', 
+                                marginBottom: '8px',
+                                padding: '8px 10px',
+                                background: 'rgba(16, 185, 129, 0.06)',
+                                borderRadius: '6px',
+                                borderLeft: '3px solid #10b981'
+                              }}>
+                                <span style={{ 
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  background: '#10b981',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '9px',
+                                  fontWeight: '600',
+                                  marginRight: '6px'
+                                }}>{keyword}</span>
+                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
+                              </div>
+                            );
+                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
                         {/* 弱み */}
                         <div style={{ 
-                          padding: '12px', 
-                          borderRadius: '8px', 
-                          background: 'linear-gradient(135deg, #fef2f2, #fecaca)',
-                          borderLeft: '3px solid #ef4444'
+                          padding: '16px', 
+                          borderRadius: '12px', 
+                          background: 'linear-gradient(145deg, #ffffff, #fef2f2)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          boxShadow: '0 2px 8px rgba(239, 68, 68, 0.08)'
                         }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', marginBottom: '8px' }}>
-                            W｜弱み
-                          </div>
-                          {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => (
-                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(239,68,68,0.3)' }}>
-                              {typeof w === 'string' ? w : w.point}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <div style={{ 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '8px', 
+                              background: 'linear-gradient(135deg, #ef4444, #f87171)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                            }}>
+                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>W</span>
                             </div>
-                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                            <div>
+                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>弱み</div>
+                              <div style={{ fontSize: '9px', color: '#64748b' }}>Weaknesses</div>
+                            </div>
+                          </div>
+                          {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => {
+                            const text = typeof w === 'string' ? w : w.point;
+                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
+                            return (
+                              <div key={i} style={{ 
+                                fontSize: '11px', 
+                                color: '#1e293b', 
+                                marginBottom: '8px',
+                                padding: '8px 10px',
+                                background: 'rgba(239, 68, 68, 0.06)',
+                                borderRadius: '6px',
+                                borderLeft: '3px solid #ef4444'
+                              }}>
+                                <span style={{ 
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  background: '#ef4444',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '9px',
+                                  fontWeight: '600',
+                                  marginRight: '6px'
+                                }}>{keyword}</span>
+                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
+                              </div>
+                            );
+                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
                         {/* 機会 */}
                         <div style={{ 
-                          padding: '12px', 
-                          borderRadius: '8px', 
-                          background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                          borderLeft: '3px solid #3b82f6'
+                          padding: '16px', 
+                          borderRadius: '12px', 
+                          background: 'linear-gradient(145deg, #ffffff, #eff6ff)',
+                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
                         }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#3b82f6', marginBottom: '8px' }}>
-                            O｜機会
-                          </div>
-                          {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => (
-                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(59,130,246,0.3)' }}>
-                              {typeof o === 'string' ? o : o.point}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <div style={{ 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '8px', 
+                              background: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)'
+                            }}>
+                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>O</span>
                             </div>
-                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                            <div>
+                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#2563eb' }}>機会</div>
+                              <div style={{ fontSize: '9px', color: '#64748b' }}>Opportunities</div>
+                            </div>
+                          </div>
+                          {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => {
+                            const text = typeof o === 'string' ? o : o.point;
+                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
+                            return (
+                              <div key={i} style={{ 
+                                fontSize: '11px', 
+                                color: '#1e293b', 
+                                marginBottom: '8px',
+                                padding: '8px 10px',
+                                background: 'rgba(59, 130, 246, 0.06)',
+                                borderRadius: '6px',
+                                borderLeft: '3px solid #3b82f6'
+                              }}>
+                                <span style={{ 
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  background: '#3b82f6',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '9px',
+                                  fontWeight: '600',
+                                  marginRight: '6px'
+                                }}>{keyword}</span>
+                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
+                              </div>
+                            );
+                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
                         {/* 脅威 */}
                         <div style={{ 
-                          padding: '12px', 
-                          borderRadius: '8px', 
-                          background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
-                          borderLeft: '3px solid #f59e0b'
+                          padding: '16px', 
+                          borderRadius: '12px', 
+                          background: 'linear-gradient(145deg, #ffffff, #fffbeb)',
+                          border: '1px solid rgba(245, 158, 11, 0.2)',
+                          boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)'
                         }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px' }}>
-                            T｜脅威
-                          </div>
-                          {swotAnalysis.threats?.slice(0, 3).map((t, i) => (
-                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(245,158,11,0.3)' }}>
-                              {typeof t === 'string' ? t : t.point}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <div style={{ 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '8px', 
+                              background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(245, 158, 11, 0.3)'
+                            }}>
+                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>T</span>
                             </div>
-                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                            <div>
+                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#d97706' }}>脅威</div>
+                              <div style={{ fontSize: '9px', color: '#64748b' }}>Threats</div>
+                            </div>
+                          </div>
+                          {swotAnalysis.threats?.slice(0, 3).map((t, i) => {
+                            const text = typeof t === 'string' ? t : t.point;
+                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
+                            return (
+                              <div key={i} style={{ 
+                                fontSize: '11px', 
+                                color: '#1e293b', 
+                                marginBottom: '8px',
+                                padding: '8px 10px',
+                                background: 'rgba(245, 158, 11, 0.06)',
+                                borderRadius: '6px',
+                                borderLeft: '3px solid #f59e0b'
+                              }}>
+                                <span style={{ 
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  background: '#f59e0b',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '9px',
+                                  fontWeight: '600',
+                                  marginRight: '6px'
+                                }}>{keyword}</span>
+                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
+                              </div>
+                            );
+                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
                       </div>
                       
@@ -2791,29 +3004,38 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 }}
               >
                 <div style={{
-                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
                   borderRadius: '16px',
                   padding: '0',
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                  boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  border: '1px solid rgba(99, 102, 241, 0.12)'
                 }}>
-                  {/* 装飾的なグリッド背景 */}
+                  {/* 装飾的なドットパターン背景 */}
                   <div style={{
                     position: 'absolute',
                     inset: 0,
-                    backgroundImage: `
-                      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-                    `,
-                    backgroundSize: '40px 40px',
+                    backgroundImage: `radial-gradient(circle at 2px 2px, rgba(99, 102, 241, 0.06) 1px, transparent 0)`,
+                    backgroundSize: '20px 20px',
+                    pointerEvents: 'none'
+                  }} />
+                  {/* グロー効果 */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-30%',
+                    right: '-10%',
+                    width: '300px',
+                    height: '300px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08), transparent 70%)',
                     pointerEvents: 'none'
                   }} />
 
                   {/* ヘッダー */}
                   <div style={{
                     padding: '20px 24px 16px',
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    borderBottom: '1px solid rgba(99, 102, 241, 0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -2824,19 +3046,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <div style={{
                         width: '40px',
                         height: '40px',
-                        background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
+                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                         borderRadius: '10px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '20px',
-                        boxShadow: '0 4px 12px rgba(14, 165, 233, 0.4)'
-                      }}>💡</div>
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
+                      }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                      </div>
                       <div>
-                        <h2 style={{ color: 'white', fontSize: '16px', fontWeight: '700', margin: 0 }}>
+                        <h2 style={{ color: '#1e293b', fontSize: '16px', fontWeight: '700', margin: 0 }}>
                           AI経営サマリー
                         </h2>
-                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', margin: 0 }}>
+                        <p style={{ color: '#64748b', fontSize: '11px', margin: 0 }}>
                           業界見通し・リスク分析・経営提言
                         </p>
                       </div>
@@ -2844,32 +3070,33 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <button
                       onClick={() => router.push('/dashboard/ai-consultant')}
                       style={{
-                        padding: '6px 12px',
-                        background: 'rgba(255,255,255,0.1)',
-                        color: 'rgba(255,255,255,0.8)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        fontWeight: '500',
+                        padding: '8px 14px',
+                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        fontWeight: '600',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '5px',
-                        transition: 'all 0.2s ease'
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.2)'
-                        e.currentTarget.style.color = 'white'
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.4)'
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-                        e.currentTarget.style.color = 'rgba(255,255,255,0.8)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.3)'
                       }}
                     >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                       </svg>
-                      AIコンサルタントに相談
+                      AIに相談
                     </button>
                   </div>
 
@@ -2884,19 +3111,19 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }}>
                       {/* 業界見通しゲージ */}
                       <div style={{
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'rgba(99, 102, 241, 0.04)',
                         borderRadius: '12px',
                         padding: '16px',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px', fontWeight: '600' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', fontWeight: '600' }}>
                           📊 業界見通し
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                           {/* 円形ゲージ */}
                           <div style={{ position: 'relative', width: '60px', height: '60px' }}>
                             <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
-                              <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                              <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(99, 102, 241, 0.12)" strokeWidth="3" />
                               <circle 
                                 cx="18" cy="18" r="15" fill="none" 
                                 stroke={industryForecast.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b'}
@@ -2924,13 +3151,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             }}>
                               {industryForecast.shortTerm?.outlook === 'positive' ? 'ポジティブ' : industryForecast.shortTerm?.outlook === 'negative' ? 'ネガティブ' : '中立'}
                             </div>
-                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                            <div style={{ fontSize: '10px', color: '#94a3b8' }}>
                               短期（{industryForecast.shortTerm?.period || '3ヶ月'}）
                             </div>
                           </div>
                         </div>
                         {/* 説明文3行 */}
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>
+                        <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.5' }}>
                           業界全体の短期見通しを示すゲージです。<br/>
                           市場動向・需要予測・競合状況を総合評価。<br/>
                           緑:好調 / 黄:横ばい / 赤:低調
@@ -2939,12 +3166,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
 
                       {/* リスクレベル */}
                       <div style={{
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'rgba(99, 102, 241, 0.04)',
                         borderRadius: '12px',
                         padding: '16px',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px', fontWeight: '600' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', fontWeight: '600' }}>
                           ⚠️ リスクレベル
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
@@ -2962,7 +3189,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   borderRadius: '4px',
                                   background: level <= (industryForecast.risks?.length || 2) 
                                     ? level <= 2 ? '#10b981' : level <= 3 ? '#f59e0b' : '#ef4444'
-                                    : 'rgba(255,255,255,0.1)'
+                                    : 'rgba(99, 102, 241, 0.1)'
                                 }} />
                               ))}
                             </div>
@@ -2973,13 +3200,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             }}>
                               {(industryForecast.risks?.length || 2) <= 2 ? '低リスク' : (industryForecast.risks?.length || 2) <= 3 ? '中リスク' : '高リスク'}
                             </div>
-                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                            <div style={{ fontSize: '10px', color: '#94a3b8' }}>
                               {industryForecast.risks?.length || 0}件のリスク要因
                             </div>
                           </div>
                         </div>
                         {/* 説明文3行 */}
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>
+                        <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.5' }}>
                           検出されたリスク要因の数を5段階で表示。<br/>
                           経済変動・競合参入・規制変更等を評価。<br/>
                           1-2:低 / 3:中 / 4-5:高リスク
@@ -2988,12 +3215,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
 
                       {/* 成長機会 */}
                       <div style={{
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'rgba(99, 102, 241, 0.04)',
                         borderRadius: '12px',
                         padding: '16px',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px', fontWeight: '600' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', fontWeight: '600' }}>
                           🚀 成長機会
                         </div>
                         <div style={{ 
@@ -3004,11 +3231,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         }}>
                           {industryForecast.opportunities?.length || 3}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '10px' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '10px' }}>
                           件の成長機会を検出
                         </div>
                         {/* 説明文3行 */}
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>
+                        <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.5' }}>
                           市場拡大・新規事業・技術革新等の機会数。<br/>
                           業界動向と自社の強みから機会を分析。<br/>
                           多いほど成長余地が大きいことを示します。
@@ -3019,16 +3246,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     {/* 主要指標のミニチャート - フル幅 */}
                     {industryForecast.indicators && industryForecast.indicators.length > 0 && (
                       <div style={{
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'rgba(99, 102, 241, 0.04)',
                         borderRadius: '12px',
                         padding: '16px 20px',
                         marginBottom: '20px',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(99, 102, 241, 0.08)',
                         width: '100%'
                       }}>
                         <div style={{ 
                           fontSize: '12px', 
-                          color: 'rgba(255,255,255,0.6)', 
+                          color: '#475569', 
                           marginBottom: '6px', 
                           fontWeight: '600',
                           display: 'flex',
@@ -3036,7 +3263,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           justifyContent: 'space-between'
                         }}>
                           <span>📈 主要指標トレンド（過去8週間）</span>
-                          <span style={{ fontSize: '10px', fontWeight: '400' }}>業界の主要KPIの推移を可視化</span>
+                          <span style={{ fontSize: '10px', fontWeight: '400', color: '#94a3b8' }}>業界の主要KPIの推移を可視化</span>
                         </div>
                         <div style={{ 
                           display: 'grid', 
@@ -3046,7 +3273,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         }}>
                           {industryForecast.indicators.slice(0, 5).map((ind: { name?: string; trend: string }, idx: number) => (
                             <div key={idx} style={{
-                              background: 'rgba(255,255,255,0.05)',
+                              background: 'rgba(99, 102, 241, 0.06)',
                               borderRadius: '8px',
                               padding: '14px 10px',
                               textAlign: 'center'
@@ -3067,11 +3294,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                     borderRadius: '3px',
                                     background: i === 7 
                                       ? (ind.trend === 'up' ? '#10b981' : ind.trend === 'down' ? '#ef4444' : '#f59e0b')
-                                      : 'rgba(255,255,255,0.15)'
+                                      : 'rgba(99, 102, 241, 0.2)'
                                   }} />
                                 ))}
                               </div>
-                              <div style={{ fontSize: '11px', color: 'white', fontWeight: '600', marginBottom: '4px' }}>
+                              <div style={{ fontSize: '11px', color: '#1e293b', fontWeight: '600', marginBottom: '4px' }}>
                                 {ind.name?.slice(0, 10) || '指標'}
                               </div>
                               <div style={{ 
@@ -3090,163 +3317,231 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     {/* 経営提言 - スマート版 */}
                     {industryForecast.recommendation && (
                       <div style={{
-                        background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        background: 'linear-gradient(145deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0.02))',
                         borderRadius: '16px',
                         padding: '20px 24px',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        marginBottom: '16px',
-                        backdropFilter: 'blur(8px)'
+                        border: '1px solid rgba(99, 102, 241, 0.12)',
+                        marginBottom: '16px'
                       }}>
-                        {/* ヘッダー */}
+                        {/* ヘッダー - スマートでモダン */}
                         <div style={{ 
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           marginBottom: '16px'
                         }}>
-                          <div style={{ 
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px'
-                          }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{
                               width: '36px',
                               height: '36px',
                               borderRadius: '10px',
-                              background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
+                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '16px'
-                            }}>💡</div>
+                              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)'
+                            }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                              </svg>
+                            </div>
                             <div>
-                              <div style={{ fontSize: '13px', fontWeight: '700', color: 'white' }}>経営への提言</div>
-                              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>AI分析に基づく戦略的アドバイス</div>
+                              <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', letterSpacing: '0.3px' }}>経営への提言</div>
+                              <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '500' }}>Strategic Recommendations</div>
                             </div>
                           </div>
                           <div style={{
-                            padding: '4px 10px',
-                            borderRadius: '12px',
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            fontSize: '10px',
-                            color: '#10b981',
-                            fontWeight: '600'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '5px 12px',
+                            borderRadius: '20px',
+                            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(249, 115, 22, 0.08))',
+                            border: '1px solid rgba(245, 158, 11, 0.25)'
                           }}>
-                            優先度順
+                            <div style={{ 
+                              width: '6px', 
+                              height: '6px', 
+                              borderRadius: '50%', 
+                              background: '#f59e0b',
+                              boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)'
+                            }} />
+                            <span style={{ fontSize: '10px', color: '#fbbf24', fontWeight: '600', letterSpacing: '0.5px' }}>PRIORITY</span>
                           </div>
                         </div>
 
-                        {/* 提言リスト */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 3).map((item, idx) => (
-                            <div key={idx} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px',
-                              padding: '12px 14px',
-                              background: idx === 0 
-                                ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(6, 182, 212, 0.1))'
-                                : 'rgba(255,255,255,0.04)',
-                              borderRadius: '10px',
-                              border: idx === 0 
-                                ? '1px solid rgba(14, 165, 233, 0.3)'
-                                : '1px solid rgba(255,255,255,0.06)',
-                              transition: 'all 0.2s ease'
-                            }}>
-                              <div style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '6px',
-                                background: idx === 0 
-                                  ? 'linear-gradient(135deg, #0ea5e9, #06b6d4)'
-                                  : idx === 1 
-                                    ? 'rgba(14, 165, 233, 0.3)'
-                                    : 'rgba(255,255,255,0.1)',
+                        {/* 提言リスト - SVGアイコン付きカード */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 3).map((item, idx) => {
+                            const configs = [
+                              { label: '最重要', bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04))', border: 'rgba(99, 102, 241, 0.2)', iconBg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1', textColor: '#1e293b', shadow: 'rgba(99, 102, 241, 0.2)' },
+                              { label: '成長', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03))', border: 'rgba(14, 165, 233, 0.15)', iconBg: 'linear-gradient(135deg, #0ea5e9, #06b6d4)', accent: '#0ea5e9', textColor: '#334155', shadow: 'rgba(14, 165, 233, 0.15)' },
+                              { label: '対策', bg: 'rgba(100, 116, 139, 0.04)', border: 'rgba(100, 116, 139, 0.12)', iconBg: 'linear-gradient(135deg, #475569, #64748b)', accent: '#64748b', textColor: '#475569', shadow: 'rgba(71, 85, 105, 0.1)' }
+                            ];
+                            const cfg = configs[idx];
+                            const icons = [
+                              <svg key="star" width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+                              <svg key="trend" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+                              <svg key="shield" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                            ];
+                            return (
+                              <div key={idx} style={{
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '11px',
-                                fontWeight: '700',
-                                color: 'white',
-                                flexShrink: 0
-                              }}>{idx + 1}</div>
-                              <p style={{
-                                margin: 0,
-                                fontSize: '12px',
-                                color: idx === 0 ? 'white' : 'rgba(255,255,255,0.8)',
-                                lineHeight: '1.5',
-                                fontWeight: idx === 0 ? '600' : '500',
-                                flex: 1
-                              }}>{item.trim()}</p>
-                              {idx === 0 && (
+                                alignItems: 'flex-start',
+                                gap: '14px',
+                                padding: '14px 16px',
+                                background: cfg.bg,
+                                borderRadius: '12px',
+                                border: `1px solid ${cfg.border}`,
+                                transition: 'all 0.25s ease',
+                                cursor: 'pointer'
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.transform = 'translateX(6px)';
+                                e.currentTarget.style.boxShadow = '0 4px 16px rgba(99, 102, 241, 0.12)';
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.transform = 'translateX(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                              }}
+                              >
                                 <div style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '4px',
-                                  background: 'rgba(245, 158, 11, 0.2)',
-                                  fontSize: '9px',
-                                  color: '#fbbf24',
-                                  fontWeight: '600',
-                                  whiteSpace: 'nowrap'
-                                }}>最優先</div>
-                              )}
-                            </div>
-                          ))}
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '10px',
+                                  background: cfg.iconBg,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  boxShadow: `0 4px 12px ${cfg.shadow}`
+                                }}>{icons[idx]}</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                    <span style={{
+                                      fontSize: '10px',
+                                      fontWeight: '700',
+                                      color: cfg.accent,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.6px'
+                                    }}>{cfg.label}</span>
+                                    {idx === 0 && (
+                                      <span style={{
+                                        padding: '2px 7px',
+                                        borderRadius: '4px',
+                                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))',
+                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                        fontSize: '9px',
+                                        color: '#ef4444',
+                                        fontWeight: '700'
+                                      }}>HOT</span>
+                                    )}
+                                  </div>
+                                  <p style={{
+                                    margin: 0,
+                                    fontSize: '12px',
+                                    color: cfg.textColor,
+                                    lineHeight: '1.65',
+                                    fontWeight: idx === 0 ? '600' : '500'
+                                  }}>{item.trim()}</p>
+                                </div>
+                                <div style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  background: 'rgba(99, 102, 241, 0.08)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  marginTop: '4px'
+                                }}>
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(99, 102, 241, 0.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 18l6-6-6-6"/>
+                                  </svg>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
 
-                        {/* 相談を促すセクション */}
+                        {/* 相談CTA - 洗練されたデザイン */}
                         <div style={{
-                          marginTop: '16px',
-                          padding: '14px 16px',
-                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08))',
-                          borderRadius: '10px',
-                          border: '1px solid rgba(99, 102, 241, 0.2)',
+                          marginTop: '18px',
+                          padding: '16px 20px',
+                          background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(99, 102, 241, 0.15)',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '12px'
+                          gap: '16px'
                         }}>
                           <div style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
                             background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '14px',
-                            flexShrink: 0
-                          }}>🤝</div>
+                            flexShrink: 0,
+                            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
+                          }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                          </div>
                           <div style={{ flex: 1 }}>
                             <p style={{
                               margin: '0 0 2px 0',
-                              fontSize: '12px',
-                              color: 'rgba(255,255,255,0.9)',
+                              fontSize: '13px',
+                              color: '#1e293b',
                               fontWeight: '600'
                             }}>
-                              実行に課題はありませんか？
+                              経営課題でお困りですか？
                             </p>
                             <p style={{
                               margin: 0,
                               fontSize: '11px',
-                              color: 'rgba(255,255,255,0.6)',
+                              color: '#64748b',
                               lineHeight: '1.4'
                             }}>
-                              具体的な実行計画の策定や、課題解決のサポートをいたします。
+                              AIが具体的な解決策をご提案します
                             </p>
                           </div>
-                          <div style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            fontSize: '11px',
-                            color: 'white',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            相談する →
-                          </div>
+                          <button
+                            onClick={() => router.push('/dashboard/ai-consultant')}
+                            style={{
+                              padding: '10px 18px',
+                              borderRadius: '8px',
+                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                              border: 'none',
+                              fontSize: '12px',
+                              color: 'white',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.4)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.3)';
+                            }}
+                          >
+                            相談する
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 12h14"/>
+                              <path d="M12 5l7 7-7 7"/>
+                            </svg>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -3260,10 +3555,10 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {/* 見通し要約 */}
                       {industryForecast.shortTerm?.prediction && (
                         <div style={{
-                          background: 'rgba(255,255,255,0.05)',
+                          background: 'rgba(99, 102, 241, 0.04)',
                           borderRadius: '10px',
                           padding: '14px',
-                          border: '1px solid rgba(255,255,255,0.08)'
+                          border: '1px solid rgba(99, 102, 241, 0.08)'
                         }}>
                           <div style={{ 
                             fontSize: '11px', 
@@ -3279,7 +3574,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           <p style={{
                             margin: 0,
                             fontSize: '11px',
-                            color: 'rgba(255,255,255,0.7)',
+                            color: '#475569',
                             lineHeight: '1.6'
                           }}>
                             {industryForecast.shortTerm.prediction.length > 200 
@@ -3292,10 +3587,10 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {/* リスク要約 */}
                       {industryForecast.midTerm?.prediction && (
                         <div style={{
-                          background: 'rgba(255,255,255,0.05)',
+                          background: 'rgba(99, 102, 241, 0.04)',
                           borderRadius: '10px',
                           padding: '14px',
-                          border: '1px solid rgba(255,255,255,0.08)'
+                          border: '1px solid rgba(99, 102, 241, 0.08)'
                         }}>
                           <div style={{ 
                             fontSize: '11px', 
@@ -3311,7 +3606,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           <p style={{
                             margin: 0,
                             fontSize: '11px',
-                            color: 'rgba(255,255,255,0.7)',
+                            color: '#475569',
                             lineHeight: '1.6'
                           }}>
                             {industryForecast.midTerm.prediction.length > 200 
