@@ -214,6 +214,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [debugPanelOpen, setDebugPanelOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(new Date())
   const weeks = getWeekLabels(8)
 
   interface Notification {
@@ -764,58 +765,133 @@ export default function DashboardClient({ profile, company, subscription }: Dash
           </header>
           <div className="content">
             <section className="welcome-section">
-              <div className="welcome-card">
-                <div className="welcome-content">
-                  <p className="welcome-greeting">おかえりなさい</p>
-                  <h1 className="welcome-title">{profile.name}さん、今日もよろしくお願いします</h1>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <div className="company-badge">
-                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%)',
+                borderRadius: '16px',
+                padding: '20px 24px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+              }}>
+                {/* AI風ニューラルネットワーク背景パターン */}
+                <svg 
+                  style={{
+                    position: 'absolute',
+                    right: '-20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '320px',
+                    height: '200px',
+                    opacity: 0.12,
+                    pointerEvents: 'none'
+                  }}
+                  viewBox="0 0 400 250"
+                >
+                  {/* ノード */}
+                  <circle cx="50" cy="60" r="8" fill="#6366f1"/>
+                  <circle cx="50" cy="125" r="8" fill="#6366f1"/>
+                  <circle cx="50" cy="190" r="8" fill="#6366f1"/>
+                  <circle cx="140" cy="45" r="10" fill="#8b5cf6"/>
+                  <circle cx="140" cy="95" r="10" fill="#8b5cf6"/>
+                  <circle cx="140" cy="155" r="10" fill="#8b5cf6"/>
+                  <circle cx="140" cy="205" r="10" fill="#8b5cf6"/>
+                  <circle cx="230" cy="70" r="12" fill="#a855f7"/>
+                  <circle cx="230" cy="125" r="12" fill="#a855f7"/>
+                  <circle cx="230" cy="180" r="12" fill="#a855f7"/>
+                  <circle cx="320" cy="95" r="10" fill="#c084fc"/>
+                  <circle cx="320" cy="155" r="10" fill="#c084fc"/>
+                  <circle cx="380" cy="125" r="14" fill="#6366f1"/>
+                  {/* 接続線 */}
+                  <line x1="50" y1="60" x2="140" y2="45" stroke="#6366f1" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="50" y1="60" x2="140" y2="95" stroke="#6366f1" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="50" y1="125" x2="140" y2="95" stroke="#6366f1" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="50" y1="125" x2="140" y2="155" stroke="#6366f1" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="50" y1="190" x2="140" y2="155" stroke="#6366f1" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="50" y1="190" x2="140" y2="205" stroke="#6366f1" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="140" y1="45" x2="230" y2="70" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="140" y1="95" x2="230" y2="70" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="140" y1="95" x2="230" y2="125" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="140" y1="155" x2="230" y2="125" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="140" y1="155" x2="230" y2="180" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="140" y1="205" x2="230" y2="180" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="230" y1="70" x2="320" y2="95" stroke="#a855f7" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="230" y1="125" x2="320" y2="95" stroke="#a855f7" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="230" y1="125" x2="320" y2="155" stroke="#a855f7" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="230" y1="180" x2="320" y2="155" stroke="#a855f7" strokeWidth="1.5" opacity="0.6"/>
+                  <line x1="320" y1="95" x2="380" y2="125" stroke="#c084fc" strokeWidth="2" opacity="0.6"/>
+                  <line x1="320" y1="155" x2="380" y2="125" stroke="#c084fc" strokeWidth="2" opacity="0.6"/>
+                </svg>
+
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <p style={{ 
+                    fontSize: '12px', 
+                    color: '#6366f1',
+                    fontWeight: '600',
+                    marginBottom: '4px',
+                    letterSpacing: '0.5px'
+                  }}>おかえりなさい</p>
+                  <h1 style={{ 
+                    fontSize: '18px', 
+                    fontWeight: '700', 
+                    color: '#1e293b',
+                    margin: '0 0 8px 0'
+                  }}>{profile.name}さん、今日もよろしくお願いします</h1>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 10px',
+                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                      borderRadius: '16px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      color: 'white'
+                    }}>
+                      <svg viewBox="0 0 24 24" style={{ width: '12px', height: '12px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
                         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                       </svg>
                       {companyName}
                     </div>
-                    <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px' }}>
+                    <span style={{ color: '#64748b', fontSize: '12px' }}>
                       {company?.industry || ''}{company?.industry && company?.prefecture ? ' / ' : ''}{company?.prefecture || ''}
                       {(company?.industry || company?.prefecture) && company?.employee_count ? ' / ' : ''}
-                      {company?.employee_count ? `従業員: ${company.employee_count}` : ''}
-                      {company?.employee_count && company?.annual_revenue ? ' / ' : ''}
-                      {company?.annual_revenue ? `売上: ${company.annual_revenue}` : ''}
+                      {company?.employee_count ? `従業員: ${company.employee_count}名` : ''}
                     </span>
                   </div>
                 </div>
-                <div className="welcome-action">
+                <div style={{ position: 'relative', zIndex: 1 }}>
                   <button 
                     onClick={() => router.push('/dashboard/ai-consultant')}
                     style={{
-                      padding: '10px 20px',
-                      background: 'rgba(255,255,255,0.15)',
-                      backdropFilter: 'blur(10px)',
+                      padding: '10px 18px',
+                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                       color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: '24px',
+                      border: 'none',
+                      borderRadius: '20px',
                       fontSize: '12px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       transition: 'all 0.2s ease',
-                      letterSpacing: '0.5px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.1)'
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.25)'
                       e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)'
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)'
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)'
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)'
                     }}
                   >
-                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2.5 }}>
+                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
                       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                     </svg>
                     AIコンサルタントに相談
@@ -1054,6 +1130,94 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         )}
                       </div>
                     </div>
+                    {/* 原材料・仕入材価格（業種別） - 常に表示 */}
+                    <div className="market-card" style={{ gridColumn: 'span 2' }}>
+                      <div className="market-card-header">
+                        <span className="market-label">📦 関連原材料・仕入材価格</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                          ({company?.industry || '一般'}向け)
+                        </span>
+                        {!marketData?.commodities && (
+                          <button 
+                            onClick={() => fetchSectionData('market', true)}
+                            style={{ 
+                              marginLeft: 'auto', 
+                              padding: '4px 8px', 
+                              fontSize: '10px', 
+                              background: 'var(--accent)', 
+                              color: 'white', 
+                              border: 'none', 
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            データ取得
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '12px' }}>
+                        {marketData?.commodities && Array.isArray(marketData.commodities) && marketData.commodities.length > 0 ? (
+                          marketData.commodities.map((c: { key: string; name: string; unit: string; price: number; priceJpy: number; change: number; isJpy: boolean }, idx: number) => (
+                            <div key={c.key || idx} style={{ 
+                              padding: '12px', 
+                              background: 'var(--bg-main)', 
+                              borderRadius: '8px',
+                              border: '1px solid var(--border)'
+                            }}>
+                              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                {c.name}
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                {c.isJpy ? `¥${c.priceJpy?.toLocaleString()}` : `¥${c.priceJpy?.toLocaleString()}`}
+                              </div>
+                              <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '2px' }}>
+                                {!c.isJpy && `(${c.price} ${c.unit})`}
+                              </div>
+                              <div style={{ 
+                                fontSize: '10px', 
+                                color: (c.change || 0) >= 0 ? 'var(--success)' : 'var(--danger)',
+                                marginTop: '2px'
+                              }}>
+                                {(c.change || 0) >= 0 ? '↑' : '↓'} {Math.abs(c.change || 0).toFixed(1)}%
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          // フォールバック表示（デフォルト原材料）
+                          [
+                            { name: '原油(WTI)', priceJpy: 11340, price: 72.5, unit: '$/バレル', change: 1.2 },
+                            { name: '鉄鋼', priceJpy: 106300, price: 680, unit: '$/t', change: -0.8 },
+                            { name: '電力', priceJpy: 28, price: 28, unit: '円/kWh', change: 2.1, isJpy: true },
+                            { name: '海上運賃', priceJpy: 289420, price: 1850, unit: 'pt', change: -1.5 }
+                          ].map((c, idx) => (
+                            <div key={idx} style={{ 
+                              padding: '12px', 
+                              background: 'var(--bg-main)', 
+                              borderRadius: '8px',
+                              border: '1px solid var(--border)',
+                              opacity: 0.7
+                            }}>
+                              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                {c.name} <span style={{ fontSize: '8px' }}>(参考値)</span>
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                ¥{c.priceJpy?.toLocaleString()}
+                              </div>
+                              <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '2px' }}>
+                                {!c.isJpy && `(${c.price} ${c.unit})`}
+                              </div>
+                              <div style={{ 
+                                fontSize: '10px', 
+                                color: c.change >= 0 ? 'var(--success)' : 'var(--danger)',
+                                marginTop: '2px'
+                              }}>
+                                {c.change >= 0 ? '↑' : '↓'} {Math.abs(c.change).toFixed(1)}%
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -1164,9 +1328,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </button>
                 </div>
               </div>
-              <div className="local-grid">
-                <div className="local-card">
-                  <div className="local-card-header">
+              <div className="local-grid" style={{ gap: '12px' }}>
+                <div className="local-card" style={{ padding: '12px' }}>
+                  <div className="local-card-header" style={{ marginBottom: '8px' }}>
                     <div className="local-icon labor">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -1176,48 +1340,116 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                     <span className="local-title">労務費動向</span>
                   </div>
-                  <div className="local-highlight">
-                    <span className="local-value">{localInfo?.laborCosts?.current?.toLocaleString() || '1,077'}</span>
-                    <span className="local-unit">円/時</span>
-                    <span className={`local-change ${(localInfo?.laborCosts?.change || 3.5) >= 0 ? 'up' : 'down'}`}>
-                      {(localInfo?.laborCosts?.change || 3.5) >= 0 ? '+' : ''}{localInfo?.laborCosts?.change || 3.5}%
-                    </span>
+                  {/* メイン時給表示 + 説明 */}
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', 
+                    borderRadius: '10px', 
+                    padding: '12px',
+                    color: 'white',
+                    marginBottom: '10px'
+                  }}>
+                    <div style={{ fontSize: '9px', opacity: 0.9, marginBottom: '4px' }}>
+                      {company?.prefecture || '愛知県'}・{company?.industry || '製造業'}の平均時給
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                      <span style={{ fontSize: '28px', fontWeight: '700' }}>
+                        {localInfo?.laborCosts?.comparison?.industryAverage?.toLocaleString() || '1,280'}
+                      </span>
+                      <span style={{ fontSize: '12px' }}>円/時</span>
+                      <span style={{ 
+                        fontSize: '11px', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px',
+                        background: (localInfo?.laborCosts?.change || 2.5) >= 0 ? 'rgba(255,255,255,0.2)' : 'rgba(239,68,68,0.3)',
+                        marginLeft: 'auto'
+                      }}>
+                        前年比 {(localInfo?.laborCosts?.change || 2.5) >= 0 ? '+' : ''}{localInfo?.laborCosts?.change || 2.5}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '6px', lineHeight: '1.4' }}>
+                      ※ {company?.prefecture || '愛知県'}内の{company?.industry || '製造業'}における<br/>
+                      パート・アルバイトの平均募集時給です
+                    </div>
                   </div>
                   <div className="local-content" style={{ fontSize: '10px', lineHeight: '1.4' }}>
                     {/* 最低賃金情報 */}
-                    <div style={{ marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 600 }}>{company?.prefecture || '愛知県'}最低賃金:</span>{' '}
-                      {localInfo?.laborCosts?.comparison?.minimumWage?.toLocaleString() || '1,077'}円
-                      <span style={{ color: '#888', fontSize: '9px' }}>（2024年10月改定）</span>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '6px 8px',
+                      background: 'var(--bg-main)',
+                      borderRadius: '6px',
+                      marginBottom: '6px'
+                    }}>
+                      <span style={{ fontWeight: 600 }}>{company?.prefecture || '愛知県'}最低賃金</span>
+                      <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>
+                        {localInfo?.laborCosts?.comparison?.minimumWage?.toLocaleString() || '1,077'}円
+                        <span style={{ fontSize: '8px', color: '#888', fontWeight: '400' }}> (2024/10)</span>
+                      </span>
                     </div>
-                    {/* 同業種比較 */}
-                    <div style={{ background: '#f0f9ff', padding: '4px 6px', borderRadius: '4px', marginTop: '4px' }}>
-                      <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '2px' }}>
-                        📊 {localInfo?.laborCosts?.comparison?.industryName || company?.industry || '製造業'}平均との比較
+                    {/* 平均給与（月給・年収） */}
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', 
+                      padding: '8px', 
+                      borderRadius: '6px',
+                      border: '1px solid #86efac',
+                      marginBottom: '6px'
+                    }}>
+                      <div style={{ fontWeight: 600, color: '#166534', marginBottom: '6px', fontSize: '11px' }}>
+                        💰 {company?.prefecture || '愛知県'}・{company?.industry || '製造業'}の平均給与
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>業界平均: {localInfo?.laborCosts?.comparison?.industryAverage?.toLocaleString() || '1,180'}円</span>
-                        <span style={{ 
-                          color: (localInfo?.laborCosts?.comparison?.vsIndustryAverage || 0) >= 0 ? '#16a34a' : '#dc2626',
-                          fontWeight: 600
-                        }}>
-                          {(localInfo?.laborCosts?.comparison?.vsIndustryAverage || 0) >= 0 ? '+' : ''}
-                          {localInfo?.laborCosts?.comparison?.vsIndustryAverage || 0}円
-                        </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#666' }}>月給</div>
+                          <div style={{ fontSize: '14px', fontWeight: '700', color: '#166534' }}>
+                            {localInfo?.laborCosts?.averageSalary?.monthly?.toLocaleString() || '28.5'}万円
+                          </div>
+                        </div>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#666' }}>年収</div>
+                          <div style={{ fontSize: '14px', fontWeight: '700', color: '#166534' }}>
+                            {localInfo?.laborCosts?.averageSalary?.annual?.toLocaleString() || '420'}万円
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
-                        相場: {localInfo?.laborCosts?.comparison?.industryRange?.min?.toLocaleString() || '1,000'}〜
-                        {localInfo?.laborCosts?.comparison?.industryRange?.max?.toLocaleString() || '1,500'}円
+                      <div style={{ fontSize: '8px', color: '#666', marginTop: '4px', textAlign: 'center' }}>
+                        ※正社員・フルタイム勤務の場合
+                      </div>
+                    </div>
+                    {/* 業種別時給相場 */}
+                    <div style={{ 
+                      background: '#f0f9ff', 
+                      padding: '8px', 
+                      borderRadius: '6px',
+                      border: '1px solid #bae6fd'
+                    }}>
+                      <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '6px', fontSize: '11px' }}>
+                        📊 {company?.industry || '製造業'}の時給相場（パート）
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#666' }}>下限</div>
+                          <div style={{ fontSize: '14px', fontWeight: '700', color: '#0369a1' }}>
+                            {localInfo?.laborCosts?.comparison?.industryRange?.min?.toLocaleString() || '1,100'}円
+                          </div>
+                        </div>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#666' }}>上限</div>
+                          <div style={{ fontSize: '14px', fontWeight: '700', color: '#0369a1' }}>
+                            {localInfo?.laborCosts?.comparison?.industryRange?.max?.toLocaleString() || '1,600'}円
+                          </div>
+                        </div>
                       </div>
                     </div>
                     {/* データソース */}
-                    <div style={{ fontSize: '8px', color: '#999', marginTop: '4px' }}>
-                      出典: {localInfo?.laborCosts?.dataSource?.minimumWage || '厚生労働省'}
+                    <div style={{ fontSize: '8px', color: '#999', marginTop: '6px' }}>
+                      出典: 厚生労働省賃金構造基本統計調査
                     </div>
                   </div>
                 </div>
-                <div className="local-card">
-                  <div className="local-card-header">
+                <div className="local-card" style={{ padding: '12px' }}>
+                  <div className="local-card-header" style={{ marginBottom: '8px' }}>
                     <div className="local-icon event">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
                         <rect x="3" y="4" width="18" height="18" rx="2"/>
@@ -1226,158 +1458,450 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                     <span className="local-title">注目イベント</span>
                   </div>
-                  <div className="local-list">
+                  {/* ミニカレンダー（月ナビ付き） */}
+                  <div style={{ 
+                    background: 'var(--bg-main)',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    marginBottom: '10px'
+                  }}>
+                    {/* 月ナビゲーション */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <button
+                        onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          cursor: 'pointer', 
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >◀</button>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        {calendarMonth.getFullYear()}年{calendarMonth.getMonth() + 1}月
+                      </span>
+                      <button
+                        onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          cursor: 'pointer', 
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >▶</button>
+                    </div>
+                    {/* 曜日ヘッダー */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                      {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
+                        <div key={i} style={{ 
+                          fontSize: '9px', 
+                          textAlign: 'center', 
+                          color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : 'var(--text-light)',
+                          fontWeight: '600'
+                        }}>{d}</div>
+                      ))}
+                    </div>
+                    {/* 日付グリッド */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginTop: '4px' }}>
+                      {(() => {
+                        const today = new Date();
+                        const firstDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+                        const lastDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+                        const startPadding = firstDay.getDay();
+                        const isCurrentMonth = today.getFullYear() === calendarMonth.getFullYear() && today.getMonth() === calendarMonth.getMonth();
+                        const days = [];
+                        for (let i = 0; i < startPadding; i++) days.push(<div key={`p${i}`}></div>);
+                        for (let d = 1; d <= lastDay.getDate(); d++) {
+                          const isToday = isCurrentMonth && d === today.getDate();
+                          const hasEvent = localInfo?.events?.some((e: any) => {
+                            const eventMonth = e.date?.match(/(\d+)月/)?.[1] || e.date?.match(/^(\d+)\//)?.[1];
+                            const eventDay = e.date?.match(/(\d+)日/)?.[1] || e.date?.match(/\/(\d+)/)?.[1] || e.date?.match(/(\d+)/)?.[1];
+                            const matchMonth = eventMonth ? parseInt(eventMonth) === calendarMonth.getMonth() + 1 : true;
+                            return matchMonth && eventDay && parseInt(eventDay) === d;
+                          });
+                          days.push(
+                            <div key={d} style={{ 
+                              fontSize: '10px', 
+                              textAlign: 'center',
+                              padding: '2px',
+                              borderRadius: '4px',
+                              background: isToday ? '#3b82f6' : hasEvent ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                              color: isToday ? 'white' : hasEvent ? '#10b981' : 'var(--text-main)',
+                              fontWeight: isToday || hasEvent ? '600' : '400'
+                            }}>{d}</div>
+                          );
+                        }
+                        return days;
+                      })()}
+                    </div>
+                  </div>
+                  {/* イベントリスト（5件表示） */}
+                  <div style={{ fontSize: '10px' }}>
                     {localInfo?.events && localInfo.events.length > 0 ? (
-                      localInfo.events.slice(0, 3).map((event, idx) => (
-                        <div key={idx} className="local-list-item">
-                          <span className="local-list-dot"></span>
-                          <a href={event.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                            {event.title || `イベント${idx + 1}`} {event.date ? `(${event.date})` : ''}
-                          </a>
+                      localInfo.events.slice(0, 5).map((event, idx) => (
+                        <div key={idx} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          padding: '4px 0',
+                          borderBottom: idx < 4 ? '1px solid var(--border)' : 'none'
+                        }}>
+                          <span style={{ 
+                            background: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'][idx] || '#64748b',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap'
+                          }}>{event.date || '近日'}</span>
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {event.title || `イベント${idx + 1}`}
+                          </span>
                         </div>
                       ))
                     ) : (
                       <>
-                        <div className="local-list-item">
-                          <span className="local-list-dot"></span>
-                          ものづくりワールド名古屋（1/22-24）
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>1/22-24</span>
+                          <span>ものづくりワールド名古屋</span>
                         </div>
-                        <div className="local-list-item">
-                          <span className="local-list-dot"></span>
-                          中部DXセミナー（1/30）
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ background: '#3b82f6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>1/30</span>
+                          <span>中部DXセミナー</span>
                         </div>
-                        <div className="local-list-item">
-                          <span className="local-list-dot"></span>
-                          {company?.prefecture || '愛知県'}中小企業展（2/5-6）
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ background: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>2/5-6</span>
+                          <span>{company?.prefecture || '愛知県'}中小企業展</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ background: '#8b5cf6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>2/15</span>
+                          <span>製造業DX推進フォーラム</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0' }}>
+                          <span style={{ background: '#ec4899', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>2/20</span>
+                          <span>中部地区商談会</span>
                         </div>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="local-card">
-                  <div className="local-card-header">
+                <div className="local-card" style={{ padding: '12px' }}>
+                  <div className="local-card-header" style={{ marginBottom: '8px' }}>
                     <div className="local-icon infra">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
                         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                         <path d="M4 22v-7"/>
                       </svg>
                     </div>
-                    <span className="local-title">インフラ情報</span>
+                    <span className="local-title">インフラ状況</span>
                   </div>
-                  <div className="local-list">
+                  {/* 影響度グラフ（6項目） */}
+                  <div style={{ marginBottom: '10px' }}>
+                    {[
+                      { name: '道路・交通', value: localInfo?.infrastructure?.[0]?.status === 'error' ? 80 : localInfo?.infrastructure?.[0]?.status === 'warning' ? 50 : 20, status: localInfo?.infrastructure?.[0]?.status || 'ok' },
+                      { name: '電力供給', value: 15, status: 'ok' },
+                      { name: '港湾・物流', value: localInfo?.infrastructure?.[2]?.status === 'warning' ? 40 : 10, status: localInfo?.infrastructure?.[2]?.status || 'ok' },
+                      { name: '通信回線', value: 5, status: 'ok' },
+                      { name: '上下水道', value: 10, status: 'ok' },
+                      { name: 'ガス供給', value: 8, status: 'ok' }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{item.name}</span>
+                          <span style={{ 
+                            fontSize: '9px', 
+                            fontWeight: '600',
+                            color: item.status === 'error' ? '#ef4444' : item.status === 'warning' ? '#f59e0b' : '#10b981'
+                          }}>
+                            {item.status === 'error' ? '要注意' : item.status === 'warning' ? '注意' : '正常'}
+                          </span>
+                        </div>
+                        <div style={{ 
+                          height: '6px', 
+                          background: 'var(--bg-main)', 
+                          borderRadius: '3px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{ 
+                            height: '100%',
+                            width: `${item.value}%`,
+                            background: item.status === 'error' ? 'linear-gradient(90deg, #ef4444, #f87171)' : 
+                                        item.status === 'warning' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 
+                                        'linear-gradient(90deg, #10b981, #34d399)',
+                            borderRadius: '3px',
+                            transition: 'width 0.5s ease'
+                          }}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 詳細リスト */}
+                  <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '8px', borderRadius: '6px' }}>
                     {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
-                      localInfo.infrastructure.slice(0, 3).map((item, idx) => (
-                        <div key={idx} className="local-list-item">
-                          <span 
-                            className="local-list-dot" 
-                            style={{ 
-                              background: item.status === 'error' ? 'var(--danger)' : 
-                                         item.status === 'warning' ? 'var(--warning)' : 
-                                         'var(--success)' 
-                            }}
-                          ></span>
-                          <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                            {item.title || `インフラ情報${idx + 1}`}
-                          </a>
+                      localInfo.infrastructure.slice(0, 2).map((item, idx) => (
+                        <div key={idx} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          padding: '3px 0',
+                          borderBottom: idx === 0 ? '1px solid var(--border)' : 'none'
+                        }}>
+                          <span style={{ 
+                            width: '6px', 
+                            height: '6px', 
+                            borderRadius: '50%',
+                            background: item.status === 'error' ? '#ef4444' : item.status === 'warning' ? '#f59e0b' : '#10b981'
+                          }}></span>
+                          <span style={{ flex: 1 }}>{item.title}</span>
                         </div>
                       ))
                     ) : (
                       <>
-                        <div className="local-list-item">
-                          <span className="local-list-dot" style={{ background: 'var(--warning)' }}></span>
-                          {company?.city || '名古屋市'}高速: 工事規制（〜1/15）
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          <span>{company?.city || '名古屋'}高速: 工事規制中</span>
                         </div>
-                        <div className="local-list-item">
-                          <span className="local-list-dot" style={{ background: 'var(--success)' }}></span>
-                          電力供給: 安定（予備率12%）
-                        </div>
-                        <div className="local-list-item">
-                          <span className="local-list-dot" style={{ background: 'var(--success)' }}></span>
-                          {company?.city || '名古屋市'}港: 通常運行
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                          <span>電力・通信: 正常稼働</span>
                         </div>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="local-card">
-                  <div className="local-card-header">
+                <div className="local-card" style={{ padding: '12px' }}>
+                  <div className="local-card-header" style={{ marginBottom: '8px' }}>
                     <div className="local-icon weather">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
                         <circle cx="12" cy="12" r="5"/>
                         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                       </svg>
                     </div>
-                    <span className="local-title">週間天気</span>
+                    <span className="local-title">現在の天気</span>
                   </div>
-                  <div className="local-weather-main">
-                    <span className="weather-icon">{localInfo?.weather?.current?.icon || '☀️'}</span>
-                    <div>
-                      <div className="weather-temp">{localInfo?.weather?.current?.temp || 8}°C</div>
-                      <div className="weather-desc">{localInfo?.weather?.current?.desc || '晴れ / 配送影響なし'}</div>
+                  {/* 当日の天気（大きく表示） */}
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    color: 'white',
+                    marginBottom: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ fontSize: '40px' }}>{localInfo?.weather?.current?.icon || '☀️'}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '28px', fontWeight: '700', lineHeight: 1 }}>
+                          {localInfo?.weather?.current?.temp || 8}°
+                        </div>
+                        <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>
+                          {localInfo?.weather?.current?.desc || '晴れ'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '10px', opacity: 0.85 }}>
+                        <div>体感 {(localInfo?.weather?.current?.temp || 8) - 2}°</div>
+                        <div>湿度 {localInfo?.weather?.current?.humidity || 45}%</div>
+                        <div>風速 {localInfo?.weather?.current?.wind || 3}m/s</div>
+                      </div>
                     </div>
+                    {/* 降水確率 */}
+                    {(localInfo?.weather?.current?.rain || 0) > 0 && (
+                      <div style={{ 
+                        marginTop: '8px', 
+                        padding: '6px 8px', 
+                        background: 'rgba(255,255,255,0.2)', 
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span>🌧️</span>
+                        <span>降水確率 {localInfo?.weather?.current?.rain || 0}%</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="weather-week">
-                    {localInfo?.weather?.week?.map((day, idx) => (
-                      <div key={idx} className="weather-day">
-                        <div className="weather-day-name">{day.day}</div>
-                        <div className="weather-day-date" style={{ fontSize: '10px', color: 'var(--text-light)', marginTop: '2px' }}>{day.date}</div>
-                        <div className="weather-day-icon">{day.icon}</div>
+                  {/* 週間天気（コンパクト） */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(5, 1fr)', 
+                    gap: '4px',
+                    background: 'var(--bg-main)',
+                    padding: '8px',
+                    borderRadius: '8px'
+                  }}>
+                    {localInfo?.weather?.week?.slice(0, 5).map((day, idx) => (
+                      <div key={idx} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: 'var(--text-light)' }}>{day.day}</div>
+                        <div style={{ fontSize: '16px', margin: '2px 0' }}>{day.icon}</div>
+                        <div style={{ fontSize: '10px', fontWeight: '600' }}>{day.high || '--'}°</div>
                       </div>
                     )) || (
                       <>
-                        <div className="weather-day"><div className="weather-day-name">火</div><div className="weather-day-icon">☀️</div></div>
-                        <div className="weather-day"><div className="weather-day-name">水</div><div className="weather-day-icon">⛅</div></div>
-                        <div className="weather-day"><div className="weather-day-name">木</div><div className="weather-day-icon">🌧️</div></div>
-                        <div className="weather-day"><div className="weather-day-name">金</div><div className="weather-day-icon">☀️</div></div>
-                        <div className="weather-day"><div className="weather-day-name">土</div><div className="weather-day-icon">☀️</div></div>
+                        {['火', '水', '木', '金', '土'].map((d, i) => (
+                          <div key={i} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '9px', color: 'var(--text-light)' }}>{d}</div>
+                            <div style={{ fontSize: '16px', margin: '2px 0' }}>{['☀️', '⛅', '🌧️', '☀️', '☀️'][i]}</div>
+                            <div style={{ fontSize: '10px', fontWeight: '600' }}>{[10, 8, 6, 9, 11][i]}°</div>
+                          </div>
+                        ))}
                       </>
                     )}
                   </div>
-                  {/* 異常気象アラート */}
-                  {localInfo?.weather?.alerts && localInfo.weather.alerts.length > 0 && (
-                    <div style={{ 
-                      marginTop: '10px', 
-                      padding: '8px 10px', 
-                      background: localInfo.weather.alerts[0].severity === 'extreme' 
-                        ? 'rgba(239, 68, 68, 0.15)' 
-                        : localInfo.weather.alerts[0].severity === 'severe'
-                        ? 'rgba(245, 158, 11, 0.15)'
-                        : 'rgba(59, 130, 246, 0.15)',
-                      borderRadius: '6px',
-                      borderLeft: `3px solid ${
-                        localInfo.weather.alerts[0].severity === 'extreme' 
-                          ? '#ef4444' 
-                          : localInfo.weather.alerts[0].severity === 'severe'
-                          ? '#f59e0b'
-                          : '#3b82f6'
-                      }`
-                    }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '6px', 
-                        marginBottom: '4px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        color: localInfo.weather.alerts[0].severity === 'extreme' 
-                          ? '#ef4444' 
-                          : localInfo.weather.alerts[0].severity === 'severe'
-                          ? '#f59e0b'
-                          : '#3b82f6'
-                      }}>
-                        <span>{localInfo.weather.alerts[0].severity === 'extreme' ? '🚨' : localInfo.weather.alerts[0].severity === 'severe' ? '⚠️' : 'ℹ️'}</span>
-                        {localInfo.weather.alerts[0].title}
-                      </div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                        {localInfo.weather.alerts[0].description}
-                      </div>
-                      {localInfo.weather.alerts.length > 1 && (
-                        <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '4px' }}>
-                          +{localInfo.weather.alerts.length - 1}件の気象警報
-                        </div>
-                      )}
+                  {/* 当日の時間別予報 */}
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      ⏰ 本日の時間別予報
                     </div>
-                  )}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(6, 1fr)', 
+                      gap: '4px',
+                      background: 'var(--bg-main)',
+                      padding: '8px',
+                      borderRadius: '8px'
+                    }}>
+                      {(localInfo?.weather?.hourly && localInfo.weather.hourly.length > 0 
+                        ? localInfo.weather.hourly.slice(0, 6)
+                        : [
+                            { hour: '9時', icon: '☀️', temp: 5 },
+                            { hour: '12時', icon: '☀️', temp: 9 },
+                            { hour: '15時', icon: '⛅', temp: 10 },
+                            { hour: '18時', icon: '🌙', temp: 7 },
+                            { hour: '21時', icon: '🌙', temp: 5 },
+                            { hour: '24時', icon: '🌙', temp: 3 }
+                          ]
+                      ).map((h: { hour: string; icon: string; temp: number }, idx: number) => (
+                        <div key={idx} style={{ 
+                          textAlign: 'center',
+                          padding: '4px',
+                          background: idx === 0 ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                          borderRadius: '6px'
+                        }}>
+                          <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginBottom: '2px' }}>{h.hour}</div>
+                          <div style={{ fontSize: '14px', marginBottom: '2px' }}>{h.icon}</div>
+                          <div style={{ fontSize: '11px', fontWeight: '600' }}>{h.temp}°</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* 緊急情報・災害アラート */}
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ 
+                      fontSize: '11px', 
+                      fontWeight: '600', 
+                      color: 'var(--text-secondary)', 
+                      marginBottom: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      🚨 緊急情報・災害速報
+                    </div>
+                    {(localInfo?.weather?.alerts && localInfo.weather.alerts.length > 0) || 
+                     (localInfo?.emergencyAlerts && localInfo.emergencyAlerts.length > 0) ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {/* 地震・津波などの緊急情報 */}
+                        {localInfo?.emergencyAlerts?.map((alert: { type: string; title: string; description: string; severity: string }, idx: number) => (
+                          <div key={`emergency-${idx}`} style={{ 
+                            padding: '8px 10px', 
+                            background: alert.severity === 'critical' 
+                              ? 'rgba(220, 38, 38, 0.2)' 
+                              : alert.severity === 'warning'
+                              ? 'rgba(245, 158, 11, 0.15)'
+                              : 'rgba(59, 130, 246, 0.15)',
+                            borderRadius: '6px',
+                            borderLeft: `3px solid ${
+                              alert.severity === 'critical' 
+                                ? '#dc2626' 
+                                : alert.severity === 'warning'
+                                ? '#f59e0b'
+                                : '#3b82f6'
+                            }`
+                          }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '6px', 
+                              marginBottom: '4px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              color: alert.severity === 'critical' ? '#dc2626' : alert.severity === 'warning' ? '#f59e0b' : '#3b82f6'
+                            }}>
+                              <span>{alert.type === 'earthquake' ? '🌏' : alert.type === 'tsunami' ? '🌊' : alert.type === 'volcano' ? '🌋' : '🚨'}</span>
+                              {alert.title}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                              {alert.description}
+                            </div>
+                          </div>
+                        ))}
+                        {/* 気象警報 */}
+                        {localInfo?.weather?.alerts?.map((alert: { title: string; description: string; severity: string }, idx: number) => (
+                          <div key={`weather-${idx}`} style={{ 
+                            padding: '8px 10px', 
+                            background: alert.severity === 'extreme' 
+                              ? 'rgba(239, 68, 68, 0.15)' 
+                              : alert.severity === 'severe'
+                              ? 'rgba(245, 158, 11, 0.15)'
+                              : 'rgba(59, 130, 246, 0.15)',
+                            borderRadius: '6px',
+                            borderLeft: `3px solid ${
+                              alert.severity === 'extreme' 
+                                ? '#ef4444' 
+                                : alert.severity === 'severe'
+                                ? '#f59e0b'
+                                : '#3b82f6'
+                            }`
+                          }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '6px', 
+                              marginBottom: '4px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              color: alert.severity === 'extreme' ? '#ef4444' : alert.severity === 'severe' ? '#f59e0b' : '#3b82f6'
+                            }}>
+                              <span>{alert.severity === 'extreme' ? '🚨' : alert.severity === 'severe' ? '⚠️' : 'ℹ️'}</span>
+                              {alert.title}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                              {alert.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        padding: '10px 12px', 
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        borderRadius: '6px',
+                        borderLeft: '3px solid #10b981',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '16px' }}>✅</span>
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: '600', color: '#10b981' }}>
+                            緊急情報なし
+                          </div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                            現在、地震・津波・気象警報等の発令はありません
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
               </div>
@@ -1571,8 +2095,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               </div>
             </div>
 
-            <section className="analysis-section">
-              <div className="section-header">
+            <section className="analysis-section" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="section-header" style={{ order: 0 }}>
                 <h2 className="section-title">
                   <svg viewBox="0 0 24 24">
                     <circle cx="11" cy="11" r="8"/>
@@ -1602,7 +2126,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </button>
                 </div>
               </div>
-              <div className="analysis-grid">
+              {/* 中段: 業界動向 + 業界予測 + 世界情勢（3カラム） */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px', order: 2 }}>
                 <div id="industry-trends-section" className="analysis-card">
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title">
@@ -1635,24 +2160,34 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </div>
                   {industryTrends?.trends ? (
                     <div style={{ marginTop: '8px' }}>
-                      {industryTrends.trends.slice(0, 6).map((trend, idx) => (
+                      {industryTrends.trends.slice(0, 5).map((trend, idx) => (
                         <div key={idx} style={{ 
                           display: 'flex', 
-                          alignItems: 'flex-start', 
-                          padding: '10px',
+                          alignItems: 'center', 
+                          padding: '10px 12px',
                           marginBottom: '6px',
                           background: 'var(--bg-main)',
-                          borderRadius: '6px',
-                          gap: '10px'
+                          borderRadius: '8px',
+                          gap: '10px',
+                          border: '1px solid var(--border)'
                         }}>
+                          {/* 見やすいアイコン */}
                           <div style={{ 
-                            fontSize: '20px',
-                            lineHeight: '1',
-                            color: trend.direction === 'up' ? 'var(--success)' : trend.direction === 'down' ? 'var(--danger)' : 'var(--text-secondary)'
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: trend.direction === 'up' ? 'linear-gradient(135deg, #10b981, #34d399)' : trend.direction === 'down' ? 'linear-gradient(135deg, #ef4444, #f87171)' : 'linear-gradient(135deg, #94a3b8, #cbd5e1)',
+                            flexShrink: 0,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                           }}>
-                            {trend.direction === 'up' ? '↗️' : trend.direction === 'down' ? '↘️' : '→'}
+                            <span style={{ fontSize: '16px', color: 'white', fontWeight: '700' }}>
+                              {trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→'}
+                            </span>
                           </div>
-                          <div style={{ flex: 1 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ 
                               fontSize: '12px', 
                               fontWeight: '600',
@@ -1662,18 +2197,34 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               alignItems: 'center',
                               gap: '6px'
                             }}>
-                              {trend.category}
                               <span style={{ 
-                                fontSize: '10px', 
-                                padding: '1px 6px', 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis', 
+                                whiteSpace: 'nowrap' 
+                              }}>{trend.title?.slice(0, 20) || trend.category}</span>
+                              <span style={{ 
+                                fontSize: '9px', 
+                                padding: '2px 6px', 
                                 borderRadius: '4px',
-                                background: trend.strength === 'strong' ? 'rgba(16,185,129,0.2)' : trend.strength === 'moderate' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.2)',
-                                color: trend.strength === 'strong' ? 'var(--success)' : trend.strength === 'moderate' ? 'var(--warning)' : 'var(--text-secondary)'
+                                background: trend.direction === 'up' ? 'rgba(16,185,129,0.15)' : trend.direction === 'down' ? 'rgba(239,68,68,0.15)' : 'rgba(148,163,184,0.15)',
+                                color: trend.direction === 'up' ? '#10b981' : trend.direction === 'down' ? '#ef4444' : '#64748b',
+                                fontWeight: '600',
+                                whiteSpace: 'nowrap'
                               }}>
-                                {trend.strength === 'strong' ? '強' : trend.strength === 'moderate' ? '中' : '弱'}
+                                {trend.direction === 'up' ? '上昇' : trend.direction === 'down' ? '下降' : '横ばい'}
                               </span>
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{trend.title}</div>
+                            <div style={{ 
+                              fontSize: '11px', 
+                              color: 'var(--text-secondary)', 
+                              lineHeight: '1.5',
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical' as const
+                            }}>
+                              {trend.description?.slice(0, 100) || '情報なし'}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1684,6 +2235,209 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                   )}
                 </div>
+                {/* 業界予測（右側） */}
+                <div className="analysis-card">
+                  <div className="analysis-card-header">
+                    <h4 className="analysis-card-title">
+                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12,6 12,12 16,14"/>
+                      </svg>
+                      業界予測
+                    </h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {industryForecast?.shortTerm?.outlook && (
+                        <span className={`badge ${industryForecast.shortTerm.outlook === 'positive' ? 'badge-success' : industryForecast.shortTerm.outlook === 'negative' ? 'badge-warning' : 'badge-info'}`}>
+                          {industryForecast.shortTerm.outlook === 'positive' ? '↗️ ポジティブ' : industryForecast.shortTerm.outlook === 'negative' ? '↘️ ネガティブ' : '→ 中立'}
+                        </span>
+                      )}
+                      <button 
+                        className="refresh-btn-small" 
+                        onClick={() => fetchSectionData('industry-forecast', true)}
+                        disabled={refreshing['industry-forecast']}
+                        title="更新"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className={refreshing['industry-forecast'] ? 'spinning' : ''}
+                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  {industryForecast ? (
+                    <div style={{ marginTop: '8px' }}>
+                      {industryForecast.indicators && industryForecast.indicators.length > 0 && (
+                        <div>
+                          {industryForecast.indicators.slice(0, 5).map((ind: { name: string; current?: string; forecast: string; trend: string; confidence: string }, idx: number) => (
+                            <div key={idx} style={{ 
+                              display: 'flex', 
+                              alignItems: 'flex-start', 
+                              padding: '10px 12px',
+                              marginBottom: '8px',
+                              background: 'var(--bg-main)',
+                              borderRadius: '8px',
+                              gap: '12px',
+                              border: '1px solid var(--border)'
+                            }}>
+                              <div style={{ 
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: ind.trend === 'up' 
+                                  ? 'linear-gradient(135deg, #10b981, #34d399)' 
+                                  : ind.trend === 'down' 
+                                    ? 'linear-gradient(135deg, #ef4444, #f87171)' 
+                                    : 'linear-gradient(135deg, #94a3b8, #cbd5e1)',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              }}>
+                                <span style={{ fontSize: '16px', color: 'white', fontWeight: '700' }}>
+                                  {ind.trend === 'up' ? '↑' : ind.trend === 'down' ? '↓' : '→'}
+                                </span>
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ 
+                                  fontSize: '12px', 
+                                  fontWeight: '600',
+                                  color: 'var(--text-primary)',
+                                  marginBottom: '2px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px'
+                                }}>
+                                  {ind.name}
+                                  <span style={{ 
+                                    fontSize: '10px', 
+                                    padding: '2px 6px', 
+                                    borderRadius: '4px',
+                                    background: ind.confidence === 'high' ? 'rgba(16,185,129,0.2)' : ind.confidence === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.2)',
+                                    color: ind.confidence === 'high' ? 'var(--success)' : ind.confidence === 'medium' ? 'var(--warning)' : 'var(--text-secondary)',
+                                    fontWeight: '500'
+                                  }}>
+                                    信頼度{ind.confidence === 'high' ? '高' : ind.confidence === 'medium' ? '中' : '低'}
+                                  </span>
+                                </div>
+                                <div style={{ 
+                                  fontSize: '11px', 
+                                  color: 'var(--text-secondary)',
+                                  lineHeight: '1.6',
+                                  overflow: 'hidden',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 3,
+                                  WebkitBoxOrient: 'vertical' as const
+                                }}>
+                                  {ind.forecast}{(ind as any).description && `。${(ind as any).description}`}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      読み込み中...
+                    </div>
+                  )}
+                </div>
+                {/* 世界情勢・業界影響（3列目） */}
+                <div id="world-news-section" className="analysis-card">
+                  <div className="analysis-card-header">
+                    <h4 className="analysis-card-title">
+                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                      </svg>
+                      世界情勢
+                    </h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button 
+                        className="refresh-btn-small" 
+                        onClick={() => fetchSectionData('world-news', true)}
+                        disabled={refreshing['world-news']}
+                        title="更新"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className={refreshing['world-news'] ? 'spinning' : ''}
+                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  {worldNews?.categories ? (
+                    <div style={{ marginTop: '8px' }}>
+                      {worldNews.categories.slice(0, 5).map((cat, catIdx) => {
+                        const firstItem = cat.items?.[0];
+                        const direction = firstItem?.direction || 'neutral';
+                        return (
+                        <div key={catIdx} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          padding: '8px 10px',
+                          marginBottom: '6px',
+                          background: 'var(--bg-main)',
+                          borderRadius: '8px',
+                          gap: '8px',
+                          border: '1px solid var(--border)'
+                        }}>
+                          <div style={{ 
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: direction === 'positive' 
+                              ? 'linear-gradient(135deg, #10b981, #34d399)' 
+                              : direction === 'negative' 
+                                ? 'linear-gradient(135deg, #ef4444, #f87171)' 
+                                : 'linear-gradient(135deg, #6366f1, #818cf8)',
+                            flexShrink: 0,
+                            fontSize: '14px'
+                          }}>
+                            {cat.category === 'economy' && '💹'}
+                            {cat.category === 'ai' && '🤖'}
+                            {cat.category === 'it_tech' && '💻'}
+                            {!['economy', 'ai', 'it_tech'].includes(cat.category) && '🌍'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                              {cat.title?.slice(0, 15)}
+                            </div>
+                            <div style={{ 
+                              fontSize: '10px', 
+                              color: 'var(--text-secondary)', 
+                              lineHeight: '1.4',
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical' as const
+                            }}>
+                              {cat.items?.[0]?.impact?.slice(0, 50) || '情報なし'}
+                            </div>
+                          </div>
+                        </div>
+                      )})}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      読み込み中...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 上段: SWOT分析（フル幅） */}
+              <div style={{ marginBottom: '20px', order: 1 }}>
                 <div id="swot-analysis-section" className="analysis-card" style={{ position: 'relative' }}>
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title" style={{ position: 'relative' }}>
@@ -1784,100 +2538,167 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </div>
                   {swotAnalysis ? (
                     <>
-                      <div className="swot-grid">
-                        <div className="swot-item strength">
-                          <div className="swot-label">強み</div>
-                          <div className="swot-content">
-                            {swotAnalysis.strengths?.slice(0, 2).map((s, i) => (
-                              <div key={i} style={{ marginBottom: '4px' }}>
-                                • {typeof s === 'string' ? s : s.point}
-                              </div>
-                            )) || '分析中...'}
+                      {/* SWOT解説 */}
+                      <div style={{
+                        padding: '10px 14px',
+                        background: 'var(--bg-main)',
+                        borderRadius: '8px',
+                        marginBottom: '14px',
+                        borderLeft: '3px solid var(--primary)'
+                      }}>
+                        <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                          SWOT分析は、企業の<strong style={{ color: 'var(--text-primary)' }}>内部環境（強み・弱み）</strong>と<strong style={{ color: 'var(--text-primary)' }}>外部環境（機会・脅威）</strong>を整理し、戦略立案に活用するフレームワークです。強みを活かし機会を捉え、弱みを補い脅威に備える施策を検討します。
+                        </p>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        {/* 強み */}
+                        <div style={{ 
+                          padding: '12px', 
+                          borderRadius: '8px', 
+                          background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+                          borderLeft: '3px solid #10b981'
+                        }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', marginBottom: '8px' }}>
+                            S｜強み
                           </div>
+                          {swotAnalysis.strengths?.slice(0, 3).map((s, i) => (
+                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(16,185,129,0.3)' }}>
+                              {typeof s === 'string' ? s : s.point}
+                            </div>
+                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
-                        <div className="swot-item weakness">
-                          <div className="swot-label">弱み</div>
-                          <div className="swot-content">
-                            {swotAnalysis.weaknesses?.slice(0, 2).map((w, i) => (
-                              <div key={i} style={{ marginBottom: '4px' }}>
-                                • {typeof w === 'string' ? w : w.point}
-                              </div>
-                            )) || '分析中...'}
+                        {/* 弱み */}
+                        <div style={{ 
+                          padding: '12px', 
+                          borderRadius: '8px', 
+                          background: 'linear-gradient(135deg, #fef2f2, #fecaca)',
+                          borderLeft: '3px solid #ef4444'
+                        }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', marginBottom: '8px' }}>
+                            W｜弱み
                           </div>
+                          {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => (
+                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(239,68,68,0.3)' }}>
+                              {typeof w === 'string' ? w : w.point}
+                            </div>
+                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
-                        <div className="swot-item opportunity">
-                          <div className="swot-label">機会</div>
-                          <div className="swot-content">
-                            {swotAnalysis.opportunities?.slice(0, 2).map((o, i) => (
-                              <div key={i} style={{ marginBottom: '4px' }}>
-                                • {typeof o === 'string' ? o : o.point}
-                              </div>
-                            )) || '分析中...'}
+                        {/* 機会 */}
+                        <div style={{ 
+                          padding: '12px', 
+                          borderRadius: '8px', 
+                          background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                          borderLeft: '3px solid #3b82f6'
+                        }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#3b82f6', marginBottom: '8px' }}>
+                            O｜機会
                           </div>
+                          {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => (
+                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(59,130,246,0.3)' }}>
+                              {typeof o === 'string' ? o : o.point}
+                            </div>
+                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
-                        <div className="swot-item threat">
-                          <div className="swot-label">脅威</div>
-                          <div className="swot-content">
-                            {swotAnalysis.threats?.slice(0, 2).map((t, i) => (
-                              <div key={i} style={{ marginBottom: '4px' }}>
-                                • {typeof t === 'string' ? t : t.point}
-                              </div>
-                            )) || '分析中...'}
+                        {/* 脅威 */}
+                        <div style={{ 
+                          padding: '12px', 
+                          borderRadius: '8px', 
+                          background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+                          borderLeft: '3px solid #f59e0b'
+                        }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px' }}>
+                            T｜脅威
                           </div>
+                          {swotAnalysis.threats?.slice(0, 3).map((t, i) => (
+                            <div key={i} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '4px', paddingLeft: '8px', borderLeft: '2px solid rgba(245,158,11,0.3)' }}>
+                              {typeof t === 'string' ? t : t.point}
+                            </div>
+                          )) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
                         </div>
                       </div>
                       
-                      {/* 競合企業分析 */}
-                      {swotAnalysis.competitors && swotAnalysis.competitors.length > 0 && (
-                        <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
-                          <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            🏢 主要競合企業
-                          </h5>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {swotAnalysis.competitors.slice(0, 3).map((c, i) => (
-                              <div key={i} style={{ 
-                                padding: '8px 12px', 
-                                background: 'var(--bg-card)', 
-                                borderRadius: '6px',
-                                border: '1px solid var(--border)',
-                                fontSize: '12px',
-                                flex: '1',
-                                minWidth: '150px'
-                              }}>
-                                <div style={{ fontWeight: '600', marginBottom: '4px' }}>{c.name}</div>
-                                <div style={{ color: 'var(--text-secondary)' }}>{c.strength}</div>
+                      {/* 想定競合企業 + SNS・口コミ評判（横並び） */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                        {/* 想定競合企業分析 */}
+                        {swotAnalysis.competitors && swotAnalysis.competitors.length > 0 && (
+                          <div style={{ padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
+                            <h5 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                              🏢 想定競合企業
+                            </h5>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '10px', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                              ※製品・サービス・地域等から推測した想定企業です
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {swotAnalysis.competitors.slice(0, 3).map((c: { name: string; strength: string; comparison?: string; reason?: string }, i: number) => (
+                                <div key={i} style={{ 
+                                  padding: '10px 12px', 
+                                  background: 'var(--bg-card)', 
+                                  borderRadius: '6px',
+                                  border: '1px solid var(--border)',
+                                  fontSize: '11px'
+                                }}>
+                                  <div style={{ fontWeight: '600', marginBottom: '4px', color: 'var(--text-primary)' }}>
+                                    {c.name}
+                                    <span style={{ 
+                                      marginLeft: '8px', 
+                                      fontSize: '9px', 
+                                      padding: '2px 6px', 
+                                      background: 'rgba(99,102,241,0.1)', 
+                                      color: '#6366f1',
+                                      borderRadius: '4px'
+                                    }}>想定</span>
+                                  </div>
+                                  <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>強み: {c.strength}</div>
+                                  {c.reason && (
+                                    <div style={{ color: 'var(--text-light)', fontSize: '10px' }}>理由: {c.reason}</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* SNS・口コミ評判 */}
+                        {swotAnalysis.reputation && (
+                          <div style={{ padding: '12px', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                              <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '16px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              }}>💬</div>
+                              <div>
+                                <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>SNS・口コミ評判</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>総合: {swotAnalysis.reputation.overall}</div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* SNS・口コミ評判 */}
-                      {swotAnalysis.reputation && (
-                        <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
-                          <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            💬 SNS・口コミ評判
-                          </h5>
-                          <div style={{ fontSize: '13px', marginBottom: '8px' }}>
-                            <span style={{ fontWeight: '500' }}>総合評価: </span>
-                            <span>{swotAnalysis.reputation.overall}</span>
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                            <div>
-                              <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600', marginBottom: '4px' }}>👍 良い評判</div>
-                              {swotAnalysis.reputation.positives?.slice(0, 2).map((p, i) => (
-                                <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {p}</div>
-                              ))}
                             </div>
-                            <div>
-                              <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600', marginBottom: '4px' }}>👎 改善点</div>
-                              {swotAnalysis.reputation.negatives?.slice(0, 2).map((n, i) => (
-                                <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {n}</div>
-                              ))}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                              <div style={{ padding: '8px', background: 'rgba(16,185,129,0.08)', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '600', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '12px' }}>↑</span> 良い評判
+                                </div>
+                                {swotAnalysis.reputation.positives?.slice(0, 2).map((p, i) => (
+                                  <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {p}</div>
+                                ))}
+                              </div>
+                              <div style={{ padding: '8px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.15)' }}>
+                                <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: '600', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '12px' }}>↓</span> 改善点
+                                </div>
+                                {swotAnalysis.reputation.negatives?.slice(0, 2).map((n, i) => (
+                                  <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {n}</div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </>
                   ) : swotError ? (
                     <div style={{
@@ -1955,155 +2776,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                   )}
                 </div>
-                <div id="world-news-section" className="analysis-card">
-                  <div className="analysis-card-header">
-                    <h4 className="analysis-card-title">
-                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
-                      </svg>
-                      世界情勢・業界影響
-                    </h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-info">5カテゴリ</span>
-                      <button 
-                        className="refresh-btn-small" 
-                        onClick={() => fetchSectionData('world-news', true)}
-                        disabled={refreshing['world-news']}
-                        title="更新"
-                      >
-                        <svg 
-                          viewBox="0 0 24 24" 
-                          className={refreshing['world-news'] ? 'spinning' : ''}
-                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
-                        >
-                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  {worldNews?.categories ? (
-                    <div className="news-list">
-                      {worldNews.categories.map((cat, catIdx) => (
-                        <div key={catIdx} style={{ marginBottom: '12px' }}>
-                          <div style={{ 
-                            fontSize: '12px', 
-                            fontWeight: '600', 
-                            color: 'var(--text-secondary)',
-                            marginBottom: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}>
-                            {cat.category === 'it_tech' && '💻'}
-                            {cat.category === 'ai' && '🤖'}
-                            {cat.category === 'economy' && '📈'}
-                            {cat.category === 'conflict' && '⚠️'}
-                            {cat.category === 'software' && '📦'}
-                            {cat.title}
-                          </div>
-                          {cat.items?.slice(0, 1).map((item, itemIdx) => (
-                            <div key={itemIdx} className="news-item">
-                              <span className={`news-tag ${item.direction === 'positive' ? 'economy' : item.direction === 'negative' ? 'policy' : 'market'}`}>
-                                {item.direction === 'positive' ? '↗️ 好影響' : item.direction === 'negative' ? '↘️ 悪影響' : '→ 中立'}
-                              </span>
-                              <div className="news-content">
-                                <div className="news-title">{item.headline}</div>
-                                <div className="news-meta">{item.impact}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="news-list">
-                      <div className="news-item">
-                        <div className="news-content">
-                          <div className="news-title">読み込み中...</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="analysis-card">
-                  <div className="analysis-card-header">
-                    <h4 className="analysis-card-title">
-                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12,6 12,12 16,14"/>
-                      </svg>
-                      業界予測
-                    </h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {industryForecast?.shortTerm?.outlook && (
-                        <span className={`badge ${industryForecast.shortTerm.outlook === 'positive' ? 'badge-success' : industryForecast.shortTerm.outlook === 'negative' ? 'badge-warning' : 'badge-info'}`}>
-                          {industryForecast.shortTerm.outlook === 'positive' ? '↗️ ポジティブ' : industryForecast.shortTerm.outlook === 'negative' ? '↘️ ネガティブ' : '→ 中立'}
-                        </span>
-                      )}
-                      <button 
-                        className="refresh-btn-small" 
-                        onClick={() => fetchSectionData('industry-forecast', true)}
-                        disabled={refreshing['industry-forecast']}
-                        title="更新"
-                      >
-                        <svg 
-                          viewBox="0 0 24 24" 
-                          className={refreshing['industry-forecast'] ? 'spinning' : ''}
-                          style={{ width: '14px', height: '14px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}
-                        >
-                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  {industryForecast ? (
-                    <div style={{ marginTop: '8px' }}>
-                      {/* 主要指標 */}
-                      {industryForecast.indicators && industryForecast.indicators.length > 0 && (
-                        <div style={{ marginBottom: '12px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>📊 主要指標予測</div>
-                          {industryForecast.indicators.slice(0, 5).map((ind, idx) => (
-                            <div key={idx} style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              padding: '6px 8px',
-                              marginBottom: '4px',
-                              background: 'var(--bg-main)',
-                              borderRadius: '4px',
-                              fontSize: '12px'
-                            }}>
-                              <span style={{ 
-                                fontSize: '14px', 
-                                marginRight: '8px',
-                                color: ind.trend === 'up' ? 'var(--success)' : ind.trend === 'down' ? 'var(--danger)' : 'var(--text-secondary)'
-                              }}>
-                                {ind.trend === 'up' ? '↗️' : ind.trend === 'down' ? '↘️' : '→'}
-                              </span>
-                              <span style={{ flex: 1 }}>{ind.name}</span>
-                              <span style={{ fontWeight: '600', marginRight: '8px' }}>{ind.forecast}</span>
-                              <span style={{ 
-                                fontSize: '10px', 
-                                padding: '1px 4px', 
-                                borderRadius: '3px',
-                                background: ind.confidence === 'high' ? 'rgba(16,185,129,0.2)' : ind.confidence === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.2)'
-                              }}>
-                                {ind.confidence === 'high' ? '高' : ind.confidence === 'medium' ? '中' : '低'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* 経営提言は最下段のフル幅セクションに移動 */}
-                    </div>
-                  ) : (
-                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      読み込み中...
-                    </div>
-                  )}
-                </div>
               </div>
+
             </section>
 
             {/* 経営への提言 - フル幅セクション（最下段） */}
@@ -2218,7 +2892,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px', fontWeight: '600' }}>
                           📊 業界見通し
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                           {/* 円形ゲージ */}
                           <div style={{ position: 'relative', width: '60px', height: '60px' }}>
                             <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
@@ -2255,6 +2929,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             </div>
                           </div>
                         </div>
+                        {/* 説明文3行 */}
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>
+                          業界全体の短期見通しを示すゲージです。<br/>
+                          市場動向・需要予測・競合状況を総合評価。<br/>
+                          緑:好調 / 黄:横ばい / 赤:低調
+                        </div>
                       </div>
 
                       {/* リスクレベル */}
@@ -2267,7 +2947,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px', fontWeight: '600' }}>
                           ⚠️ リスクレベル
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                           {/* リスクバー */}
                           <div style={{ flex: 1 }}>
                             <div style={{ 
@@ -2298,6 +2978,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             </div>
                           </div>
                         </div>
+                        {/* 説明文3行 */}
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>
+                          検出されたリスク要因の数を5段階で表示。<br/>
+                          経済変動・競合参入・規制変更等を評価。<br/>
+                          1-2:低 / 3:中 / 4-5:高リスク
+                        </div>
                       </div>
 
                       {/* 成長機会 */}
@@ -2318,60 +3004,80 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         }}>
                           {industryForecast.opportunities?.length || 3}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '10px' }}>
                           件の成長機会を検出
+                        </div>
+                        {/* 説明文3行 */}
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>
+                          市場拡大・新規事業・技術革新等の機会数。<br/>
+                          業界動向と自社の強みから機会を分析。<br/>
+                          多いほど成長余地が大きいことを示します。
                         </div>
                       </div>
                     </div>
 
-                    {/* 主要指標のミニチャート */}
+                    {/* 主要指標のミニチャート - フル幅 */}
                     {industryForecast.indicators && industryForecast.indicators.length > 0 && (
                       <div style={{
                         background: 'rgba(255,255,255,0.05)',
                         borderRadius: '12px',
-                        padding: '16px',
+                        padding: '16px 20px',
                         marginBottom: '20px',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        width: '100%'
                       }}>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '12px', fontWeight: '600' }}>
-                          📈 主要指標トレンド
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: 'rgba(255,255,255,0.6)', 
+                          marginBottom: '6px', 
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <span>📈 主要指標トレンド（過去8週間）</span>
+                          <span style={{ fontSize: '10px', fontWeight: '400' }}>業界の主要KPIの推移を可視化</span>
                         </div>
-                        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '4px' }}>
-                          {industryForecast.indicators.slice(0, 5).map((ind, idx) => (
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(5, 1fr)', 
+                          gap: '8px',
+                          width: '100%'
+                        }}>
+                          {industryForecast.indicators.slice(0, 5).map((ind: { name?: string; trend: string }, idx: number) => (
                             <div key={idx} style={{
-                              minWidth: '120px',
                               background: 'rgba(255,255,255,0.05)',
                               borderRadius: '8px',
-                              padding: '12px',
+                              padding: '14px 10px',
                               textAlign: 'center'
                             }}>
                               {/* ミニスパークライン風 */}
                               <div style={{ 
-                                height: '24px', 
+                                height: '32px', 
                                 display: 'flex', 
                                 alignItems: 'flex-end', 
                                 justifyContent: 'center',
-                                gap: '2px',
-                                marginBottom: '8px'
+                                gap: '3px',
+                                marginBottom: '10px'
                               }}>
-                                {[40, 55, 45, 60, 70, 65, ind.trend === 'up' ? 85 : ind.trend === 'down' ? 30 : 50].map((h, i) => (
+                                {[40, 55, 45, 60, 70, 65, 72, ind.trend === 'up' ? 90 : ind.trend === 'down' ? 25 : 55].map((h, i) => (
                                   <div key={i} style={{
-                                    width: '4px',
-                                    height: `${h * 0.24}px`,
-                                    borderRadius: '2px',
-                                    background: i === 6 
+                                    width: '6px',
+                                    height: `${h * 0.32}px`,
+                                    borderRadius: '3px',
+                                    background: i === 7 
                                       ? (ind.trend === 'up' ? '#10b981' : ind.trend === 'down' ? '#ef4444' : '#f59e0b')
-                                      : 'rgba(255,255,255,0.2)'
+                                      : 'rgba(255,255,255,0.15)'
                                   }} />
                                 ))}
                               </div>
-                              <div style={{ fontSize: '11px', color: 'white', fontWeight: '600', marginBottom: '2px' }}>
-                                {ind.name?.slice(0, 8) || '指標'}
+                              <div style={{ fontSize: '11px', color: 'white', fontWeight: '600', marginBottom: '4px' }}>
+                                {ind.name?.slice(0, 10) || '指標'}
                               </div>
                               <div style={{ 
-                                fontSize: '10px', 
+                                fontSize: '11px', 
                                 color: ind.trend === 'up' ? '#10b981' : ind.trend === 'down' ? '#ef4444' : '#f59e0b',
-                                fontWeight: '600'
+                                fontWeight: '700'
                               }}>
                                 {ind.trend === 'up' ? '↗ 上昇' : ind.trend === 'down' ? '↘ 下降' : '→ 横ばい'}
                               </div>
@@ -2381,63 +3087,166 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </div>
                     )}
 
-                    {/* 経営提言 */}
+                    {/* 経営提言 - スマート版 */}
                     {industryForecast.recommendation && (
                       <div style={{
-                        background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(6, 182, 212, 0.1))',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        border: '1px solid rgba(14, 165, 233, 0.3)',
-                        marginBottom: '16px'
+                        background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        borderRadius: '16px',
+                        padding: '20px 24px',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        marginBottom: '16px',
+                        backdropFilter: 'blur(8px)'
                       }}>
+                        {/* ヘッダー */}
                         <div style={{ 
-                          fontSize: '12px', 
-                          color: '#0ea5e9', 
-                          marginBottom: '12px', 
-                          fontWeight: '700',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px'
+                          justifyContent: 'space-between',
+                          marginBottom: '16px'
                         }}>
-                          <span style={{ fontSize: '14px' }}>💡</span>
-                          経営への提言
+                          <div style={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px'
+                          }}>
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '16px'
+                            }}>💡</div>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: 'white' }}>経営への提言</div>
+                              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>AI分析に基づく戦略的アドバイス</div>
+                            </div>
+                          </div>
+                          <div style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            fontSize: '10px',
+                            color: '#10b981',
+                            fontWeight: '600'
+                          }}>
+                            優先度順
+                          </div>
                         </div>
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-                          gap: '10px' 
-                        }}>
-                          {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 6).map((item, idx) => (
+
+                        {/* 提言リスト */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 3).map((item, idx) => (
                             <div key={idx} style={{
                               display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '10px',
-                              padding: '10px 12px',
-                              background: 'rgba(255,255,255,0.9)',
-                              borderRadius: '8px'
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px 14px',
+                              background: idx === 0 
+                                ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(6, 182, 212, 0.1))'
+                                : 'rgba(255,255,255,0.04)',
+                              borderRadius: '10px',
+                              border: idx === 0 
+                                ? '1px solid rgba(14, 165, 233, 0.3)'
+                                : '1px solid rgba(255,255,255,0.06)',
+                              transition: 'all 0.2s ease'
                             }}>
-                              <span style={{
-                                background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: '22px',
-                                height: '22px',
+                              <div style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                background: idx === 0 
+                                  ? 'linear-gradient(135deg, #0ea5e9, #06b6d4)'
+                                  : idx === 1 
+                                    ? 'rgba(14, 165, 233, 0.3)'
+                                    : 'rgba(255,255,255,0.1)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontSize: '11px',
                                 fontWeight: '700',
+                                color: 'white',
                                 flexShrink: 0
-                              }}>{idx + 1}</span>
+                              }}>{idx + 1}</div>
                               <p style={{
                                 margin: 0,
                                 fontSize: '12px',
-                                color: '#1e293b',
+                                color: idx === 0 ? 'white' : 'rgba(255,255,255,0.8)',
                                 lineHeight: '1.5',
-                                fontWeight: '500'
+                                fontWeight: idx === 0 ? '600' : '500',
+                                flex: 1
                               }}>{item.trim()}</p>
+                              {idx === 0 && (
+                                <div style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(245, 158, 11, 0.2)',
+                                  fontSize: '9px',
+                                  color: '#fbbf24',
+                                  fontWeight: '600',
+                                  whiteSpace: 'nowrap'
+                                }}>最優先</div>
+                              )}
                             </div>
                           ))}
+                        </div>
+
+                        {/* 相談を促すセクション */}
+                        <div style={{
+                          marginTop: '16px',
+                          padding: '14px 16px',
+                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08))',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(99, 102, 241, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            flexShrink: 0
+                          }}>🤝</div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{
+                              margin: '0 0 2px 0',
+                              fontSize: '12px',
+                              color: 'rgba(255,255,255,0.9)',
+                              fontWeight: '600'
+                            }}>
+                              実行に課題はありませんか？
+                            </p>
+                            <p style={{
+                              margin: 0,
+                              fontSize: '11px',
+                              color: 'rgba(255,255,255,0.6)',
+                              lineHeight: '1.4'
+                            }}>
+                              具体的な実行計画の策定や、課題解決のサポートをいたします。
+                            </p>
+                          </div>
+                          <div style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            fontSize: '11px',
+                            color: 'white',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            相談する →
+                          </div>
                         </div>
                       </div>
                     )}
