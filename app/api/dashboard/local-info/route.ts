@@ -190,7 +190,7 @@ async function getLaborCosts(prefecture: string, city: string, industry: string)
       .map(r => {
         const text = (r.description || r.title || '').replace(/[^\d]/g, ' ')
         const matches = text.match(/\d{3,4}/g)
-        return matches ? matches.map(Number).filter(n => n > 900 && n < 3000) : []
+        return matches ? matches.map(Number).filter((n: number) => n > 900 && n < 3000) : []
       })
       .flat()
     if (numbers.length > 0) {
