@@ -41,9 +41,18 @@ npm run dev
 ```
 
 ### 重要ルール
-- **Webpack優先**: Turbopackは不安定なため開発中は`--webpack`を使用
+- **Webpack優先**: Turbopackは現時点で互換性問題があるため`--webpack`を使用
 - **単一プロセス**: devサーバーは常に1つだけ起動
 - **`middleware.ts`削除禁止**: 認証管理に必須
+
+### Turbopack再評価について
+| 項目 | 内容 |
+|------|------|
+| 現状 | Next.js 16で正式版になったが、`next start`との互換性問題あり |
+| 問題点 | `.next/server`が生成されず、`pages-manifest.json`がない |
+| 再評価時期 | **Next.js 16.2 または 17リリース時** |
+| 評価基準 | `next start`との互換性が解決されたか確認 |
+| 理由 | Turbopackは高速だが、安定性を優先して現在はWebpackを使用 |
 
 ---
 
