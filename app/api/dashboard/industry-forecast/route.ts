@@ -47,7 +47,7 @@ const forecastSchema = z.object({
       impact: z.enum(["positive", "negative", "neutral"]).describe("影響"),
       description: z.string().describe("説明"),
     })).describe("主要要因"),
-    prediction: z.string().describe("予測サマリー"),
+    prediction: z.string().describe("予測サマリー（3行程度、80〜120文字で具体的に）"),
   }).describe("短期予測（3ヶ月）"),
   midTerm: z.object({
     period: z.string().describe("期間（例: 2025年4-9月）"),
@@ -55,9 +55,9 @@ const forecastSchema = z.object({
     keyFactors: z.array(z.object({
       factor: z.string().describe("要因"),
       impact: z.enum(["positive", "negative", "neutral"]).describe("影響"),
-      description: z.string().describe("説明"),
+      description: z.string().describe("説明（3行程度、80〜120文字）"),
     })).describe("主要要因"),
-    prediction: z.string().describe("予測サマリー"),
+    prediction: z.string().describe("予測サマリー（3行程度、80〜120文字で具体的に）"),
   }).describe("中期予測（6ヶ月）"),
   indicators: z.array(z.object({
     name: z.string().describe("指標名"),

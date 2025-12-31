@@ -39,14 +39,13 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
 
 const industryTrendSchema = z.object({
   trends: z.array(z.object({
-    category: z.string().describe("動向カテゴリ（需要動向、輸出動向、価格動向、技術動向、人材動向など）"),
-    title: z.string().describe("トレンドのタイトル"),
-    description: z.string().describe("詳細説明"),
+    category: z.string().describe("動向カテゴリ（需要動向、価格動向、技術動向、市場規模、人材動向の5つ）"),
+    title: z.string().describe("トレンドのタイトル（15文字以内）"),
+    description: z.string().describe("詳細説明（60文字以内、2〜3行で簡潔に）"),
     direction: z.enum(["up", "down", "stable"]).describe("上向き、下向き、横ばい"),
     strength: z.enum(["strong", "moderate", "weak"]).describe("変化の強さ"),
-    impact: z.string().describe("企業への影響"),
     source: z.string().describe("情報源"),
-  })).describe("業界トレンド一覧"),
+  })).max(5).describe("業界トレンド一覧（5項目のみ）"),
   summary: z.object({
     overallDirection: z.enum(["up", "down", "stable"]).describe("業界全体の方向性"),
     outlook: z.string().describe("今後の見通し"),
@@ -137,19 +136,19 @@ export async function GET(request: Request) {
 ${searchText}
 
 【分析要件】
-以下の6カテゴリについて、それぞれトレンドを分析してください：
+以下の5カテゴリについて、それぞれトレンドを分析してください：
 
 1. 需要動向 - 国内需要の増減傾向
-2. 輸出動向 - 海外市場・輸出の動向
-3. 価格動向 - 製品・サービス価格の推移
-4. 技術動向 - 業界の技術革新・新技術
+2. 価格動向 - 製品・サービス価格の推移
+3. 技術動向 - 業界の技術革新・新技術
+4. 市場規模 - 市場全体の成長・縮小傾向
 5. 人材動向 - 業界の人材需給・採用状況
-6. 市場規模 - 市場全体の成長・縮小傾向
 
-各トレンドについて：
-- direction: "up"(上昇/好調), "down"(下降/低調), "stable"(横ばい)
-- strength: "strong"(強い変化), "moderate"(中程度), "weak"(弱い変化)
-- impact: この企業への具体的な影響
+【重要】各トレンドについて：
+- title: 15文字以内
+- description: 60文字以内（2〜3行で簡潔に。長文禁止）
+- direction: "up"/"down"/"stable"
+- strength: "strong"/"moderate"/"weak"
 
 サマリーでは業界全体の方向性と今後の見通しを示してください。
 すべて日本語で、具体的な数値や固有名詞を含めて回答してください。`,

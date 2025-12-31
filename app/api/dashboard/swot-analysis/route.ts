@@ -40,36 +40,37 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
 
 const swotSchema = z.object({
   strengths: z.array(z.object({
-    point: z.string().describe("強みの内容"),
-    evidence: z.string().describe("根拠・出典"),
-  })).describe("強み"),
+    point: z.string().describe("強みの内容（30文字以内の簡潔な1文）"),
+    evidence: z.string().describe("根拠（20文字以内）"),
+  })).max(3).describe("強み（3項目まで）"),
   weaknesses: z.array(z.object({
-    point: z.string().describe("弱みの内容"),
-    evidence: z.string().describe("根拠・出典"),
-  })).describe("弱み"),
+    point: z.string().describe("弱みの内容（30文字以内の簡潔な1文）"),
+    evidence: z.string().describe("根拠（20文字以内）"),
+  })).max(3).describe("弱み（3項目まで）"),
   opportunities: z.array(z.object({
-    point: z.string().describe("機会の内容"),
-    evidence: z.string().describe("根拠・出典"),
-  })).describe("機会"),
+    point: z.string().describe("機会の内容（30文字以内の簡潔な1文）"),
+    evidence: z.string().describe("根拠（20文字以内）"),
+  })).max(3).describe("機会（3項目まで）"),
   threats: z.array(z.object({
-    point: z.string().describe("脅威の内容"),
-    evidence: z.string().describe("根拠・出典"),
-  })).describe("脅威"),
+    point: z.string().describe("脅威の内容（30文字以内の簡潔な1文）"),
+    evidence: z.string().describe("根拠（20文字以内）"),
+  })).max(3).describe("脅威（3項目まで）"),
   competitors: z.array(z.object({
-    name: z.string().describe("競合企業名"),
-    strength: z.string().describe("競合の強み"),
-    comparison: z.string().describe("自社との比較"),
-  })).describe("主要競合企業"),
+    name: z.string().describe("想定競合企業名"),
+    strength: z.string().describe("競合の強み（20文字以内）"),
+    comparison: z.string().describe("自社との比較（20文字以内）"),
+    reason: z.string().describe("競合と想定した理由（15文字以内）"),
+  })).max(3).describe("想定競合企業（3社まで）"),
   industryPosition: z.object({
-    ranking: z.string().describe("業界内の位置付け"),
-    marketShare: z.string().describe("市場シェア/占有率"),
-    differentiation: z.string().describe("差別化要因"),
+    ranking: z.string().describe("業界内の位置付け（15文字以内）"),
+    marketShare: z.string().describe("市場シェア（10文字以内）"),
+    differentiation: z.string().describe("差別化要因（20文字以内）"),
   }).describe("業界内ポジション"),
   reputation: z.object({
-    overall: z.string().describe("総合評価"),
-    positives: z.array(z.string()).describe("良い評判"),
-    negatives: z.array(z.string()).describe("悪い評判"),
-    sources: z.array(z.string()).describe("情報源"),
+    overall: z.string().describe("総合評価（15文字以内）"),
+    positives: z.array(z.string()).max(3).describe("良い評判（各15文字以内、3項目まで）"),
+    negatives: z.array(z.string()).max(3).describe("悪い評判（各15文字以内、3項目まで）"),
+    sources: z.array(z.string()).max(2).describe("情報源（2つまで）"),
   }).describe("SNS/口コミ評判"),
 })
 
@@ -115,24 +116,56 @@ export async function GET(request: Request) {
     // 多角的な外部情報を収集
     const industryQuery = company.industry || ''
     const businessDesc = company.business_description || ''
+    const prefecture = company.prefecture || ''
     
-    // 並列で複数の検索を実行
+    // 会社情報から製品・サービスキーワードを抽出
+    const retrievedInfo = company.retrieved_info as any
+    let productKeywords: string[] = []
+    
+    // retrieved_infoから製品情報を抽出
+    if (retrievedInfo) {
+      if (retrievedInfo.products) productKeywords.push(...(Array.isArray(retrievedInfo.products) ? retrievedInfo.products : [retrievedInfo.products]))
+      if (retrievedInfo.services) productKeywords.push(...(Array.isArray(retrievedInfo.services) ? retrievedInfo.services : [retrievedInfo.services]))
+      if (retrievedInfo.main_products) productKeywords.push(retrievedInfo.main_products)
+      if (retrievedInfo.business_areas) productKeywords.push(...(Array.isArray(retrievedInfo.business_areas) ? retrievedInfo.business_areas : [retrievedInfo.business_areas]))
+    }
+    
+    // business_descriptionからキーワード抽出
+    if (businessDesc) {
+      const descKeywords = businessDesc.split(/[、,。・\s]+/).filter((k: string) => k.length >= 2 && k.length <= 15).slice(0, 5)
+      productKeywords.push(...descKeywords)
+    }
+    
+    // 重複除去
+    productKeywords = [...new Set(productKeywords.filter(k => k && k.length > 1))].slice(0, 5)
+    const productQuery = productKeywords.length > 0 ? productKeywords.slice(0, 3).join(' ') : businessDesc.slice(0, 30)
+    
+    console.log('🔍 競合分析用キーワード:', { productKeywords, productQuery, businessDesc })
+    
+    // 並列で複数の検索を実行（製品・サービス中心の検索）
+    // 製品キーワードを明確に使用（下水道継手など具体的な製品名）
+    const specificProductQuery = productKeywords.length > 0 
+      ? productKeywords.join(' ') 
+      : businessDesc.slice(0, 50)
+    
+    console.log('🔍 競合検索クエリ:', { specificProductQuery, productKeywords })
+    
     const searchPromises = [
-      // 競合分析
-      braveWebSearch(`${company.name} 競合 ライバル企業 比較`, 5),
-      braveWebSearch(`${industryQuery} 業界 大手企業 ランキング シェア`, 5),
+      // 競合分析（具体的な製品名で検索）
+      braveWebSearch(`${specificProductQuery} メーカー 製造会社`, 5),
+      braveWebSearch(`${specificProductQuery} 同業他社 競合`, 5),
       // 強み・HP/社長情報
       braveWebSearch(`${company.name} 強み 特徴 技術力 実績`, 5),
       braveWebSearch(`${company.name} 代表取締役 社長 経営者 理念`, 3),
       // 市場機会・取引先
       braveWebSearch(`${company.name} 取引先 顧客 大手企業`, 5),
-      braveWebSearch(`${industryQuery} 市場規模 成長率 2025 予測`, 5),
+      braveWebSearch(`${productQuery} 市場規模 成長率 2025 予測`, 5),
       // SNS・口コミ評判
       braveWebSearch(`${company.name} 評判 口コミ レビュー`, 5),
       braveWebSearch(`${company.name} Google評価 クチコミ`, 3),
       braveWebSearch(`${company.name} 転職 社員 評判`, 3),
-      // 業界ポジション
-      braveWebSearch(`${industryQuery} ${company.prefecture || ''} 企業 シェア 占有率`, 5),
+      // 業界ポジション（製品ベース）
+      braveWebSearch(`${productQuery} 企業 シェア ${prefecture}`, 5),
     ]
 
     const searchResults = await Promise.all(searchPromises)
@@ -150,18 +183,29 @@ export async function GET(request: Request) {
       .map((r: any) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
       .join('\n')
 
+    // 製品・サービス情報を整理
+    const productInfo = productKeywords.length > 0 
+      ? productKeywords.join('、')
+      : '情報なし'
+
     const companyInfo = `
 【企業基本情報】
 会社名: ${company.name}
 業種: ${company.industry || '不明'}
 所在地: ${company.prefecture || '不明'}
-従業員数: ${company.employee_count || '不明'}
+従業員数: ${company.employee_count || '不明'}名
 売上規模: ${company.annual_revenue || '不明'}
 事業内容: ${company.business_description || '不明'}
 Webサイト: ${company.website || 'なし'}
-取得情報: ${company.retrieved_info ? JSON.stringify(company.retrieved_info) : 'なし'}
 
-【競合・業界情報】
+【★重要★ この企業の製品・サービス（競合分析の軸）】
+${productInfo}
+※競合企業は上記の製品・サービスが類似する企業から選定すること
+
+【取得情報（HPから収集）】
+${company.retrieved_info ? JSON.stringify(company.retrieved_info, null, 2) : 'なし'}
+
+【競合候補・市場情報（製品ベース検索結果）】
 ${formatResults(competitorResults)}
 
 【強み・経営者情報】
@@ -200,42 +244,43 @@ ${companyInfo}
 
 【分析要件】
 
-1. 強み (Strengths) - 各3項目
-   - HPにおける社長・経営者の情報、企業理念、技術力から推定
-   - 実績、受賞歴、特許などの客観的根拠を含める
-   - 取引先に大手企業があれば強みとして記載
+【重要】全ての回答は簡潔に。各項目30文字以内の1文で記載すること。
 
-2. 弱み (Weaknesses) - 各3項目
-   - 競合との比較における劣位点
-   - 口コミ・評判から見える課題
-   - 市場での認知度や規模の課題
+1. 強み (Strengths) - 3項目のみ
+   - 各項目30文字以内の簡潔な1文
+   - 根拠は20文字以内
 
-3. 機会 (Opportunities) - 各3項目
-   - 業界における需要動向と成長機会
-   - 取引先大手企業との取引拡大可能性
-   - 市場シェア拡大の余地
+2. 弱み (Weaknesses) - 3項目のみ
+   - 各項目30文字以内の簡潔な1文
+   - 根拠は20文字以内
 
-4. 脅威 (Threats) - 各3項目
-   - 主要競合企業の動向
-   - 業界の構造変化リスク
-   - 経済環境・技術変化による影響
+3. 機会 (Opportunities) - 3項目のみ
+   - 各項目30文字以内の簡潔な1文
+   - 根拠は20文字以内
 
-5. 競合企業分析 - 主要3社
-   - 競合企業名と強み
-   - この企業との比較ポイント
+4. 脅威 (Threats) - 3項目のみ
+   - 各項目30文字以内の簡潔な1文
+   - 根拠は20文字以内
+
+5. 想定競合企業 - 3社のみ
+   【最重要】以下の条件を厳守すること：
+   - ❌ 業界・業種だけで競合を特定しない（例: 建設業→大林組、鹿島建設は絶対不可）
+   - ❌ 業界大手・上場企業・ゼネコンは対象外
+   - ✅ 上記「製品・サービス」欄の具体的な製品（例：下水道継手、管継手、配管部品など）を製造する企業を選ぶ
+   - ✅ 同じ製品カテゴリのメーカー・製造会社のみ
+   - ✅ 企業規模（従業員数・売上）が近い中小企業を選ぶ
+   - ✅ 地域（都道府県）が同じまたは近い企業を優先
+   - 強み・理由は各20文字以内
+   - 必ず「想定」と明示
 
 6. 業界内ポジション
-   - 業界内でのランキング・位置付け
-   - 推定市場シェア・占有率
-   - 差別化要因
+   - 各項目15〜20文字以内
 
 7. SNS/口コミ評判
-   - Google評価やSNSでの総合的な評判
-   - 良い評判（3つ）
-   - 改善点・ネガティブな評判（3つ）
-   - 情報源
+   - 各項目15文字以内
+   - 良い評判3つ、悪い評判3つ
 
-すべて日本語で、具体的な数値や固有名詞を含めて回答してください。`,
+すべて日本語で簡潔に回答。`,
         },
       ],
     })

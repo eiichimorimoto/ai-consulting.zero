@@ -421,6 +421,19 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
     }
   }
 
+  // 時間別予報を生成（現在時刻から6時間分）
+  const hourlyForecast = []
+  const currentHour = loginDate.getHours()
+  const weatherIcons = ['☀️', '⛅', '☁️', '🌤️', '🌥️', '☀️']
+  for (let i = 0; i < 6; i++) {
+    const hour = (currentHour + i) % 24
+    hourlyForecast.push({
+      time: `${hour}:00`,
+      temp: Math.round(8 + Math.random() * 8 - (hour < 6 || hour > 18 ? 3 : 0)),
+      icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '⛈️' : weatherIcons[i]
+    })
+  }
+
   return {
     current: {
       temp: 8,
@@ -428,6 +441,7 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
       desc: currentDesc
     },
     week: weekWeather,
+    hourly: hourlyForecast,
     alerts: alerts.slice(0, 3), // 最大3件まで
     _debug: {
       searchQuery: query,

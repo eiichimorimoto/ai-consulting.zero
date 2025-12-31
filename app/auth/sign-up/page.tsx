@@ -9,11 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { AlertTriangle, Home, CheckCircle, Eye, EyeOff, FileText } from "lucide-react"
 import { checkPasswordStrength } from "@/lib/auth-utils"
 
-export default function SignUpPage() {
+function SignUpContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [repeatPassword, setRepeatPassword] = useState("")
@@ -597,5 +597,20 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-svh w-full items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <SignUpContent />
+    </Suspense>
   )
 }
