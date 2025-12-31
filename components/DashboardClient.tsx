@@ -342,9 +342,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
   }
 
-  // セッションストレージのキー
-  const SESSION_KEY = `dashboard_data_${profile?.id || 'guest'}`
-  const SESSION_INITIALIZED_KEY = `dashboard_initialized_${profile?.id || 'guest'}`
+  // セッションストレージのキー（v5: タイムスケジュール追加）
+  const SESSION_KEY = `dashboard_data_v5_${profile?.id || 'guest'}`
+  const SESSION_INITIALIZED_KEY = `dashboard_initialized_v5_${profile?.id || 'guest'}`
 
   // キャッシュからデータを復元（全データが揃っている場合のみ成功）
   const restoreFromCache = () => {
@@ -670,8 +670,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               </a>
               <a className="nav-item" onClick={() => scrollToSection('recommendation-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                  <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/>
+                  <path d="M9 21h6"/>
                 </svg>
                 経営への提言
               </a>
@@ -748,8 +748,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
             left: '220px',
             right: 0,
             zIndex: 100,
-            background: 'var(--bg-main, #f8fafc)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            background: 'rgba(248, 250, 252, 0.6)',
+            backdropFilter: 'blur(6px)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
           }}>
             <header className="header">
               <div className="header-left">
@@ -777,7 +778,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               padding: 0
             }}>
               <div style={{
-                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%)',
+                background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.08) 0%, rgba(226, 232, 240, 0.05) 50%, rgba(241, 245, 249, 0.08) 100%)',
+                backdropFilter: 'blur(2px)',
                 borderRadius: '0',
                 padding: '16px 24px',
                 display: 'flex',
@@ -2599,234 +2601,290 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </div>
                   {swotAnalysis ? (
                     <>
-                      {/* SWOT解説 */}
-                      <div style={{
-                        padding: '10px 14px',
-                        background: 'var(--bg-main)',
-                        borderRadius: '8px',
-                        marginBottom: '14px',
-                        borderLeft: '3px solid var(--primary)'
+                      {/* SWOT 2x2 マトリックス */}
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gridTemplateRows: '1fr 1fr',
+                        gap: '0',
+                        position: 'relative',
+                        background: '#fff',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: '2px solid #e2e8f0'
                       }}>
-                        <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                          SWOT分析は、企業の<strong style={{ color: 'var(--text-primary)' }}>内部環境（強み・弱み）</strong>と<strong style={{ color: 'var(--text-primary)' }}>外部環境（機会・脅威）</strong>を整理し、戦略立案に活用するフレームワークです。強みを活かし機会を捉え、弱みを補い脅威に備える施策を検討します。
-                        </p>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        {/* 強み */}
+                        {/* 中央のクロスライン */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: 0,
+                          right: 0,
+                          height: '2px',
+                          background: 'linear-gradient(90deg, #10b981 0%, #10b981 50%, #f59e0b 50%, #f59e0b 100%)',
+                          zIndex: 5
+                        }} />
+                        <div style={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: 0,
+                          bottom: 0,
+                          width: '2px',
+                          background: 'linear-gradient(180deg, #10b981 0%, #3b82f6 50%, #3b82f6 50%, #f59e0b 100%)',
+                          zIndex: 5
+                        }} />
+
+                        {/* 中央のS/W/O/T文字 - 中心付近に離して配置 */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-130%, -130%)',
+                          fontSize: '52px',
+                          fontWeight: '200',
+                          fontFamily: 'Georgia, serif',
+                          fontStyle: 'italic',
+                          color: '#10b981',
+                          opacity: 0.25,
+                          zIndex: 10,
+                          pointerEvents: 'none'
+                        }}>S</div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(30%, -130%)',
+                          fontSize: '52px',
+                          fontWeight: '200',
+                          fontFamily: 'Georgia, serif',
+                          fontStyle: 'italic',
+                          color: '#ef4444',
+                          opacity: 0.25,
+                          zIndex: 10,
+                          pointerEvents: 'none'
+                        }}>W</div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-130%, 30%)',
+                          fontSize: '52px',
+                          fontWeight: '200',
+                          fontFamily: 'Georgia, serif',
+                          fontStyle: 'italic',
+                          color: '#3b82f6',
+                          opacity: 0.25,
+                          zIndex: 10,
+                          pointerEvents: 'none'
+                        }}>O</div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(30%, 30%)',
+                          fontSize: '52px',
+                          fontWeight: '200',
+                          fontFamily: 'Georgia, serif',
+                          fontStyle: 'italic',
+                          color: '#f59e0b',
+                          opacity: 0.25,
+                          pointerEvents: 'none',
+                          zIndex: 4
+                        }}>T</div>
+
+                        {/* 強み (S) - 左上 */}
                         <div style={{ 
-                          padding: '16px', 
-                          borderRadius: '12px', 
-                          background: 'linear-gradient(145deg, #ffffff, #f0fdf4)',
-                          border: '1px solid rgba(16, 185, 129, 0.2)',
-                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
+                          padding: '16px',
+                          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                          position: 'relative'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <div style={{ 
-                              width: '28px', 
-                              height: '28px', 
-                              borderRadius: '8px', 
-                              background: 'linear-gradient(135deg, #10b981, #34d399)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
-                            }}>
-                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>S</span>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>強み</div>
-                              <div style={{ fontSize: '9px', color: '#64748b' }}>Strengths</div>
-                            </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>Strengths</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '8px' }}>— 自社の優位性・得意分野</span>
                           </div>
-                          {swotAnalysis.strengths?.slice(0, 3).map((s, i) => {
-                            const text = typeof s === 'string' ? s : s.point;
-                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
-                            return (
-                              <div key={i} style={{ 
-                                fontSize: '11px', 
-                                color: '#1e293b', 
-                                marginBottom: '8px',
-                                padding: '8px 10px',
-                                background: 'rgba(16, 185, 129, 0.06)',
-                                borderRadius: '6px',
-                                borderLeft: '3px solid #10b981'
-                              }}>
-                                <span style={{ 
-                                  display: 'inline-block',
-                                  padding: '2px 6px',
-                                  background: '#10b981',
-                                  color: 'white',
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {swotAnalysis.strengths?.slice(0, 3).map((s, i) => {
+                              const text = typeof s === 'string' ? s : s.point;
+                              const isImportant = i === 0;
+                              return (
+                                <div key={i} style={{ 
+                                  padding: '8px 10px',
+                                  background: '#d1fae5',
                                   borderRadius: '4px',
-                                  fontSize: '9px',
-                                  fontWeight: '600',
-                                  marginRight: '6px'
-                                }}>{keyword}</span>
-                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
-                              </div>
-                            );
-                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                                  fontSize: '10px',
+                                  color: '#065f46',
+                                  boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                  position: 'relative',
+                                  minWidth: '70px',
+                                  maxWidth: '100px'
+                                }}>
+                                  {isImportant && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: '-6px',
+                                      right: '-6px',
+                                      width: '16px',
+                                      height: '16px',
+                                      background: '#1e293b',
+                                      borderRadius: '50%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
+                                    </div>
+                                  )}
+                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                </div>
+                              );
+                            }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
+                          </div>
                         </div>
-                        {/* 弱み */}
+
+                        {/* 弱み (W) - 右上 */}
                         <div style={{ 
-                          padding: '16px', 
-                          borderRadius: '12px', 
-                          background: 'linear-gradient(145deg, #ffffff, #fef2f2)',
-                          border: '1px solid rgba(239, 68, 68, 0.2)',
-                          boxShadow: '0 2px 8px rgba(239, 68, 68, 0.08)'
+                          padding: '16px',
+                          background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
+                          position: 'relative'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <div style={{ 
-                              width: '28px', 
-                              height: '28px', 
-                              borderRadius: '8px', 
-                              background: 'linear-gradient(135deg, #ef4444, #f87171)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
-                            }}>
-                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>W</span>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>弱み</div>
-                              <div style={{ fontSize: '9px', color: '#64748b' }}>Weaknesses</div>
-                            </div>
+                          <div style={{ marginBottom: '10px', textAlign: 'right' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#dc2626' }}>Weaknesses</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '8px' }}>— 改善すべき課題</span>
                           </div>
-                          {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => {
-                            const text = typeof w === 'string' ? w : w.point;
-                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
-                            return (
-                              <div key={i} style={{ 
-                                fontSize: '11px', 
-                                color: '#1e293b', 
-                                marginBottom: '8px',
-                                padding: '8px 10px',
-                                background: 'rgba(239, 68, 68, 0.06)',
-                                borderRadius: '6px',
-                                borderLeft: '3px solid #ef4444'
-                              }}>
-                                <span style={{ 
-                                  display: 'inline-block',
-                                  padding: '2px 6px',
-                                  background: '#ef4444',
-                                  color: 'white',
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => {
+                              const text = typeof w === 'string' ? w : w.point;
+                              const isImportant = i === 0;
+                              return (
+                                <div key={i} style={{ 
+                                  padding: '8px 10px',
+                                  background: '#fecaca',
                                   borderRadius: '4px',
-                                  fontSize: '9px',
-                                  fontWeight: '600',
-                                  marginRight: '6px'
-                                }}>{keyword}</span>
-                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
-                              </div>
-                            );
-                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                                  fontSize: '10px',
+                                  color: '#991b1b',
+                                  boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                  position: 'relative',
+                                  minWidth: '70px',
+                                  maxWidth: '100px'
+                                }}>
+                                  {isImportant && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: '-6px',
+                                      right: '-6px',
+                                      width: '16px',
+                                      height: '16px',
+                                      background: '#1e293b',
+                                      borderRadius: '50%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
+                                    </div>
+                                  )}
+                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                </div>
+                              );
+                            }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
+                          </div>
                         </div>
-                        {/* 機会 */}
+
+                        {/* 機会 (O) - 左下 */}
                         <div style={{ 
-                          padding: '16px', 
-                          borderRadius: '12px', 
-                          background: 'linear-gradient(145deg, #ffffff, #eff6ff)',
-                          border: '1px solid rgba(59, 130, 246, 0.2)',
-                          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
+                          padding: '16px',
+                          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                          position: 'relative'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <div style={{ 
-                              width: '28px', 
-                              height: '28px', 
-                              borderRadius: '8px', 
-                              background: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)'
-                            }}>
-                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>O</span>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#2563eb' }}>機会</div>
-                              <div style={{ fontSize: '9px', color: '#64748b' }}>Opportunities</div>
-                            </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#2563eb' }}>Opportunities</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '8px' }}>— 成長のチャンス</span>
                           </div>
-                          {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => {
-                            const text = typeof o === 'string' ? o : o.point;
-                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
-                            return (
-                              <div key={i} style={{ 
-                                fontSize: '11px', 
-                                color: '#1e293b', 
-                                marginBottom: '8px',
-                                padding: '8px 10px',
-                                background: 'rgba(59, 130, 246, 0.06)',
-                                borderRadius: '6px',
-                                borderLeft: '3px solid #3b82f6'
-                              }}>
-                                <span style={{ 
-                                  display: 'inline-block',
-                                  padding: '2px 6px',
-                                  background: '#3b82f6',
-                                  color: 'white',
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => {
+                              const text = typeof o === 'string' ? o : o.point;
+                              const isImportant = i === 0;
+                              return (
+                                <div key={i} style={{ 
+                                  padding: '8px 10px',
+                                  background: '#bfdbfe',
                                   borderRadius: '4px',
-                                  fontSize: '9px',
-                                  fontWeight: '600',
-                                  marginRight: '6px'
-                                }}>{keyword}</span>
-                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
-                              </div>
-                            );
-                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                                  fontSize: '10px',
+                                  color: '#1e40af',
+                                  boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                  position: 'relative',
+                                  minWidth: '70px',
+                                  maxWidth: '100px'
+                                }}>
+                                  {isImportant && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: '-6px',
+                                      right: '-6px',
+                                      width: '16px',
+                                      height: '16px',
+                                      background: '#1e293b',
+                                      borderRadius: '50%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
+                                    </div>
+                                  )}
+                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                </div>
+                              );
+                            }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
+                          </div>
                         </div>
-                        {/* 脅威 */}
+
+                        {/* 脅威 (T) - 右下 */}
                         <div style={{ 
-                          padding: '16px', 
-                          borderRadius: '12px', 
-                          background: 'linear-gradient(145deg, #ffffff, #fffbeb)',
-                          border: '1px solid rgba(245, 158, 11, 0.2)',
-                          boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)'
+                          padding: '16px',
+                          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                          position: 'relative'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <div style={{ 
-                              width: '28px', 
-                              height: '28px', 
-                              borderRadius: '8px', 
-                              background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 6px rgba(245, 158, 11, 0.3)'
-                            }}>
-                              <span style={{ color: 'white', fontWeight: '700', fontSize: '12px' }}>T</span>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '12px', fontWeight: '700', color: '#d97706' }}>脅威</div>
-                              <div style={{ fontSize: '9px', color: '#64748b' }}>Threats</div>
-                            </div>
+                          <div style={{ marginBottom: '10px', textAlign: 'right' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#d97706' }}>Threats</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '8px' }}>— 外部からのリスク</span>
                           </div>
-                          {swotAnalysis.threats?.slice(0, 3).map((t, i) => {
-                            const text = typeof t === 'string' ? t : t.point;
-                            const keyword = text.split(/[：:、。]/)[0].slice(0, 8);
-                            return (
-                              <div key={i} style={{ 
-                                fontSize: '11px', 
-                                color: '#1e293b', 
-                                marginBottom: '8px',
-                                padding: '8px 10px',
-                                background: 'rgba(245, 158, 11, 0.06)',
-                                borderRadius: '6px',
-                                borderLeft: '3px solid #f59e0b'
-                              }}>
-                                <span style={{ 
-                                  display: 'inline-block',
-                                  padding: '2px 6px',
-                                  background: '#f59e0b',
-                                  color: 'white',
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {swotAnalysis.threats?.slice(0, 3).map((t, i) => {
+                              const text = typeof t === 'string' ? t : t.point;
+                              const isImportant = i === 0;
+                              return (
+                                <div key={i} style={{ 
+                                  padding: '8px 10px',
+                                  background: '#fde68a',
                                   borderRadius: '4px',
-                                  fontSize: '9px',
-                                  fontWeight: '600',
-                                  marginRight: '6px'
-                                }}>{keyword}</span>
-                                <span style={{ color: '#475569' }}>{text.slice(keyword.length).replace(/^[：:、]/, '').trim() || text}</span>
-                              </div>
-                            );
-                          }) || <div style={{ fontSize: '11px', color: '#64748b' }}>分析中...</div>}
+                                  fontSize: '10px',
+                                  color: '#92400e',
+                                  boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                  position: 'relative',
+                                  minWidth: '70px',
+                                  maxWidth: '100px'
+                                }}>
+                                  {isImportant && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: '-6px',
+                                      right: '-6px',
+                                      width: '16px',
+                                      height: '16px',
+                                      background: '#1e293b',
+                                      borderRadius: '50%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
+                                    </div>
+                                  )}
+                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                </div>
+                              );
+                            }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
+                          </div>
                         </div>
                       </div>
                       
@@ -3342,11 +3400,15 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)'
                             }}>
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/>
+                                <path d="M9 21h6"/>
                               </svg>
                             </div>
                             <div>
-                              <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', letterSpacing: '0.3px' }}>経営への提言</div>
+                              <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', letterSpacing: '0.3px' }}>
+                                経営への提言
+                                <span style={{ fontSize: '9px', fontWeight: '400', color: '#94a3b8', marginLeft: '6px' }}>(公開情報による提言)</span>
+                              </div>
                               <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '500' }}>Strategic Recommendations</div>
                             </div>
                           </div>
@@ -3370,13 +3432,46 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           </div>
                         </div>
 
-                        {/* 提言リスト - SVGアイコン付きカード */}
+                        {/* 提言リスト - SVGアイコン付きカード + タイムスケジュール */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 3).map((item, idx) => {
+                            // 【カテゴリ】を抽出
+                            const categoryMatch = item.match(/【(.+?)】/)
+                            const category = categoryMatch ? categoryMatch[1] : ['コスト削減', '売上拡大', 'リスク対策'][idx]
+                            const displayText = item.replace(/^[①②③]\s*/, '').replace(/【.+?】/, '').trim()
+                            
+                            // 期限を抽出してタイムスケジュールを計算（起点: 現在月）
+                            const now = new Date()
+                            const currentYear = now.getFullYear()
+                            const currentMonth = now.getMonth() + 1
+                            let targetMonths = [3, 6, 9][idx] // デフォルト: 3ヶ月、6ヶ月、9ヶ月
+                            
+                            // テキストから期限を抽出
+                            const monthMatch = item.match(/(\d{1,2})月/)
+                            const yearMatch = item.match(/(\d{4})年/)
+                            const quarterMatch = item.match(/(上期|下期|Q[1-4]|第[1-4]四半期)/)
+                            
+                            if (monthMatch) {
+                              const targetMonth = parseInt(monthMatch[1])
+                              const targetYear = yearMatch ? parseInt(yearMatch[1]) : (targetMonth < currentMonth ? currentYear + 1 : currentYear)
+                              targetMonths = (targetYear - currentYear) * 12 + (targetMonth - currentMonth)
+                              if (targetMonths < 1) targetMonths = 1
+                              if (targetMonths > 12) targetMonths = 12
+                            } else if (quarterMatch) {
+                              const q = quarterMatch[1]
+                              if (q === '上期' || q === 'Q1' || q === 'Q2' || q === '第1四半期' || q === '第2四半期') {
+                                targetMonths = currentMonth <= 6 ? (6 - currentMonth + 1) : (18 - currentMonth + 1)
+                              } else {
+                                targetMonths = currentMonth <= 6 ? (12 - currentMonth + 1) : (12 - currentMonth + 1)
+                              }
+                            }
+                            
+                            const progressPercent = Math.min(100, (targetMonths / 12) * 100)
+                            
                             const configs = [
-                              { label: '最重要', bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04))', border: 'rgba(99, 102, 241, 0.2)', iconBg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1', textColor: '#1e293b', shadow: 'rgba(99, 102, 241, 0.2)' },
-                              { label: '成長', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03))', border: 'rgba(14, 165, 233, 0.15)', iconBg: 'linear-gradient(135deg, #0ea5e9, #06b6d4)', accent: '#0ea5e9', textColor: '#334155', shadow: 'rgba(14, 165, 233, 0.15)' },
-                              { label: '対策', bg: 'rgba(100, 116, 139, 0.04)', border: 'rgba(100, 116, 139, 0.12)', iconBg: 'linear-gradient(135deg, #475569, #64748b)', accent: '#64748b', textColor: '#475569', shadow: 'rgba(71, 85, 105, 0.1)' }
+                              { bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04))', border: 'rgba(99, 102, 241, 0.2)', iconBg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1', textColor: '#1e293b', shadow: 'rgba(99, 102, 241, 0.2)' },
+                              { bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03))', border: 'rgba(14, 165, 233, 0.15)', iconBg: 'linear-gradient(135deg, #0ea5e9, #06b6d4)', accent: '#0ea5e9', textColor: '#334155', shadow: 'rgba(14, 165, 233, 0.15)' },
+                              { bg: 'rgba(100, 116, 139, 0.04)', border: 'rgba(100, 116, 139, 0.12)', iconBg: 'linear-gradient(135deg, #475569, #64748b)', accent: '#64748b', textColor: '#475569', shadow: 'rgba(71, 85, 105, 0.1)' }
                             ];
                             const cfg = configs[idx];
                             const icons = [
@@ -3424,7 +3519,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       color: cfg.accent,
                                       textTransform: 'uppercase',
                                       letterSpacing: '0.6px'
-                                    }}>{cfg.label}</span>
+                                    }}>{category}</span>
                                     {idx === 0 && (
                                       <span style={{
                                         padding: '2px 7px',
@@ -3442,23 +3537,50 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                     fontSize: '12px',
                                     color: cfg.textColor,
                                     lineHeight: '1.65',
-                                    fontWeight: idx === 0 ? '600' : '500'
-                                  }}>{item.trim()}</p>
+                                    fontWeight: idx === 0 ? '600' : '500',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                  }}>{displayText}</p>
                                 </div>
+                                {/* タイムスケジュール */}
                                 <div style={{
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '50%',
-                                  background: 'rgba(99, 102, 241, 0.08)',
                                   display: 'flex',
+                                  flexDirection: 'column',
                                   alignItems: 'center',
-                                  justifyContent: 'center',
+                                  gap: '3px',
+                                  minWidth: '85px',
                                   flexShrink: 0,
-                                  marginTop: '4px'
+                                  padding: '6px 8px',
+                                  background: 'rgba(248, 250, 252, 0.8)',
+                                  borderRadius: '8px',
+                                  border: '1px solid rgba(148, 163, 184, 0.15)'
                                 }}>
-                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(99, 102, 241, 0.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M9 18l6-6-6-6"/>
-                                  </svg>
+                                  <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>
+                                    {targetMonths}ヶ月後
+                                  </span>
+                                  <div style={{
+                                    width: '65px',
+                                    height: '5px',
+                                    background: 'rgba(148, 163, 184, 0.2)',
+                                    borderRadius: '3px',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <div style={{
+                                      width: `${progressPercent}%`,
+                                      height: '100%',
+                                      background: cfg.iconBg,
+                                      borderRadius: '3px',
+                                      transition: 'width 0.3s ease'
+                                    }} />
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: '#94a3b8' }}>
+                                    <span>{currentYear}/{currentMonth}</span>
+                                    <span style={{ color: cfg.accent, fontWeight: '600' }}>
+                                      {currentMonth + targetMonths > 12 ? currentYear + 1 : currentYear}/{((currentMonth + targetMonths - 1) % 12) + 1}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -3498,7 +3620,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               color: '#1e293b',
                               fontWeight: '600'
                             }}>
-                              経営課題でお困りですか？
+                              課題は早期対応が必要です
                             </p>
                             <p style={{
                               margin: 0,
@@ -3506,7 +3628,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               color: '#64748b',
                               lineHeight: '1.4'
                             }}>
-                              AIが具体的な解決策をご提案します
+                              AIが具体的な解決策をご支援します
                             </p>
                           </div>
                           <button

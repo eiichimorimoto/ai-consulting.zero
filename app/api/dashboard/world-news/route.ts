@@ -173,6 +173,9 @@ ${formatNews(conflictNews)}
           role: "user",
           content: `以下の企業情報と収集したニュースを基に、世界情勢が当該企業・業界に与える影響を分析してください。
 
+【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+※ 日付・期間を含む記載は本日を起点とすること
+
 ${searchContext}
 
 【分析要件】
