@@ -1,0 +1,166 @@
+{
+  "name": "AIコンサルティング - 新規案件対応",
+  "description": "Supabaseからクライアント情報を取得してコンサルティングを実施",
+  "version": "2.0.0",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "data": {
+        "title": "開始",
+        "variables": [
+          {
+            "variable": "user_id",
+            "label": "ユーザーID",
+            "type": "text",
+            "required": true,
+            "description": "Supabaseのauth.usersのID"
+          },
+          {
+            "variable": "is_new_case",
+            "label": "新規案件か",
+            "type": "boolean",
+            "required": true,
+            "default": true,
+            "description": "true: 新規案件, false: 継続案件"
+          },
+          {
+            "variable": "user_question",
+            "label": "ユーザーの質問",
+            "type": "text",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "http_request_1",
+      "type": "http-request",
+      "data": {
+        "title": "Supabaseコンテキスト取得",
+        "method": "POST",
+        "url": "https://your-domain.vercel.app/api/dify/context",
+        "headers": {
+          "Content-Type": "application/json",
+          "x-api-key": "{{env.DIFY_API_KEY}}"
+        },
+        "body": {
+          "userId": "{{start.user_id}}",
+          "isNewCase": "{{start.is_new_case}}"
+        },
+        "timeout": 30,
+        "output_variable": "context"
+      }
+    },
+    {
+      "id": "code_1",
+      "type": "code",
+      "data": {
+        "title": "コンテキスト整形",
+        "language": "javascript",
+        "code": "function main(args) {\n  // HTTP Requestの出力を取得\n  const context = args.context;\n  \n  // レスポンスが成功しているか確認\n  if (!context || !context.success || !context.data) {\n    return {\n      formatted_context: 'エラー: データの取得に失敗しました',\n      company_name: '不明',\n      user_name: '不明',\n      has_history: false\n    };\n  }\n  \n  const data = context.data;\n  \n  // 会社情報の整形\n  const companyInfo = [\n    '【会社情報】',\n    '会社名: ' + (data.company.name || '不明'),\n    '業種: ' + (data.company.industry || '不明'),\n    '従業員数: ' + (data.company.employee_count || '不明'),\n    '事業内容: ' + (data.company.business_description || 'なし'),\n    '現在の課題: ' + ((data.company.current_challenges || []).join(', ') || 'なし'),\n    'IT成熟度: ' + (data.company.it_maturity_level || '不明')\n  ].join('\\n');\n  \n  // プロフィール整形\n  const profileInfo = [\n    '',\n    '【担当者情報】',\n    '名前: ' + data.profile.name,\n    '役職: ' + (data.profile.position || '不明'),\n    '部署: ' + (data.profile.department || '不明'),\n    'メール: ' + data.profile.email\n  ].join('\\n');\n  \n  // Web情報整形\n  let webInfo = '';\n  if (data.webResources && data.webResources.length > 0) {\n    const resources = data.webResources.map(function(r) {\n      return '- ' + (r.title || 'タイトルなし') + ': ' + (r.description || '');\n    }).join('\\n');\n    webInfo = '\\n\\n【外部情報】\\n' + resources;\n  }\n  \n  // 会話履歴整形（継続案件の場合）\n  let historyInfo = '';\n  if (data.conversationHistory) {\n    const session = data.conversationHistory.session;\n    const messages = data.conversationHistory.recentMessages || [];\n    \n    const messageList = messages.map(function(m) {\n      return m.role + ': ' + m.content;\n    }).join('\\n');\n    \n    historyInfo = [\n      '',\n      '',\n      '【過去の相談】',\n      'セッション: ' + session.title,\n      '分析サマリー: ' + (session.summary || 'なし'),\n      '前回の提案: ' + (session.recommendations ? JSON.stringify(session.recommendations) : 'なし'),\n      '',\n      '【直近の会話】',\n      messageList\n    ].join('\\n');\n  }\n  \n  return {\n    formatted_context: companyInfo + profileInfo + webInfo + historyInfo,\n    company_name: data.company.name || '不明',\n    user_name: data.profile.name || '不明',\n    has_history: !!data.conversationHistory\n  };\n}",
+        "output_variables": [
+          "formatted_context",
+          "company_name",
+          "user_name",
+          "has_history"
+        ]
+      }
+    },
+    {
+      "id": "llm_1",
+      "type": "llm",
+      "data": {
+        "title": "AIコンサルティング実行",
+        "model": {
+          "provider": "openai",
+          "name": "gpt-4",
+          "mode": "chat",
+          "completion_params": {
+            "temperature": 0.7,
+            "max_tokens": 2000
+          }
+        },
+        "prompt": {
+          "system": "あなたは経験豊富なAIコンサルタントです。クライアントの状況を分析し、実践的なアドバイスを提供してください。\n\n【対応方針】\n- 新規案件: 現状分析と初期提案を重視\n- 継続案件: 過去の相談内容を踏まえた継続的な支援\n\n【回答フォーマット】\n1. 状況の理解\n2. 分析結果\n3. 具体的な提案（3〜5点）\n4. 次のステップ",
+          "user": "{{code_1.formatted_context}}\n\n【ユーザーの質問】\n{{start.user_question}}\n\n上記の情報をもとに、{{code_1.company_name}}の{{code_1.user_name}}様に対して、専門的なコンサルティングを提供してください。"
+        },
+        "output_variable": "consultation_result"
+      }
+    },
+    {
+      "id": "answer",
+      "type": "answer",
+      "data": {
+        "title": "回答",
+        "answer": "{{llm_1.text}}",
+        "variables": [
+          {
+            "variable": "company_name",
+            "value": "{{code_1.company_name}}"
+          },
+          {
+            "variable": "user_name",
+            "value": "{{code_1.user_name}}"
+          },
+          {
+            "variable": "has_history",
+            "value": "{{code_1.has_history}}"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "start",
+      "target": "http_request_1"
+    },
+    {
+      "source": "http_request_1",
+      "target": "code_1"
+    },
+    {
+      "source": "code_1",
+      "target": "llm_1"
+    },
+    {
+      "source": "llm_1",
+      "target": "answer"
+    }
+  ],
+  "environment_variables": [
+    {
+      "key": "DIFY_API_KEY",
+      "value": "",
+      "description": "Next.jsアプリとの認証用APIキー（32文字以上推奨）"
+    }
+  ],
+  "usage_notes": {
+    "setup": [
+      "1. Next.jsアプリに /api/dify/context エンドポイントをデプロイ",
+      "2. 環境変数 DIFY_API_KEY を設定（32文字以上のランダム文字列推奨）",
+      "3. http_request_1 ノードの URL を本番環境のURLに変更",
+      "4. Dify環境変数構文を確認（{{env.DIFY_API_KEY}} または {{#sys.env.DIFY_API_KEY#}}）",
+      "5. テスト実行で動作確認"
+    ],
+    "testing": {
+      "new_case": {
+        "user_id": "実際のSupabase auth.usersのUUID",
+        "is_new_case": true,
+        "user_question": "AIを活用した業務効率化について相談したいです"
+      },
+      "existing_case": {
+        "user_id": "実際のSupabase auth.usersのUUID",
+        "is_new_case": false,
+        "user_question": "前回提案いただいた内容の進捗を報告します"
+      }
+    },
+    "important_notes": [
+      "Difyのバージョンにより変数参照構文が異なる場合があります",
+      "環境変数: {{env.VARIABLE}} または {{#sys.env.VARIABLE#}}",
+      "ノード出力: {{node_id.output_var}} または {{#node_id.output_var#}}",
+      "実際のDify画面で構文を確認してください"
+    ]
+  }
+}
