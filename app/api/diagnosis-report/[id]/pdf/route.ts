@@ -145,27 +145,11 @@ async function generatePDF(report: any): Promise<Buffer> {
   // ここでは簡易的にHTMLをBase64エンコードして返す
   // 本番環境ではPuppeteerやPDFライブラリを使用することを推奨
   
-  // puppeteerを使用してPDFを生成
-  try {
-    const puppeteer = await import('puppeteer');
-    const browser = await puppeteer.default.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
-    });
-    await browser.close();
-    return Buffer.from(pdfBuffer);
-  } catch (puppeteerError) {
-    console.log('Puppeteer not available, using HTML fallback');
-    // Puppeteerが利用できない場合はHTMLを返す
-    return Buffer.from(html);
-  }
+  // Vercelのサーバーレス環境ではpuppeteerは使用できないため、
+  // HTMLを直接返す（クライアント側でPDF変換を行う）
+  // 将来的には外部PDF生成サービス（例: PDFShift, HTMLtoPDF API）の使用を検討
+  console.log('Using HTML fallback for PDF generation (puppeteer not available in serverless environment)');
+  return Buffer.from(html);
 }
 
 export async function POST(
