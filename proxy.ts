@@ -6,7 +6,7 @@ const logToConsole = async (data: any) => {
   console.log("[proxy]", JSON.stringify(data))
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Supabaseのメール確認（PKCE）の戻り先がトップ(/)になってしまっても、
   // `?code=` が付いていれば /auth/callback に渡してセッション交換→プロフィール入力へ遷移させる。
   const url = request.nextUrl
