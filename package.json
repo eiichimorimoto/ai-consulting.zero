@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:browser": "node scripts/dev-with-browser.js",
-    "build": "next build --no-turbopack",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "setup-db": "node scripts/apply-schema-api.js",
