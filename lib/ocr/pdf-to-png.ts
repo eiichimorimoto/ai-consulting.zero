@@ -1,6 +1,10 @@
 /**
- * PDF(バッファ)を poppler-utils の `pdftoppm` を使って PNG(バッファ)に変換する。
+ * PDF(バッファ)を PNG(バッファ)に変換する。
  * - Claude API は PDF を直接受け付けないため、OCR前に画像化が必要
+ * - 優先: poppler-utils の `pdftoppm` を使用（高速・高品質）
+ * - フォールバック: pdfjs-dist + canvas を使用（Vercel等のサーバーレス環境対応）
+ * 
+ * インストール:
  * - macOS(Homebrew): `brew install poppler`
  * - Ubuntu/Debian: `sudo apt-get install poppler-utils`
  */
@@ -31,6 +35,104 @@ function getPdftoppmCommand(): { cmd: string; argsPrefix: string[] } {
   return { cmd: "pdftoppm", argsPrefix: [] }
 }
 
+/**
+ * pdfjs-dist + canvas を使用してPDFをPNGに変換（フォールバック用）
+ * Vercel等のサーバーレス環境でpdftoppmが利用できない場合に使用
+ */
+async function convertPdfWithPdfJs(
+  pdfBuffer: Buffer,
+  options: ConvertOptions = {}
+): Promise<Buffer> {
+  try {
+    console.log("📄 pdfjs-dist + canvasを使用してPDFを変換します...")
+    
+    // 動的インポート（pdfjs-distとcanvasは重いので必要時のみ読み込む）
+    let pdfjsLib: any
+    let createCanvas: any
+    
+    try {
+      // pdfjs-distのNode.js環境用インポート（複数のパスを試行）
+      try {
+        pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
+        console.log("✅ pdfjs-dist/legacy/build/pdf.mjs を読み込みました")
+      } catch (e1) {
+        try {
+          pdfjsLib = await import("pdfjs-dist")
+          console.log("✅ pdfjs-dist を読み込みました")
+        } catch (e2) {
+          throw new Error(`pdfjs-distのインポートに失敗: ${e1 instanceof Error ? e1.message : String(e1)}, ${e2 instanceof Error ? e2.message : String(e2)}`)
+        }
+      }
+      
+      const canvasModule = await import("canvas")
+      createCanvas = canvasModule.createCanvas
+      console.log("✅ canvas を読み込みました")
+    } catch (importError) {
+      const importMsg = importError instanceof Error ? importError.message : String(importError)
+      console.error("❌ モジュールのインポートに失敗:", importMsg)
+      throw new Error(`必要なモジュールのインポートに失敗しました: ${importMsg}`)
+    }
+
+    const page = options.page ?? 1
+    const scaleTo = options.scaleTo ?? 2048
+
+    // PDFを読み込む（Node.js環境ではUint8Arrayを直接使用）
+    const uint8Array = new Uint8Array(pdfBuffer)
+    console.log(`📖 PDFを読み込み中... (サイズ: ${uint8Array.length} bytes)`)
+    
+    const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
+    const pdf = await loadingTask.promise
+    console.log(`📄 PDF読み込み完了 (総ページ数: ${pdf.numPages})`)
+
+    // 指定ページを取得
+    const pdfPage = await pdf.getPage(page)
+    const viewport = pdfPage.getViewport({ scale: 1.0 })
+    console.log(`📐 ページ${page}のビューポート: ${viewport.width}x${viewport.height}`)
+
+    // スケールを計算
+    const scale = scaleTo / Math.max(viewport.width, viewport.height)
+    const scaledViewport = pdfPage.getViewport({ scale })
+    console.log(`🖼️ スケール: ${scale.toFixed(2)}, 出力サイズ: ${scaledViewport.width}x${scaledViewport.height}`)
+
+    // Canvasを作成
+    const canvas = createCanvas(scaledViewport.width, scaledViewport.height)
+    const context = canvas.getContext("2d")
+
+    // PDFをCanvasにレンダリング
+    const renderContext = {
+      canvasContext: context,
+      viewport: scaledViewport,
+    }
+    console.log("🎨 PDFをCanvasにレンダリング中...")
+    await pdfPage.render(renderContext).promise
+    console.log("✅ レンダリング完了")
+
+    // CanvasをPNGバッファに変換
+    const pngBuffer = canvas.toBuffer("image/png")
+    console.log(`✅ PNG変換完了 (サイズ: ${pngBuffer.length} bytes)`)
+    return pngBuffer
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+    console.error("❌ PDF→PNG変換（pdfjs-dist）エラー:", msg)
+    if (stack) {
+      console.error("スタックトレース:", stack)
+    }
+    throw new Error(`PDF→PNG変換（pdfjs-dist）に失敗しました: ${msg}`)
+  }
+}
+
+/**
+ * Vercel環境かどうかを判定
+ */
+function isVercelEnvironment(): boolean {
+  return !!(
+    process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.NEXT_PUBLIC_VERCEL_URL
+  )
+}
+
 export async function convertPdfBufferToPngBuffer(
   pdfBuffer: Buffer,
   options: ConvertOptions = {}
@@ -38,54 +140,91 @@ export async function convertPdfBufferToPngBuffer(
   const page = options.page ?? 1
   const scaleTo = options.scaleTo ?? 2048
 
-  const tempDir = path.join(os.tmpdir(), `pdf-to-png-${Date.now()}-${Math.random().toString(16).slice(2)}`)
-  await fs.mkdir(tempDir, { recursive: true })
+  // Vercel環境の場合は直接pdfjs-distを使用（pdftoppmは利用不可）
+  if (isVercelEnvironment()) {
+    console.log("🔍 Vercel環境を検出、pdfjs-dist + canvasを使用します")
+    try {
+      return await convertPdfWithPdfJs(pdfBuffer, options)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error("❌ pdfjs-dist変換エラー:", msg)
+      throw new Error(`PDF→PNG変換に失敗しました（Vercel環境）: ${msg}`)
+    }
+  }
 
-  const tempPdfPath = path.join(tempDir, "input.pdf")
-  const outPrefix = path.join(tempDir, "page")
-  const outPngPath = `${outPrefix}-${page}.png`
-
+  // ローカル環境ではまず pdftoppm を試行（高速・高品質）
   try {
-    await fs.writeFile(tempPdfPath, pdfBuffer)
+    const tempDir = path.join(os.tmpdir(), `pdf-to-png-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+    await fs.mkdir(tempDir, { recursive: true })
 
-    const { cmd, argsPrefix } = getPdftoppmCommand()
-    const args = [
-      ...argsPrefix,
-      "-png",
-      "-f",
-      String(page),
-      "-l",
-      String(page),
-      "-scale-to",
-      String(scaleTo),
-      tempPdfPath,
-      outPrefix,
-    ]
+    const tempPdfPath = path.join(tempDir, "input.pdf")
+    const outPrefix = path.join(tempDir, "page")
+    const outPngPath = `${outPrefix}-${page}.png`
 
-    await execFileAsync(cmd, args)
+    try {
+      await fs.writeFile(tempPdfPath, pdfBuffer)
 
-    return await fs.readFile(outPngPath)
+      const { cmd, argsPrefix } = getPdftoppmCommand()
+      const args = [
+        ...argsPrefix,
+        "-png",
+        "-f",
+        String(page),
+        "-l",
+        String(page),
+        "-scale-to",
+        String(scaleTo),
+        tempPdfPath,
+        outPrefix,
+      ]
+
+      await execFileAsync(cmd, args)
+
+      const result = await fs.readFile(outPngPath)
+      
+      // 成功したら一時ディレクトリを削除して返す
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true })
+      } catch {
+        // noop
+      }
+      
+      return result
+    } catch (fileErr) {
+      // 一時ディレクトリを削除
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true })
+      } catch {
+        // noop
+      }
+      throw fileErr
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    // よくある: poppler未導入 / PATH未設定
+    
+    // pdftoppmが利用できない場合（ENOENT/spawnエラー）はフォールバックを試行
     if (msg.toLowerCase().includes("enoent") || msg.toLowerCase().includes("spawn")) {
-      throw new Error(
-        [
-          "poppler-utils（pdftoppm）が見つかりません。",
-          "macOSの場合: brew install poppler",
-          "Ubuntu/Debianの場合: sudo apt-get install poppler-utils",
-          `実際のエラー: ${msg}`,
-        ].join("\n")
-      )
+      console.warn("⚠️ pdftoppmが利用できないため、pdfjs-dist + canvasにフォールバックします")
+      try {
+        return await convertPdfWithPdfJs(pdfBuffer, options)
+      } catch (fallbackErr) {
+        const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
+        throw new Error(
+          [
+            "PDF→PNG変換に失敗しました。",
+            "pdftoppm: " + msg,
+            "pdfjs-dist（フォールバック）: " + fallbackMsg,
+            "",
+            "解決方法:",
+            "- ローカル環境: brew install poppler (macOS) または sudo apt-get install poppler-utils (Ubuntu/Debian)",
+            "- Vercel環境: pdfjs-dist + canvasが自動的に使用されます（既に実装済み）",
+          ].join("\n")
+        )
+      }
     }
+    
+    // その他のエラーはそのまま投げる
     throw new Error(`PDF→PNG変換に失敗しました: ${msg}`)
-  } finally {
-    // 一時ディレクトリを丸ごと削除（ファイルが残っても致命ではない）
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true })
-    } catch {
-      // noop
-    }
   }
 }
 

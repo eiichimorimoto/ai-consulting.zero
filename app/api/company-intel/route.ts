@@ -4,15 +4,63 @@ import { convertPdfBufferToPngBuffer } from "@/lib/ocr/pdf-to-png"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
+export const maxDuration = 120 // Vercelの関数実行時間制限（2分）
 
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeoutId)
+// リトライロジック付きfetch（指数バックオフ）
+const fetchWithRetry = async (
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 30_000,
+  maxRetries = 3
+): Promise<Response> => {
+  let lastError: Error | null = null
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal })
+      clearTimeout(timeoutId)
+      
+      // 成功した場合は即座に返す
+      if (response.ok || attempt === maxRetries) {
+        return response
+      }
+      
+      // 5xxエラーの場合はリトライ
+      if (response.status >= 500 && attempt < maxRetries) {
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 5000) // 最大5秒
+        console.log(`⚠️ サーバーエラー (${response.status})、${backoffMs}ms後にリトライ (${attempt + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        continue
+      }
+      
+      return response
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      lastError = error
+      
+      // AbortError（タイムアウト）の場合はリトライ
+      if ((error?.name === 'AbortError' || error?.message?.includes('aborted')) && attempt < maxRetries) {
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 5000) // 最大5秒
+        console.log(`⚠️ タイムアウト、${backoffMs}ms後にリトライ (${attempt + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        continue
+      }
+      
+      // 最後の試行でエラーが発生した場合はエラーを投げる
+      if (attempt === maxRetries) {
+        throw error
+      }
+    }
   }
+  
+  throw lastError || new Error('リトライが失敗しました')
+}
+
+const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30_000) => {
+  return fetchWithRetry(input, init, timeoutMs, 3)
 }
 
 const stripHtmlToText = (html: string) => {
@@ -33,22 +81,52 @@ const safeSlice = (text: string, maxChars: number) => {
 const DEFAULT_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 
-const fetchHtmlToText = async (url: string, timeoutMs = 15_000) => {
-  const resp = await fetchWithTimeout(
-    url,
-    {
-      method: "GET",
-      headers: {
-        "User-Agent": DEFAULT_UA,
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+const fetchHtmlToText = async (url: string, timeoutMs = 30_000): Promise<{
+  ok: boolean
+  status: number
+  contentType: string
+  html: string
+  text: string
+  error?: string
+  errorType?: string
+}> => {
+  try {
+    const resp = await fetchWithTimeout(
+      url,
+      {
+        method: "GET",
+        headers: {
+          "User-Agent": DEFAULT_UA,
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
       },
-    },
-    timeoutMs
-  )
-  const ct = resp.headers.get("content-type") || ""
-  const html = await resp.text()
-  const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
-  return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
+      timeoutMs
+    )
+    const ct = resp.headers.get("content-type") || ""
+    const html = await resp.text()
+    const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
+    return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
+  } catch (error: any) {
+    // エラーの詳細を返す
+    let errorMessage = error?.message || String(error)
+    let errorType = error?.name || "UnknownError"
+    
+    // AbortError（タイムアウト）の場合は特別なメッセージ
+    if (error?.name === 'AbortError' || errorMessage.includes('aborted') || errorMessage.includes('AbortError')) {
+      errorMessage = `サイトへの接続がタイムアウトしました（${timeoutMs / 1000}秒、最大3回リトライ済み）。サイトの応答が遅いか、アクセス制限がある可能性があります。しばらく時間をおいてから再度お試しください。`
+      errorType = 'TimeoutError'
+    }
+    
+    return {
+      ok: false,
+      status: 0,
+      contentType: "",
+      html: "",
+      text: "",
+      error: errorMessage,
+      errorType: errorType,
+    }
+  }
 }
 
 const extractInternalLinksFromHtml = (html: string, baseUrl: string) => {
@@ -547,7 +625,11 @@ JSONのみで返してください:
     const jsonText = match ? match[1] : textContent
     const parsed = JSON.parse(jsonText) as FinancialFacts
     return parsed
-  } catch {
+  } catch (error: any) {
+    // 429エラー（クォータ超過）の場合はnullを返す（メイン処理で適切にハンドリングされる）
+    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota')) {
+      console.error('OpenAI API quota exceeded in extractFinancialFactsFromPdf')
+    }
     return null
   }
 }
@@ -614,10 +696,17 @@ export async function POST(request: Request) {
       )
     }
 
-    const normalizedUrl =
+    // URLを正規化（HTTPサイトの場合はHTTPSを試行）
+    let normalizedUrl =
       website.startsWith("http://") || website.startsWith("https://")
         ? website
         : `https://${website}`
+    
+    // HTTPサイトの場合はHTTPS版を試行
+    const originalUrl = normalizedUrl
+    if (normalizedUrl.startsWith("http://")) {
+      normalizedUrl = normalizedUrl.replace("http://", "https://")
+    }
 
     const openaiKey = process.env.OPENAI_API_KEY
     if (!openaiKey) {
@@ -629,42 +718,90 @@ export async function POST(request: Request) {
 
     // 1. 中小企業（非上場）前提: 公式HPを直接取得して解析する（Firecrawl不要）
     let scrapedContent = ""
-    let scrapeMeta: Record<string, any> = { source: normalizedUrl }
+    let scrapeMeta: Record<string, any> = { source: normalizedUrl, originalUrl }
     let directFetchContent = ""
     let homepageHtml = ""
 
     try {
-      const { ok, status, contentType, html, text } = await fetchHtmlToText(normalizedUrl, 15_000)
-      homepageHtml = html
-      if (ok && text) {
-        directFetchContent = text
+      let fetchResult = await fetchHtmlToText(normalizedUrl, 30_000)
+      
+      // HTTPSが失敗して、元のURLがHTTPの場合はHTTP版を試行
+      if (!fetchResult.ok && normalizedUrl.startsWith("https://") && originalUrl.startsWith("http://")) {
+        console.log(`⚠️ HTTPS failed, trying HTTP: ${originalUrl}`)
+        fetchResult = await fetchHtmlToText(originalUrl, 30_000)
+        normalizedUrl = originalUrl
+        scrapeMeta.source = originalUrl
+      }
+      
+      homepageHtml = fetchResult.html || ""
+      if (fetchResult.ok && fetchResult.text) {
+        directFetchContent = fetchResult.text
         scrapedContent = directFetchContent
         scrapeMeta = {
           ...scrapeMeta,
           method: "direct_fetch",
-          directStatus: status,
-          directContentType: contentType,
+          directStatus: fetchResult.status,
+          directContentType: fetchResult.contentType,
           scrapedCharacters: scrapedContent.length,
         }
       } else {
+        const errorDetails = fetchResult.error 
+          ? `エラー: ${fetchResult.error} (${fetchResult.errorType || "Unknown"})`
+          : `HTTPステータス: ${fetchResult.status}`
+        
         scrapeMeta = {
           ...scrapeMeta,
           method: "direct_fetch_failed",
-          directStatus: status,
-          directContentType: contentType,
-          directDetails: safeSlice(html, 800),
+          directStatus: fetchResult.status,
+          directContentType: fetchResult.contentType,
+          directError: fetchResult.error,
+          directErrorType: fetchResult.errorType,
+          directDetails: safeSlice(fetchResult.html, 800),
+          errorDetails,
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Direct fetch failed:", e)
-      scrapeMeta = { ...scrapeMeta, method: "direct_fetch_exception", directException: String(e) }
+      scrapeMeta = {
+        ...scrapeMeta,
+        method: "direct_fetch_exception",
+        directException: String(e),
+        directErrorType: e?.name || "Exception",
+        directErrorMessage: e?.message || String(e),
+      }
     }
 
     if (!scrapedContent) {
+      // エラーの詳細を構築
+      let errorDetails = "通常fetchでコンテンツ取得に失敗しました。"
+      
+      if (scrapeMeta.directError) {
+        errorDetails = `ネットワークエラー: ${scrapeMeta.directError}`
+        if (scrapeMeta.directError.includes("fetch failed") || scrapeMeta.directError.includes("ECONNREFUSED")) {
+          errorDetails = "サイトに接続できませんでした。URLが正しいか、サイトがアクセス可能かご確認ください。"
+        } else if (scrapeMeta.directError.includes("ENOTFOUND") || scrapeMeta.directError.includes("DNS")) {
+          errorDetails = "ドメイン名が解決できませんでした。URLが正しいかご確認ください。"
+        } else if (scrapeMeta.directError.includes("timeout") || scrapeMeta.directError.includes("TIMEOUT") || scrapeMeta.directError.includes("aborted") || scrapeMeta.directError.includes("AbortError")) {
+          errorDetails = "サイトへの接続がタイムアウトしました（30秒、最大3回リトライ済み）。サイトの応答が遅いか、アクセス制限がある可能性があります。しばらく時間をおいてから再度お試しください。"
+        } else if (scrapeMeta.directErrorType === 'TimeoutError') {
+          errorDetails = scrapeMeta.directError // 既に適切なメッセージが設定されている
+        }
+      } else if (scrapeMeta.directStatus) {
+        if (scrapeMeta.directStatus === 403) {
+          errorDetails = "サイトへのアクセスが拒否されました（403 Forbidden）。サイトのアクセス制限をご確認ください。"
+        } else if (scrapeMeta.directStatus === 404) {
+          errorDetails = "ページが見つかりませんでした（404 Not Found）。URLが正しいかご確認ください。"
+        } else if (scrapeMeta.directStatus >= 500) {
+          errorDetails = "サイト側でエラーが発生しています。しばらく時間をおいてから再度お試しください。"
+        } else {
+          errorDetails = `HTTPステータス ${scrapeMeta.directStatus} が返されました。`
+        }
+      }
+      
       return NextResponse.json(
         {
           error: "Webサイトの情報を取得できませんでした",
-          details: "通常fetchでコンテンツ取得に失敗しました。URLや対象サイトの制限をご確認ください。",
+          details: errorDetails,
           meta: scrapeMeta,
         },
         { status: 422 }
@@ -680,7 +817,7 @@ export async function POST(request: Request) {
       const fetched: string[] = []
       for (const url of links) {
         try {
-          const { ok, text } = await fetchHtmlToText(url, 12_000)
+          const { ok, text } = await fetchHtmlToText(url, 20_000)
           if (!ok || !text) continue
           fetched.push(url)
           chunks.push(`(公式HP: ${url})\n${safeSlice(text, 2500)}`)
@@ -890,7 +1027,7 @@ export async function POST(request: Request) {
         const fetchLogs: any[] = []
         for (const r of ranked) {
           try {
-            const { ok, status, contentType, html, text } = await fetchHtmlToText(r.url, 12_000)
+            const { ok, status, contentType, html, text } = await fetchHtmlToText(r.url, 20_000)
             
             // 非上場企業の場合、取得したテキストにも会社名が含まれているか確認
             const nameToCheck = companyNameGuess.replace(/株式会社|有限会社|合同会社/g, "").trim()
@@ -985,7 +1122,7 @@ export async function POST(request: Request) {
 
         for (const c of candidates) {
           try {
-            const { ok, status, contentType, html, text } = await fetchHtmlToText(c.url, 12_000)
+            const { ok, status, contentType, html, text } = await fetchHtmlToText(c.url, 20_000)
             fetchLogs.push({
               url: c.url,
               label: c.label,
@@ -1197,12 +1334,57 @@ ${supplementalContent ? supplementalContent.slice(0, 4000) : "(なし)"}
 決算短信/有報PDFから抽出した強い根拠（取得できた場合）:
 ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 800,
-      temperature: 0.2,
-      messages: [{ role: "user", content: prompt }],
-    })
+    let completion
+    try {
+      completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 800,
+        temperature: 0.2,
+        messages: [{ role: "user", content: prompt }],
+      })
+    } catch (error: any) {
+      // エラーの詳細をログに出力（デバッグ用）
+      console.error('❌ OpenAI API Error:', {
+        status: error?.status,
+        statusCode: error?.statusCode,
+        code: error?.code,
+        message: error?.message,
+        type: error?.type,
+        error: error,
+      })
+      
+      // 429エラー（クォータ超過）の場合は適切なエラーメッセージを返す
+      const isQuotaError = 
+        error?.status === 429 || 
+        error?.statusCode === 429 ||
+        error?.code === 'insufficient_quota' ||
+        error?.message?.includes('429') || 
+        error?.message?.includes('quota') || 
+        error?.message?.includes('exceeded') ||
+        error?.message?.includes('rate_limit')
+      
+      if (isQuotaError) {
+        console.error('❌ OpenAI API quota exceeded - Full error:', JSON.stringify(error, null, 2))
+        return NextResponse.json(
+          {
+            error: "OpenAI APIの利用制限に達しました",
+            details: `現在、OpenAI APIの利用制限（クォータ）に達しています。エラー詳細: ${error?.message || '不明'}`,
+            originalError: error?.message || error?.code || 'Unknown error',
+          },
+          { status: 429 }
+        )
+      }
+      // その他のエラー
+      console.error('❌ OpenAI API error (non-quota):', error)
+      return NextResponse.json(
+        {
+          error: "OpenAI APIの呼び出しに失敗しました",
+          details: error?.message || "不明なエラーが発生しました",
+          originalError: error?.message || error?.code || 'Unknown error',
+        },
+        { status: 500 }
+      )
+    }
 
     const textContent = completion.choices[0]?.message?.content?.trim()
     if (!textContent) {

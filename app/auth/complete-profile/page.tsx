@@ -1271,6 +1271,24 @@ export default function CompleteProfilePage() {
         // noop
       }
       if (!response.ok) {
+        // エラーの詳細をログに出力（デバッグ用）
+        console.error('❌ API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          result: result,
+        })
+        
+        // 429エラー（クォータ超過）の場合は特別なメッセージを表示
+        if (response.status === 429) {
+          // 実際のエラーメッセージを確認
+          const errorMessage = result?.error || result?.details || 'OpenAI APIの利用制限に達しました'
+          console.error('❌ 429 Error Details:', {
+            error: result?.error,
+            details: result?.details,
+            fullResult: result,
+          })
+          throw new Error(`${errorMessage}。しばらく時間をおいてから再度お試しください。`)
+        }
         const base = result?.error || 'Web情報の取得に失敗しました'
         const details = result?.details ? `\n${String(result.details).slice(0, 300)}` : ''
         const meta = result?.meta ? `\n(${JSON.stringify(result.meta).slice(0, 300)})` : ''
@@ -1324,7 +1342,18 @@ export default function CompleteProfilePage() {
       })
     } catch (error) {
       console.error('❌ Web情報取得エラー:', error)
-      const message = error instanceof Error ? error.message : 'Web情報の取得に失敗しました'
+      let message = error instanceof Error ? error.message : 'Web情報の取得に失敗しました'
+      
+      // 429エラー（クォータ超過）の場合はより分かりやすいメッセージに
+      if (error instanceof Error && (
+        error.message.includes('429') ||
+        error.message.includes('quota') ||
+        error.message.includes('exceeded') ||
+        error.message.includes('利用制限')
+      )) {
+        message = 'OpenAI APIの利用制限に達しました。しばらく時間をおいてから再度お試しください。'
+      }
+      
       setCompanyIntelStatus({
         message,
         type: 'error',

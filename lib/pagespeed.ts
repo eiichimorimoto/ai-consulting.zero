@@ -22,7 +22,7 @@ export async function analyzePageSpeed(url: string): Promise<PageSpeedMetrics> {
   const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
   
   if (!apiKey) {
-    throw new Error('GOOGLE_PAGESPEED_API_KEY is not set');
+    throw new Error('PageSpeed APIキーが設定されていません。環境変数 GOOGLE_PAGESPEED_API_KEY を設定してください。');
   }
 
   // モバイル分析
@@ -32,7 +32,24 @@ export async function analyzePageSpeed(url: string): Promise<PageSpeedMetrics> {
   );
 
   if (!mobileResponse.ok) {
-    throw new Error(`PageSpeed API error: ${mobileResponse.statusText}`);
+    const errorText = await mobileResponse.text().catch(() => '');
+    console.error(`❌ PageSpeed API Error (mobile):`, {
+      status: mobileResponse.status,
+      statusText: mobileResponse.statusText,
+      url: url,
+      errorText: errorText.slice(0, 500),
+    });
+    
+    let errorMessage = `PageSpeed API error: ${mobileResponse.status} ${mobileResponse.statusText}`;
+    if (mobileResponse.status === 403) {
+      errorMessage = `PageSpeed APIキーが無効です（403 Forbidden）。APIキーが正しいか、PageSpeed Insights APIが有効になっているか確認してください。`;
+    } else if (mobileResponse.status === 400) {
+      errorMessage = `PageSpeed APIリクエストが無効です（400 Bad Request）。URLが正しいか確認してください。`;
+    } else if (mobileResponse.status === 429) {
+      errorMessage = `PageSpeed APIの利用制限に達しました（429 Too Many Requests）。しばらく時間をおいてから再度お試しください。`;
+    }
+    
+    throw new Error(errorMessage);
   }
 
   const mobileData = await mobileResponse.json();
@@ -44,7 +61,24 @@ export async function analyzePageSpeed(url: string): Promise<PageSpeedMetrics> {
   );
 
   if (!desktopResponse.ok) {
-    throw new Error(`PageSpeed API error: ${desktopResponse.statusText}`);
+    const errorText = await desktopResponse.text().catch(() => '');
+    console.error(`❌ PageSpeed API Error (desktop):`, {
+      status: desktopResponse.status,
+      statusText: desktopResponse.statusText,
+      url: url,
+      errorText: errorText.slice(0, 500),
+    });
+    
+    let errorMessage = `PageSpeed API error: ${desktopResponse.status} ${desktopResponse.statusText}`;
+    if (desktopResponse.status === 403) {
+      errorMessage = `PageSpeed APIキーが無効です（403 Forbidden）。APIキーが正しいか、PageSpeed Insights APIが有効になっているか確認してください。`;
+    } else if (desktopResponse.status === 400) {
+      errorMessage = `PageSpeed APIリクエストが無効です（400 Bad Request）。URLが正しいか確認してください。`;
+    } else if (desktopResponse.status === 429) {
+      errorMessage = `PageSpeed APIの利用制限に達しました（429 Too Many Requests）。しばらく時間をおいてから再度お試しください。`;
+    }
+    
+    throw new Error(errorMessage);
   }
 
   const desktopData = await desktopResponse.json();
