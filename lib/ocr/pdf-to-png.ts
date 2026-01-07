@@ -111,18 +111,15 @@ async function convertPdfWithPdfJs(
       
       // Vercel環境ではワーカーを無効化（メインスレッドで処理）
       // ワーカーファイルが見つからないエラーを回避
-      // GitHub上の解決策を参考: workerSrcをnullに設定してワーカーを完全に無効化
+      // workerSrcを設定しないことで、getDocumentのオプションでワーカーを無効化
+      // （workerSrcにnullを設定すると"Invalid workerSrc type"エラーが発生するため）
       if (pdfjsLib.GlobalWorkerOptions) {
-        // ワーカーを完全に無効化（nullに設定することでワーカーを使用しない）
-        pdfjsLib.GlobalWorkerOptions.workerSrc = null as any
+        // workerSrcは設定しない（undefinedのまま）
+        // getDocumentのオプションでuseWorkerFetch: falseを設定することでワーカーを無効化
         if (typeof pdfjsLib.GlobalWorkerOptions.isEvalSupported !== 'undefined') {
           pdfjsLib.GlobalWorkerOptions.isEvalSupported = false
         }
-        // disableWorkerを明示的に設定（pdfjs-distの一部のバージョンで有効）
-        if (typeof (pdfjsLib.GlobalWorkerOptions as any).disableWorker !== 'undefined') {
-          (pdfjsLib.GlobalWorkerOptions as any).disableWorker = true
-        }
-        console.log("✅ pdfjs-distワーカーを無効化（メインスレッドで処理）")
+        console.log("✅ pdfjs-distワーカー設定完了（getDocumentオプションで無効化）")
       }
       
       // ワーカーを使用しない設定を追加
