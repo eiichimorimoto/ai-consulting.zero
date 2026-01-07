@@ -133,15 +133,18 @@ export async function POST(request: Request) {
       })
 
       console.log("📤 generateObjectを呼び出します...")
-      // PDFはClaudeが直接受け付けないため、先にPNGへ変換する
+      // Claude APIはPDFに対応していないため、PDFを画像に変換してからOCRに掛ける
       let imageBuffer: Buffer
       let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
 
       if (isPdf) {
+        // PDFの場合はPNGに変換してから送信
+        console.log("📄 PDFをPNGに変換中...")
         const pdfBuffer = Buffer.from(image, "base64")
         const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
         imageBuffer = pngBuffer
         mediaTypeForClaude = "image/png"
+        console.log("✅ PDF→PNG変換完了")
       } else {
         imageBuffer = Buffer.from(image, "base64")
         const mt = (mimeType || "image/jpeg").toLowerCase()

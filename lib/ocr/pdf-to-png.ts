@@ -36,8 +36,8 @@ function getPdftoppmCommand(): { cmd: string; argsPrefix: string[] } {
 }
 
 /**
- * pdfjs-dist + canvas を使用してPDFをPNGに変換（フォールバック用）
- * Vercel等のサーバーレス環境でpdftoppmが利用できない場合に使用
+ * pdfjs-dist + canvas を使用してPDFをPNGに変換（Vercel環境対応）
+ * DOMMatrixエラーを回避するため、Node.js環境用の設定を追加
  */
 async function convertPdfWithPdfJs(
   pdfBuffer: Buffer,
@@ -46,12 +46,56 @@ async function convertPdfWithPdfJs(
   try {
     console.log("📄 pdfjs-dist + canvasを使用してPDFを変換します...")
     
+    // DOMMatrixのpolyfillを追加（Node.js環境で必要）
+    if (typeof globalThis.DOMMatrix === 'undefined') {
+      // DOMMatrixの簡易polyfill
+      globalThis.DOMMatrix = class DOMMatrix {
+        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0
+        constructor(init?: string | number[]) {
+          if (init) {
+            if (typeof init === 'string') {
+              const matrix = init.match(/matrix\(([^)]+)\)/)
+              if (matrix) {
+                const values = matrix[1].split(',').map(v => parseFloat(v.trim()))
+                if (values.length >= 6) {
+                  this.a = values[0]; this.b = values[1]
+                  this.c = values[2]; this.d = values[3]
+                  this.e = values[4]; this.f = values[5]
+                }
+              }
+            } else if (Array.isArray(init) && init.length >= 6) {
+              this.a = init[0]; this.b = init[1]
+              this.c = init[2]; this.d = init[3]
+              this.e = init[4]; this.f = init[5]
+            }
+          }
+        }
+        multiply(other: DOMMatrix) {
+          return new DOMMatrix([
+            this.a * other.a + this.c * other.b,
+            this.b * other.a + this.d * other.b,
+            this.a * other.c + this.c * other.d,
+            this.b * other.c + this.d * other.d,
+            this.a * other.e + this.c * other.f + this.e,
+            this.b * other.e + this.d * other.f + this.f,
+          ])
+        }
+        translate(x: number, y: number) {
+          return new DOMMatrix([this.a, this.b, this.c, this.d, this.e + x, this.f + y])
+        }
+        scale(x: number, y?: number) {
+          const sy = y ?? x
+          return new DOMMatrix([this.a * x, this.b * x, this.c * sy, this.d * sy, this.e, this.f])
+        }
+      } as any
+    }
+    
     // 動的インポート（pdfjs-distとcanvasは重いので必要時のみ読み込む）
     let pdfjsLib: any
     let createCanvas: any
     
     try {
-      // pdfjs-distのNode.js環境用インポート（複数のパスを試行）
+      // pdfjs-distのNode.js環境用インポート
       try {
         pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
         console.log("✅ pdfjs-dist/legacy/build/pdf.mjs を読み込みました")
@@ -140,7 +184,7 @@ export async function convertPdfBufferToPngBuffer(
   const page = options.page ?? 1
   const scaleTo = options.scaleTo ?? 2048
 
-  // Vercel環境の場合は直接pdfjs-distを使用（pdftoppmは利用不可）
+  // Vercel環境の場合はpdfjs-distを使用（pdftoppmは利用不可）
   if (isVercelEnvironment()) {
     console.log("🔍 Vercel環境を検出、pdfjs-dist + canvasを使用します")
     try {
