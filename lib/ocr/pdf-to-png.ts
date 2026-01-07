@@ -97,13 +97,16 @@ async function convertPdfWithPdfJs(
     
     try {
       // pdfjs-distのNode.js環境用インポート
+      // legacy/build/pdf.mjsはワーカーを使用しようとするため、通常のビルドを使用
       try {
-        pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
-        console.log("✅ pdfjs-dist/legacy/build/pdf.mjs を読み込みました")
+        // まず通常のビルドを試行（ワーカーを無効化しやすい）
+        pdfjsLib = await import("pdfjs-dist")
+        console.log("✅ pdfjs-dist を読み込みました")
       } catch (e1) {
         try {
-          pdfjsLib = await import("pdfjs-dist")
-          console.log("✅ pdfjs-dist を読み込みました")
+          // フォールバック: legacy/build/pdf.mjs
+          pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
+          console.log("✅ pdfjs-dist/legacy/build/pdf.mjs を読み込みました")
         } catch (e2) {
           throw new Error(`pdfjs-distのインポートに失敗: ${e1 instanceof Error ? e1.message : String(e1)}, ${e2 instanceof Error ? e2.message : String(e2)}`)
         }
@@ -146,13 +149,18 @@ async function convertPdfWithPdfJs(
     const uint8Array = new Uint8Array(pdfBuffer)
     console.log(`📖 PDFを読み込み中... (サイズ: ${uint8Array.length} bytes)`)
     
-    // getDocumentのオプションでワーカーを無効化
+    // getDocumentのオプションでワーカーを完全に無効化
+    // Vercel環境ではワーカーファイルが見つからないため、すべてのワーカー関連機能を無効化
     const loadingTask = pdfjsLib.getDocument({ 
       data: uint8Array,
       useSystemFonts: true, // システムフォントを使用してワーカーを回避
       verbosity: 0, // ログを抑制
       useWorkerFetch: false, // ワーカーのfetchを無効化
       isEvalSupported: false, // evalを無効化（ワーカーを使用しない）
+      disableAutoFetch: true, // 自動フェッチを無効化（ワーカーを使用しない）
+      disableStream: true, // ストリームを無効化（ワーカーを使用しない）
+      // ワーカーを完全に無効化するための追加オプション
+      ...(typeof (pdfjsLib as any).disableWorker !== 'undefined' ? { disableWorker: true } : {}),
     })
     const pdf = await loadingTask.promise
     console.log(`📄 PDF読み込み完了 (総ページ数: ${pdf.numPages})`)
