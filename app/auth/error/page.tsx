@@ -51,7 +51,7 @@ function AuthErrorContent() {
       case 'code_expired':
         return {
           title: '確認リンクの有効期限が切れました',
-          description: 'メール内のリンクは一定時間で無効になります。下記から確認メールを再送信してください。',
+          description: 'メール内のリンクは1時間で無効になります。下記から確認メールを再送信してください。',
         }
       case 'invalid_code':
         return {

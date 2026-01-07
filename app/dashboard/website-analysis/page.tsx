@@ -123,7 +123,14 @@ export default function WebsiteAnalysisPage() {
         url: data.url || companyUrl,
       })
     } catch (err: any) {
-      setError(err.message || '分析中にエラーが発生しました')
+      let errorMessage = err.message || '分析中にエラーが発生しました'
+      
+      // PageSpeed APIキーが設定されていない場合の特別なメッセージ
+      if (errorMessage.includes('PageSpeed APIキー') || errorMessage.includes('PageSpeed API key')) {
+        errorMessage = 'PageSpeed APIキーが設定されていません。管理者にお問い合わせください。'
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsAnalyzing(false)
     }
