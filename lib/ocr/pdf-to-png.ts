@@ -45,6 +45,7 @@ async function convertPdfWithPdfJs(
 ): Promise<Buffer> {
   try {
     console.log("📄 pdfjs-dist + canvasを使用してPDFを変換します...")
+    console.log("⚠️ Vercel環境ではpdfjs-distのワーカー設定が必要です")
     
     // DOMMatrixのpolyfillを追加（Node.js環境で必要）
     if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -108,6 +109,29 @@ async function convertPdfWithPdfJs(
         }
       }
       
+      // Vercel環境ではワーカーを無効化（メインスレッドで処理）
+      // ワーカーファイルが見つからないエラーを回避
+      // GitHub上の解決策を参考: workerSrcをnullに設定してワーカーを完全に無効化
+      if (pdfjsLib.GlobalWorkerOptions) {
+        // ワーカーを完全に無効化（nullに設定することでワーカーを使用しない）
+        pdfjsLib.GlobalWorkerOptions.workerSrc = null as any
+        if (typeof pdfjsLib.GlobalWorkerOptions.isEvalSupported !== 'undefined') {
+          pdfjsLib.GlobalWorkerOptions.isEvalSupported = false
+        }
+        // disableWorkerを明示的に設定（pdfjs-distの一部のバージョンで有効）
+        if (typeof (pdfjsLib.GlobalWorkerOptions as any).disableWorker !== 'undefined') {
+          (pdfjsLib.GlobalWorkerOptions as any).disableWorker = true
+        }
+        console.log("✅ pdfjs-distワーカーを無効化（メインスレッドで処理）")
+      }
+      
+      // ワーカーを使用しない設定を追加
+      // Node.js環境ではワーカーが動作しないため、メインスレッドで処理
+      if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+        // Node.js環境であることを確認
+        console.log("✅ Node.js環境を検出、ワーカーなしで処理します")
+      }
+      
       const canvasModule = await import("canvas")
       createCanvas = canvasModule.createCanvas
       console.log("✅ canvas を読み込みました")
@@ -121,10 +145,18 @@ async function convertPdfWithPdfJs(
     const scaleTo = options.scaleTo ?? 2048
 
     // PDFを読み込む（Node.js環境ではUint8Arrayを直接使用）
+    // useSystemFonts: true でワーカーを回避
     const uint8Array = new Uint8Array(pdfBuffer)
     console.log(`📖 PDFを読み込み中... (サイズ: ${uint8Array.length} bytes)`)
     
-    const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
+    // getDocumentのオプションでワーカーを無効化
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: uint8Array,
+      useSystemFonts: true, // システムフォントを使用してワーカーを回避
+      verbosity: 0, // ログを抑制
+      useWorkerFetch: false, // ワーカーのfetchを無効化
+      isEvalSupported: false, // evalを無効化（ワーカーを使用しない）
+    })
     const pdf = await loadingTask.promise
     console.log(`📄 PDF読み込み完了 (総ページ数: ${pdf.numPages})`)
 
