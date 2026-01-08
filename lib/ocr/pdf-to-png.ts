@@ -97,18 +97,24 @@ async function convertPdfWithPdfJs(
     
     try {
       // pdfjs-distのNode.js環境用インポート
-      // legacy/build/pdf.mjsはワーカーを使用しようとするため、通常のビルドを使用
+      // build/pdfはワーカーを使わないバージョン（推奨）
       try {
-        // まず通常のビルドを試行（ワーカーを無効化しやすい）
-        pdfjsLib = await import("pdfjs-dist")
-        console.log("✅ pdfjs-dist を読み込みました")
+        // まずbuild/pdfを試行（ワーカーを使わないバージョン）
+        pdfjsLib = await import("pdfjs-dist/build/pdf")
+        console.log("✅ pdfjs-dist/build/pdf を読み込みました（ワーカーなし）")
       } catch (e1) {
         try {
-          // フォールバック: legacy/build/pdf.mjs
-          pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
-          console.log("✅ pdfjs-dist/legacy/build/pdf.mjs を読み込みました")
+          // フォールバック: 通常のビルド
+          pdfjsLib = await import("pdfjs-dist")
+          console.log("✅ pdfjs-dist を読み込みました")
         } catch (e2) {
-          throw new Error(`pdfjs-distのインポートに失敗: ${e1 instanceof Error ? e1.message : String(e1)}, ${e2 instanceof Error ? e2.message : String(e2)}`)
+          try {
+            // 最後のフォールバック: legacy/build/pdf.mjs
+            pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
+            console.log("✅ pdfjs-dist/legacy/build/pdf.mjs を読み込みました")
+          } catch (e3) {
+            throw new Error(`pdfjs-distのインポートに失敗: ${e1 instanceof Error ? e1.message : String(e1)}, ${e2 instanceof Error ? e2.message : String(e2)}, ${e3 instanceof Error ? e3.message : String(e3)}`)
+          }
         }
       }
       

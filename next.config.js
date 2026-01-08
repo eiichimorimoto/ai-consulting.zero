@@ -25,6 +25,18 @@ const nextConfig = {
       },
     ]
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // サーバーサイドでpdfjs-distのワーカーファイルの解決を無効化
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        // ワーカーファイルのインポートを空のモジュールに置き換え
+        'pdfjs-dist/build/pdf.worker.mjs': require.resolve('./lib/ocr/pdf-worker-stub.js'),
+        'pdfjs-dist/build/pdf.worker.min.mjs': require.resolve('./lib/ocr/pdf-worker-stub.js'),
+      }
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig
