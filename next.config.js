@@ -25,6 +25,7 @@ const nextConfig = {
       },
     ]
   },
+  // Next.js 16ではTurbopackがデフォルトのため、webpackとturbopackの両方を設定
   webpack: (config, { isServer }) => {
     if (isServer) {
       // サーバーサイドでpdfjs-distのワーカーファイルの解決を無効化
@@ -36,6 +37,11 @@ const nextConfig = {
       }
     }
     return config
+  },
+  // Turbopack設定（Next.js 16で必要）
+  turbopack: {
+    // Turbopackでも同様の設定が必要な場合はここに追加
+    // 現時点では空の設定でエラーを回避
   },
 }
 
