@@ -59,14 +59,24 @@ interface LocalInfo {
   laborCosts: {
     current: number
     change: number
+    monthly?: number // 月給
+    yearly?: number // 年収
     monthlyData: { month: string; value: number }[]
     sources: any[]
+    comparison?: {
+      industryMonthly?: number
+      industryYearly?: number
+    }
   }
   events: { title: string; url: string; description: string; date: string }[]
   infrastructure: { title: string; url: string; description: string; status: string }[]
   weather: {
+    location?: string // 場所（都道府県+市区町村）
+    timestamp?: string // 取得時刻（ISO形式）
+    displayTime?: string // 表示用時刻
     current: { temp: number; icon: string; desc: string }
     week: { day: string; date: string; icon: string; temp: number }[]
+    hourly?: { time: string; temp: number; icon: string }[]
     alerts?: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[]
   }
   traffic: { title: string; url: string; description: string; status: string }[]
