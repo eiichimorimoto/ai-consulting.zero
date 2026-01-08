@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { getForexRate, getNikkeiProxy, generateWeeklyData } from '@/lib/alphavantage'
 
 export const runtime = "nodejs"
 
@@ -34,8 +35,42 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
   return json?.web?.results || []
 }
 
-// マーケットデータを取得（ログイン日を起点に週別データを生成）
+// マーケットデータを取得（Alpha Vantage APIを使用）
 async function getMarketData(loginDate: Date) {
+  console.log('💱 Alpha Vantage API: マーケットデータ取得開始...')
+  
+  // 1. USD/JPY為替レートを取得（実データ）
+  const forexData = await getForexRate('USD', 'JPY')
+  const currentRate = forexData?.rate || 156.42 // フォールバック値
+  
+  if (forexData) {
+    console.log(`✅ 為替レート: ${forexData.symbol} = ${currentRate}円`)
+  } else {
+    console.warn('⚠️ 為替データ取得失敗。フォールバック値を使用:', currentRate)
+  }
+  
+  // 2. 日経平均（EWJ ETF）を取得（実データ）
+  const nikkeiData = await getNikkeiProxy()
+  const currentNikkei = nikkeiData?.price || 39847 // フォールバック値
+  
+  if (nikkeiData) {
+    console.log(`✅ 日経平均: ${currentNikkei}円 (${nikkeiData.change > 0 ? '+' : ''}${nikkeiData.change})`)
+  } else {
+    console.warn('⚠️ 日経平均データ取得失敗。フォールバック値を使用:', currentNikkei)
+  }
+  
+  // 3. 週別データを生成（現在値から過去推定）
+  const usdJpyWeekly = generateWeeklyData(currentRate, 8)
+  const nikkeiWeekly = generateWeeklyData(currentNikkei, 8)
+  
+  // 4. 金利データ（実APIがないため、固定値を使用）
+  // TODO: API Ninjas等の金利APIを検討
+  const longRateBase = 1.085
+  const shortRateBase = 0.25
+  const longRateWeekly = generateWeeklyData(longRateBase, 8)
+  const shortRateWeekly = generateWeeklyData(shortRateBase, 8)
+  
+  // 5. 週別データにdateを追加
   const weeks: { week: string; date: Date }[] = []
   for (let i = 7; i >= 0; i--) {
     const d = new Date(loginDate)
@@ -45,35 +80,40 @@ async function getMarketData(loginDate: Date) {
       date: d
     })
   }
-
-  // 実際のデータ取得は外部APIを使用（ここではモックデータを返す）
-  // 本番環境では、金融データAPI（例：Yahoo Finance API、Alpha Vantage等）を使用
-  const usdJpy = weeks.map((w, i) => ({
-    week: w.week,
-    date: w.date.toISOString(),
-    value: 156.42 - (7 - i) * 0.2 + Math.random() * 0.4
+  
+  const usdJpy = usdJpyWeekly.map((item, i) => ({
+    week: item.week,
+    date: weeks[i].date.toISOString(),
+    value: item.value
   }))
-
-  const nikkei = weeks.map((w, i) => ({
-    week: w.week,
-    date: w.date.toISOString(),
-    value: 39847 - (7 - i) * 200 + Math.random() * 400
+  
+  const nikkei = nikkeiWeekly.map((item, i) => ({
+    week: item.week,
+    date: weeks[i].date.toISOString(),
+    value: item.value
   }))
-
-  const longRate = weeks.map((w, i) => ({
-    week: w.week,
-    date: w.date.toISOString(),
-    value: 1.085 - (7 - i) * 0.01 + Math.random() * 0.02
+  
+  const longRate = longRateWeekly.map((item, i) => ({
+    week: item.week,
+    date: weeks[i].date.toISOString(),
+    value: item.value
   }))
-
-  const shortRate = weeks.map((w, i) => ({
-    week: w.week,
-    date: w.date.toISOString(),
-    value: 0.25 - (7 - i) * 0.02 + Math.random() * 0.03
+  
+  const shortRate = shortRateWeekly.map((item, i) => ({
+    week: item.week,
+    date: weeks[i].date.toISOString(),
+    value: item.value
   }))
-
-  // 現在の為替レートを取得
-  const currentRate = usdJpy[usdJpy.length - 1].value
+  
+  console.log('✅ Alpha Vantage API: マーケットデータ取得完了')
+  console.log({
+    apiSource: 'Alpha Vantage',
+    currentRate,
+    currentNikkei,
+    longRateBase,
+    shortRateBase,
+    timestamp: new Date().toISOString()
+  })
 
   return {
     usdJpy,
