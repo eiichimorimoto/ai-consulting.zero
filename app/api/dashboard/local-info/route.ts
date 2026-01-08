@@ -764,23 +764,6 @@ async function getWeather(prefecture: string, city: string) {
     console.error(`⚠️ 気温取得失敗: ${area}`)
     currentTemp = null  // 明示的にnullを設定
   }
-  
-  // 週間天気データを生成（ログイン日を含む1週間）
-  const weekDays = ['日', '月', '火', '水', '木', '金', '土']
-  const weekWeather = []
-  // 現在日から7日分（現在日を含む）
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(now)
-    date.setDate(date.getDate() + i)
-    const dayOfWeek = date.getDay() // 0=日, 1=月, ..., 6=土
-    weekWeather.push({
-      day: weekDays[dayOfWeek],
-      date: `${date.getMonth() + 1}/${date.getDate()}`,
-      icon: getWeatherIcon(i),
-      temp: currentTemp + Math.random() * 3 - 1.5 // 現在気温から±1.5度の範囲
-    })
-  }
-  
 
   return {
     location: `${prefecture}${city}`,
