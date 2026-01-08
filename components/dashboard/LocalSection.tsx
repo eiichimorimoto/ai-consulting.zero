@@ -243,8 +243,14 @@ export default function LocalSection({
             <div className="local-weather-main">
               <span className="weather-icon">{localInfo?.weather?.current?.icon || '☀️'}</span>
               <div>
-                <div className="weather-temp">{localInfo?.weather?.current?.temp || 8}°C</div>
-                <div className="weather-desc">{localInfo?.weather?.current?.desc || '晴れ / 配送影響なし'}</div>
+                <div className="weather-temp">
+                  {localInfo?.weather?.current?.temp !== null && localInfo?.weather?.current?.temp !== undefined 
+                    ? `${localInfo.weather.current.temp}°C` 
+                    : '気温データ取得中...'}
+                </div>
+                <div className="weather-desc">
+                  {localInfo?.weather?.current?.desc || 'データ取得中...'}
+                </div>
               </div>
             </div>
             {/* 時間別予報 */}
