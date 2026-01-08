@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Camera, Upload, CheckCircle, Loader2, Home, Building2, User, X, Globe, FileText } from 'lucide-react'
 import Link from 'next/link'
 import FileUpload from '@/components/FileUpload'
+import { convertPdfToImageClient } from '@/lib/ocr/pdf-to-image-client'
 
 interface OCRResult {
   personName?: string
@@ -427,14 +428,38 @@ export default function CompleteProfilePage() {
         throw new Error('画像データの形式が正しくありません')
       }
       
-      const mimeType = dataUrlMatch[1] || 'image/jpeg'
-      const base64Data = dataUrlMatch[2] // base64データ部分のみ
+      let mimeType = dataUrlMatch[1] || 'image/jpeg'
+      let base64Data = dataUrlMatch[2] // base64データ部分のみ
+      const isPDF = mimeType.includes('pdf')
       
       console.log('📸 ファイルデータを解析:', {
         mimeType,
         base64Length: base64Data.length,
-        isPDF: mimeType.includes('pdf'),
+        isPDF,
       })
+      
+      // PDFの場合はクライアントサイドで画像に変換（根本的解決）
+      if (isPDF) {
+        console.log('📄 PDFを検出、クライアントサイドで画像に変換します...')
+        try {
+          const imageDataUrl = await convertPdfToImageClient(imageData, 1, 2.0)
+          const imageMatch = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/)
+          if (imageMatch) {
+            mimeType = imageMatch[1] || 'image/png'
+            base64Data = imageMatch[2]
+            console.log('✅ PDF→画像変換完了:', {
+              newMimeType: mimeType,
+              newBase64Length: base64Data.length,
+            })
+          } else {
+            throw new Error('画像変換後のデータ形式が正しくありません')
+          }
+        } catch (pdfError) {
+          const pdfMsg = pdfError instanceof Error ? pdfError.message : String(pdfError)
+          console.error('❌ PDF→画像変換エラー:', pdfMsg)
+          throw new Error(`PDFを画像に変換できませんでした: ${pdfMsg}`)
+        }
+      }
       
       // OCR APIを呼び出し（JSON形式でbase64データを送信）
       console.log('📤 OCR APIを呼び出します...')
