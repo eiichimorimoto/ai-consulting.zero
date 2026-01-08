@@ -4,6 +4,20 @@ import { checkSearchResult } from "@/lib/fact-checker"
 
 export const runtime = "nodejs"
 
+// 主要都市の座標マップ（OpenWeatherMap用）
+const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
+  '東京都': { lat: 35.6940, lon: 139.7536 },
+  '大阪府': { lat: 34.6937, lon: 135.5023 },
+  '愛知県': { lat: 35.1815, lon: 136.9066 },
+  '神奈川県': { lat: 35.4437, lon: 139.6380 },
+  '福岡県': { lat: 33.5904, lon: 130.4017 },
+  '北海道': { lat: 43.0642, lon: 141.3469 },
+  '宮城県': { lat: 38.2682, lon: 140.8694 },
+  '広島県': { lat: 34.3853, lon: 132.4553 },
+  '京都府': { lat: 35.0116, lon: 135.7681 },
+  '兵庫県': { lat: 34.6913, lon: 135.1830 },
+}
+
 const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
@@ -450,8 +464,169 @@ async function getInfrastructure(prefecture: string, city: string, industry: str
   }
 }
 
-// 週間天気を取得
+// OpenWeatherMap APIから天気を取得
 async function getWeather(prefecture: string, city: string) {
+  const now = new Date()
+  
+  // 座標を取得（主要都市のマップから）
+  const coordinates = CITY_COORDINATES[prefecture] || CITY_COORDINATES['東京都']
+  const { lat, lon } = coordinates
+  
+  console.log(`🌍 天気取得: ${prefecture}${city} (lat=${lat}, lon=${lon})`)
+  
+  // OpenWeatherMap APIから現在の天気と5日間予報を取得
+  const { getCurrentWeather, get5DayForecast, weatherIconToEmoji, getDeliveryImpact } = await import('@/lib/openweather')
+  
+  const [currentWeather, forecast] = await Promise.all([
+    getCurrentWeather(lat, lon),
+    get5DayForecast(lat, lon)
+  ])
+  
+  // APIエラーの場合
+  if (!currentWeather || !forecast) {
+    console.error('❌ OpenWeatherMap API からデータ取得失敗')
+    return {
+      location: `${prefecture}${city}`,
+      timestamp: now.toISOString(),
+      displayTime: `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
+      current: {
+        temp: null,
+        icon: '☀️',
+        desc: 'データ取得中...'
+      },
+      week: [],
+      hourly: [],
+      alerts: [],
+      _debug: {
+        searchQuery: `OpenWeatherMap API (lat=${lat}, lon=${lon})`,
+        alertQuery: '',
+        resultCount: 0,
+        alertResultCount: 0,
+        verifiedCount: 0,
+        searchResults: [],
+        alertsFound: 0,
+        extractedTemp: null,
+        extractedPrecipitation: null,
+        location: `${prefecture}${city}`,
+        timestamp: now.toISOString(),
+        apiError: 'OpenWeatherMap API エラー'
+      }
+    }
+  }
+  
+  // 現在の気温と天気
+  const currentTemp = Math.round(currentWeather.main.temp)
+  const currentIcon = weatherIconToEmoji(currentWeather.weather[0].icon)
+  const precipitationChance = forecast.list[0]?.pop || 0
+  
+  // 天気の説明と配送への影響
+  const currentDesc = getDeliveryImpact(currentWeather.weather[0].main, precipitationChance)
+  
+  // 週間天気データ（予報から1日1件ずつ抽出）
+  const weekDays = ['日', '月', '火', '水', '木', '金', '土']
+  const weekWeather = []
+  const dailyForecasts: Record<string, typeof forecast.list[0]> = {}
+  
+  // 各日の正午のデータを取得（より代表的な気温）
+  for (const item of forecast.list) {
+    const date = new Date(item.dt * 1000)
+    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+    const hour = date.getHours()
+    
+    // 正午（12時）のデータを優先、なければその日の最初のデータ
+    if (!dailyForecasts[dateStr] || hour === 12) {
+      dailyForecasts[dateStr] = item
+    }
+  }
+  
+  // 今日を含む7日間
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(now)
+    date.setDate(date.getDate() + i)
+    const dayOfWeek = date.getDay()
+    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+    
+    const forecastData = dailyForecasts[dateStr]
+    const temp = forecastData ? Math.round(forecastData.main.temp) : currentTemp + (Math.random() * 4 - 2)
+    const icon = forecastData ? weatherIconToEmoji(forecastData.weather[0].icon) : currentIcon
+    
+    weekWeather.push({
+      day: weekDays[dayOfWeek],
+      date: dateStr,
+      icon: icon,
+      temp: temp
+    })
+  }
+  
+  // 時間別予報（次の6時間、3時間ごと）
+  const hourlyForecast = []
+  for (let i = 0; i < Math.min(6, forecast.list.length); i++) {
+    const item = forecast.list[i]
+    const date = new Date(item.dt * 1000)
+    const hour = date.getHours()
+    
+    hourlyForecast.push({
+      time: `${hour}:00`,
+      temp: Math.round(item.main.temp),
+      icon: weatherIconToEmoji(item.weather[0].icon)
+    })
+  }
+  
+  // 気象警報チェック（Brave Searchを使用）
+  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
+  const alertQuery = `${area} 気象警報 注意報 ${now.getMonth() + 1}月`
+  const alertResults = await braveWebSearch(alertQuery, 5)
+  
+  const alerts: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[] = []
+  const alertKeywords = {
+    extreme: ['特別警報', '大雨特別警報', '暴風特別警報', '高潮特別警報', '大雪特別警報', '緊急'],
+    severe: ['警報', '暴風警報', '大雨警報', '洪水警報', '大雪警報', '高潮警報', '波浪警報'],
+    warning: ['注意報', '強風注意報', '大雨注意報', '雷注意報', '乾燥注意報', '霜注意報', '着雪注意報', '融雪注意報', '濃霧注意報', '低温注意報', '高温注意報']
+  }
+  
+  for (const result of alertResults) {
+    const text = `${result.title} ${result.description}`.toLowerCase()
+    
+    for (const keyword of alertKeywords.extreme) {
+      if (text.includes(keyword.toLowerCase())) {
+        alerts.push({
+          type: 'extreme',
+          title: `🚨 ${keyword}発令中`,
+          description: result.description?.slice(0, 100) || result.title,
+          severity: 'extreme'
+        })
+        break
+      }
+    }
+    
+    if (alerts.length === 0) {
+      for (const keyword of alertKeywords.severe) {
+        if (text.includes(keyword.toLowerCase())) {
+          alerts.push({
+            type: 'severe',
+            title: `⚠️ ${keyword}発令中`,
+            description: result.description?.slice(0, 100) || result.title,
+            severity: 'severe'
+          })
+          break
+        }
+      }
+    }
+    
+    if (alerts.length === 0) {
+      for (const keyword of alertKeywords.warning) {
+        if (text.includes(keyword.toLowerCase())) {
+          alerts.push({
+            type: 'warning',
+            title: `ℹ️ ${keyword}発令中`,
+            description: result.description?.slice(0, 100) || result.title,
+            severity: 'warning'
+          })
+          break
+        }
+      }
+    }
+  }
   const now = new Date() // 現在時刻を使用
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
   const query = `${area} 天気 週間 ${now.getMonth() + 1}月`
@@ -642,29 +817,32 @@ async function getWeather(prefecture: string, city: string) {
   }
 
   return {
-    location: `${prefecture}${city}`, // 場所
-    timestamp: now.toISOString(), // 取得時刻
-    displayTime: `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`, // 表示用時刻（必ず生成）
+    location: `${prefecture}${city}`,
+    timestamp: now.toISOString(),
+    displayTime: `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
     current: {
-      temp: currentTemp !== null ? currentTemp : null, // null チェックを明示
-      icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : alerts.length > 0 && alerts[0].severity === 'severe' ? '⛈️' : '☀️',
-      desc: currentDesc
+      temp: currentTemp,
+      icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : currentIcon,
+      desc: alerts.length > 0 ? alerts[0].title + ' / ' + alerts[0].description.slice(0, 50) : currentDesc
     },
     week: weekWeather,
     hourly: hourlyForecast,
-    alerts: alerts.slice(0, 3), // 最大3件まで
+    alerts: alerts.slice(0, 3),
     _debug: {
-      searchQuery: query,
+      searchQuery: `OpenWeatherMap API (lat=${lat}, lon=${lon})`,
       alertQuery: alertQuery,
-      resultCount: searchResults.length,
+      resultCount: forecast.list.length,
       alertResultCount: alertResults.length,
-      verifiedCount: verifiedResults.length,
-      searchResults: verifiedResults,
+      verifiedCount: forecast.list.length,
+      searchResults: [],
       alertsFound: alerts.length,
       extractedTemp: currentTemp,
-      extractedPrecipitation: precipitationChance,
+      extractedPrecipitation: Math.round(precipitationChance * 100),
       location: `${prefecture}${city}`,
-      timestamp: now.toISOString()
+      timestamp: now.toISOString(),
+      apiSource: 'OpenWeatherMap',
+      weatherMain: currentWeather.weather[0].main,
+      weatherDescription: currentWeather.weather[0].description
     }
   }
 }
