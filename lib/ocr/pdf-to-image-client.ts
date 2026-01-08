@@ -12,12 +12,12 @@ export async function convertPdfToImageClient(
     // pdfjs-distを動的インポート（クライアントサイドのみ）
     const pdfjsLib = await import('pdfjs-dist')
     
-    // ワーカーを無効化してメインスレッドで処理（最も確実な方法）
-    // ブラウザ環境ではメインスレッドでも十分に動作する
+    // ワーカーファイルのパスを設定（Next.jsのパブリックフォルダから読み込む）
     if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-      // 空文字列を設定することでワーカーを無効化し、メインスレッドで処理
-      pdfjsLib.GlobalWorkerOptions.workerSrc = ''
-      console.log('✅ pdfjs-dist: ワーカーを無効化、メインスレッドで処理します')
+      // パブリックフォルダのワーカーファイルを使用
+      const workerPath = '/pdf.worker.min.mjs'
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath
+      console.log('✅ pdfjs-dist: ワーカーパスを設定:', workerPath)
     }
 
     // Base64データをUint8Arrayに変換
@@ -28,8 +28,12 @@ export async function convertPdfToImageClient(
       bytes[i] = binaryString.charCodeAt(i)
     }
 
-    // PDFを読み込む
-    const loadingTask = pdfjsLib.getDocument({ data: bytes })
+    // PDFを読み込む（ワーカーを使用）
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: bytes,
+      useSystemFonts: true,
+      verbosity: 0,
+    })
     const pdf = await loadingTask.promise
 
     // 指定ページを取得
