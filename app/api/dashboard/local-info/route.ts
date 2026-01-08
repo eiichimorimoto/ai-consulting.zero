@@ -143,7 +143,9 @@ const INDUSTRY_WAGE_DATA: Record<string, {
   '教育': { hourly: 1250, hourlyRange: { min: 1100, max: 1600 }, monthly: 32, yearly: 440, monthlyRange: { min: 25, max: 50 }, trend: 1.8, keywords: ['教育', '学校', '塾', '研修', '講師', 'スクール'] },
   '金融保険': { hourly: 1400, hourlyRange: { min: 1200, max: 1800 }, monthly: 40, yearly: 550, monthlyRange: { min: 30, max: 70 }, trend: 2.2, keywords: ['金融', '銀行', '保険', '証券', 'ファイナンス', '投資'] },
   '不動産': { hourly: 1280, hourlyRange: { min: 1100, max: 1600 }, monthly: 35, yearly: 480, monthlyRange: { min: 26, max: 55 }, trend: 2.0, keywords: ['不動産', '住宅', 'マンション', '賃貸', '仲介'] },
-  'サービス業': { hourly: 1100, hourlyRange: { min: 1000, max: 1400 }, monthly: 28, yearly: 380, monthlyRange: { min: 22, max: 42 }, trend: 2.8, keywords: ['サービス', 'コンサル', '人材', '広告', 'イベント'] },
+  // コンサルティング業: 専門職として高い人件費（業態・サービス内容を考慮）
+  'コンサルティング業': { hourly: 2800, hourlyRange: { min: 2200, max: 4000 }, monthly: 50, yearly: 700, monthlyRange: { min: 40, max: 120 }, trend: 4.5, keywords: ['コンサル', 'コンサルティング', 'アドバイザリー', '戦略', '経営', 'マネジメント', 'DXコンサル', 'ITコンサル', '業務改善', '組織', '人事コンサル'] },
+  'サービス業': { hourly: 1100, hourlyRange: { min: 1000, max: 1400 }, monthly: 28, yearly: 380, monthlyRange: { min: 22, max: 42 }, trend: 2.8, keywords: ['サービス', '人材', '広告', 'イベント', '清掃', '警備', 'ビルメンテナンス'] },
   '農林水産': { hourly: 1050, hourlyRange: { min: 1000, max: 1250 }, monthly: 25, yearly: 340, monthlyRange: { min: 20, max: 35 }, trend: 3.0, keywords: ['農業', '農林', '水産', '漁業', '畜産'] },
 }
 
@@ -157,9 +159,18 @@ const EMPLOYEE_SIZE_FACTOR: Record<string, number> = {
   '1000+': 1.15,    // 1000人以上
 }
 
-// 業種をマッチング
+// 業種をマッチング（コンサルティング業を優先）
 function matchIndustry(companyIndustry: string, companyDescription?: string): string {
   const searchText = `${companyIndustry} ${companyDescription || ''}`.toLowerCase()
+  
+  // コンサルティング業を優先判定（業態・サービス内容を考慮）
+  const consultingKeywords = ['コンサル', 'アドバイザリー', '戦略', '経営支援', 'マネジメント', 'dxコンサル', 'itコンサル', '業務改善', '組織開発', '人事コンサル']
+  for (const keyword of consultingKeywords) {
+    if (searchText.includes(keyword)) {
+      console.log(`✅ コンサルティング業と判定: キーワード "${keyword}" に一致`)
+      return 'コンサルティング業'
+    }
+  }
   
   let bestMatch = 'サービス業'
   let maxScore = 0
@@ -489,6 +500,28 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
     }
   }
   
+  // 検索結果から現在の気温を抽出
+  let currentTemp = null
+  const tempPattern = /気温[：:]*\s*(\d+)[℃度]|(\d+)[℃度]/g
+  for (const result of verifiedResults) {
+    const text = `${result.title} ${result.description}`
+    const matches = [...text.matchAll(tempPattern)]
+    if (matches.length > 0) {
+      // 最初にマッチした気温を使用
+      currentTemp = parseInt(matches[0][1] || matches[0][2])
+      break
+    }
+  }
+  
+  // 気温が取得できない場合は季節に応じたデフォルト値
+  if (!currentTemp) {
+    const month = loginDate.getMonth() + 1
+    if (month >= 12 || month <= 2) currentTemp = 5   // 冬
+    else if (month >= 3 && month <= 5) currentTemp = 15  // 春
+    else if (month >= 6 && month <= 8) currentTemp = 28  // 夏
+    else currentTemp = 18  // 秋
+  }
+  
   // 週間天気データを生成（ログイン日を含む1週間）
   const weekDays = ['日', '月', '火', '水', '木', '金', '土']
   const weekWeather = []
@@ -501,7 +534,7 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
       day: weekDays[dayOfWeek],
       date: `${date.getMonth() + 1}/${date.getDate()}`,
       icon: getWeatherIcon(i),
-      temp: 8 + Math.random() * 5
+      temp: currentTemp + Math.random() * 3 - 1.5 // 現在気温から±1.5度の範囲
     })
   }
   
@@ -523,16 +556,18 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
   const weatherIcons = ['☀️', '⛅', '☁️', '🌤️', '🌥️', '☀️']
   for (let i = 0; i < 6; i++) {
     const hour = (currentHour + i) % 24
+    // 時間帯による気温変化（朝夕は低め、日中は高め）
+    const timeAdjustment = (hour >= 6 && hour <= 18) ? 2 : -2
     hourlyForecast.push({
       time: `${hour}:00`,
-      temp: Math.round(8 + Math.random() * 8 - (hour < 6 || hour > 18 ? 3 : 0)),
+      temp: Math.round(currentTemp + timeAdjustment + Math.random() * 3 - 1.5),
       icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '⛈️' : weatherIcons[i]
     })
   }
 
   return {
     current: {
-      temp: 8,
+      temp: currentTemp,
       icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : alerts.length > 0 && alerts[0].severity === 'severe' ? '⛈️' : '☀️',
       desc: currentDesc
     },
@@ -546,7 +581,8 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
       alertResultCount: alertResults.length,
       verifiedCount: verifiedResults.length,
       searchResults: verifiedResults,
-      alertsFound: alerts.length
+      alertsFound: alerts.length,
+      extractedTemp: currentTemp
     }
   }
 }
