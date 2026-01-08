@@ -781,40 +781,6 @@ async function getWeather(prefecture: string, city: string) {
     })
   }
   
-  // 現在の天気説明（警報と降水確率を反映）
-  let currentDesc = '晴れ / 配送影響なし'
-  if (alerts.length > 0) {
-    if (alerts[0].severity === 'extreme') {
-      currentDesc = '⚠️ 異常気象 / 配送に影響あり'
-    } else if (alerts[0].severity === 'severe') {
-      currentDesc = '警報発令中 / 配送遅延の可能性'
-    } else {
-      currentDesc = `注意報発令中${precipitationChance ? ` / 降水確率${precipitationChance}%` : ''}`
-    }
-  } else if (precipitationChance) {
-    if (precipitationChance >= 80) {
-      currentDesc = `雨の可能性大（${precipitationChance}%）/ 配送遅延の可能性`
-    } else if (precipitationChance >= 50) {
-      currentDesc = `曇りまたは雨（${precipitationChance}%）/ 配送注意`
-    } else {
-      currentDesc = `晴れ時々曇り（降水${precipitationChance}%）/ 影響なし`
-    }
-  }
-
-  // 時間別予報を生成（現在時刻から6時間分）
-  const hourlyForecast = []
-  const currentHour = now.getHours()
-  const weatherIcons = ['☀️', '⛅', '☁️', '🌤️', '🌥️', '☀️']
-  for (let i = 0; i < 6; i++) {
-    const hour = (currentHour + i) % 24
-    // 時間帯による気温変化（朝夕は低め、日中は高め）
-    const timeAdjustment = (hour >= 6 && hour <= 18) ? 2 : -2
-    hourlyForecast.push({
-      time: `${hour}:00`,
-      temp: Math.round(currentTemp + timeAdjustment + Math.random() * 3 - 1.5),
-      icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '⛈️' : weatherIcons[i]
-    })
-  }
 
   return {
     location: `${prefecture}${city}`,
