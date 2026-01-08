@@ -138,13 +138,21 @@ export async function POST(request: Request) {
       let mediaTypeForClaude: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
 
       if (isPdf) {
-        // PDFの場合はPNGに変換してから送信
-        console.log("📄 PDFをPNGに変換中...")
-        const pdfBuffer = Buffer.from(image, "base64")
-        const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
-        imageBuffer = pngBuffer
-        mediaTypeForClaude = "image/png"
-        console.log("✅ PDF→PNG変換完了")
+        // PDFの場合は既にクライアントサイドで画像に変換されているはず
+        // 念のためサーバーサイドでも変換を試みる（フォールバック）
+        console.log("📄 PDFを検出しました（クライアントサイドで変換済みのはず）")
+        try {
+          const pdfBuffer = Buffer.from(image, "base64")
+          const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
+          imageBuffer = pngBuffer
+          mediaTypeForClaude = "image/png"
+          console.log("✅ PDF→PNG変換完了（サーバーサイドフォールバック）")
+        } catch (pdfError) {
+          // クライアントサイドで変換済みの場合はそのまま使用
+          console.log("⚠️ サーバーサイド変換失敗、クライアントサイド変換済みデータを使用")
+          imageBuffer = Buffer.from(image, "base64")
+          mediaTypeForClaude = "image/png"
+        }
       } else {
         imageBuffer = Buffer.from(image, "base64")
         const mt = (mimeType || "image/jpeg").toLowerCase()
