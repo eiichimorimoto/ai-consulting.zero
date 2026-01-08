@@ -412,6 +412,12 @@ function DebugPanel({ localInfo, onClose }: { localInfo: LocalInfo; onClose: () 
             <h4>天気情報検索</h4>
             <p>検索クエリ: {(localInfo._debug.weather as any).searchQuery}</p>
             <p>結果数: {(localInfo._debug.weather as any).resultCount || 0}</p>
+            <p style={{ color: 'var(--primary)', fontWeight: '600' }}>
+              抽出された気温: {(localInfo._debug.weather as any).extractedTemp !== null ? `${(localInfo._debug.weather as any).extractedTemp}°C` : '取得失敗'}
+            </p>
+            <p>降水確率: {(localInfo._debug.weather as any).extractedPrecipitation ? `${(localInfo._debug.weather as any).extractedPrecipitation}%` : 'N/A'}</p>
+            <p>場所: {(localInfo._debug.weather as any).location || 'N/A'}</p>
+            <p>取得時刻: {(localInfo._debug.weather as any).timestamp ? new Date((localInfo._debug.weather as any).timestamp).toLocaleString('ja-JP') : 'N/A'}</p>
           </div>
         )}
       </div>
