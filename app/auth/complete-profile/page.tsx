@@ -674,20 +674,49 @@ export default function CompleteProfilePage() {
         errorMessage = error.message
         
         // より分かりやすいエラーメッセージに変換
-        if (error.message.includes('401') || error.message.includes('認証') || error.message.includes('Unauthorized')) {
-          errorMessage = '認証エラーが発生しました。ページを再読み込みしてから再度お試しください。'
-        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
-          errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
-        } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('ECONNREFUSED') || error.message.includes('タイムアウト')) {
-          errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
-        } else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
-          errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
-        } else if (error.message.includes('PDF') || error.message.includes('pdf')) {
+        // 注意: 順序が重要。より具体的なエラーを先にチェックする
+        
+        // 1. PDF関連のエラーを最優先でチェック（「fetch」が含まれる可能性があるため）
+        if (error.message.includes('PDFを画像に変換') || 
+            error.message.includes('PDF→画像変換') ||
+            error.message.includes('pdfjs-dist') ||
+            error.message.includes('worker') ||
+            error.message.includes('Setting up fake worker') ||
+            (error.message.includes('PDF') && error.message.includes('変換'))) {
           errorMessage = 'PDFの処理に失敗しました。別のPDFをお試しください（1ページ目を使用します）。'
-        } else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
+        } 
+        // 2. 認証エラー
+        else if (error.message.includes('401') || error.message.includes('認証') || error.message.includes('Unauthorized')) {
+          errorMessage = '認証エラーが発生しました。ページを再読み込みしてから再度お試しください。'
+        } 
+        // 3. レート制限
+        else if (error.message.includes('429') || error.message.includes('rate limit')) {
+          errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
+        } 
+        // 4. 画像データの形式エラー
+        else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
+          errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
+        } 
+        // 5. タイムアウト
+        else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
           errorMessage = '処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。'
-        } else if (error.message.includes('500') || error.message.includes('サーバー')) {
+        } 
+        // 6. サーバーエラー
+        else if (error.message.includes('500') || error.message.includes('サーバー')) {
           errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
+        } 
+        // 7. ネットワークエラー（PDF関連でない場合のみ）
+        else if ((error.message.includes('network') || error.message.includes('ECONNREFUSED')) && 
+                 !error.message.includes('PDF') && 
+                 !error.message.includes('worker')) {
+          errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
+        } 
+        // 8. fetchエラー（PDF関連でない場合のみ）
+        else if (error.message.includes('fetch') && 
+                 !error.message.includes('PDF') && 
+                 !error.message.includes('worker') &&
+                 !error.message.includes('dynamically imported module')) {
+          errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
         }
       }
       
