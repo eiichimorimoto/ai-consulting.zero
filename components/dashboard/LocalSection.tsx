@@ -79,7 +79,9 @@ export default function LocalSection({
               <span className="local-title">労務費動向</span>
             </div>
             <div className="local-highlight">
-              <span className="local-value">{localInfo?.laborCosts?.current?.toLocaleString() || '1,077'}</span>
+              <span className="local-value">
+                {localInfo?.laborCosts?.current ? localInfo.laborCosts.current.toLocaleString() : '1,077'}
+              </span>
               <span className="local-unit">円/時</span>
               <span className={`local-change ${(localInfo?.laborCosts?.change || 3.5) >= 0 ? 'up' : 'down'}`}>
                 {(localInfo?.laborCosts?.change || 3.5) >= 0 ? '+' : ''}{localInfo?.laborCosts?.change || 3.5}%
@@ -88,7 +90,9 @@ export default function LocalSection({
             <div className="local-content" style={{ fontSize: '10px', lineHeight: '1.4' }}>
               <div style={{ marginBottom: '4px' }}>
                 <span style={{ fontWeight: 600 }}>{company?.prefecture || '愛知県'}最低賃金:</span>{' '}
-                {(localInfo?.laborCosts as any)?.comparison?.minimumWage?.toLocaleString() || '1,077'}円
+                {(localInfo?.laborCosts as any)?.comparison?.minimumWage 
+                  ? (localInfo.laborCosts as any).comparison.minimumWage.toLocaleString() 
+                  : '1,077'}円
                 <span style={{ color: '#888', fontSize: '9px' }}>（2024年10月改定）</span>
               </div>
               <div style={{ background: '#f0f9ff', padding: '4px 6px', borderRadius: '4px', marginTop: '4px' }}>
@@ -96,7 +100,9 @@ export default function LocalSection({
                   📊 {(localInfo?.laborCosts as any)?.comparison?.industryName || company?.industry || '製造業'}平均との比較
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>業界平均: {(localInfo?.laborCosts as any)?.comparison?.industryAverage?.toLocaleString() || '1,180'}円</span>
+                  <span>業界平均: {(localInfo?.laborCosts as any)?.comparison?.industryAverage 
+                    ? (localInfo.laborCosts as any).comparison.industryAverage.toLocaleString() 
+                    : '1,180'}円</span>
                   <span style={{ 
                     color: ((localInfo?.laborCosts as any)?.comparison?.vsIndustryAverage || 0) >= 0 ? '#16a34a' : '#dc2626',
                     fontWeight: 600
@@ -106,8 +112,12 @@ export default function LocalSection({
                   </span>
                 </div>
                 <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
-                  相場: {(localInfo?.laborCosts as any)?.comparison?.industryRange?.min?.toLocaleString() || '1,000'}〜
-                  {(localInfo?.laborCosts as any)?.comparison?.industryRange?.max?.toLocaleString() || '1,500'}円
+                  相場: {(localInfo?.laborCosts as any)?.comparison?.industryRange?.min 
+                    ? (localInfo.laborCosts as any).comparison.industryRange.min.toLocaleString() 
+                    : '1,000'}〜
+                  {(localInfo?.laborCosts as any)?.comparison?.industryRange?.max 
+                    ? (localInfo.laborCosts as any).comparison.industryRange.max.toLocaleString() 
+                    : '1,500'}円
                 </div>
               </div>
               <div style={{ fontSize: '8px', color: '#999', marginTop: '4px' }}>
