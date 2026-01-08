@@ -285,15 +285,25 @@ async function getLaborCosts(
   const baseMonthly = industryData.monthly
   const estimatedMonthly = Math.round(baseMonthly * regionFactor * sizeFactor)
   
+  // 検索結果の信頼性を判定（東京など主要都市では検索結果を優先）
+  const majorCities = ['東京', '大阪', '愛知', '神奈川', '福岡']
+  const isSearchPriority = majorCities.includes(prefName) && searchBasedMonthly > 0
+  
   // 検索結果がある場合は加味（信頼性に応じて重み付け）
+  // 主要都市: 検索結果70% + 基準値30%（実態を優先）
+  // その他: 検索結果40% + 基準値60%（基準値を優先）
   const finalMonthly = searchBasedMonthly > 0 
-    ? Math.round((estimatedMonthly * 0.6) + (searchBasedMonthly * 0.4))
+    ? isSearchPriority
+      ? Math.round((searchBasedMonthly * 0.7) + (estimatedMonthly * 0.3))
+      : Math.round((searchBasedMonthly * 0.4) + (estimatedMonthly * 0.6))
     : estimatedMonthly
     
   // 年収を算出（月収×14〜16ヶ月分：賞与考慮）
   const bonusMultiplier = 14 + (sizeFactor - 0.85) * 5 // 規模が大きいほど賞与が多い
   const finalYearly = searchBasedYearly > 0
-    ? Math.round((finalMonthly * bonusMultiplier * 0.6) + (searchBasedYearly * 0.4))
+    ? isSearchPriority
+      ? Math.round((searchBasedYearly * 0.7) + (finalMonthly * bonusMultiplier * 0.3))
+      : Math.round((searchBasedYearly * 0.4) + (finalMonthly * bonusMultiplier * 0.6))
     : Math.round(finalMonthly * bonusMultiplier)
   
   // 時給換算（月160時間として）
@@ -355,9 +365,17 @@ async function getLaborCosts(
       estimatedMonthly,
       searchBasedMonthly,
       searchBasedYearly,
+      isSearchPriority,
+      searchWeight: isSearchPriority ? '70%' : '40%',
+      baseWeight: isSearchPriority ? '30%' : '60%',
       finalMonthly,
       finalYearly,
       finalHourly,
+      calculation: searchBasedMonthly > 0
+        ? isSearchPriority
+          ? `検索結果優先: ${searchBasedMonthly}万円×0.7 + ${estimatedMonthly}万円×0.3 = ${finalMonthly}万円`
+          : `基準値優先: ${searchBasedMonthly}万円×0.4 + ${estimatedMonthly}万円×0.6 = ${finalMonthly}万円`
+        : `基準値のみ: ${estimatedMonthly}万円`,
     }
   }
 }
