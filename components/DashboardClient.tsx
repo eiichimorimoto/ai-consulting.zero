@@ -1462,13 +1462,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>月給</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#166534' }}>
-                            {localInfo?.laborCosts?.averageSalary?.monthly?.toLocaleString() || '28.5'}万円
+                            {(localInfo?.laborCosts as any)?.monthly?.toLocaleString() || (localInfo?.laborCosts as any)?.comparison?.industryMonthly?.toLocaleString() || '28.5'}万円
                           </div>
                         </div>
                         <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>年収</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#166534' }}>
-                            {localInfo?.laborCosts?.averageSalary?.annual?.toLocaleString() || '420'}万円
+                            {(localInfo?.laborCosts as any)?.yearly?.toLocaleString() || (localInfo?.laborCosts as any)?.comparison?.industryYearly?.toLocaleString() || '420'}万円
                           </div>
                         </div>
                       </div>

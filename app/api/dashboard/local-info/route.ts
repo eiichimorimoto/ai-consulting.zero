@@ -451,16 +451,17 @@ async function getInfrastructure(prefecture: string, city: string, industry: str
 }
 
 // 週間天気を取得
-async function getWeather(prefecture: string, city: string, loginDate: Date) {
+async function getWeather(prefecture: string, city: string) {
+  const now = new Date() // 現在時刻を使用
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const query = `${area} 天気 週間 ${loginDate.getMonth() + 1}月`
+  const query = `${area} 天気 週間 ${now.getMonth() + 1}月`
   
   const searchResults = await braveWebSearch(query, 5)
   // ファクトチェックを実行
   const verifiedResults = await factCheckSearchResults(searchResults, query, 'weather')
   
   // 異常気象・気象警報を検索
-  const alertQuery = `${area} 気象警報 注意報 ${loginDate.getMonth() + 1}月`
+  const alertQuery = `${area} 気象警報 注意報 ${now.getMonth() + 1}月`
   const alertResults = await braveWebSearch(alertQuery, 5)
   
   // 異常気象アラートを抽出
@@ -533,7 +534,7 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
   
   // 気温が取得できない場合は季節に応じたデフォルト値
   if (!currentTemp) {
-    const month = loginDate.getMonth() + 1
+    const month = now.getMonth() + 1
     if (month >= 12 || month <= 2) currentTemp = 5   // 冬
     else if (month >= 3 && month <= 5) currentTemp = 15  // 春
     else if (month >= 6 && month <= 8) currentTemp = 28  // 夏
@@ -543,9 +544,9 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
   // 週間天気データを生成（ログイン日を含む1週間）
   const weekDays = ['日', '月', '火', '水', '木', '金', '土']
   const weekWeather = []
-  // ログイン日から7日分（ログイン日を含む）
+  // 現在日から7日分（現在日を含む）
   for (let i = 0; i < 7; i++) {
-    const date = new Date(loginDate)
+    const date = new Date(now)
     date.setDate(date.getDate() + i)
     const dayOfWeek = date.getDay() // 0=日, 1=月, ..., 6=土
     weekWeather.push({
@@ -570,7 +571,7 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
 
   // 時間別予報を生成（現在時刻から6時間分）
   const hourlyForecast = []
-  const currentHour = loginDate.getHours()
+  const currentHour = now.getHours()
   const weatherIcons = ['☀️', '⛅', '☁️', '🌤️', '🌥️', '☀️']
   for (let i = 0; i < 6; i++) {
     const hour = (currentHour + i) % 24
@@ -585,8 +586,8 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
 
   return {
     location: `${prefecture}${city}`, // 場所
-    timestamp: loginDate.toISOString(), // 取得時刻
-    displayTime: `${loginDate.getMonth() + 1}月${loginDate.getDate()}日 ${loginDate.getHours()}:${loginDate.getMinutes().toString().padStart(2, '0')}`, // 表示用時刻
+    timestamp: now.toISOString(), // 取得時刻
+    displayTime: `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`, // 表示用時刻
     current: {
       temp: currentTemp,
       icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : alerts.length > 0 && alerts[0].severity === 'severe' ? '⛈️' : '☀️',
@@ -605,7 +606,7 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
       alertsFound: alerts.length,
       extractedTemp: currentTemp,
       location: `${prefecture}${city}`,
-      timestamp: loginDate.toISOString()
+      timestamp: now.toISOString()
     }
   }
 }
@@ -860,7 +861,7 @@ export async function GET(request: Request) {
       getLaborCosts(prefecture, city, industry, employeeCount, businessDescription),
       getEvents(prefecture, city, industry),
       getInfrastructure(prefecture, city, industry),
-      getWeather(prefecture, city, loginDate),
+      getWeather(prefecture, city),
       getTrafficInfo(prefecture, city),
       getLogisticsInfo(prefecture, city, industry)
     ])
