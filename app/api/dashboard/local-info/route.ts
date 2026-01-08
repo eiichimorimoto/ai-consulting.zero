@@ -584,6 +584,9 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
   }
 
   return {
+    location: `${prefecture}${city}`, // 場所
+    timestamp: loginDate.toISOString(), // 取得時刻
+    displayTime: `${loginDate.getMonth() + 1}月${loginDate.getDate()}日 ${loginDate.getHours()}:${loginDate.getMinutes().toString().padStart(2, '0')}`, // 表示用時刻
     current: {
       temp: currentTemp,
       icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : alerts.length > 0 && alerts[0].severity === 'severe' ? '⛈️' : '☀️',
@@ -600,7 +603,9 @@ async function getWeather(prefecture: string, city: string, loginDate: Date) {
       verifiedCount: verifiedResults.length,
       searchResults: verifiedResults,
       alertsFound: alerts.length,
-      extractedTemp: currentTemp
+      extractedTemp: currentTemp,
+      location: `${prefecture}${city}`,
+      timestamp: loginDate.toISOString()
     }
   }
 }

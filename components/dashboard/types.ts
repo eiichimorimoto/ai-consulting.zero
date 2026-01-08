@@ -46,6 +46,9 @@ export interface LocalInfo {
   events: { title: string; url: string; description: string; date: string }[]
   infrastructure: { title: string; url: string; description: string; status: string }[]
   weather: {
+    location?: string // 場所（都道府県+市区町村）
+    timestamp?: string // 取得時刻（ISO形式）
+    displayTime?: string // 表示用時刻
     current: { temp: number; icon: string; desc: string }
     week: { day: string; date: string; icon: string; temp: number }[]
     hourly?: { time: string; temp: number; icon: string }[]
