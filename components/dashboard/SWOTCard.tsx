@@ -358,29 +358,37 @@ export default function SWOTCard({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600', marginBottom: '6px' }}>👍 良い評判（3項目）</div>
-                  {swotAnalysis.reputation.positives?.map((p, i) => (
-                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px', lineHeight: '1.5' }}>
-                      • {typeof p === 'string' ? p : p.comment}
-                      {typeof p !== 'string' && p.source && (
-                        <div style={{ fontSize: '9px', color: '#888', marginLeft: '12px', marginTop: '2px' }}>
-                          出典: {p.source}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {swotAnalysis.reputation.positives?.map((p, i) => {
+                    const comment = typeof p === 'string' ? p : (typeof p === 'object' && p !== null && 'comment' in p ? String(p.comment) : '情報なし')
+                    const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : null
+                    return (
+                      <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px', lineHeight: '1.5' }}>
+                        • {comment}
+                        {source && (
+                          <div style={{ fontSize: '9px', color: '#888', marginLeft: '12px', marginTop: '2px' }}>
+                            出典: {source}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600', marginBottom: '6px' }}>👎 改善点（2項目）</div>
-                  {swotAnalysis.reputation.negatives?.map((n, i) => (
-                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px', lineHeight: '1.5' }}>
-                      • {typeof n === 'string' ? n : n.comment}
-                      {typeof n !== 'string' && n.source && (
-                        <div style={{ fontSize: '9px', color: '#888', marginLeft: '12px', marginTop: '2px' }}>
-                          出典: {n.source}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {swotAnalysis.reputation.negatives?.map((n, i) => {
+                    const comment = typeof n === 'string' ? n : (typeof n === 'object' && n !== null && 'comment' in n ? String(n.comment) : '情報なし')
+                    const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : null
+                    return (
+                      <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px', lineHeight: '1.5' }}>
+                        • {comment}
+                        {source && (
+                          <div style={{ fontSize: '9px', color: '#888', marginLeft: '12px', marginTop: '2px' }}>
+                            出典: {source}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
