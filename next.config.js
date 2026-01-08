@@ -43,6 +43,10 @@ const nextConfig = {
     // Turbopackでも同様の設定が必要な場合はここに追加
     // 現時点では空の設定でエラーを回避
   },
+  // pdfjs-distのワーカーファイルをパブリックにコピー
+  async rewrites() {
+    return []
+  },
 }
 
 module.exports = nextConfig

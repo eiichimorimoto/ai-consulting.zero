@@ -12,9 +12,12 @@ export async function convertPdfToImageClient(
     // pdfjs-distを動的インポート（クライアントサイドのみ）
     const pdfjsLib = await import('pdfjs-dist')
     
-    // ワーカーの設定（ブラウザ環境では正常に動作）
+    // ワーカーを無効化してメインスレッドで処理（最も確実な方法）
+    // ブラウザ環境ではメインスレッドでも十分に動作する
     if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+      // 空文字列を設定することでワーカーを無効化し、メインスレッドで処理
+      pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+      console.log('✅ pdfjs-dist: ワーカーを無効化、メインスレッドで処理します')
     }
 
     // Base64データをUint8Arrayに変換
