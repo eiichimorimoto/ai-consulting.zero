@@ -238,7 +238,7 @@ export default function LocalSection({
               borderBottom: '1px solid var(--border)',
               marginBottom: '8px'
             }}>
-              📍 {localInfo?.weather?.location || (company?.prefecture && company?.city ? `${company.prefecture}${company.city}` : '東京都千代田区')}
+              📍 {localInfo?.weather?.location || '東京都千代田区'}
             </div>
             <div className="local-weather-main">
               <span className="weather-icon">{localInfo?.weather?.current?.icon || '☀️'}</span>
