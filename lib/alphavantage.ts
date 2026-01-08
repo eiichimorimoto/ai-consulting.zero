@@ -97,6 +97,9 @@ export async function getStockPrice(symbol: string): Promise<StockData | null> {
     
     const data: any = await response.json()
     
+    // デバッグ: レスポンス全体を確認
+    console.log(`📊 デバッグ: response =`, JSON.stringify(data).slice(0, 300))
+    
     // エラーチェック
     if (data['Error Message'] || data['Note']) {
       console.error(`❌ Alpha Vantage API エラー:`, data['Error Message'] || data['Note'])
@@ -104,7 +107,7 @@ export async function getStockPrice(symbol: string): Promise<StockData | null> {
     }
     
     const quote = data['Global Quote']
-    console.log(`📊 デバッグ: quote =`, JSON.stringify(quote).slice(0, 200))
+    console.log(`📊 デバッグ: quote =`, quote)
     console.log(`📊 デバッグ: quote keys =`, quote ? Object.keys(quote) : 'null')
     console.log(`📊 デバッグ: price =`, quote ? quote['05. price'] : 'N/A')
     
