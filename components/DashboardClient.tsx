@@ -135,9 +135,8 @@ interface SWOTAnalysis {
   }
   reputation: {
     overall: string
-    positives: string[]
-    negatives: string[]
-    sources: string[]
+    positives: Array<string | { comment: string; source: string }>
+    negatives: Array<string | { comment: string; source: string }>
   }
 }
 
@@ -2960,17 +2959,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '600', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <span style={{ fontSize: '12px' }}>↑</span> 良い評判
                                 </div>
-                                {swotAnalysis.reputation.positives?.slice(0, 2).map((p, i) => (
-                                  <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {p}</div>
-                                ))}
+                                {swotAnalysis.reputation.positives?.slice(0, 2).map((p, i) => {
+                                  const comment = typeof p === 'string' ? p : (typeof p === 'object' && p !== null && 'comment' in p ? String(p.comment) : '情報なし')
+                                  return (
+                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {comment}</div>
+                                  )
+                                })}
                               </div>
                               <div style={{ padding: '8px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.15)' }}>
                                 <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: '600', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <span style={{ fontSize: '12px' }}>↓</span> 改善点
                                 </div>
-                                {swotAnalysis.reputation.negatives?.slice(0, 2).map((n, i) => (
-                                  <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {n}</div>
-                                ))}
+                                {swotAnalysis.reputation.negatives?.slice(0, 2).map((n, i) => {
+                                  const comment = typeof n === 'string' ? n : (typeof n === 'object' && n !== null && 'comment' in n ? String(n.comment) : '情報なし')
+                                  return (
+                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {comment}</div>
+                                  )
+                                })}
                               </div>
                             </div>
                           </div>
