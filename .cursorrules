@@ -213,3 +213,64 @@ npm run start
 - `docs/troubleshooting/`: トラブルシューティング
 - `docs/setup/`: セットアップガイド
 - `docs/guides/`: 各種ガイド
+
+---
+
+## 📚 ライブラリ使用ルール（重要）
+
+### pdfjs-dist使用時の必須手順
+
+> 作成: 2025-01-08 | PDF OCR問題解決の知見
+
+#### 問題: Vercel環境でワーカーエラー
+```
+Setting up fake worker failed
+No "GlobalWorkerOptions.workerSrc" specified
+```
+
+#### 最短解決方法（10分）
+
+**1. ワーカーファイルをpublicフォルダに配置（1分）**
+```bash
+cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
+```
+
+**2. クライアントサイドでPDF変換を実装（5分）**
+```typescript
+// lib/ocr/pdf-to-image-client.ts
+const pdfjsLib = await import('pdfjs-dist')
+
+// ワーカーパスを設定（必須！）
+if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+}
+
+// PDF → 画像変換
+const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+// ... Canvas処理 ...
+```
+
+**3. publicフォルダのファイルをコミット（2分）**
+```bash
+git add public/pdf.worker.min.mjs
+git commit -m "feat: pdfjs-distワーカーファイルを追加"
+```
+
+#### 重要ルール
+
+| ルール | 説明 | 理由 |
+|--------|------|------|
+| クライアントサイドで処理 | pdfjs-distはブラウザで使用 | サーバーレス環境で安定動作 |
+| publicフォルダに配置 | ワーカーファイルは静的アセット | 確実にアクセス可能 |
+| workerSrcに絶対パス | `/pdf.worker.min.mjs`を設定 | 相対パスは動作不安定 |
+| 30分ルール | 解決しなければ方針転換 | 試行錯誤の時間を制限 |
+
+#### チェックリスト（必須確認）
+
+- [ ] ライブラリはブラウザ向けか、サーバー向けか確認
+- [ ] ワーカーファイルが必要な場合はpublicフォルダに配置
+- [ ] ブラウザから`/filename`でアクセスできることを確認
+- [ ] 30分試して解決しない場合は別アプローチを検討
+
+#### 詳細ドキュメント
+- `docs/troubleshooting/PDF-OCR問題解決-詳細分析.md`
