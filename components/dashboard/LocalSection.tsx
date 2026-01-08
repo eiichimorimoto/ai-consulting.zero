@@ -205,29 +205,40 @@ export default function LocalSection({
 
           {/* 週間天気 */}
           <div className="local-card">
-            <div className="local-card-header">
-              <div className="local-icon weather">
-                <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
-                  <circle cx="12" cy="12" r="5"/>
-                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                </svg>
-              </div>
-              <span className="local-title">現在の天気</span>
-            </div>
-            {/* 場所と時刻を必ず表示 */}
-            <div style={{ 
-              fontSize: '10px', 
-              fontWeight: '600',
-              color: 'var(--text-primary)', 
-              padding: '8px 12px 4px',
-              display: 'flex',
+            <div className="local-card-header" style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
               alignItems: 'center',
-              gap: '12px',
+              width: '100%'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="local-icon weather">
+                  <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 1.5 }}>
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                </div>
+                <span className="local-title">現在の天気</span>
+              </div>
+              {/* 日時を横に表示 */}
+              <span style={{ 
+                fontSize: '10px', 
+                fontWeight: '500',
+                color: 'var(--text-secondary)'
+              }}>
+                {localInfo?.weather?.displayTime || '取得中...'}
+              </span>
+            </div>
+            {/* 場所を表示 */}
+            <div style={{ 
+              fontSize: '9px', 
+              fontWeight: '500',
+              color: 'var(--text-secondary)', 
+              padding: '4px 12px',
               borderBottom: '1px solid var(--border)',
               marginBottom: '8px'
             }}>
-              <span>📍 {localInfo?.weather?.location || company?.prefecture + company?.city || '東京都千代田区'}</span>
-              <span>🕐 {localInfo?.weather?.displayTime || '取得中...'}</span>
+              📍 {localInfo?.weather?.location || company?.prefecture + company?.city || '東京都千代田区'}
             </div>
             <div className="local-weather-main">
               <span className="weather-icon">{localInfo?.weather?.current?.icon || '☀️'}</span>
