@@ -229,15 +229,16 @@ export default function LocalSection({
                   </svg>
                 </div>
                 <span className="local-title">現在の天気</span>
+                {/* 日時を横に表示（タイトルのすぐ隣） */}
+                <span style={{ 
+                  fontSize: '11px', 
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  marginLeft: '8px'
+                }}>
+                  🕐 {localInfo?.weather?.displayTime || '取得中...'}
+                </span>
               </div>
-              {/* 日時を横に表示 */}
-              <span style={{ 
-                fontSize: '10px', 
-                fontWeight: '500',
-                color: 'var(--text-secondary)'
-              }}>
-                {localInfo?.weather?.displayTime || '取得中...'}
-              </span>
             </div>
             {/* 場所を表示 */}
             <div style={{ 
