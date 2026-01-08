@@ -49,6 +49,10 @@ async function getMarketData(loginDate: Date) {
     console.warn('⚠️ 為替データ取得失敗。フォールバック値を使用:', currentRate)
   }
   
+  // Alpha Vantage APIのレート制限対策: 1秒待機
+  console.log('⏱️ レート制限対策: 1秒待機中...')
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  
   // 2. 日経平均（EWJ ETF）を取得（実データ）
   const nikkeiData = await getNikkeiProxy()
   const currentNikkei = nikkeiData?.price || 39847 // フォールバック値
