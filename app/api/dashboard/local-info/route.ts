@@ -466,7 +466,10 @@ async function getInfrastructure(prefecture: string, city: string, industry: str
 
 // OpenWeatherMap APIから天気を取得
 async function getWeather(prefecture: string, city: string) {
+  // 日本時間（JST）を使用
   const now = new Date()
+  const jstOffset = 9 * 60 // 日本は UTC+9
+  const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000)
   
   // 座標を取得（主要都市のマップから）
   const coordinates = CITY_COORDINATES[prefecture] || CITY_COORDINATES['東京都']
@@ -487,8 +490,8 @@ async function getWeather(prefecture: string, city: string) {
     console.error('❌ OpenWeatherMap API からデータ取得失敗')
     return {
       location: `${prefecture}${city}`,
-      timestamp: now.toISOString(),
-      displayTime: `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
+      timestamp: jstTime.toISOString(),
+      displayTime: `${jstTime.getMonth() + 1}月${jstTime.getDate()}日 ${jstTime.getHours()}:${String(jstTime.getMinutes()).padStart(2, '0')}`,
       current: {
         temp: null,
         icon: '☀️',
@@ -630,8 +633,8 @@ async function getWeather(prefecture: string, city: string) {
   
   return {
     location: `${prefecture}${city}`,
-    timestamp: now.toISOString(),
-    displayTime: `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
+    timestamp: jstTime.toISOString(),
+    displayTime: `${jstTime.getMonth() + 1}月${jstTime.getDate()}日 ${jstTime.getHours()}:${String(jstTime.getMinutes()).padStart(2, '0')}`,
     current: {
       temp: currentTemp,
       icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : currentIcon,
