@@ -192,13 +192,13 @@ export default function MarketSection({
             
             {/* 原材料価格セクション */}
             {marketData?.commodities && (
-              <div className="market-card" style={{ gridColumn: 'span 2' }}>
+              <div className="market-card" style={{ gridColumn: '1 / -1' }}>
                 <div className="market-card-header">
-                  <span className="market-label">🛢️ 原材料価格（円換算）</span>
+                  <span className="market-label">🛢️ 関連原材料・仕入材価格（円換算）</span>
                 </div>
                 <div style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: 'repeat(4, 1fr)', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
                   gap: '12px',
                   marginTop: '12px'
                 }}>
