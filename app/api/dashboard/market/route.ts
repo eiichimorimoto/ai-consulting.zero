@@ -139,6 +139,13 @@ const industryMaterials: Record<string, { key: string; name: string; unit: strin
     { key: 'packaging', name: '包装資材', unit: '円/kg', basePrice: 180, volatility: 10 },
     { key: 'paper', name: '段ボール原紙', unit: '円/t', basePrice: 85000, volatility: 3000 },
   ],
+  // コンサルティング業（専門職としての原材料）
+  'コンサルティング業': [
+    { key: 'software', name: 'ソフトウェアライセンス', unit: '円/月', basePrice: 85000, volatility: 5000 },
+    { key: 'cloud', name: 'クラウドサービス', unit: '円/月', basePrice: 120000, volatility: 8000 },
+    { key: 'data', name: 'データ分析ツール', unit: '円/月', basePrice: 95000, volatility: 6000 },
+    { key: 'electricity', name: '電力', unit: '円/kWh', basePrice: 28, volatility: 2 },
+  ],
   // サービス業
   'サービス業': [
     { key: 'electricity', name: '電力', unit: '円/kWh', basePrice: 28, volatility: 2 },
@@ -169,11 +176,21 @@ const industryMaterials: Record<string, { key: string; name: string; unit: strin
   ],
 }
 
-// 企業の業種から関連原材料を取得
+// 企業の業種から関連原材料を取得（業態・サービス内容を考慮）
 function getRelevantMaterials(industry: string, businessDesc: string) {
   // 業種キーワードマッチング
   const industryLower = (industry || '').toLowerCase()
   const descLower = (businessDesc || '').toLowerCase()
+  const searchText = `${industryLower} ${descLower}`
+  
+  // コンサルティング業を優先判定（業態・サービス内容を考慮）
+  const consultingKeywords = ['コンサル', 'アドバイザリー', '戦略', '経営支援', 'マネジメント', 'dxコンサル', 'itコンサル', '業務改善', '組織開発', '人事コンサル']
+  for (const keyword of consultingKeywords) {
+    if (searchText.includes(keyword)) {
+      console.log(`✅ コンサルティング業の原材料を選択: キーワード "${keyword}" に一致`)
+      return industryMaterials['コンサルティング業']
+    }
+  }
   
   // キーワードベースで業種を特定
   if (industryLower.includes('食品') || descLower.includes('食品') || descLower.includes('食材')) {
