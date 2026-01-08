@@ -212,8 +212,21 @@ export default function LocalSection({
                   <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                 </svg>
               </div>
-              <span className="local-title">週間天気</span>
+              <span className="local-title">天気予報</span>
             </div>
+            {/* 場所と時刻を表示 */}
+            {localInfo?.weather?.location && localInfo?.weather?.displayTime && (
+              <div style={{ 
+                fontSize: '9px', 
+                color: 'var(--text-secondary)', 
+                padding: '4px 12px 0',
+                display: 'flex',
+                justifyContent: 'space-between'
+              }}>
+                <span>📍 {localInfo.weather.location}</span>
+                <span>🕐 {localInfo.weather.displayTime}</span>
+              </div>
+            )}
             <div className="local-weather-main">
               <span className="weather-icon">{localInfo?.weather?.current?.icon || '☀️'}</span>
               <div>
