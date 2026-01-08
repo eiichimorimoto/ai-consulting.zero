@@ -519,26 +519,69 @@ async function getWeather(prefecture: string, city: string) {
     }
   }
   
-  // 検索結果から現在の気温を抽出
+  // 検索結果から現在の気温を抽出（複数パターン対応）
   let currentTemp = null
-  const tempPattern = /気温[：:]*\s*(\d+)[℃度]|(\d+)[℃度]/g
+  let precipitationChance = null
+  
+  // 気温抽出パターン（より広範囲に対応）
+  const tempPatterns = [
+    /気温[：:]*\s*(\d+)[℃度°C]/gi,
+    /(\d+)[℃度°C]/gi,
+    /最高[気温]*[：:]*\s*(\d+)[℃度°C]/gi,
+    /最低[気温]*[：:]*\s*(\d+)[℃度°C]/gi,
+    /現在[：:]*\s*(\d+)[℃度°C]/gi,
+  ]
+  
+  // 降水確率抽出パターン
+  const precipPattern = /降水確率[：:]*\s*(\d+)%/gi
+  
+  // 全ての検索結果から気温を探す
   for (const result of verifiedResults) {
     const text = `${result.title} ${result.description}`
-    const matches = [...text.matchAll(tempPattern)]
-    if (matches.length > 0) {
-      // 最初にマッチした気温を使用
-      currentTemp = parseInt(matches[0][1] || matches[0][2])
-      break
+    
+    // 気温を抽出
+    if (!currentTemp) {
+      for (const pattern of tempPatterns) {
+        const matches = [...text.matchAll(pattern)]
+        if (matches.length > 0) {
+          const temp = parseInt(matches[0][1])
+          if (temp > 0 && temp < 50) { // 妥当な範囲の気温のみ
+            currentTemp = temp
+            break
+          }
+        }
+      }
     }
+    
+    // 降水確率を抽出
+    if (!precipitationChance) {
+      const matches = [...text.matchAll(precipPattern)]
+      if (matches.length > 0) {
+        precipitationChance = parseInt(matches[0][1])
+      }
+    }
+    
+    if (currentTemp && precipitationChance) break
   }
   
-  // 気温が取得できない場合は季節に応じたデフォルト値
+  // 気温が取得できない場合のみWeb検索を追加実行
   if (!currentTemp) {
-    const month = now.getMonth() + 1
-    if (month >= 12 || month <= 2) currentTemp = 5   // 冬
-    else if (month >= 3 && month <= 5) currentTemp = 15  // 春
-    else if (month >= 6 && month <= 8) currentTemp = 28  // 夏
-    else currentTemp = 18  // 秋
+    const tempQuery = `${area} 気温 現在 ${now.getMonth() + 1}月${now.getDate()}日`
+    const tempResults = await braveWebSearch(tempQuery, 3)
+    for (const result of tempResults) {
+      const text = `${result.title} ${result.description}`
+      for (const pattern of tempPatterns) {
+        const matches = [...text.matchAll(pattern)]
+        if (matches.length > 0) {
+          const temp = parseInt(matches[0][1])
+          if (temp > 0 && temp < 50) {
+            currentTemp = temp
+            break
+          }
+        }
+      }
+      if (currentTemp) break
+    }
   }
   
   // 週間天気データを生成（ログイン日を含む1週間）
@@ -557,15 +600,23 @@ async function getWeather(prefecture: string, city: string) {
     })
   }
   
-  // 現在の天気説明（警報がある場合は反映）
+  // 現在の天気説明（警報と降水確率を反映）
   let currentDesc = '晴れ / 配送影響なし'
   if (alerts.length > 0) {
     if (alerts[0].severity === 'extreme') {
       currentDesc = '⚠️ 異常気象 / 配送に影響あり'
     } else if (alerts[0].severity === 'severe') {
-      currentDesc = '注意 / 配送遅延の可能性'
+      currentDesc = '警報発令中 / 配送遅延の可能性'
     } else {
-      currentDesc = '晴れ / 一部注意報あり'
+      currentDesc = `注意報発令中${precipitationChance ? ` / 降水確率${precipitationChance}%` : ''}`
+    }
+  } else if (precipitationChance) {
+    if (precipitationChance >= 80) {
+      currentDesc = `雨の可能性大（${precipitationChance}%）/ 配送遅延の可能性`
+    } else if (precipitationChance >= 50) {
+      currentDesc = `曇りまたは雨（${precipitationChance}%）/ 配送注意`
+    } else {
+      currentDesc = `晴れ時々曇り（降水${precipitationChance}%）/ 影響なし`
     }
   }
 
@@ -605,6 +656,7 @@ async function getWeather(prefecture: string, city: string) {
       searchResults: verifiedResults,
       alertsFound: alerts.length,
       extractedTemp: currentTemp,
+      extractedPrecipitation: precipitationChance,
       location: `${prefecture}${city}`,
       timestamp: now.toISOString()
     }
