@@ -67,11 +67,16 @@ const swotSchema = z.object({
     differentiation: z.string().describe("差別化要因（20文字以内）"),
   }).describe("業界内ポジション"),
   reputation: z.object({
-    overall: z.string().describe("総合評価（15文字以内）"),
-    positives: z.array(z.string()).max(3).describe("良い評判（各15文字以内、3項目まで）"),
-    negatives: z.array(z.string()).max(3).describe("悪い評判（各15文字以内、3項目まで）"),
-    sources: z.array(z.string()).max(2).describe("情報源（2つまで）"),
-  }).describe("SNS/口コミ評判"),
+    overall: z.string().describe("総合評価（20文字以内）"),
+    positives: z.array(z.object({
+      comment: z.string().describe("良い評判の内容（30文字以内）"),
+      source: z.string().describe("出典（URL、サイト名、またはプラットフォーム名）"),
+    })).max(3).describe("良い評判（3項目まで）"),
+    negatives: z.array(z.object({
+      comment: z.string().describe("悪い評判の内容（30文字以内）"),
+      source: z.string().describe("出典（URL、サイト名、またはプラットフォーム名）"),
+    })).max(2).describe("悪い評判（2項目まで）"),
+  }).describe("SNS/口コミ評判（良い評判3つ、悪い評判2つ、合計5項目）"),
 })
 
 export async function GET(request: Request) {
@@ -279,9 +284,11 @@ ${companyInfo}
 6. 業界内ポジション
    - 各項目15〜20文字以内
 
-7. SNS/口コミ評判
-   - 各項目15文字以内
-   - 良い評判3つ、悪い評判3つ
+7. SNS/口コミ評判（合計5項目）
+   - 良い評判3つ、悪い評判2つ
+   - 各項目30文字以内
+   - 【重要】各評判に必ず出典を明記（URLまたはサイト名）
+   - 出典は検索結果から実際に見つかったものを使用
 
 すべて日本語で簡潔に回答。`,
         },

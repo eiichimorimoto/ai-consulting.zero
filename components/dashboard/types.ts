@@ -110,9 +110,14 @@ export interface SWOTAnalysis {
   }
   reputation: {
     overall: string
-    positives: string[]
-    negatives: string[]
-    sources: string[]
+    positives: Array<{
+      comment: string
+      source: string
+    }>
+    negatives: Array<{
+      comment: string
+      source: string
+    }>
   }
 }
 

@@ -349,23 +349,37 @@ export default function SWOTCard({
           {swotAnalysis.reputation && (
             <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
               <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                💬 SNS・口コミ評判
+                💬 SNS・口コミ評判（合計5項目）
               </h5>
-              <div style={{ fontSize: '13px', marginBottom: '8px' }}>
+              <div style={{ fontSize: '13px', marginBottom: '10px' }}>
                 <span style={{ fontWeight: '500' }}>総合評価: </span>
                 <span>{swotAnalysis.reputation.overall}</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600', marginBottom: '4px' }}>👍 良い評判</div>
-                  {swotAnalysis.reputation.positives?.slice(0, 2).map((p, i) => (
-                    <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {p}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600', marginBottom: '6px' }}>👍 良い評判（3項目）</div>
+                  {swotAnalysis.reputation.positives?.map((p, i) => (
+                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px', lineHeight: '1.5' }}>
+                      • {typeof p === 'string' ? p : p.comment}
+                      {typeof p !== 'string' && p.source && (
+                        <div style={{ fontSize: '9px', color: '#888', marginLeft: '12px', marginTop: '2px' }}>
+                          出典: {p.source}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600', marginBottom: '4px' }}>👎 改善点</div>
-                  {swotAnalysis.reputation.negatives?.slice(0, 2).map((n, i) => (
-                    <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {n}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600', marginBottom: '6px' }}>👎 改善点（2項目）</div>
+                  {swotAnalysis.reputation.negatives?.map((n, i) => (
+                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px', lineHeight: '1.5' }}>
+                      • {typeof n === 'string' ? n : n.comment}
+                      {typeof n !== 'string' && n.source && (
+                        <div style={{ fontSize: '9px', color: '#888', marginLeft: '12px', marginTop: '2px' }}>
+                          出典: {n.source}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
