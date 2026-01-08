@@ -31,7 +31,7 @@ export async function getForexRate(fromCurrency: string = 'USD', toCurrency: str
   
   try {
     console.log(`💱 Alpha Vantage API: 為替レート取得中... (${fromCurrency}/${toCurrency})`)
-    const response = await fetch(url, { next: { revalidate: 600 } }) // 10分キャッシュ
+    const response = await fetch(url, { next: { revalidate: 3600 } }) // 1時間キャッシュ（レート制限対策）
     
     if (!response.ok) {
       console.error(`❌ Alpha Vantage API エラー: ${response.status} ${response.statusText}`)
@@ -88,7 +88,7 @@ export async function getStockPrice(symbol: string): Promise<StockData | null> {
   
   try {
     console.log(`📈 Alpha Vantage API: 株価取得中... (${symbol})`)
-    const response = await fetch(url, { next: { revalidate: 600 } }) // 10分キャッシュ
+    const response = await fetch(url, { next: { revalidate: 3600 } }) // 1時間キャッシュ（レート制限対策）
     
     if (!response.ok) {
       console.error(`❌ Alpha Vantage API エラー: ${response.status} ${response.statusText}`)
