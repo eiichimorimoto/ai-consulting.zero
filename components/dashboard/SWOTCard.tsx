@@ -152,9 +152,20 @@ export default function SWOTCard({
                   {swotAnalysis.strengths?.[0] ? (typeof swotAnalysis.strengths[0] === 'string' ? swotAnalysis.strengths[0].slice(0, 8) : swotAnalysis.strengths[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
-              <div className="swot-content" style={{ fontSize: '11px', color: '#166534', lineHeight: '1.5' }}>
+              <div className="swot-content" style={{ 
+                fontSize: '11px', 
+                color: '#166534', 
+                lineHeight: '1.6',
+                maxHeight: '120px',
+                overflowY: 'auto'
+              }}>
                 {swotAnalysis.strengths?.slice(0, 3).map((s, i) => (
-                  <div key={i} style={{ marginBottom: '6px', paddingLeft: '12px', textIndent: '-12px' }}>
+                  <div key={i} style={{ 
+                    marginBottom: '8px', 
+                    paddingLeft: '12px', 
+                    textIndent: '-12px',
+                    wordBreak: 'break-word'
+                  }}>
                     • {typeof s === 'string' ? s : s.point}
                   </div>
                 )) || '分析中...'}
@@ -190,9 +201,20 @@ export default function SWOTCard({
                   {swotAnalysis.weaknesses?.[0] ? (typeof swotAnalysis.weaknesses[0] === 'string' ? swotAnalysis.weaknesses[0].slice(0, 8) : swotAnalysis.weaknesses[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
-              <div className="swot-content" style={{ fontSize: '11px', color: '#92400e', lineHeight: '1.5' }}>
+              <div className="swot-content" style={{ 
+                fontSize: '11px', 
+                color: '#92400e', 
+                lineHeight: '1.6',
+                maxHeight: '120px',
+                overflowY: 'auto'
+              }}>
                 {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => (
-                  <div key={i} style={{ marginBottom: '6px', paddingLeft: '12px', textIndent: '-12px' }}>
+                  <div key={i} style={{ 
+                    marginBottom: '8px', 
+                    paddingLeft: '12px', 
+                    textIndent: '-12px',
+                    wordBreak: 'break-word'
+                  }}>
                     • {typeof w === 'string' ? w : w.point}
                   </div>
                 )) || '分析中...'}
@@ -228,9 +250,20 @@ export default function SWOTCard({
                   {swotAnalysis.opportunities?.[0] ? (typeof swotAnalysis.opportunities[0] === 'string' ? swotAnalysis.opportunities[0].slice(0, 8) : swotAnalysis.opportunities[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
-              <div className="swot-content" style={{ fontSize: '11px', color: '#1e40af', lineHeight: '1.5' }}>
+              <div className="swot-content" style={{ 
+                fontSize: '11px', 
+                color: '#1e40af', 
+                lineHeight: '1.6',
+                maxHeight: '120px',
+                overflowY: 'auto'
+              }}>
                 {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => (
-                  <div key={i} style={{ marginBottom: '6px', paddingLeft: '12px', textIndent: '-12px' }}>
+                  <div key={i} style={{ 
+                    marginBottom: '8px', 
+                    paddingLeft: '12px', 
+                    textIndent: '-12px',
+                    wordBreak: 'break-word'
+                  }}>
                     • {typeof o === 'string' ? o : o.point}
                   </div>
                 )) || '分析中...'}
@@ -266,9 +299,20 @@ export default function SWOTCard({
                   {swotAnalysis.threats?.[0] ? (typeof swotAnalysis.threats[0] === 'string' ? swotAnalysis.threats[0].slice(0, 8) : swotAnalysis.threats[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
-              <div className="swot-content" style={{ fontSize: '11px', color: '#b91c1c', lineHeight: '1.5' }}>
+              <div className="swot-content" style={{ 
+                fontSize: '11px', 
+                color: '#b91c1c', 
+                lineHeight: '1.6',
+                maxHeight: '120px',
+                overflowY: 'auto'
+              }}>
                 {swotAnalysis.threats?.slice(0, 3).map((t, i) => (
-                  <div key={i} style={{ marginBottom: '6px', paddingLeft: '12px', textIndent: '-12px' }}>
+                  <div key={i} style={{ 
+                    marginBottom: '8px', 
+                    paddingLeft: '12px', 
+                    textIndent: '-12px',
+                    wordBreak: 'break-word'
+                  }}>
                     • {typeof t === 'string' ? t : t.point}
                   </div>
                 )) || '分析中...'}

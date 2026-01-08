@@ -40,20 +40,20 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
 
 const swotSchema = z.object({
   strengths: z.array(z.object({
-    point: z.string().describe("強みの内容（30文字以内の簡潔な1文）"),
-    evidence: z.string().describe("根拠（20文字以内）"),
+    point: z.string().describe("強みの内容（60文字以内で具体的に1-2文）"),
+    evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("強み（3項目まで）"),
   weaknesses: z.array(z.object({
-    point: z.string().describe("弱みの内容（30文字以内の簡潔な1文）"),
-    evidence: z.string().describe("根拠（20文字以内）"),
+    point: z.string().describe("弱みの内容（60文字以内で具体的に1-2文）"),
+    evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("弱み（3項目まで）"),
   opportunities: z.array(z.object({
-    point: z.string().describe("機会の内容（30文字以内の簡潔な1文）"),
-    evidence: z.string().describe("根拠（20文字以内）"),
+    point: z.string().describe("機会の内容（60文字以内で具体的に1-2文）"),
+    evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("機会（3項目まで）"),
   threats: z.array(z.object({
-    point: z.string().describe("脅威の内容（30文字以内の簡潔な1文）"),
-    evidence: z.string().describe("根拠（20文字以内）"),
+    point: z.string().describe("脅威の内容（60文字以内で具体的に1-2文）"),
+    evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("脅威（3項目まで）"),
   competitors: z.array(z.object({
     name: z.string().describe("想定競合企業名"),
@@ -247,23 +247,23 @@ ${companyInfo}
 
 【分析要件】
 
-【重要】全ての回答は簡潔に。各項目30文字以内の1文で記載すること。
+【重要】全ての回答は具体的に。各項目60文字以内の1-2文で記載すること。
 
 1. 強み (Strengths) - 3項目のみ
-   - 各項目30文字以内の簡潔な1文
-   - 根拠は20文字以内
+   - 各項目60文字以内で具体的に1-2文
+   - 根拠は30文字以内
 
 2. 弱み (Weaknesses) - 3項目のみ
-   - 各項目30文字以内の簡潔な1文
-   - 根拠は20文字以内
+   - 各項目60文字以内で具体的に1-2文
+   - 根拠は30文字以内
 
 3. 機会 (Opportunities) - 3項目のみ
-   - 各項目30文字以内の簡潔な1文
-   - 根拠は20文字以内
+   - 各項目60文字以内で具体的に1-2文
+   - 根拠は30文字以内
 
 4. 脅威 (Threats) - 3項目のみ
-   - 各項目30文字以内の簡潔な1文
-   - 根拠は20文字以内
+   - 各項目60文字以内で具体的に1-2文
+   - 根拠は30文字以内
 
 5. 想定競合企業 - 3社のみ
    【最重要】以下の条件を厳守すること：
