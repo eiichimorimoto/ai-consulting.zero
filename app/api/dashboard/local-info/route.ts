@@ -814,11 +814,6 @@ function extractStatus(text: string): 'normal' | 'warning' | 'error' {
   return 'normal'
 }
 
-function getWeatherIcon(index: number): string {
-  const icons = ['☀️', '⛅', '🌧️', '☀️', '☀️', '☁️', '🌦️']
-  return icons[index % icons.length]
-}
-
 // トラフィック情報を取得
 async function getTrafficInfo(prefecture: string, city: string) {
   console.log(`🚗 交通情報取得開始: ${prefecture}${city}`)
