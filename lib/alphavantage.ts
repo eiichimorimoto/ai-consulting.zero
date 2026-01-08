@@ -104,8 +104,13 @@ export async function getStockPrice(symbol: string): Promise<StockData | null> {
     }
     
     const quote = data['Global Quote']
-    if (!quote || !quote['05. price']) {
-      console.error('❌ 株価データが見つかりません')
+    console.log(`📊 デバッグ: quote =`, JSON.stringify(quote).slice(0, 200))
+    console.log(`📊 デバッグ: quote keys =`, quote ? Object.keys(quote) : 'null')
+    console.log(`📊 デバッグ: price =`, quote ? quote['05. price'] : 'N/A')
+    
+    if (!quote || Object.keys(quote).length === 0 || !quote['05. price']) {
+      console.error(`❌ 株価データが見つかりません: ${symbol}`)
+      console.error(`   quote:`, quote)
       return null
     }
     
