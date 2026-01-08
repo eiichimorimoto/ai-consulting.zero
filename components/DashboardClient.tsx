@@ -1187,7 +1187,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </div>
                     </div>
                     {/* 原材料・仕入材価格（業種別） - 常に表示 */}
-                    <div className="market-card" style={{ gridColumn: 'span 2' }}>
+                    <div className="market-card" style={{ gridColumn: '1 / -1' }}>
                       <div className="market-card-header">
                         <span className="market-label">📦 関連原材料・仕入材価格</span>
                         <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
@@ -1211,7 +1211,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           </button>
                         )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '12px' }}>
                         {marketData?.commodities && Array.isArray(marketData.commodities) && marketData.commodities.length > 0 ? (
                           marketData.commodities.map((c: { key: string; name: string; unit: string; price: number; priceJpy: number; change: number; isJpy: boolean }, idx: number) => (
                             <div key={c.key || idx} style={{ 
