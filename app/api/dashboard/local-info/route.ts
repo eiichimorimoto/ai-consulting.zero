@@ -557,7 +557,8 @@ async function getWeather(prefecture: string, city: string) {
       day: weekDays[dayOfWeek],
       date: dateStr,
       icon: icon,
-      temp: temp
+      temp: temp,
+      high: temp
     })
   }
   
@@ -630,7 +631,7 @@ async function getWeather(prefecture: string, city: string) {
       }
     }
   }
-  
+
   return {
     location: `${prefecture}${city}`,
     timestamp: jstTime.toISOString(),
@@ -638,7 +639,7 @@ async function getWeather(prefecture: string, city: string) {
     current: {
       temp: currentTemp,
       icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : currentIcon,
-      desc: alerts.length > 0 ? alerts[0].title + ' / ' + alerts[0].description.slice(0, 50) : currentDesc
+      desc: currentDesc
     },
     week: weekWeather,
     hourly: hourlyForecast,
