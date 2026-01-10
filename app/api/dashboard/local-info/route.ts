@@ -550,7 +550,7 @@ async function getWeather(prefecture: string, city: string) {
     const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
     
     const forecastData = dailyForecasts[dateStr]
-    const temp = forecastData ? Math.round(forecastData.main.temp) : currentTemp + (Math.random() * 4 - 2)
+    const temp = forecastData ? Math.round(forecastData.main.temp) : Math.round(currentTemp + (Math.random() * 4 - 2))
     const icon = forecastData ? weatherIconToEmoji(forecastData.weather[0].icon) : currentIcon
     
     weekWeather.push({
