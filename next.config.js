@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: process.env.NODE_ENV === 'development',
   },
   images: {
     remotePatterns: [
@@ -40,12 +40,10 @@ const nextConfig = {
   },
   // Turbopack設定（Next.js 16で必要）
   turbopack: {
-    // Turbopackでも同様の設定が必要な場合はここに追加
-    // 現時点では空の設定でエラーを回避
-  },
-  // pdfjs-distのワーカーファイルをパブリックにコピー
-  async rewrites() {
-    return []
+    resolveAlias: {
+      'pdfjs-dist/build/pdf.worker.mjs': './lib/ocr/pdf-worker-stub.js',
+      'pdfjs-dist/build/pdf.worker.min.mjs': './lib/ocr/pdf-worker-stub.js',
+    },
   },
 }
 
