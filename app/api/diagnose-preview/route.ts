@@ -47,7 +47,7 @@ async function analyzeWithPageSpeed(url: string) {
 
   // トリムされたAPIキーを使用
   const finalApiKey = apiKey.trim();
-  
+
   for (const strategy of strategies) {
     // URLをエンコード（末尾スラッシュの有無に関係なく処理）
     const encodedUrl = encodeURIComponent(url);

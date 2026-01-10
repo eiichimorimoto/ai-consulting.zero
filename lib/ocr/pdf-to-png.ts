@@ -241,31 +241,31 @@ export async function convertPdfBufferToPngBuffer(
 
   // ローカル環境ではまず pdftoppm を試行（高速・高品質）
   try {
-    const tempDir = path.join(os.tmpdir(), `pdf-to-png-${Date.now()}-${Math.random().toString(16).slice(2)}`)
-    await fs.mkdir(tempDir, { recursive: true })
+  const tempDir = path.join(os.tmpdir(), `pdf-to-png-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+  await fs.mkdir(tempDir, { recursive: true })
 
-    const tempPdfPath = path.join(tempDir, "input.pdf")
-    const outPrefix = path.join(tempDir, "page")
-    const outPngPath = `${outPrefix}-${page}.png`
+  const tempPdfPath = path.join(tempDir, "input.pdf")
+  const outPrefix = path.join(tempDir, "page")
+  const outPngPath = `${outPrefix}-${page}.png`
 
-    try {
-      await fs.writeFile(tempPdfPath, pdfBuffer)
+  try {
+    await fs.writeFile(tempPdfPath, pdfBuffer)
 
-      const { cmd, argsPrefix } = getPdftoppmCommand()
-      const args = [
-        ...argsPrefix,
-        "-png",
-        "-f",
-        String(page),
-        "-l",
-        String(page),
-        "-scale-to",
-        String(scaleTo),
-        tempPdfPath,
-        outPrefix,
-      ]
+    const { cmd, argsPrefix } = getPdftoppmCommand()
+    const args = [
+      ...argsPrefix,
+      "-png",
+      "-f",
+      String(page),
+      "-l",
+      String(page),
+      "-scale-to",
+      String(scaleTo),
+      tempPdfPath,
+      outPrefix,
+    ]
 
-      await execFileAsync(cmd, args)
+    await execFileAsync(cmd, args)
 
       const result = await fs.readFile(outPngPath)
       
@@ -296,8 +296,8 @@ export async function convertPdfBufferToPngBuffer(
         return await convertPdfWithPdfJs(pdfBuffer, options)
       } catch (fallbackErr) {
         const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
-        throw new Error(
-          [
+      throw new Error(
+        [
             "PDF→PNG変換に失敗しました。",
             "pdftoppm: " + msg,
             "pdfjs-dist（フォールバック）: " + fallbackMsg,
@@ -305,9 +305,9 @@ export async function convertPdfBufferToPngBuffer(
             "解決方法:",
             "- ローカル環境: brew install poppler (macOS) または sudo apt-get install poppler-utils (Ubuntu/Debian)",
             "- Vercel環境: pdfjs-dist + canvasが自動的に使用されます（既に実装済み）",
-          ].join("\n")
-        )
-      }
+        ].join("\n")
+      )
+    }
     }
     
     // その他のエラーはそのまま投げる

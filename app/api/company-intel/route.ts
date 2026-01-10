@@ -16,12 +16,12 @@ const fetchWithRetry = async (
   let lastError: Error | null = null
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
     
-    try {
+  try {
       const response = await fetch(input, { ...init, signal: controller.signal })
-      clearTimeout(timeoutId)
+    clearTimeout(timeoutId)
       
       // 成功した場合は即座に返す
       if (response.ok || attempt === maxRetries) {
@@ -91,21 +91,21 @@ const fetchHtmlToText = async (url: string, timeoutMs = 30_000): Promise<{
   errorType?: string
 }> => {
   try {
-    const resp = await fetchWithTimeout(
-      url,
-      {
-        method: "GET",
-        headers: {
-          "User-Agent": DEFAULT_UA,
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
+  const resp = await fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        "User-Agent": DEFAULT_UA,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
-      timeoutMs
-    )
-    const ct = resp.headers.get("content-type") || ""
-    const html = await resp.text()
-    const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
-    return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
+    },
+    timeoutMs
+  )
+  const ct = resp.headers.get("content-type") || ""
+  const html = await resp.text()
+  const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
+  return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
   } catch (error: any) {
     // エラーの詳細を返す
     let errorMessage = error?.message || String(error)
@@ -1337,11 +1337,11 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     let completion
     try {
       completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_tokens: 800,
-        temperature: 0.2,
-        messages: [{ role: "user", content: prompt }],
-      })
+      model: "gpt-4o-mini",
+      max_tokens: 800,
+      temperature: 0.2,
+      messages: [{ role: "user", content: prompt }],
+    })
     } catch (error: any) {
       // エラーの詳細をログに出力（デバッグ用）
       console.error('❌ OpenAI API Error:', {
