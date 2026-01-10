@@ -204,19 +204,12 @@ interface IndustryForecast {
   recommendation: string
 }
 
-interface ReviewsInfo {
-  goodReviews: string[]
-  improvements: string[]
-  sources: string[]
-}
-
 export default function DashboardClient({ profile, company, subscription }: DashboardClientProps) {
   const router = useRouter()
   const [currentTime, setCurrentTime] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [marketData, setMarketData] = useState<MarketData | null>(null)
   const [localInfo, setLocalInfo] = useState<LocalInfo | null>(null)
-  const [reviewsInfo, setReviewsInfo] = useState<ReviewsInfo | null>(null)
   const [industryTrends, setIndustryTrends] = useState<IndustryTrends | null>(null)
   const [swotAnalysis, setSwotAnalysis] = useState<SWOTAnalysis | null>(null)
   const [swotError, setSwotError] = useState<string | null>(null)
@@ -1979,93 +1972,6 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </div>
                 </div>
 
-              </div>
-            </section>
-
-            {/* SNS・口コミ評判セクション */}
-            <section id="reviews-section" className="local-section" style={{ marginTop: '20px' }}>
-              <div className="section-header">
-                <h2 className="section-title">
-                  <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px', stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-                  </svg>
-                  SNS・口コミ評判
-                </h2>
-                <div className="section-header-right">
-                  <span className="update-time">
-                    2025年1月10日 更新
-                  </span>
-                </div>
-              </div>
-
-              <div className="local-grid" style={{ gap: '12px', gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                {/* 良い評判カード */}
-                <div className="local-card" style={{ padding: '16px' }}>
-                  <div className="local-card-header" style={{ marginBottom: '12px' }}>
-                    <div className="local-icon" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                      <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
-                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-                      </svg>
-                    </div>
-                    <span className="local-title" style={{ fontWeight: '700', fontSize: '13px' }}>良い評判</span>
-                  </div>
-                  <div className="local-content" style={{ fontSize: '11px', lineHeight: '1.6' }}>
-                    <ul style={{ paddingLeft: '18px', margin: 0 }}>
-                      <li style={{ marginBottom: '8px' }}>AIによる経営課題分析が非常に精緻で、具体的な改善策を提示してくれる</li>
-                      <li style={{ marginBottom: '8px' }}>24時間365日対応可能な点が素晴らしく、緊急時にも頼りになる</li>
-                      <li style={{ marginBottom: '8px' }}>リアルタイムのマーケットデータと地域情報が一元管理できて便利</li>
-                      <li style={{ marginBottom: '8px' }}>SWOT分析やROI予測など、経営判断に必要な機能が充実している</li>
-                      <li style={{ marginBottom: '8px' }}>直感的なダッシュボードUIで、ITに詳しくない経営者でも使いやすい</li>
-                    </ul>
-                    <div style={{ marginTop: '12px', fontSize: '9px', color: 'var(--text-light)', fontStyle: 'italic' }}>
-                      出典: Twitter/X、LinkedIn、Google レビュー、ITreview（2024年12月〜2025年1月）
-                    </div>
-                  </div>
-                </div>
-
-                {/* 改善点カード */}
-                <div className="local-card" style={{ padding: '16px' }}>
-                  <div className="local-card-header" style={{ marginBottom: '12px' }}>
-                    <div className="local-icon" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                      <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 8v4M12 16h.01"/>
-                      </svg>
-                    </div>
-                    <span className="local-title" style={{ fontWeight: '700', fontSize: '13px' }}>改善点</span>
-                  </div>
-                  <div className="local-content" style={{ fontSize: '11px', lineHeight: '1.6' }}>
-                    <ul style={{ paddingLeft: '18px', margin: 0 }}>
-                      <li style={{ marginBottom: '8px' }}>初期設定にやや時間がかかる（企業情報の詳細入力が必要）</li>
-                      <li style={{ marginBottom: '8px' }}>業界特化型の分析テンプレートをもっと増やしてほしい</li>
-                      <li style={{ marginBottom: '8px' }}>モバイルアプリ版の機能が限定的（フル機能はWeb版のみ）</li>
-                      <li style={{ marginBottom: '8px' }}>複数拠点を持つ企業向けの一括管理機能が欲しい</li>
-                      <li style={{ marginBottom: '8px' }}>プランのアップグレード時の価格差がもう少し明確だと良い</li>
-                    </ul>
-                    <div style={{ marginTop: '12px', fontSize: '9px', color: 'var(--text-light)', fontStyle: 'italic' }}>
-                      出典: Twitter/X、LinkedIn、Google レビュー、ITreview（2024年12月〜2025年1月）
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 総合評価サマリー */}
-              <div style={{ 
-                marginTop: '12px', 
-                padding: '12px 16px',
-                background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
-                border: '1px solid #93c5fd',
-                borderRadius: '8px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: '#1e40af', fill: '#3b82f6', strokeWidth: 1.5 }}>
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                  </svg>
-                  <span style={{ fontWeight: '700', fontSize: '12px', color: '#1e40af' }}>総合評価: 4.6 / 5.0</span>
-                </div>
-                <p style={{ fontSize: '10px', lineHeight: '1.5', color: '#1e3a8a', margin: 0 }}>
-                  ユーザーからは「AIの分析精度の高さ」「24時間対応」「直感的なUI」が高く評価されています。一方で、初期設定の簡略化やモバイル機能の強化を求める声もあり、今後のアップデートに期待が集まっています。
-                </p>
               </div>
             </section>
 
