@@ -75,6 +75,43 @@ sleep 15 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
 | 評価基準 | `next start`との互換性が解決されたか確認 |
 | 理由 | Turbopackは高速だが、安定性を優先して現在はWebpackを使用 |
 
+### Cursorサンドボックス権限管理
+
+> 作成: 2025-01-10 | サンドボックスエラー対策
+
+#### 権限レベルと用途
+
+| コマンド | 必要な権限 | 理由 |
+|---------|----------|------|
+| `npm run dev` | `["all"]` | システムネットワーク情報取得（`os.networkInterfaces()`） |
+| `npm run build` | なし | ビルドのみ（通常は不要） |
+| `git push` | `["git_write", "network"]` | Git操作+リモート通信 |
+| `curl/fetch` | `["network"]` | HTTP通信のみ |
+| `ps aux` | `["all"]` | プロセス情報の取得 |
+| `lsof` | `["all"]` | ポート・ファイル情報の取得 |
+| `pkill` | `["all"]` | プロセス操作 |
+
+#### 今後の運用ルール
+
+**開発サーバー起動時:**
+```bash
+# ✅ 正しい方法（必須）
+npm run dev
+required_permissions: ["all"]
+```
+
+**理由:**
+- Next.jsは起動時に`os.networkInterfaces()`でローカルIPを取得
+- `["network"]`権限では通信はOKだが、システム情報の読み取りはNG
+- `NodeError [SystemError]: uv_interface_addresses`エラーが発生
+- `["all"]`でサンドボックスを無効化することで正常動作
+
+**その他のコマンド:**
+- **単純なファイル操作**: 権限不要
+- **API呼び出し**: `["network"]`で十分
+- **Git操作**: `["git_write", "network"]`を使用
+- **システム情報取得**: `["all"]`が必要
+
 ---
 
 ## 📁 ファイル・Git操作
