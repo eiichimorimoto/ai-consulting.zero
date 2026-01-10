@@ -1,0 +1,313 @@
+# AI Consulting Zero - 開発ルール
+
+> バージョン: 2.0 | 最終更新: 2024-12-31
+
+---
+
+## 🎯 基本方針
+
+| 原則 | 説明 |
+|------|------|
+| 安全第一 | 破壊的な変更前に必ず確認・バックアップ |
+| 段階的実装 | 1ファイルずつ変更 → 動作確認 → 次へ |
+| 最小変更 | 指示された箇所のみ変更、余計な改善をしない |
+| Git管理 | 重要な変更前にコミット |
+
+---
+
+## 🔧 サーバー操作
+
+### 起動前チェック（5項目必須）
+```bash
+# 1. Nextプロセス確認
+ps aux | grep "[n]ext"
+
+# 2. ポート使用状況確認
+lsof -i :3000
+
+# 3. .nextフォルダ状態確認
+ls -la .next
+
+# 4. devフォルダ存在確認（なければ破損）
+ls -la .next/dev
+
+# 5. キャッシュサイズ確認
+du -sh node_modules/.cache
+```
+
+### 異常パターンと対策
+| 症状 | 原因 | 対策 |
+|------|------|------|
+| .nextが空/.next/devがない | キャッシュ破損 | プロセス停止→10秒待機→.next削除→再起動 |
+| ポート使用中でプロセスなし | ゾンビ接続 | 10秒以上待機してから再起動 |
+| 複数Nextプロセス | 競合 | 全プロセス停止→10秒待機→再起動 |
+
+### 安全な起動手順
+```bash
+# 1. 既存プロセス停止
+pkill -f "next"
+
+# 2. 停止確認（10秒待機 ※5秒では不十分）
+sleep 10
+lsof -i :3000  # 空であること確認
+
+# 3. 破損時のみ：.next削除
+rm -rf .next
+
+# 4. 起動
+npm run dev
+
+# 5. 15秒待機後にHTTPステータス確認
+sleep 15 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
+```
+
+### 重要ルール
+- **Webpack優先**: Turbopackは現時点で互換性問題があるため`--webpack`を使用
+- **単一プロセス**: devサーバーは常に1つだけ起動
+- **`middleware.ts`削除禁止**: 認証管理に必須
+
+### Turbopack再評価について
+| 項目 | 内容 |
+|------|------|
+| 現状 | Next.js 16で正式版になったが、`next start`との互換性問題あり |
+| 問題点 | `.next/server`が生成されず、`pages-manifest.json`がない |
+| 再評価時期 | **Next.js 16.2 または 17リリース時** |
+| 評価基準 | `next start`との互換性が解決されたか確認 |
+| 理由 | Turbopackは高速だが、安定性を優先して現在はWebpackを使用 |
+
+### Cursorサンドボックス権限管理
+
+> 作成: 2025-01-10 | サンドボックスエラー対策
+
+#### 権限レベルと用途
+
+| コマンド | 必要な権限 | 理由 |
+|---------|----------|------|
+| `npm run dev` | `["all"]` | システムネットワーク情報取得（`os.networkInterfaces()`） |
+| `npm run build` | なし | ビルドのみ（通常は不要） |
+| `git push` | `["git_write", "network"]` | Git操作+リモート通信 |
+| `curl/fetch` | `["network"]` | HTTP通信のみ |
+| `ps aux` | `["all"]` | プロセス情報の取得 |
+| `lsof` | `["all"]` | ポート・ファイル情報の取得 |
+| `pkill` | `["all"]` | プロセス操作 |
+
+#### 今後の運用ルール
+
+**開発サーバー起動時:**
+```bash
+# ✅ 正しい方法（必須）
+npm run dev
+required_permissions: ["all"]
+```
+
+**理由:**
+- Next.jsは起動時に`os.networkInterfaces()`でローカルIPを取得
+- `["network"]`権限では通信はOKだが、システム情報の読み取りはNG
+- `NodeError [SystemError]: uv_interface_addresses`エラーが発生
+- `["all"]`でサンドボックスを無効化することで正常動作
+
+**その他のコマンド:**
+- **単純なファイル操作**: 権限不要
+- **API呼び出し**: `["network"]`で十分
+- **Git操作**: `["git_write", "network"]`を使用
+- **システム情報取得**: `["all"]`が必要
+
+---
+
+## 📁 ファイル・Git操作
+
+### ファイル変更時
+1. 重要ファイルは事前にバックアップ（`.backup`拡張子）
+2. `git status`で現状確認
+3. 変更は1ファイルずつ、動作確認してから次へ
+
+### Git運用
+```bash
+# コミットメッセージ規約
+feat: 新機能追加
+fix: バグ修正
+refactor: リファクタリング
+chore: 設定変更
+```
+
+### ディレクトリ構造
+```
+app/           # Next.js App Router
+components/    # 共通コンポーネント
+lib/           # ユーティリティ
+middleware.ts  # 認証ミドルウェア（必須）
+```
+
+---
+
+## 🚫 禁止事項
+
+| 禁止事項 | 理由 |
+|----------|------|
+| `middleware.ts`の削除 | 認証管理に必須 |
+| 複数ファイルの同時大規模変更 | 原因特定が困難 |
+| `git push --force` | 履歴破壊のリスク |
+| `.env.local`の削除・表示 | セキュリティリスク |
+| `node_modules`の安易な再インストール | 時間がかかり、コードが戻るリスク |
+| 指示外の「ついでに」改善 | バグの原因 |
+
+---
+
+## 🔄 トラブルシューティング
+
+### 段階的対応（この順番を厳守）
+
+**Step 1: 単純再起動**
+```bash
+pkill -f "next"
+sleep 5
+npm run dev
+```
+
+**Step 2: キャッシュクリア**
+```bash
+pkill -f "next"
+sleep 5
+rm -rf .next
+npm run dev
+```
+
+**Step 3: 拡張キャッシュクリア**
+```bash
+pkill -f "next"
+sleep 5
+rm -rf .next node_modules/.cache
+npm run dev
+```
+
+**Step 4: Git復元**
+```bash
+git restore .
+rm -rf .next
+npm run dev
+```
+
+**Step 5: 完全リセット（最終手段・要承認）**
+```bash
+# ⚠️ ユーザー承認必須
+git stash
+rm -rf node_modules .next
+npm install
+npm run dev
+```
+
+### エラー別対応
+| エラー | 対応 |
+|--------|------|
+| ENOENT: .next/dev/* | Step 2実行 |
+| MODULE_NOT_FOUND | Step 3実行 |
+| Internal Server Error | Step 1 → Step 2の順で試行 |
+| ポート競合 | `lsof -i :3000`で確認、`kill -9 <PID>` |
+
+---
+
+## 🔐 セキュリティ
+
+### 環境変数
+- `.env.local`は絶対にコミット・表示しない
+- `NEXT_PUBLIC_*`: ブラウザに公開される
+- その他: サーバーサイドのみ
+
+---
+
+## 🎨 コードスタイル
+
+### TypeScript/React
+- `any`の使用は最小限
+- コンポーネント: デフォルトエクスポート
+- ユーティリティ: 名前付きエクスポート
+
+### ファイル命名
+- コンポーネント: `PascalCase.tsx`
+- ユーティリティ: `kebab-case.ts`
+- ページ: `page.tsx`, `layout.tsx`
+
+---
+
+## 🚀 デプロイ前チェック
+
+```bash
+# 1. ビルド確認
+npm run build
+npm run start
+
+# 2. 環境変数確認
+# .env.productionの設定確認
+
+# 3. セキュリティ確認
+# APIキー漏れ、ログ出力の削除
+```
+
+---
+
+## 📞 サポート
+
+- `docs/troubleshooting/`: トラブルシューティング
+- `docs/setup/`: セットアップガイド
+- `docs/guides/`: 各種ガイド
+
+---
+
+## 📚 ライブラリ使用ルール（重要）
+
+### pdfjs-dist使用時の必須手順
+
+> 作成: 2025-01-08 | PDF OCR問題解決の知見
+
+#### 問題: Vercel環境でワーカーエラー
+```
+Setting up fake worker failed
+No "GlobalWorkerOptions.workerSrc" specified
+```
+
+#### 最短解決方法（10分）
+
+**1. ワーカーファイルをpublicフォルダに配置（1分）**
+```bash
+cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
+```
+
+**2. クライアントサイドでPDF変換を実装（5分）**
+```typescript
+// lib/ocr/pdf-to-image-client.ts
+const pdfjsLib = await import('pdfjs-dist')
+
+// ワーカーパスを設定（必須！）
+if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+}
+
+// PDF → 画像変換
+const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+// ... Canvas処理 ...
+```
+
+**3. publicフォルダのファイルをコミット（2分）**
+```bash
+git add public/pdf.worker.min.mjs
+git commit -m "feat: pdfjs-distワーカーファイルを追加"
+```
+
+#### 重要ルール
+
+| ルール | 説明 | 理由 |
+|--------|------|------|
+| クライアントサイドで処理 | pdfjs-distはブラウザで使用 | サーバーレス環境で安定動作 |
+| publicフォルダに配置 | ワーカーファイルは静的アセット | 確実にアクセス可能 |
+| workerSrcに絶対パス | `/pdf.worker.min.mjs`を設定 | 相対パスは動作不安定 |
+| 30分ルール | 解決しなければ方針転換 | 試行錯誤の時間を制限 |
+
+#### チェックリスト（必須確認）
+
+- [ ] ライブラリはブラウザ向けか、サーバー向けか確認
+- [ ] ワーカーファイルが必要な場合はpublicフォルダに配置
+- [ ] ブラウザから`/filename`でアクセスできることを確認
+- [ ] 30分試して解決しない場合は別アプローチを検討
+
+#### 詳細ドキュメント
+- `docs/troubleshooting/PDF-OCR問題解決-詳細分析.md`

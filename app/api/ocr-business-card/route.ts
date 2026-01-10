@@ -142,10 +142,10 @@ export async function POST(request: Request) {
         // 念のためサーバーサイドでも変換を試みる（フォールバック）
         console.log("📄 PDFを検出しました（クライアントサイドで変換済みのはず）")
         try {
-          const pdfBuffer = Buffer.from(image, "base64")
-          const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
-          imageBuffer = pngBuffer
-          mediaTypeForClaude = "image/png"
+        const pdfBuffer = Buffer.from(image, "base64")
+        const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
+        imageBuffer = pngBuffer
+        mediaTypeForClaude = "image/png"
           console.log("✅ PDF→PNG変換完了（サーバーサイドフォールバック）")
         } catch (pdfError) {
           // クライアントサイドで変換済みの場合はそのまま使用

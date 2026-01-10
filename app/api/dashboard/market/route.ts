@@ -84,25 +84,25 @@ async function getMarketData(loginDate: Date) {
       date: d
     })
   }
-  
+
   const usdJpy = usdJpyWeekly.map((item, i) => ({
     week: item.week,
     date: weeks[i].date.toISOString(),
     value: item.value
   }))
-  
+
   const nikkei = nikkeiWeekly.map((item, i) => ({
     week: item.week,
     date: weeks[i].date.toISOString(),
     value: item.value
   }))
-  
+
   const longRate = longRateWeekly.map((item, i) => ({
     week: item.week,
     date: weeks[i].date.toISOString(),
     value: item.value
   }))
-  
+
   const shortRate = shortRateWeekly.map((item, i) => ({
     week: item.week,
     date: weeks[i].date.toISOString(),
