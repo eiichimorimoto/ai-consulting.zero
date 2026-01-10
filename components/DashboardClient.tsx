@@ -2961,8 +2961,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 </div>
                                 {swotAnalysis.reputation.positives?.slice(0, 5).map((p, i) => {
                                   const comment = typeof p === 'string' ? p : (typeof p === 'object' && p !== null && 'comment' in p ? String(p.comment) : '情報なし')
+                                  const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : null
                                   return (
-                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {comment}</div>
+                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>
+                                      • {comment}
+                                      {source && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>（出典: {source}）</span>}
+                                    </div>
                                   )
                                 })}
                               </div>
@@ -2972,8 +2976,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 </div>
                                 {swotAnalysis.reputation.negatives?.slice(0, 5).map((n, i) => {
                                   const comment = typeof n === 'string' ? n : (typeof n === 'object' && n !== null && 'comment' in n ? String(n.comment) : '情報なし')
+                                  const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : null
                                   return (
-                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>• {comment}</div>
+                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>
+                                      • {comment}
+                                      {source && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>（出典: {source}）</span>}
+                                    </div>
                                   )
                                 })}
                               </div>
