@@ -2961,11 +2961,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 </div>
                                 {swotAnalysis.reputation.positives?.slice(0, 5).map((p, i) => {
                                   const comment = typeof p === 'string' ? p : (typeof p === 'object' && p !== null && 'comment' in p ? String(p.comment) : '情報なし')
-                                  const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : null
                                   return (
                                     <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>
-                                      • {comment}
-                                      {source && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>（出典: {source}）</span>}
+                                      • {comment} <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '600' }}>[{i + 1}]</span>
                                     </div>
                                   )
                                 })}
@@ -2976,14 +2974,36 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 </div>
                                 {swotAnalysis.reputation.negatives?.slice(0, 5).map((n, i) => {
                                   const comment = typeof n === 'string' ? n : (typeof n === 'object' && n !== null && 'comment' in n ? String(n.comment) : '情報なし')
-                                  const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : null
                                   return (
                                     <div key={i} style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '2px' }}>
-                                      • {comment}
-                                      {source && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>（出典: {source}）</span>}
+                                      • {comment} <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: '600' }}>[{i + 6}]</span>
                                     </div>
                                   )
                                 })}
+                              </div>
+                              {/* 出典一覧 */}
+                              <div style={{ padding: '8px', background: 'rgba(100,116,139,0.05)', borderRadius: '6px', borderTop: '2px solid rgba(100,116,139,0.2)', marginTop: '4px' }}>
+                                <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', marginBottom: '6px' }}>
+                                  【出典】
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                  {swotAnalysis.reputation.positives?.slice(0, 5).map((p, i) => {
+                                    const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : '出典情報なし'
+                                    return (
+                                      <div key={`pos-${i}`} style={{ fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: '1.3' }}>
+                                        [{i + 1}] {source}
+                                      </div>
+                                    )
+                                  })}
+                                  {swotAnalysis.reputation.negatives?.slice(0, 5).map((n, i) => {
+                                    const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : '出典情報なし'
+                                    return (
+                                      <div key={`neg-${i}`} style={{ fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: '1.3' }}>
+                                        [{i + 6}] {source}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
                               </div>
                             </div>
                           </div>
