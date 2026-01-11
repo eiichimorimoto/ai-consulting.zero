@@ -54,7 +54,10 @@ interface MarketData {
   nikkei: { week: string; value: number; date?: string }[]
   longRate: { week: string; value: number; date?: string }[]
   shortRate: { week: string; value: number; date?: string }[]
+  currentRate?: number
+  currentNikkei?: number
   commodities?: any
+  industry?: string
 }
 
 interface LocalInfo {
@@ -1884,7 +1887,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                      (localInfo?.emergencyAlerts && localInfo.emergencyAlerts.length > 0) ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {/* 地震・津波などの緊急情報 */}
-                        {localInfo?.emergencyAlerts?.map((alert: { type: string; title: string; description: string; severity: string }, idx: number) => (
+                        {localInfo?.emergencyAlerts?.map((alert: { type: string; title: string; description: string; severity?: string }, idx: number) => (
                           <div key={`emergency-${idx}`} style={{ 
                             padding: '8px 10px', 
                             background: alert.severity === 'critical' 
@@ -1919,7 +1922,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           </div>
                         ))}
                         {/* 気象警報 */}
-                        {localInfo?.weather?.alerts?.map((alert: { title: string; description: string; severity: string }, idx: number) => (
+                        {localInfo?.weather?.alerts?.map((alert: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }, idx: number) => (
                           <div key={`weather-${idx}`} style={{ 
                             padding: '8px 10px', 
                             background: alert.severity === 'extreme' 
