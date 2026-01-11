@@ -86,6 +86,7 @@ interface LocalInfo {
   }
   traffic: { title: string; url: string; description: string; status: string }[]
   logistics?: { title: string; url: string; description: string; category: string; status: string }[]
+  emergencyAlerts?: { type: string; title: string; description: string; severity?: string }[]
   _debug?: {
     searchArea: string
     searchTimestamp: string
