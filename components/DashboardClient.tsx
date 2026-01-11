@@ -68,6 +68,7 @@ interface LocalInfo {
     comparison?: {
       industryMonthly?: number
       industryYearly?: number
+      industryAverage?: number
     }
   }
   events: { title: string; url: string; description: string; date: string }[]
