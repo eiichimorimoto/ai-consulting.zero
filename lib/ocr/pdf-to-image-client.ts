@@ -54,7 +54,8 @@ export async function convertPdfToImageClient(
     await page.render({
       canvasContext: context,
       viewport: viewport,
-    }).promise
+      canvas: canvas,
+    } as any).promise
 
     // Canvasを画像データURLに変換
     const imageDataUrl = canvas.toDataURL('image/png')

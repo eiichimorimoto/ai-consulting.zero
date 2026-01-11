@@ -100,7 +100,7 @@ async function convertPdfWithPdfJs(
       // build/pdfはワーカーを使わないバージョン（推奨）
       try {
         // まずbuild/pdfを試行（ワーカーを使わないバージョン）
-        pdfjsLib = await import("pdfjs-dist/build/pdf")
+        pdfjsLib = await import("pdfjs-dist/build/pdf" as any)
         console.log("✅ pdfjs-dist/build/pdf を読み込みました（ワーカーなし）")
       } catch (e1) {
         try {
