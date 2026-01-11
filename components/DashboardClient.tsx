@@ -70,6 +70,7 @@ interface LocalInfo {
       industryYearly?: number
       industryAverage?: number
       minimumWage?: number
+      industryHourlyRange?: { min?: number; max?: number }
     }
   }
   events: { title: string; url: string; description: string; date: string }[]
