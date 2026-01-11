@@ -93,6 +93,7 @@ interface LocalInfo {
   _debug?: {
     searchArea: string
     searchTimestamp: string
+    industry?: string
     laborCosts?: any
     events?: any
     infrastructure?: any
