@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import '../app/dashboard/dashboard.css'
 
 interface Profile {
+  id?: string
   name: string
   company_id: string
   avatar_url?: string | null
