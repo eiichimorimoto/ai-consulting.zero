@@ -50,10 +50,10 @@ function getWeekLabels(count: number) {
 }
 
 interface MarketData {
-  usdJpy: { week: string; value: number }[]
-  nikkei: { week: string; value: number }[]
-  longRate: { week: string; value: number }[]
-  shortRate: { week: string; value: number }[]
+  usdJpy: { week: string; value: number; date?: string }[]
+  nikkei: { week: string; value: number; date?: string }[]
+  longRate: { week: string; value: number; date?: string }[]
+  shortRate: { week: string; value: number; date?: string }[]
 }
 
 interface LocalInfo {
