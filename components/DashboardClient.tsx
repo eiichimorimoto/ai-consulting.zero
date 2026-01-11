@@ -49,6 +49,16 @@ function getWeekLabels(count: number) {
   return weeks
 }
 
+interface Commodity {
+  key: string
+  name: string
+  unit: string
+  price: number
+  priceJpy: number
+  change: number
+  isJpy: boolean
+}
+
 interface MarketData {
   usdJpy: { week: string; value: number; date?: string }[]
   nikkei: { week: string; value: number; date?: string }[]
@@ -56,7 +66,7 @@ interface MarketData {
   shortRate: { week: string; value: number; date?: string }[]
   currentRate?: number
   currentNikkei?: number
-  commodities?: any
+  commodities?: Commodity[]
   industry?: string
 }
 
@@ -130,6 +140,7 @@ interface Competitor {
   name: string
   strength: string
   comparison: string
+  reason?: string
 }
 
 interface SWOTAnalysis {
@@ -1232,7 +1243,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '12px' }}>
                         {marketData?.commodities && Array.isArray(marketData.commodities) && marketData.commodities.length > 0 ? (
-                          marketData.commodities.map((c: { key: string; name: string; unit: string; price: number; priceJpy: number; change: number; isJpy: boolean }, idx: number) => (
+                          marketData.commodities.map((c: Commodity, idx: number) => (
                             <div key={c.key || idx} style={{ 
                               padding: '12px', 
                               background: 'var(--bg-main)', 
@@ -2349,7 +2360,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <div style={{ marginTop: '8px' }}>
                       {industryForecast.indicators && industryForecast.indicators.length > 0 && (
                         <div>
-                          {industryForecast.indicators.slice(0, 5).map((ind: { name: string; current?: string; forecast: string; trend: string; confidence: string }, idx: number) => (
+                          {industryForecast.indicators.slice(0, 5).map((ind: ForecastIndicator, idx: number) => (
                             <div key={idx} style={{ 
                               display: 'flex', 
                               alignItems: 'flex-start', 
@@ -2915,7 +2926,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               ※製品・サービス・地域等から推測した想定企業です
                             </p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              {swotAnalysis.competitors.slice(0, 3).map((c: { name: string; strength: string; comparison?: string; reason?: string }, i: number) => (
+                              {swotAnalysis.competitors.slice(0, 3).map((c: Competitor, i: number) => (
                                 <div key={i} style={{ 
                                   padding: '10px 12px', 
                                   background: 'var(--bg-card)', 
@@ -3384,7 +3395,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           gap: '8px',
                           width: '100%'
                         }}>
-                          {industryForecast.indicators.slice(0, 5).map((ind: { name?: string; trend: string }, idx: number) => (
+                          {industryForecast.indicators.slice(0, 5).map((ind: ForecastIndicator, idx: number) => (
                             <div key={idx} style={{
                               background: 'rgba(99, 102, 241, 0.06)',
                               borderRadius: '8px',
