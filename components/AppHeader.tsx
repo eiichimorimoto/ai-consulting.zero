@@ -24,6 +24,7 @@ export default function AppHeader() {
   // プロフィール情報を取得
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!supabase) return
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data } = await supabase
