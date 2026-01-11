@@ -260,6 +260,9 @@ export default function CompleteProfilePage() {
       
       // 認証状態を事前に確認
       const supabase = createClient()
+      if (!supabase) {
+        throw new Error('認証クライアントの初期化に失敗しました')
+      }
       const { data: { user }, error: authCheckError } = await supabase.auth.getUser()
       
       if (authCheckError || !user) {
