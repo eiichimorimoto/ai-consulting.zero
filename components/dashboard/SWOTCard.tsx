@@ -149,7 +149,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis.strengths?.[0] ? (typeof swotAnalysis.strengths[0] === 'string' ? swotAnalysis.strengths[0].slice(0, 8) : swotAnalysis.strengths[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.strengths?.[0] ? (typeof swotAnalysis?.strengths?.[0] === 'string' ? swotAnalysis?.strengths?.[0].slice(0, 8) : swotAnalysis?.strengths?.[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -159,7 +159,7 @@ export default function SWOTCard({
                 maxHeight: '120px',
                 overflowY: 'auto'
               }}>
-                {swotAnalysis.strengths?.slice(0, 3).map((s, i) => (
+                {swotAnalysis?.strengths?.slice(0, 3).map((s, i) => (
                   <div key={i} style={{ 
                     marginBottom: '8px', 
                     paddingLeft: '12px', 
@@ -198,7 +198,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis.weaknesses?.[0] ? (typeof swotAnalysis.weaknesses[0] === 'string' ? swotAnalysis.weaknesses[0].slice(0, 8) : swotAnalysis.weaknesses[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.weaknesses?.[0] ? (typeof swotAnalysis?.weaknesses[0] === 'string' ? swotAnalysis?.weaknesses[0].slice(0, 8) : swotAnalysis?.weaknesses[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -208,7 +208,7 @@ export default function SWOTCard({
                 maxHeight: '120px',
                 overflowY: 'auto'
               }}>
-                {swotAnalysis.weaknesses?.slice(0, 3).map((w, i) => (
+                {swotAnalysis?.weaknesses?.slice(0, 3).map((w, i) => (
                   <div key={i} style={{ 
                     marginBottom: '8px', 
                     paddingLeft: '12px', 
@@ -247,7 +247,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis.opportunities?.[0] ? (typeof swotAnalysis.opportunities[0] === 'string' ? swotAnalysis.opportunities[0].slice(0, 8) : swotAnalysis.opportunities[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.opportunities?.[0] ? (typeof swotAnalysis?.opportunities[0] === 'string' ? swotAnalysis?.opportunities[0].slice(0, 8) : swotAnalysis?.opportunities[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -257,7 +257,7 @@ export default function SWOTCard({
                 maxHeight: '120px',
                 overflowY: 'auto'
               }}>
-                {swotAnalysis.opportunities?.slice(0, 3).map((o, i) => (
+                {swotAnalysis?.opportunities?.slice(0, 3).map((o, i) => (
                   <div key={i} style={{ 
                     marginBottom: '8px', 
                     paddingLeft: '12px', 
@@ -296,7 +296,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis.threats?.[0] ? (typeof swotAnalysis.threats[0] === 'string' ? swotAnalysis.threats[0].slice(0, 8) : swotAnalysis.threats[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.threats?.[0] ? (typeof swotAnalysis?.threats[0] === 'string' ? swotAnalysis?.threats[0].slice(0, 8) : swotAnalysis?.threats[0].point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -306,7 +306,7 @@ export default function SWOTCard({
                 maxHeight: '120px',
                 overflowY: 'auto'
               }}>
-                {swotAnalysis.threats?.slice(0, 3).map((t, i) => (
+                {swotAnalysis?.threats?.slice(0, 3).map((t, i) => (
                   <div key={i} style={{ 
                     marginBottom: '8px', 
                     paddingLeft: '12px', 
@@ -321,13 +321,13 @@ export default function SWOTCard({
           </div>
           
           {/* 競合企業分析 */}
-          {swotAnalysis.competitors && swotAnalysis.competitors.length > 0 && (
+          {swotAnalysis?.competitors && swotAnalysis?.competitors.length > 0 && (
             <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
               <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
                 🏢 主要競合企業
               </h5>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {swotAnalysis.competitors.slice(0, 3).map((c, i) => (
+                {swotAnalysis?.competitors.slice(0, 3).map((c, i) => (
                   <div key={i} style={{ 
                     padding: '8px 12px', 
                     background: 'var(--bg-card)', 
@@ -346,19 +346,19 @@ export default function SWOTCard({
           )}
           
           {/* SNS・口コミ評判 */}
-          {swotAnalysis.reputation && (
+          {swotAnalysis?.reputation && (
             <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
               <h5 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
                 💬 SNS・口コミ評判（合計5項目）
               </h5>
               <div style={{ fontSize: '13px', marginBottom: '10px' }}>
                 <span style={{ fontWeight: '500' }}>総合評価: </span>
-                <span>{swotAnalysis.reputation.overall}</span>
+                <span>{swotAnalysis?.reputation.overall}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600', marginBottom: '6px' }}>👍 良い評判（3項目）</div>
-                  {swotAnalysis.reputation.positives?.map((p, i) => {
+                  {swotAnalysis?.reputation.positives?.map((p, i) => {
                     const comment = typeof p === 'string' ? p : (typeof p === 'object' && p !== null && 'comment' in p ? String(p.comment) : '情報なし')
                     const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : null
                     return (
@@ -375,7 +375,7 @@ export default function SWOTCard({
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600', marginBottom: '6px' }}>👎 改善点（2項目）</div>
-                  {swotAnalysis.reputation.negatives?.map((n, i) => {
+                  {swotAnalysis?.reputation.negatives?.map((n, i) => {
                     const comment = typeof n === 'string' ? n : (typeof n === 'object' && n !== null && 'comment' in n ? String(n.comment) : '情報なし')
                     const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : null
                     return (

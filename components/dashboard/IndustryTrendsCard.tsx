@@ -26,8 +26,8 @@ export default function IndustryTrendsCard({
         </h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {industryTrends?.summary?.overallDirection && (
-            <span className={`badge ${industryTrends.summary.overallDirection === 'up' ? 'badge-success' : industryTrends.summary.overallDirection === 'down' ? 'badge-warning' : 'badge-info'}`}>
-              {industryTrends.summary.overallDirection === 'up' ? '↗️ 上昇傾向' : industryTrends.summary.overallDirection === 'down' ? '↘️ 下降傾向' : '→ 横ばい'}
+            <span className={`badge ${industryTrends?.summary.overallDirection === 'up' ? 'badge-success' : industryTrends?.summary.overallDirection === 'down' ? 'badge-warning' : 'badge-info'}`}>
+              {industryTrends?.summary.overallDirection === 'up' ? '↗️ 上昇傾向' : industryTrends?.summary.overallDirection === 'down' ? '↘️ 下降傾向' : '→ 横ばい'}
             </span>
           )}
           <button 
@@ -48,7 +48,7 @@ export default function IndustryTrendsCard({
       </div>
       {industryTrends?.trends ? (
         <div style={{ marginTop: '8px' }}>
-          {industryTrends.trends.slice(0, 5).map((trend, idx) => (
+          {industryTrends?.trends.slice(0, 5).map((trend, idx) => (
             <div key={idx} style={{ 
               display: 'flex', 
               alignItems: 'flex-start', 

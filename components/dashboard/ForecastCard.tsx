@@ -25,8 +25,8 @@ export default function ForecastCard({
         </h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {industryForecast?.shortTerm?.outlook && (
-            <span className={`badge ${industryForecast.shortTerm.outlook === 'positive' ? 'badge-success' : industryForecast.shortTerm.outlook === 'negative' ? 'badge-warning' : 'badge-info'}`}>
-              {industryForecast.shortTerm.outlook === 'positive' ? '↗️ ポジティブ' : industryForecast.shortTerm.outlook === 'negative' ? '↘️ ネガティブ' : '→ 中立'}
+            <span className={`badge ${industryForecast?.shortTerm.outlook === 'positive' ? 'badge-success' : industryForecast?.shortTerm.outlook === 'negative' ? 'badge-warning' : 'badge-info'}`}>
+              {industryForecast?.shortTerm.outlook === 'positive' ? '↗️ ポジティブ' : industryForecast?.shortTerm.outlook === 'negative' ? '↘️ ネガティブ' : '→ 中立'}
             </span>
           )}
           <button 
@@ -48,10 +48,10 @@ export default function ForecastCard({
       {industryForecast ? (
         <div style={{ marginTop: '8px' }}>
           {/* 主要指標 */}
-          {industryForecast.indicators && industryForecast.indicators.length > 0 && (
+          {industryForecast?.indicators && industryForecast?.indicators.length > 0 && (
             <div style={{ marginBottom: '12px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>📊 主要指標予測</div>
-              {industryForecast.indicators.slice(0, 5).map((ind, idx) => (
+              {industryForecast?.indicators.slice(0, 5).map((ind, idx) => (
                 <div key={idx} style={{ 
                   display: 'flex', 
                   alignItems: 'center', 

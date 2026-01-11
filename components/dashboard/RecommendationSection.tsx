@@ -132,9 +132,9 @@ export default function RecommendationSection({
                     <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
                     <circle 
                       cx="18" cy="18" r="15" fill="none" 
-                      stroke={industryForecast.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b'}
+                      stroke={industryForecast?.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast?.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b'}
                       strokeWidth="3" 
-                      strokeDasharray={`${industryForecast.shortTerm?.outlook === 'positive' ? 75 : industryForecast.shortTerm?.outlook === 'negative' ? 30 : 50} 100`}
+                      strokeDasharray={`${industryForecast?.shortTerm?.outlook === 'positive' ? 75 : industryForecast?.shortTerm?.outlook === 'negative' ? 30 : 50} 100`}
                       strokeLinecap="round"
                     />
                   </svg>
@@ -146,19 +146,19 @@ export default function RecommendationSection({
                     justifyContent: 'center',
                     fontSize: '16px'
                   }}>
-                    {industryForecast.shortTerm?.outlook === 'positive' ? '📈' : industryForecast.shortTerm?.outlook === 'negative' ? '📉' : '➡️'}
+                    {industryForecast?.shortTerm?.outlook === 'positive' ? '📈' : industryForecast?.shortTerm?.outlook === 'negative' ? '📉' : '➡️'}
                   </div>
                 </div>
                 <div>
                   <div style={{ 
                     fontSize: '14px', 
                     fontWeight: '700', 
-                    color: industryForecast.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b'
+                    color: industryForecast?.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast?.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b'
                   }}>
-                    {industryForecast.shortTerm?.outlook === 'positive' ? 'ポジティブ' : industryForecast.shortTerm?.outlook === 'negative' ? 'ネガティブ' : '中立'}
+                    {industryForecast?.shortTerm?.outlook === 'positive' ? 'ポジティブ' : industryForecast?.shortTerm?.outlook === 'negative' ? 'ネガティブ' : '中立'}
                   </div>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                    短期（{industryForecast.shortTerm?.period || '3ヶ月'}）
+                    短期（{industryForecast?.shortTerm?.period || '3ヶ月'}）
                   </div>
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function RecommendationSection({
                         flex: 1,
                         height: '8px',
                         borderRadius: '4px',
-                        background: level <= (industryForecast.risks?.length || 2) 
+                        background: level <= (industryForecast?.risks?.length || 2) 
                           ? level <= 2 ? '#10b981' : level <= 3 ? '#f59e0b' : '#ef4444'
                           : 'rgba(255,255,255,0.1)'
                       }} />
@@ -195,12 +195,12 @@ export default function RecommendationSection({
                   <div style={{ 
                     fontSize: '13px', 
                     fontWeight: '700', 
-                    color: (industryForecast.risks?.length || 2) <= 2 ? '#10b981' : (industryForecast.risks?.length || 2) <= 3 ? '#f59e0b' : '#ef4444'
+                    color: (industryForecast?.risks?.length || 2) <= 2 ? '#10b981' : (industryForecast?.risks?.length || 2) <= 3 ? '#f59e0b' : '#ef4444'
                   }}>
-                    {(industryForecast.risks?.length || 2) <= 2 ? '低リスク' : (industryForecast.risks?.length || 2) <= 3 ? '中リスク' : '高リスク'}
+                    {(industryForecast?.risks?.length || 2) <= 2 ? '低リスク' : (industryForecast?.risks?.length || 2) <= 3 ? '中リスク' : '高リスク'}
                   </div>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                    {industryForecast.risks?.length || 0}件のリスク要因
+                    {industryForecast?.risks?.length || 0}件のリスク要因
                   </div>
                 </div>
               </div>
@@ -222,7 +222,7 @@ export default function RecommendationSection({
                 color: '#10b981',
                 marginBottom: '4px'
               }}>
-                {industryForecast.opportunities?.length || 3}
+                {industryForecast?.opportunities?.length || 3}
               </div>
               <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
                 件の成長機会を検出
@@ -231,7 +231,7 @@ export default function RecommendationSection({
           </div>
 
           {/* 主要指標のミニチャート */}
-          {industryForecast.indicators && industryForecast.indicators.length > 0 && (
+          {industryForecast?.indicators && industryForecast?.indicators.length > 0 && (
             <div style={{
               background: 'rgba(255,255,255,0.05)',
               borderRadius: '12px',
@@ -243,7 +243,7 @@ export default function RecommendationSection({
                 📈 主要指標トレンド
               </div>
               <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {industryForecast.indicators.slice(0, 5).map((ind, idx) => (
+                {industryForecast?.indicators.slice(0, 5).map((ind, idx) => (
                   <div key={idx} style={{
                     minWidth: '120px',
                     background: 'rgba(255,255,255,0.05)',
@@ -288,7 +288,7 @@ export default function RecommendationSection({
           )}
 
           {/* 経営提言 */}
-          {industryForecast.recommendation && (
+          {industryForecast?.recommendation && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(6, 182, 212, 0.1))',
               borderRadius: '12px',
@@ -313,7 +313,7 @@ export default function RecommendationSection({
                 gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
                 gap: '10px' 
               }}>
-                {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 6).map((item, idx) => (
+                {industryForecast?.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 6).map((item, idx) => (
                   <div key={idx} style={{
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -364,7 +364,7 @@ export default function RecommendationSection({
             gap: '12px' 
           }}>
             {/* 見通し要約 */}
-            {industryForecast.shortTerm?.prediction && (
+            {industryForecast?.shortTerm?.prediction && (
               <div style={{
                 background: 'rgba(255,255,255,0.05)',
                 borderRadius: '10px',
@@ -373,7 +373,7 @@ export default function RecommendationSection({
               }}>
                 <div style={{ 
                   fontSize: '11px', 
-                  color: industryForecast.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b',
+                  color: industryForecast?.shortTerm?.outlook === 'positive' ? '#10b981' : industryForecast?.shortTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b',
                   marginBottom: '8px', 
                   fontWeight: '600',
                   display: 'flex',
@@ -388,15 +388,15 @@ export default function RecommendationSection({
                   color: 'rgba(255,255,255,0.7)',
                   lineHeight: '1.6'
                 }}>
-                  {industryForecast.shortTerm.prediction.length > 200 
-                    ? industryForecast.shortTerm.prediction.slice(0, 200) + '...' 
-                    : industryForecast.shortTerm.prediction}
+                  {industryForecast?.shortTerm.prediction.length > 200 
+                    ? industryForecast?.shortTerm.prediction.slice(0, 200) + '...' 
+                    : industryForecast?.shortTerm.prediction}
                 </p>
               </div>
             )}
 
             {/* リスク要約 */}
-            {industryForecast.midTerm?.prediction && (
+            {industryForecast?.midTerm?.prediction && (
               <div style={{
                 background: 'rgba(255,255,255,0.05)',
                 borderRadius: '10px',
@@ -405,14 +405,14 @@ export default function RecommendationSection({
               }}>
                 <div style={{ 
                   fontSize: '11px', 
-                  color: (industryForecast.risks?.length || 2) <= 2 ? '#10b981' : (industryForecast.risks?.length || 2) <= 3 ? '#f59e0b' : '#ef4444',
+                  color: (industryForecast?.risks?.length || 2) <= 2 ? '#10b981' : (industryForecast?.risks?.length || 2) <= 3 ? '#f59e0b' : '#ef4444',
                   marginBottom: '8px', 
                   fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '5px'
                 }}>
-                  {(industryForecast.risks?.length || 2) <= 2 ? '🟢' : (industryForecast.risks?.length || 2) <= 3 ? '🟡' : '🔴'} リスクレベル: {(industryForecast.risks?.length || 2) <= 2 ? '低' : (industryForecast.risks?.length || 2) <= 3 ? '中' : '高'}
+                  {(industryForecast?.risks?.length || 2) <= 2 ? '🟢' : (industryForecast?.risks?.length || 2) <= 3 ? '🟡' : '🔴'} リスクレベル: {(industryForecast?.risks?.length || 2) <= 2 ? '低' : (industryForecast?.risks?.length || 2) <= 3 ? '中' : '高'}
                 </div>
                 <p style={{
                   margin: 0,
@@ -420,9 +420,9 @@ export default function RecommendationSection({
                   color: 'rgba(255,255,255,0.7)',
                   lineHeight: '1.6'
                 }}>
-                  {industryForecast.midTerm.prediction.length > 200 
-                    ? industryForecast.midTerm.prediction.slice(0, 200) + '...' 
-                    : industryForecast.midTerm.prediction}
+                  {industryForecast?.midTerm.prediction.length > 200 
+                    ? industryForecast?.midTerm.prediction.slice(0, 200) + '...' 
+                    : industryForecast?.midTerm.prediction}
                 </p>
               </div>
             )}
