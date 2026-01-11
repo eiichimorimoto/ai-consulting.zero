@@ -101,7 +101,7 @@ export default function LocalSection({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>業界平均: {(localInfo?.laborCosts as any)?.comparison?.industryAverage 
-                    ? (localInfo.laborCosts as any).comparison.industryAverage.toLocaleString() 
+                    ? (localInfo?.laborCosts as any).comparison.industryAverage.toLocaleString() 
                     : '1,180'}円</span>
                   <span style={{ 
                     color: ((localInfo?.laborCosts as any)?.comparison?.vsIndustryAverage || 0) >= 0 ? '#16a34a' : '#dc2626',
@@ -113,10 +113,10 @@ export default function LocalSection({
                 </div>
                 <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
                   相場: {(localInfo?.laborCosts as any)?.comparison?.industryRange?.min 
-                    ? (localInfo.laborCosts as any).comparison.industryRange.min.toLocaleString() 
+                    ? (localInfo?.laborCosts as any).comparison.industryRange.min.toLocaleString() 
                     : '1,000'}〜
                   {(localInfo?.laborCosts as any)?.comparison?.industryRange?.max 
-                    ? (localInfo.laborCosts as any).comparison.industryRange.max.toLocaleString() 
+                    ? (localInfo?.laborCosts as any).comparison.industryRange.max.toLocaleString() 
                     : '1,500'}円
                 </div>
               </div>
