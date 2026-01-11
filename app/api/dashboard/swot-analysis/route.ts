@@ -40,19 +40,19 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
 
 const swotSchema = z.object({
   strengths: z.array(z.object({
-    point: z.string().describe("強みの内容（60文字以内で具体的に1-2文）"),
+    point: z.string().describe("強みの内容（80文字以内で具体的に説明）"),
     evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("強み（3項目まで）"),
   weaknesses: z.array(z.object({
-    point: z.string().describe("弱みの内容（60文字以内で具体的に1-2文）"),
+    point: z.string().describe("弱みの内容（80文字以内で具体的に説明）"),
     evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("弱み（3項目まで）"),
   opportunities: z.array(z.object({
-    point: z.string().describe("機会の内容（60文字以内で具体的に1-2文）"),
+    point: z.string().describe("機会の内容（80文字以内で具体的に説明）"),
     evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("機会（3項目まで）"),
   threats: z.array(z.object({
-    point: z.string().describe("脅威の内容（60文字以内で具体的に1-2文）"),
+    point: z.string().describe("脅威の内容（80文字以内で具体的に説明）"),
     evidence: z.string().describe("根拠（30文字以内）"),
   })).max(3).describe("脅威（3項目まで）"),
   competitors: z.array(z.object({
