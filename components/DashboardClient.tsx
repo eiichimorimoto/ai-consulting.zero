@@ -79,7 +79,7 @@ interface LocalInfo {
     location?: string // 場所（都道府県+市区町村）
     timestamp?: string // 取得時刻（ISO形式）
     displayTime?: string // 表示用時刻
-    current: { temp: number | null; icon: string; desc: string } // temp は null の可能性あり
+    current: { temp: number | null; icon: string; desc: string; humidity?: number; wind?: number } // temp は null の可能性あり
     week: { day: string; date: string; icon: string; temp: number }[]
     hourly?: { time: string; temp: number; icon: string }[]
     alerts?: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[]
