@@ -41,6 +41,7 @@ export default function AppHeader() {
   }, [])
 
   const handleLogout = async () => {
+    if (!supabase) return
     await supabase.auth.signOut()
     router.push('/')
   }
