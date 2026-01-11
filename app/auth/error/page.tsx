@@ -28,6 +28,10 @@ function AuthErrorContent() {
 
     try {
       const supabase = createClient()
+      if (!supabase) {
+        setResendError('認証クライアントの初期化に失敗しました')
+        return
+      }
       const { error: resendErr } = await supabase.auth.resend({
         type: 'signup',
         email,
