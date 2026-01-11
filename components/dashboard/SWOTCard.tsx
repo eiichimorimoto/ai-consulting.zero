@@ -149,7 +149,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis?.strengths?.[0] ? (typeof swotAnalysis?.strengths?.[0] === 'string' ? swotAnalysis?.strengths?.[0].slice(0, 8) : swotAnalysis?.strengths?.[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.strengths?.[0] ? (typeof swotAnalysis?.strengths[0] === 'string' ? swotAnalysis?.strengths[0].slice(0, 8) : (swotAnalysis?.strengths[0] as any)?.point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -198,7 +198,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis?.weaknesses?.[0] ? (typeof swotAnalysis?.weaknesses[0] === 'string' ? swotAnalysis?.weaknesses[0].slice(0, 8) : swotAnalysis?.weaknesses[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.weaknesses?.[0] ? (typeof swotAnalysis?.weaknesses[0] === 'string' ? swotAnalysis?.weaknesses[0].slice(0, 8) : (swotAnalysis?.weaknesses[0] as any)?.point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -247,7 +247,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis?.opportunities?.[0] ? (typeof swotAnalysis?.opportunities[0] === 'string' ? swotAnalysis?.opportunities[0].slice(0, 8) : swotAnalysis?.opportunities[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.opportunities?.[0] ? (typeof swotAnalysis?.opportunities[0] === 'string' ? swotAnalysis?.opportunities[0].slice(0, 8) : (swotAnalysis?.opportunities[0] as any)?.point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
@@ -296,7 +296,7 @@ export default function SWOTCard({
                   borderRadius: '4px',
                   fontWeight: '600'
                 }}>
-                  {swotAnalysis?.threats?.[0] ? (typeof swotAnalysis?.threats[0] === 'string' ? swotAnalysis?.threats[0].slice(0, 8) : swotAnalysis?.threats[0].point?.slice(0, 8)) : '分析中'}...
+                  {swotAnalysis?.threats?.[0] ? (typeof swotAnalysis?.threats[0] === 'string' ? swotAnalysis?.threats[0].slice(0, 8) : (swotAnalysis?.threats[0] as any)?.point?.slice(0, 8)) : '分析中'}...
                 </span>
               </div>
               <div className="swot-content" style={{ 
