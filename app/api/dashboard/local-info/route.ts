@@ -206,7 +206,7 @@ function matchIndustry(companyIndustry: string, companyDescription?: string): st
 }
 
 // 従業員規模カテゴリを判定
-function getEmployeeSizeCategory(employeeCount: string | number | null): string {
+function getEmployeeSizeCategory(employeeCount: string | number | null | undefined): string {
   if (!employeeCount) return '30-99'
   
   const count = typeof employeeCount === 'string' 
