@@ -252,10 +252,10 @@ ${searchContext}
     // ファクトチェックを実行（AI生成業界予測結果）
     const factCheckResult = checkAIResult({
       content: JSON.stringify(object),
-      issues: (object.forecasts || []).map((f: any) => ({
-        severity: f.confidence === 'high' ? 'info' : f.confidence === 'medium' ? 'warning' : 'error',
-        issue: f.title || f.description || '',
-        category: f.category || 'forecast'
+      issues: (object.indicators || []).map((ind) => ({
+        severity: ind.confidence === 'high' ? 'info' : ind.confidence === 'medium' ? 'warning' : 'error',
+        issue: ind.name || '',
+        category: 'forecast'
       })),
     })
 
