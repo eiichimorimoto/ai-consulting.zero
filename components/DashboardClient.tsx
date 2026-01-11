@@ -2987,22 +2987,28 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   【出典】
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                  {swotAnalysis.reputation.positives?.slice(0, 5).map((p, i) => {
-                                    const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : '出典情報なし'
-                                    return (
-                                      <div key={`pos-${i}`} style={{ fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: '1.3' }}>
-                                        [{i + 1}] {source}
-                                      </div>
-                                    )
-                                  })}
-                                  {swotAnalysis.reputation.negatives?.slice(0, 5).map((n, i) => {
-                                    const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : '出典情報なし'
-                                    return (
-                                      <div key={`neg-${i}`} style={{ fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: '1.3' }}>
-                                        [{i + 6}] {source}
-                                      </div>
-                                    )
-                                  })}
+                                  {/* 1段目: [1]-[5] 良い評判の出典 */}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                    {swotAnalysis.reputation.positives?.slice(0, 5).map((p, i) => {
+                                      const source = typeof p === 'object' && p !== null && 'source' in p ? String(p.source) : '出典情報なし'
+                                      return (
+                                        <div key={`pos-${i}`} style={{ fontSize: '9px', color: 'var(--text-tertiary)', lineHeight: '1.1' }}>
+                                          [{i + 1}] {source}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                  {/* 2段目: [6]-[10] 改善点の出典 */}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                    {swotAnalysis.reputation.negatives?.slice(0, 5).map((n, i) => {
+                                      const source = typeof n === 'object' && n !== null && 'source' in n ? String(n.source) : '出典情報なし'
+                                      return (
+                                        <div key={`neg-${i}`} style={{ fontSize: '9px', color: 'var(--text-tertiary)', lineHeight: '1.1' }}>
+                                          [{i + 6}] {source}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
                               </div>
                             </div>
