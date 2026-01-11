@@ -43,7 +43,7 @@ export default function WorldNewsCard({
       </div>
       {worldNews?.categories ? (
         <div className="news-list">
-          {worldNews.categories.map((cat, catIdx) => (
+          {worldNews?.categories.map((cat, catIdx) => (
             <div key={catIdx} style={{ marginBottom: '12px' }}>
               <div style={{ 
                 fontSize: '12px', 
