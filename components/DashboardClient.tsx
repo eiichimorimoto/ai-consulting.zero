@@ -107,6 +107,7 @@ interface LocalInfo {
     laborCosts?: any
     events?: any
     infrastructure?: any
+    traffic?: any
     weather?: any
     apiKeyConfigured: boolean
   }
