@@ -2720,7 +2720,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
                                   position: 'relative',
                                   minWidth: '70px',
-                                  maxWidth: '100px'
+                                  maxWidth: '150px'
                                 }}>
                                   {isImportant && (
                                     <div style={{
@@ -2738,7 +2738,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
                                     </div>
                                   )}
-                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                  {text.slice(0, 40)}{text.length > 40 ? '...' : ''}
                                 </div>
                               );
                             }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
@@ -2769,7 +2769,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
                                   position: 'relative',
                                   minWidth: '70px',
-                                  maxWidth: '100px'
+                                  maxWidth: '150px'
                                 }}>
                                   {isImportant && (
                                     <div style={{
@@ -2787,7 +2787,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
                                     </div>
                                   )}
-                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                  {text.slice(0, 40)}{text.length > 40 ? '...' : ''}
                                 </div>
                               );
                             }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
@@ -2818,7 +2818,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
                                   position: 'relative',
                                   minWidth: '70px',
-                                  maxWidth: '100px'
+                                  maxWidth: '150px'
                                 }}>
                                   {isImportant && (
                                     <div style={{
@@ -2836,7 +2836,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
                                     </div>
                                   )}
-                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                  {text.slice(0, 40)}{text.length > 40 ? '...' : ''}
                                 </div>
                               );
                             }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
@@ -2867,7 +2867,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
                                   position: 'relative',
                                   minWidth: '70px',
-                                  maxWidth: '100px'
+                                  maxWidth: '150px'
                                 }}>
                                   {isImportant && (
                                     <div style={{
@@ -2885,14 +2885,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       <span style={{ color: 'white', fontSize: '10px' }}>✓</span>
                                     </div>
                                   )}
-                                  {text.slice(0, 20)}{text.length > 20 ? '...' : ''}
+                                  {text.slice(0, 40)}{text.length > 40 ? '...' : ''}
                                 </div>
                               );
                             }) || <div style={{ fontSize: '10px', color: '#64748b' }}>分析中...</div>}
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* 想定競合企業 + SNS・口コミ評判（横並び） */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
                         {/* 想定競合企業分析 */}

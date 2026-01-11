@@ -345,6 +345,15 @@ export default function RecommendationSection({
                   </div>
                 ))}
               </div>
+              <p style={{
+                margin: '12px 0 0 0',
+                fontSize: '9px',
+                color: 'rgba(14, 165, 233, 0.7)',
+                textAlign: 'right',
+                fontStyle: 'italic'
+              }}>
+                ※本提言はAIが収集情報を基に生成した想定であり、実際の経営判断は専門家へご相談ください
+              </p>
             </div>
           )}
 
