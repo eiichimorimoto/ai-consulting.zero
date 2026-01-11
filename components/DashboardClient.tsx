@@ -81,7 +81,7 @@ interface LocalInfo {
     displayTime?: string // 表示用時刻
     current: { temp: number | null; icon: string; desc: string; humidity?: number; wind?: number; rain?: number } // temp は null の可能性あり
     week: { day: string; date: string; icon: string; temp: number; high?: number }[]
-    hourly?: { time: string; temp: number; icon: string }[]
+    hourly?: { hour: string; temp: number; icon: string }[]
     alerts?: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[]
   }
   traffic: { title: string; url: string; description: string; status: string }[]
