@@ -23,6 +23,8 @@ interface DiagnosisResult {
     fcp: number
     lcp: number
     cls: string
+    ttfb: number
+    tbt: number
   }
   url?: string
 }
@@ -152,23 +154,19 @@ export default function WebsiteAnalysisPage() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200'
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'info': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
   const getSeverityLabel = (severity: string) => {
     switch (severity) {
-      case 'critical': return '重大'
-      case 'high': return '高'
-      case 'warning': return '警告'
-      case 'medium': return '中'
-      case 'info': return '情報'
-      default: return severity
+      case 'high': return '優先度高'
+      case 'medium': return '優先度中'
+      case 'low': return '優先度低'
+      default: return '-'
     }
   }
 
@@ -356,27 +354,41 @@ export default function WebsiteAnalysisPage() {
                   
                   {/* Core Web Vitals */}
                   <h3 className="text-md font-semibold text-gray-800 mb-3">Core Web Vitals</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="text-sm text-gray-600 mb-1">FCP (初回コンテンツ描画)</div>
-                      <div className={`text-xl font-bold ${result.metrics.fcp <= 1800 ? 'text-green-500' : result.metrics.fcp <= 3000 ? 'text-yellow-500' : 'text-red-500'}`}>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">FCP (初回描画)</div>
+                      <div className={`text-lg font-bold ${result.metrics.fcp <= 1800 ? 'text-green-500' : result.metrics.fcp <= 3000 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {(result.metrics.fcp / 1000).toFixed(2)}秒
                       </div>
                       <div className="text-xs text-gray-500">目標: 1.8秒以下</div>
                     </div>
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="text-sm text-gray-600 mb-1">LCP (最大コンテンツ描画)</div>
-                      <div className={`text-xl font-bold ${result.metrics.lcp <= 2500 ? 'text-green-500' : result.metrics.lcp <= 4000 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">LCP (最大描画)</div>
+                      <div className={`text-lg font-bold ${result.metrics.lcp <= 2500 ? 'text-green-500' : result.metrics.lcp <= 4000 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {(result.metrics.lcp / 1000).toFixed(2)}秒
                       </div>
                       <div className="text-xs text-gray-500">目標: 2.5秒以下</div>
                     </div>
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="text-sm text-gray-600 mb-1">CLS (レイアウトシフト)</div>
-                      <div className={`text-xl font-bold ${parseFloat(result.metrics.cls) <= 0.1 ? 'text-green-500' : parseFloat(result.metrics.cls) <= 0.25 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">CLS (シフト)</div>
+                      <div className={`text-lg font-bold ${parseFloat(result.metrics.cls) <= 0.1 ? 'text-green-500' : parseFloat(result.metrics.cls) <= 0.25 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {result.metrics.cls}
                       </div>
                       <div className="text-xs text-gray-500">目標: 0.1以下</div>
+                    </div>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">TTFB (応答時間)</div>
+                      <div className={`text-lg font-bold ${(result.metrics.ttfb || 0) <= 800 ? 'text-green-500' : (result.metrics.ttfb || 0) <= 1800 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {((result.metrics.ttfb || 0) / 1000).toFixed(2)}秒
+                      </div>
+                      <div className="text-xs text-gray-500">目標: 0.8秒以下</div>
+                    </div>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">TBT (ブロック)</div>
+                      <div className={`text-lg font-bold ${(result.metrics.tbt || 0) <= 200 ? 'text-green-500' : (result.metrics.tbt || 0) <= 600 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {result.metrics.tbt || 0}ms
+                      </div>
+                      <div className="text-xs text-gray-500">目標: 200ms以下</div>
                     </div>
                   </div>
 
@@ -414,10 +426,10 @@ export default function WebsiteAnalysisPage() {
                                 {getCategoryLabel(issue.category)}
                               </span>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                issue.severity === 'critical' ? 'bg-red-200 text-red-800' :
                                 issue.severity === 'high' ? 'bg-orange-200 text-orange-800' :
-                                issue.severity === 'medium' || issue.severity === 'warning' ? 'bg-yellow-200 text-yellow-800' :
-                                'bg-blue-200 text-blue-800'
+                                issue.severity === 'medium' ? 'bg-yellow-200 text-yellow-800' :
+                                issue.severity === 'low' ? 'bg-blue-200 text-blue-800' :
+                                'bg-gray-200 text-gray-800'
                               }`}>
                                 {getSeverityLabel(issue.severity)}
                               </span>

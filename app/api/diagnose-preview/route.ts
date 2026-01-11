@@ -51,7 +51,7 @@ async function analyzeWithPageSpeed(url: string) {
   for (const strategy of strategies) {
     // URLをエンコード（末尾スラッシュの有無に関係なく処理）
     const encodedUrl = encodeURIComponent(url);
-    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodedUrl}&strategy=${strategy}&key=${finalApiKey}`;
+    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodedUrl}&strategy=${strategy}&category=performance&category=accessibility&category=best-practices&category=seo&key=${finalApiKey}`;
     
     console.log(`📡 PageSpeed API呼び出し (${strategy}):`, { 
       url, 
@@ -123,22 +123,38 @@ async function analyzeWithPageSpeed(url: string) {
 function extractIssues(pageSpeedData: any) {
   const mobile = pageSpeedData.mobile;
   const desktop = pageSpeedData.desktop;
-  
+
   const mobileScore = mobile?.lighthouseResult?.categories?.performance?.score * 100 || 0;
   const desktopScore = desktop?.lighthouseResult?.categories?.performance?.score * 100 || 0;
   const seoScore = mobile?.lighthouseResult?.categories?.seo?.score * 100 || 0;
   const accessibilityScore = mobile?.lighthouseResult?.categories?.accessibility?.score * 100 || 0;
-  
-  // SSL確認
-  const hasSSL = mobile?.lighthouseResult?.finalUrl?.startsWith('https://') ?? false;
-  
+
+  // SSL確認（is-on-https監査を使用）
+  const hasSSL = mobile?.lighthouseResult?.audits?.['is-on-https']?.score === 1;
+
   // Core Web Vitals
   const fcp = mobile?.lighthouseResult?.audits?.['first-contentful-paint']?.numericValue || 0;
   const lcp = mobile?.lighthouseResult?.audits?.['largest-contentful-paint']?.numericValue || 0;
   const cls = mobile?.lighthouseResult?.audits?.['cumulative-layout-shift']?.numericValue || 0;
-  
-  // モバイルフレンドリー
-  const isMobileFriendly = mobileScore >= 50;
+  const ttfb = mobile?.lighthouseResult?.audits?.['server-response-time']?.numericValue || 0;
+  const tbt = mobile?.lighthouseResult?.audits?.['total-blocking-time']?.numericValue || 0;
+
+  // モバイルフレンドリー（viewport監査を使用）
+  const isMobileFriendly = mobile?.lighthouseResult?.audits?.['viewport']?.score === 1;
+
+  // 失敗したauditsを抽出（スコア0.5未満の監査項目）
+  const audits = mobile?.lighthouseResult?.audits || {};
+  const failedAudits = Object.entries(audits)
+    .filter(([_, audit]: [string, any]) => {
+      const score = audit?.score;
+      return typeof score === 'number' && score < 0.5 && audit?.title;
+    })
+    .slice(0, 10) // 最大10件
+    .map(([id, audit]: [string, any]) => ({
+      id,
+      title: audit.title,
+      score: Math.round((audit.score || 0) * 100),
+    }));
 
   return {
     mobileScore: Math.round(mobileScore),
@@ -150,6 +166,9 @@ function extractIssues(pageSpeedData: any) {
     fcp: Math.round(fcp),
     lcp: Math.round(lcp),
     cls: cls.toFixed(3),
+    ttfb: Math.round(ttfb),
+    tbt: Math.round(tbt),
+    failedAudits,
   };
 }
 
@@ -232,40 +251,64 @@ export async function POST(request: Request) {
 
     const prompt = `
 あなたは日本の中小企業向けWebコンサルタントです。
-以下のWebサイト診断データを基に、経営者向けに最も重要な3つの課題を指摘してください。
+以下のWebサイト診断データを基に、経営者向けに改善をお勧めする3つのポイントをお伝えください。
 
 # 診断データ
 - URL: ${url}
 - モバイルスコア: ${metrics.mobileScore}/100
 - デスクトップスコア: ${metrics.desktopScore}/100
 - SEOスコア: ${metrics.seoScore}/100
-- SSL対応: ${metrics.hasSSL ? '対応済み' : '未対応'}
-- モバイルフレンドリー: ${metrics.isMobileFriendly ? 'はい' : 'いいえ'}
-- 初回コンテンツ描画(FCP): ${metrics.fcp}ms
-- 最大コンテンツ描画(LCP): ${metrics.lcp}ms
-- レイアウトシフト(CLS): ${metrics.cls}
+- アクセシビリティスコア: ${metrics.accessibilityScore}/100
+- SSL対応: ${metrics.hasSSL ? '対応済み' : '未対応（対応推奨）'}
+- モバイルフレンドリー: ${metrics.isMobileFriendly ? 'はい' : '改善の余地あり'}
+- 初回コンテンツ描画(FCP): ${metrics.fcp}ms ${metrics.fcp > 1800 ? '（目標: 1800ms以下）' : ''}
+- 最大コンテンツ描画(LCP): ${metrics.lcp}ms ${metrics.lcp > 2500 ? '（目標: 2500ms以下）' : ''}
+- レイアウトシフト(CLS): ${metrics.cls} ${parseFloat(metrics.cls) > 0.1 ? '（目標: 0.1以下）' : ''}
+
+# 検出された改善項目
+${metrics.failedAudits && metrics.failedAudits.length > 0
+  ? metrics.failedAudits.map((a: any) => `- ${a.title}（スコア: ${a.score}/100）`).join('\n')
+  : '- 特になし'}
 
 # 出力形式
-以下のJSON形式で、最も重要な3つの課題を返してください：
+以下のJSON形式で、優先度の高い3つの改善ポイントを返してください：
 
 \`\`\`json
 {
-  "overallScore": 数値（0-100）,
+  "overallScore": 数値（0-100、下記計算式で算出）,
   "topIssues": [
     {
       "category": "performance/security/mobile/seo",
-      "severity": "critical/high/medium",
-      "issue": "問題の簡潔な説明（20字以内）",
-      "impact": "経営者が理解できるビジネスへの影響（50字以内）"
+      "severity": "high/medium/low",
+      "issue": "改善ポイントの簡潔な説明（30字以内）",
+      "impact": "改善による期待効果（50字以内）"
     }
   ]
 }
 \`\`\`
 
+# 総合スコア（overallScore）の計算式
+以下の加重平均で算出してください（小数点以下四捨五入）：
+- パフォーマンス: (モバイルスコア + デスクトップスコア) ÷ 2 × 0.30
+- SEO: SEOスコア × 0.30
+- アクセシビリティ: アクセシビリティスコア × 0.20
+- セキュリティ: SSL対応なら10点、未対応なら0点 × 0.10
+- モバイル対応: モバイルフレンドリーなら10点、そうでなければ0点 × 0.10
+
+計算例: モバイル80、デスクトップ90、SEO70、アクセシビリティ60、SSL対応、モバイル対応の場合
+= (80+90)/2×0.30 + 70×0.30 + 60×0.20 + 10×0.10 + 10×0.10 = 25.5 + 21 + 12 + 1 + 1 = 60.5 → 61点
+
+# 優先度の基準
+- high: SSL未対応、スコア40未満、表示速度に大きな改善余地
+- medium: スコア40-70、Core Web Vitals目標未達
+- low: スコア70以上だがさらなる最適化が可能
+
 重要：
-- 経営者が即座に理解できる表現で
-- 具体的な数値や割合を含める
-- ビジネスへの損失を明確に
+- 検出された改善項目を優先的に取り上げる
+- 経営者が理解しやすい前向きな表現で
+- 具体的な数値を含める
+- 改善による効果やメリットを伝える
+- 過度に不安を煽る表現は避ける
 `;
 
     const message = await anthropic.messages.create({
@@ -303,7 +346,19 @@ export async function POST(request: Request) {
         accessibility: metrics.accessibilityScore,
       },
       issues: result.topIssues,
-      metrics: metrics,
+      metrics: {
+        mobileScore: metrics.mobileScore,
+        desktopScore: metrics.desktopScore,
+        seoScore: metrics.seoScore,
+        accessibilityScore: metrics.accessibilityScore,
+        hasSSL: metrics.hasSSL,
+        isMobileFriendly: metrics.isMobileFriendly,
+        fcp: metrics.fcp,
+        lcp: metrics.lcp,
+        cls: metrics.cls,
+        ttfb: metrics.ttfb,
+        tbt: metrics.tbt,
+      },
     });
 
     console.log("📋 AI診断ファクトチェック結果:", JSON.stringify(factCheckResult, null, 2));
