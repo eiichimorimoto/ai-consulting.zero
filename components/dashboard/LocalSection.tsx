@@ -91,7 +91,7 @@ export default function LocalSection({
               <div style={{ marginBottom: '4px' }}>
                 <span style={{ fontWeight: 600 }}>{company?.prefecture || '愛知県'}最低賃金:</span>{' '}
                 {(localInfo?.laborCosts as any)?.comparison?.minimumWage 
-                  ? (localInfo.laborCosts as any).comparison.minimumWage.toLocaleString() 
+                  ? (localInfo?.laborCosts as any).comparison.minimumWage.toLocaleString() 
                   : '1,077'}円
                 <span style={{ color: '#888', fontSize: '9px' }}>（2024年10月改定）</span>
               </div>
