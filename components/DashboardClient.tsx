@@ -54,6 +54,7 @@ interface MarketData {
   nikkei: { week: string; value: number; date?: string }[]
   longRate: { week: string; value: number; date?: string }[]
   shortRate: { week: string; value: number; date?: string }[]
+  commodities?: any
 }
 
 interface LocalInfo {
