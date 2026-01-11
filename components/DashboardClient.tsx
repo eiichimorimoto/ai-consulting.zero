@@ -69,6 +69,7 @@ interface LocalInfo {
       industryMonthly?: number
       industryYearly?: number
       industryAverage?: number
+      minimumWage?: number
     }
   }
   events: { title: string; url: string; description: string; date: string }[]
