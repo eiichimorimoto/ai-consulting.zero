@@ -186,7 +186,7 @@ export async function POST(
     const pdfBuffer = await generatePDF(report);
 
     // PDFとして返す
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="diagnosis_${report.company_name}_${new Date().toISOString().split('T')[0]}.pdf"`,
