@@ -950,8 +950,13 @@ export async function GET(request: Request) {
       events: events.events,
       infrastructure: infrastructure.items,
       weather: {
+        location: weather.location,
+        timestamp: weather.timestamp,
+        displayTime: weather.displayTime,
         current: weather.current,
-        week: weather.week
+        week: weather.week,
+        hourly: weather.hourly,
+        alerts: weather.alerts,
       },
       traffic: traffic.items,
       logistics: logistics.items,

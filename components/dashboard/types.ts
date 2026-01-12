@@ -23,17 +23,24 @@ export interface Subscription {
   [key: string]: any
 }
 
+// 原材料・仕入材の型定義
+export interface CommodityItem {
+  key: string
+  name: string
+  unit: string
+  price: number
+  priceJpy: number
+  change: number
+  isJpy: boolean
+}
+
 export interface MarketData {
   usdJpy: { week: string; value: number; date?: string }[]
   nikkei: { week: string; value: number; date?: string }[]
   longRate: { week: string; value: number; date?: string }[]
   shortRate: { week: string; value: number; date?: string }[]
-  commodities?: {
-    oil?: { name: string; priceUsd: number; priceJpy: number; change: number }
-    steel?: { name: string; priceUsd: number; priceJpy: number; change: number }
-    copper?: { name: string; priceUsd: number; priceJpy: number; change: number }
-    aluminum?: { name: string; priceUsd: number; priceJpy: number; change: number }
-  }
+  commodities?: CommodityItem[]
+  industry?: string
 }
 
 export interface LocalInfo {
