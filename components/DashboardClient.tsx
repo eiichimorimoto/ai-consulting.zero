@@ -755,8 +755,25 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 プロにアップグレード
               </button>
             )}
-            <div className="user-card">
-              <div className="user-avatar">{getInitials(profile.name)}</div>
+            <div 
+              className="user-card"
+              onClick={() => router.push('/dashboard/settings')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="user-avatar">
+                {profile.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt={profile.name}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                    style={{ borderRadius: '50%' }}
+                  />
+                ) : (
+                  getInitials(profile.name)
+                )}
+              </div>
               <div>
                 <div className="user-name">{profile.name}</div>
                 <div className="user-role">{planName}</div>
