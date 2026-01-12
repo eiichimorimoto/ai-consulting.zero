@@ -281,6 +281,13 @@ const industryMaterials: Record<string, { key: string; name: string; unit: strin
     { key: 'electricity', name: '電力', unit: '円/kWh', basePrice: 28, volatility: 2 },
     { key: 'oil', name: '石油溶剤', unit: '円/L', basePrice: 180, volatility: 10 },
   ],
+  // 葬祭業・葬儀業（葬儀会館、セレモニーホール等）
+  '葬祭業': [
+    { key: 'flowers', name: '生花（葬儀用）', unit: '円/式', basePrice: 45000, volatility: 5000 },
+    { key: 'coffin', name: '棺（桐材）', unit: '円/基', basePrice: 85000, volatility: 8000 },
+    { key: 'dry_ice', name: 'ドライアイス', unit: '円/kg', basePrice: 350, volatility: 30 },
+    { key: 'electricity', name: '電力（会館）', unit: '円/kWh', basePrice: 28, volatility: 2 },
+  ],
   // デフォルト
   'default': [
     { key: 'oil', name: '原油(WTI)', unit: '$/バレル', basePrice: 72.5, volatility: 2 },
@@ -376,6 +383,15 @@ function getRelevantMaterials(industry: string, businessDesc: string): { materia
     if (searchText.includes(keyword)) {
       console.log(`✅ 介護の原材料を選択: キーワード "${keyword}" に一致`)
       return { materials: industryMaterials['介護'], matchedCategory: '介護' }
+    }
+  }
+
+  // 葬祭業・葬儀業（葬儀会館、セレモニーホール等）
+  const funeralKeywords = ['葬儀', '葬祭', '葬式', 'セレモニー', '告別式', '家族葬', '直葬', '火葬', '霊柩', '斎場', '葬儀会館', 'ティア']
+  for (const keyword of funeralKeywords) {
+    if (searchText.includes(keyword)) {
+      console.log(`✅ 葬祭業の原材料を選択: キーワード "${keyword}" に一致`)
+      return { materials: industryMaterials['葬祭業'], matchedCategory: '葬祭業' }
     }
   }
 
