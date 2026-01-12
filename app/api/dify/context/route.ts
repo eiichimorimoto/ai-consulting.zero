@@ -309,6 +309,9 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     endpoint: 'Dify Context API',
-    version: '1.0.0'
+    version: '1.0.0',
+    lastUpdated: '2026-01-12',
+    supportedDifyVersions: ['v1.9.0+', 'v2.0.0-beta.1+'],
+    nextjsVersion: '16.1.0+'
   })
 }
