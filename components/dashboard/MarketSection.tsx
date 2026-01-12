@@ -194,85 +194,55 @@ export default function MarketSection({
               </div>
             </div>
             
-            {/* 原材料価格セクション */}
-            {marketData?.commodities && (
+            {/* 原材料価格セクション - 業種・業態に応じた動的表示 */}
+            {marketData?.commodities && Array.isArray(marketData.commodities) && marketData.commodities.length > 0 && (
               <div className="market-card" style={{ gridColumn: '1 / -1' }}>
                 <div className="market-card-header">
-                  <span className="market-label">🛢️ 関連原材料・仕入材価格（円換算）</span>
+                  <span className="market-label">
+                    📦 関連原材料・仕入材価格
+                    {marketData.industry && marketData.industry !== 'default' && (
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                        （{marketData.industry}向け）
+                      </span>
+                    )}
+                  </span>
                 </div>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
                   gap: '12px',
                   marginTop: '12px'
                 }}>
-                  {marketData?.commodities.oil && (
-                    <div style={{ 
-                      background: 'var(--bg-main)', 
-                      padding: '12px', 
-                      borderRadius: '8px',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>原油(WTI)</div>
+                  {marketData.commodities.map((commodity) => (
+                    <div
+                      key={commodity.key}
+                      style={{
+                        background: 'var(--bg-main)',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                        {commodity.name}
+                      </div>
                       <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        ¥{marketData?.commodities.oil.priceJpy != null ? marketData?.commodities.oil.priceJpy.toLocaleString() : '-'}
+                        {commodity.isJpy ? '' : '¥'}{commodity.priceJpy != null ? commodity.priceJpy.toLocaleString() : '-'}
+                        {commodity.isJpy && <span style={{ fontSize: '11px', fontWeight: '400' }}>{commodity.unit}</span>}
                       </div>
-                      <div style={{ fontSize: '11px', color: (marketData?.commodities.oil.change ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {(marketData?.commodities.oil.change ?? 0) >= 0 ? '+' : ''}{marketData?.commodities.oil.change != null ? marketData?.commodities.oil.change.toFixed(1) : '0.0'}%
+                      <div style={{ fontSize: '11px', color: (commodity.change ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                        {(commodity.change ?? 0) >= 0 ? '+' : ''}{commodity.change != null ? commodity.change.toFixed(1) : '0.0'}%
                       </div>
+                      {!commodity.isJpy && (
+                        <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '2px' }}>
+                          ({commodity.price?.toLocaleString()} {commodity.unit})
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {marketData?.commodities.steel && (
-                    <div style={{ 
-                      background: 'var(--bg-main)', 
-                      padding: '12px', 
-                      borderRadius: '8px',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>鉄鋼</div>
-                      <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        ¥{marketData?.commodities.steel.priceJpy != null ? marketData?.commodities.steel.priceJpy.toLocaleString() : '-'}
-                      </div>
-                      <div style={{ fontSize: '11px', color: (marketData?.commodities.steel.change ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {(marketData?.commodities.steel.change ?? 0) >= 0 ? '+' : ''}{marketData?.commodities.steel.change != null ? marketData?.commodities.steel.change.toFixed(1) : '0.0'}%
-                      </div>
-                    </div>
-                  )}
-                  {marketData?.commodities.copper && (
-                    <div style={{ 
-                      background: 'var(--bg-main)', 
-                      padding: '12px', 
-                      borderRadius: '8px',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>銅</div>
-                      <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        ¥{marketData?.commodities.copper.priceJpy != null ? marketData?.commodities.copper.priceJpy.toLocaleString() : '-'}
-                      </div>
-                      <div style={{ fontSize: '11px', color: (marketData?.commodities.copper.change ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {(marketData?.commodities.copper.change ?? 0) >= 0 ? '+' : ''}{marketData?.commodities.copper.change != null ? marketData?.commodities.copper.change.toFixed(1) : '0.0'}%
-                      </div>
-                    </div>
-                  )}
-                  {marketData?.commodities.aluminum && (
-                    <div style={{ 
-                      background: 'var(--bg-main)', 
-                      padding: '12px', 
-                      borderRadius: '8px',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>アルミ</div>
-                      <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        ¥{marketData?.commodities.aluminum.priceJpy != null ? marketData?.commodities.aluminum.priceJpy.toLocaleString() : '-'}
-                      </div>
-                      <div style={{ fontSize: '11px', color: (marketData?.commodities.aluminum.change ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {(marketData?.commodities.aluminum.change ?? 0) >= 0 ? '+' : ''}{marketData?.commodities.aluminum.change != null ? marketData?.commodities.aluminum.change.toFixed(1) : '0.0'}%
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-light)', marginTop: '8px', textAlign: 'right' }}>
-                  ※ USD/JPY: ¥{marketData?.usdJpy?.[marketData?.usdJpy.length - 1]?.value.toFixed(2) || '156.00'} で換算
+                  ※ 外貨建ては USD/JPY: ¥{marketData?.usdJpy?.[marketData?.usdJpy.length - 1]?.value.toFixed(2) || '156.00'} で円換算
                 </div>
               </div>
             )}
