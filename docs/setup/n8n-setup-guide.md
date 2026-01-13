@@ -24,7 +24,8 @@
 ### 推奨構成
 
 ```yaml
-version: '3.8'
+# Docker Compose v2 対応（versionフィールドは非推奨のため削除）
+# 参考: https://docs.docker.com/compose/compose-file/04-version-and-name/
 
 services:
   n8n:
