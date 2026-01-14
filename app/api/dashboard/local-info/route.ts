@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkSearchResult } from "@/lib/fact-checker"
+import { fetchWithRetry } from '@/lib/fetch-with-retry'
 
 export const runtime = "nodejs"
 
@@ -18,16 +19,6 @@ const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
   '兵庫県': { lat: 34.6913, lon: 135.1830 },
 }
 
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
-
 const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
   console.log(`🔍 Brave Search: query="${query}", apiKey=${key ? '設定済み(' + key.substring(0, 8) + '...)' : '未設定'}`)
@@ -37,7 +28,8 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
   }
   const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
   try {
-    const resp = await fetchWithTimeout(
+    // fetchWithRetry を使用（529/429エラー時に自動リトライ）
+    const resp = await fetchWithRetry(
       endpoint,
       {
         method: "GET",
@@ -47,11 +39,12 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         },
       },
-      12_000
+      12_000, // タイムアウト12秒
+      3 // 最大3回リトライ
     )
     console.log(`📡 Brave Search Response: status=${resp.status}`)
     if (!resp.ok) {
-      console.log(`❌ Brave Search Error: status=${resp.status}`)
+      console.warn(`⚠️ Brave Search returned status ${resp.status} for query: ${query}`)
       return []
     }
     const json: any = await resp.json()
@@ -59,7 +52,7 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
     console.log(`✅ Brave Search Results: ${results.length}件`)
     return results
   } catch (error) {
-    console.error('❌ Brave Search Exception:', error)
+    console.error(`❌ Brave Search error for query "${query}":`, error)
     return []
   }
 }
