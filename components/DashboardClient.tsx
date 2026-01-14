@@ -3317,44 +3317,53 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
                         <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', fontWeight: '600' }}>
-                          ⚠️ リスクレベル
+                          ⚠️ リスク要因
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                           {/* リスクバー */}
                           <div style={{ flex: 1 }}>
-                            <div style={{ 
-                              display: 'flex', 
-                              gap: '3px', 
-                              marginBottom: '8px' 
+                            <div style={{
+                              display: 'flex',
+                              gap: '3px',
+                              marginBottom: '8px'
                             }}>
-                              {[1,2,3,4,5].map(level => (
-                                <div key={level} style={{
-                                  flex: 1,
-                                  height: '8px',
-                                  borderRadius: '4px',
-                                  background: level <= (industryForecast.risks?.length || 2) 
-                                    ? level <= 2 ? '#10b981' : level <= 3 ? '#f59e0b' : '#ef4444'
-                                    : 'rgba(99, 102, 241, 0.1)'
-                                }} />
-                              ))}
+                              {[1,2,3,4,5].map(level => {
+                                const riskCount = industryForecast.risks?.length || 0
+                                const riskLevel = riskCount === 0 ? 1 : Math.min(5, Math.max(1, riskCount))
+                                return (
+                                  <div key={level} style={{
+                                    flex: 1,
+                                    height: '8px',
+                                    borderRadius: '4px',
+                                    background: level <= riskLevel
+                                      ? level <= 2 ? '#10b981' : level <= 3 ? '#f59e0b' : '#ef4444'
+                                      : 'rgba(99, 102, 241, 0.1)'
+                                  }} />
+                                )
+                              })}
                             </div>
-                            <div style={{ 
-                              fontSize: '13px', 
-                              fontWeight: '700', 
-                              color: (industryForecast.risks?.length || 2) <= 2 ? '#10b981' : (industryForecast.risks?.length || 2) <= 3 ? '#f59e0b' : '#ef4444'
-                            }}>
-                              {(industryForecast.risks?.length || 2) <= 2 ? '低リスク' : (industryForecast.risks?.length || 2) <= 3 ? '中リスク' : '高リスク'}
-                            </div>
-                            <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                              {industryForecast.risks?.length || 0}件のリスク要因
-                            </div>
+                            {(() => {
+                              const riskCount = industryForecast.risks?.length || 0
+                              const riskLevel = riskCount === 0 ? '未検出' : riskCount <= 2 ? '低リスク' : riskCount <= 3 ? '中リスク' : '高リスク'
+                              const riskColor = riskCount === 0 ? '#94a3b8' : riskCount <= 2 ? '#10b981' : riskCount <= 3 ? '#f59e0b' : '#ef4444'
+                              return (
+                                <>
+                                  <div style={{ fontSize: '13px', fontWeight: '700', color: riskColor }}>
+                                    {riskLevel}
+                                  </div>
+                                  <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                                    {riskCount === 0 ? 'リスク要因なし' : `${riskCount}件のリスク要因を検出`}
+                                  </div>
+                                </>
+                              )
+                            })()}
                           </div>
                         </div>
                         {/* 説明文3行 */}
                         <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.5' }}>
-                          検出されたリスク要因の数を5段階で表示。<br/>
+                          業界分析で検出されたリスク要因の数。<br/>
                           経済変動・競合参入・規制変更等を評価。<br/>
-                          1-2:低 / 3:中 / 4-5:高リスク
+                          0件:未検出 / 1-2件:低 / 3件:中 / 4件以上:高
                         </div>
                       </div>
 
@@ -3368,17 +3377,24 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', fontWeight: '600' }}>
                           🚀 成長機会
                         </div>
-                        <div style={{ 
-                          fontSize: '24px', 
-                          fontWeight: '700', 
-                          color: '#10b981',
-                          marginBottom: '4px'
-                        }}>
-                          {industryForecast.opportunities?.length || 3}
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '10px' }}>
-                          件の成長機会を検出
-                        </div>
+                        {(() => {
+                          const oppCount = industryForecast.opportunities?.length || 0
+                          return (
+                            <>
+                              <div style={{
+                                fontSize: '24px',
+                                fontWeight: '700',
+                                color: oppCount > 0 ? '#10b981' : '#94a3b8',
+                                marginBottom: '4px'
+                              }}>
+                                {oppCount > 0 ? oppCount : '―'}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '10px' }}>
+                                {oppCount > 0 ? '件の成長機会を検出' : '分析データなし'}
+                              </div>
+                            </>
+                          )
+                        })()}
                         {/* 説明文3行 */}
                         <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.5' }}>
                           市場拡大・新規事業・技術革新等の機会数。<br/>
@@ -3398,17 +3414,17 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         border: '1px solid rgba(99, 102, 241, 0.08)',
                         width: '100%'
                       }}>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#475569', 
-                          marginBottom: '6px', 
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#475569',
+                          marginBottom: '6px',
                           fontWeight: '600',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between'
                         }}>
-                          <span>📈 主要指標トレンド（過去8週間）</span>
-                          <span style={{ fontSize: '10px', fontWeight: '400', color: '#94a3b8' }}>業界の主要KPIの推移を可視化</span>
+                          <span>📈 主要指標トレンド</span>
+                          <span style={{ fontSize: '10px', fontWeight: '400', color: '#94a3b8' }}>業界分析に基づく傾向予測（イメージ図）</span>
                         </div>
                         <div style={{ 
                           display: 'grid', 
@@ -3558,11 +3574,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             const endQuarter = Math.ceil(targetMonth / 3)
                             const endYear = targetYear
 
-                            // 工数と体制の設定（施策の複雑さに応じて）
+                            // 工数と体制の概算設定（施策の優先度に応じた目安値）
+                            // ※実際の工数は要件定義後に精査が必要
                             const effortConfigs = [
-                              { effort: '80人日', support: '外部支援含む', phases: ['要件定義', '開発・導入', '展開・定着'] },
-                              { effort: '40人日', support: '社内対応可', phases: ['分析', '施策実行', '効果測定'] },
-                              { effort: '60人日', support: '一部外部支援', phases: ['現状把握', '対策立案', '実施・検証'] }
+                              { effort: '約80人日', support: '外部支援含む', phases: ['要件定義', '開発・導入', '展開・定着'] },
+                              { effort: '約40人日', support: '社内対応可', phases: ['分析', '施策実行', '効果測定'] },
+                              { effort: '約60人日', support: '一部外部支援', phases: ['現状把握', '対策立案', '実施・検証'] }
                             ]
                             const effortCfg = effortConfigs[idx]
 
@@ -3686,11 +3703,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   {/* ヘッダー: 工数情報 */}
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '600' }}>
-                                      実施スケジュール
+                                      実施スケジュール（概算）
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                       <span style={{ fontSize: '10px', color: '#64748b' }}>
                                         想定工数: <strong style={{ color: cfg.accent }}>{effortCfg.effort}</strong>
+                                        <span style={{ fontSize: '9px', color: '#94a3b8', marginLeft: '4px' }}>※目安</span>
                                       </span>
                                     </div>
                                   </div>
@@ -3891,7 +3909,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         </div>
                       )}
 
-                      {/* リスク要約 */}
+                      {/* 中期見通し */}
                       {industryForecast.midTerm?.prediction && (
                         <div style={{
                           background: 'rgba(99, 102, 241, 0.04)',
@@ -3899,16 +3917,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           padding: '14px',
                           border: '1px solid rgba(99, 102, 241, 0.08)'
                         }}>
-                          <div style={{ 
-                            fontSize: '11px', 
-                            color: (industryForecast.risks?.length || 2) <= 2 ? '#10b981' : (industryForecast.risks?.length || 2) <= 3 ? '#f59e0b' : '#ef4444',
-                            marginBottom: '8px', 
+                          <div style={{
+                            fontSize: '11px',
+                            color: industryForecast.midTerm?.outlook === 'positive' ? '#10b981' : industryForecast.midTerm?.outlook === 'negative' ? '#ef4444' : '#f59e0b',
+                            marginBottom: '8px',
                             fontWeight: '600',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '5px'
                           }}>
-                            {(industryForecast.risks?.length || 2) <= 2 ? '🟢' : (industryForecast.risks?.length || 2) <= 3 ? '🟡' : '🔴'} リスクレベル: {(industryForecast.risks?.length || 2) <= 2 ? '低' : (industryForecast.risks?.length || 2) <= 3 ? '中' : '高'}
+                            📅 中期見通し（{industryForecast.midTerm?.period || '6ヶ月'}）
                           </div>
                           <p style={{
                             margin: 0,
@@ -3916,8 +3934,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             color: '#475569',
                             lineHeight: '1.6'
                           }}>
-                            {industryForecast.midTerm.prediction.length > 200 
-                              ? industryForecast.midTerm.prediction.slice(0, 200) + '...' 
+                            {industryForecast.midTerm.prediction.length > 200
+                              ? industryForecast.midTerm.prediction.slice(0, 200) + '...'
                               : industryForecast.midTerm.prediction}
                           </p>
                         </div>
