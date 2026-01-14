@@ -3517,45 +3517,56 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         </div>
 
                         {/* 提言リスト - SVGアイコン付きカード + タイムスケジュール */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 3).map((item, idx) => {
                             // 【カテゴリ】を抽出
                             const categoryMatch = item.match(/【(.+?)】/)
-                            const category = categoryMatch ? categoryMatch[1] : ['コスト削減', '売上拡大', 'リスク対策'][idx]
-                            const displayText = item.replace(/^[①②③]\s*/, '').replace(/【.+?】/, '').trim()
-                            
-                            // 期限を抽出してタイムスケジュールを計算（起点: 現在月）
+                            const category = categoryMatch ? categoryMatch[1] : ['業務効率化', '収益改善', 'リスク対策'][idx]
+                            const cleanText = item.replace(/^[①②③]\s*/, '').replace(/【.+?】/, '').trim()
+
+                            // 「：」で施策名とスケジュール詳細を分割
+                            const colonIdx = cleanText.indexOf('：') !== -1 ? cleanText.indexOf('：') : cleanText.indexOf(':')
+                            const actionTitle = colonIdx !== -1 ? cleanText.substring(0, colonIdx).trim() : cleanText
+                            const scheduleDetail = colonIdx !== -1 ? cleanText.substring(colonIdx + 1).trim() : ''
+
+                            // 期限を抽出してタイムスケジュールを計算
                             const now = new Date()
                             const currentYear = now.getFullYear()
                             const currentMonth = now.getMonth() + 1
-                            let targetMonths = [3, 6, 9][idx] // デフォルト: 3ヶ月、6ヶ月、9ヶ月
-                            
+                            const currentQuarter = Math.ceil(currentMonth / 3)
+
                             // テキストから期限を抽出
                             const monthMatch = item.match(/(\d{1,2})月/)
                             const yearMatch = item.match(/(\d{4})年/)
-                            const quarterMatch = item.match(/(上期|下期|Q[1-4]|第[1-4]四半期)/)
-                            
-                            if (monthMatch) {
-                              const targetMonth = parseInt(monthMatch[1])
-                              const targetYear = yearMatch ? parseInt(yearMatch[1]) : (targetMonth < currentMonth ? currentYear + 1 : currentYear)
-                              targetMonths = (targetYear - currentYear) * 12 + (targetMonth - currentMonth)
-                              if (targetMonths < 1) targetMonths = 1
-                              if (targetMonths > 12) targetMonths = 12
-                            } else if (quarterMatch) {
-                              const q = quarterMatch[1]
-                              if (q === '上期' || q === 'Q1' || q === 'Q2' || q === '第1四半期' || q === '第2四半期') {
-                                targetMonths = currentMonth <= 6 ? (6 - currentMonth + 1) : (18 - currentMonth + 1)
-                              } else {
-                                targetMonths = currentMonth <= 6 ? (12 - currentMonth + 1) : (12 - currentMonth + 1)
-                              }
+
+                            let targetYear = yearMatch ? parseInt(yearMatch[1]) : currentYear
+                            let targetMonth = monthMatch ? parseInt(monthMatch[1]) : currentMonth + [3, 6, 9][idx]
+                            if (targetMonth > 12) {
+                              targetYear += Math.floor((targetMonth - 1) / 12)
+                              targetMonth = ((targetMonth - 1) % 12) + 1
                             }
-                            
-                            const progressPercent = Math.min(100, (targetMonths / 12) * 100)
-                            
+
+                            // 開始時期を施策ごとにずらす（重複しないように）
+                            const startOffsets = [0, 1, 2] // 四半期オフセット
+                            const startQuarter = currentQuarter + startOffsets[idx]
+                            const startYear = currentYear + Math.floor((startQuarter - 1) / 4)
+                            const adjustedStartQ = ((startQuarter - 1) % 4) + 1
+
+                            const endQuarter = Math.ceil(targetMonth / 3)
+                            const endYear = targetYear
+
+                            // 工数と体制の設定（施策の複雑さに応じて）
+                            const effortConfigs = [
+                              { effort: '80人日', support: '外部支援含む', phases: ['要件定義', '開発・導入', '展開・定着'] },
+                              { effort: '40人日', support: '社内対応可', phases: ['分析', '施策実行', '効果測定'] },
+                              { effort: '60人日', support: '一部外部支援', phases: ['現状把握', '対策立案', '実施・検証'] }
+                            ]
+                            const effortCfg = effortConfigs[idx]
+
                             const configs = [
-                              { bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04))', border: 'rgba(99, 102, 241, 0.2)', iconBg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1', textColor: '#1e293b', shadow: 'rgba(99, 102, 241, 0.2)' },
-                              { bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03))', border: 'rgba(14, 165, 233, 0.15)', iconBg: 'linear-gradient(135deg, #0ea5e9, #06b6d4)', accent: '#0ea5e9', textColor: '#334155', shadow: 'rgba(14, 165, 233, 0.15)' },
-                              { bg: 'rgba(100, 116, 139, 0.04)', border: 'rgba(100, 116, 139, 0.12)', iconBg: 'linear-gradient(135deg, #475569, #64748b)', accent: '#64748b', textColor: '#475569', shadow: 'rgba(71, 85, 105, 0.1)' }
+                              { bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04))', border: 'rgba(99, 102, 241, 0.2)', iconBg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1', barColor: '#6366f1', textColor: '#1e293b', shadow: 'rgba(99, 102, 241, 0.2)' },
+                              { bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03))', border: 'rgba(14, 165, 233, 0.15)', iconBg: 'linear-gradient(135deg, #0ea5e9, #06b6d4)', accent: '#0ea5e9', barColor: '#0ea5e9', textColor: '#334155', shadow: 'rgba(14, 165, 233, 0.15)' },
+                              { bg: 'rgba(100, 116, 139, 0.04)', border: 'rgba(100, 116, 139, 0.12)', iconBg: 'linear-gradient(135deg, #475569, #64748b)', accent: '#64748b', barColor: '#64748b', textColor: '#475569', shadow: 'rgba(71, 85, 105, 0.1)' }
                             ];
                             const cfg = configs[idx];
                             const icons = [
@@ -3563,107 +3574,192 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               <svg key="trend" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
                               <svg key="shield" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                             ];
+
+                            // 四半期ラベル生成（現在から4四半期分）
+                            const quarters = Array.from({ length: 4 }, (_, i) => {
+                              const q = ((currentQuarter - 1 + i) % 4) + 1
+                              const y = currentYear + Math.floor((currentQuarter - 1 + i) / 4)
+                              return { label: `${y}Q${q}`, year: y, quarter: q }
+                            })
+
+                            // バーの位置計算
+                            const totalQuarters = 4
+                            const startIdx = startOffsets[idx]
+                            const durationQuarters = Math.max(1, Math.min(totalQuarters - startIdx,
+                              ((endYear - startYear) * 4 + endQuarter - adjustedStartQ) + 1
+                            ))
+                            const barLeft = (startIdx / totalQuarters) * 100
+                            const barWidth = (durationQuarters / totalQuarters) * 100
+
                             return (
                               <div key={idx} style={{
                                 display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: '14px',
-                                padding: '14px 16px',
+                                flexDirection: 'column',
+                                gap: '0',
+                                padding: '16px',
                                 background: cfg.bg,
                                 borderRadius: '12px',
                                 border: `1px solid ${cfg.border}`,
-                                transition: 'all 0.25s ease',
-                                cursor: 'pointer'
-                              }}
-                              onMouseOver={(e) => {
-                                e.currentTarget.style.transform = 'translateX(6px)';
-                                e.currentTarget.style.boxShadow = '0 4px 16px rgba(99, 102, 241, 0.12)';
-                              }}
-                              onMouseOut={(e) => {
-                                e.currentTarget.style.transform = 'translateX(0)';
-                                e.currentTarget.style.boxShadow = 'none';
-                              }}
-                              >
-                                <div style={{
-                                  width: '36px',
-                                  height: '36px',
-                                  borderRadius: '10px',
-                                  background: cfg.iconBg,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0,
-                                  boxShadow: `0 4px 12px ${cfg.shadow}`
-                                }}>{icons[idx]}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-                                    <span style={{
-                                      fontSize: '10px',
-                                      fontWeight: '700',
-                                      color: cfg.accent,
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.6px'
-                                    }}>{category}</span>
-                                    {idx === 0 && (
+                                transition: 'all 0.25s ease'
+                              }}>
+                                {/* 上段: アイコン + 施策タイトル */}
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '10px' }}>
+                                  <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '10px',
+                                    background: cfg.iconBg,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    boxShadow: `0 4px 12px ${cfg.shadow}`
+                                  }}>{icons[idx]}</div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                      <span style={{
+                                        fontSize: '10px',
+                                        fontWeight: '700',
+                                        color: cfg.accent,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.6px'
+                                      }}>{category}</span>
+                                      {idx === 0 && (
+                                        <span style={{
+                                          padding: '2px 7px',
+                                          borderRadius: '4px',
+                                          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))',
+                                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                                          fontSize: '9px',
+                                          color: '#ef4444',
+                                          fontWeight: '700'
+                                        }}>優先</span>
+                                      )}
                                       <span style={{
                                         padding: '2px 7px',
                                         borderRadius: '4px',
-                                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))',
-                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                        background: effortCfg.support.includes('外部') ? 'rgba(245, 158, 11, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                                        border: `1px solid ${effortCfg.support.includes('外部') ? 'rgba(245, 158, 11, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
                                         fontSize: '9px',
-                                        color: '#ef4444',
-                                        fontWeight: '700'
-                                      }}>HOT</span>
-                                    )}
+                                        color: effortCfg.support.includes('外部') ? '#d97706' : '#16a34a',
+                                        fontWeight: '600'
+                                      }}>{effortCfg.support}</span>
+                                    </div>
+                                    <p style={{
+                                      margin: 0,
+                                      fontSize: '13px',
+                                      color: cfg.textColor,
+                                      lineHeight: '1.5',
+                                      fontWeight: '600'
+                                    }}>{actionTitle}</p>
                                   </div>
-                                  <p style={{
-                                    margin: 0,
-                                    fontSize: '12px',
-                                    color: cfg.textColor,
-                                    lineHeight: '1.65',
-                                    fontWeight: idx === 0 ? '600' : '500',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden'
-                                  }}>{displayText}</p>
                                 </div>
-                                {/* タイムスケジュール */}
-                                <div style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  minWidth: '85px',
-                                  flexShrink: 0,
-                                  padding: '6px 8px',
-                                  background: 'rgba(248, 250, 252, 0.8)',
-                                  borderRadius: '8px',
-                                  border: '1px solid rgba(148, 163, 184, 0.15)'
-                                }}>
-                                  <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>
-                                    {targetMonths}ヶ月後
-                                  </span>
+
+                                {/* 中段: スケジュール詳細（改行表示） */}
+                                {scheduleDetail && (
                                   <div style={{
-                                    width: '65px',
-                                    height: '5px',
-                                    background: 'rgba(148, 163, 184, 0.2)',
-                                    borderRadius: '3px',
-                                    overflow: 'hidden'
+                                    padding: '10px 14px',
+                                    marginBottom: '12px',
+                                    background: 'rgba(248, 250, 252, 0.6)',
+                                    borderRadius: '8px',
+                                    borderLeft: `3px solid ${cfg.accent}`
                                   }}>
-                                    <div style={{
-                                      width: `${progressPercent}%`,
-                                      height: '100%',
-                                      background: cfg.iconBg,
-                                      borderRadius: '3px',
-                                      transition: 'width 0.3s ease'
-                                    }} />
+                                    <p style={{
+                                      margin: 0,
+                                      fontSize: '12px',
+                                      color: '#475569',
+                                      lineHeight: '1.6'
+                                    }}>{scheduleDetail}</p>
                                   </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: '#94a3b8' }}>
-                                    <span>{currentYear}/{currentMonth}</span>
-                                    <span style={{ color: cfg.accent, fontWeight: '600' }}>
-                                      {currentMonth + targetMonths > 12 ? currentYear + 1 : currentYear}/{((currentMonth + targetMonths - 1) % 12) + 1}
+                                )}
+
+                                {/* 下段: 四半期ガントチャート */}
+                                <div style={{
+                                  background: 'rgba(248, 250, 252, 0.9)',
+                                  borderRadius: '10px',
+                                  padding: '12px 14px',
+                                  border: '1px solid rgba(148, 163, 184, 0.12)'
+                                }}>
+                                  {/* ヘッダー: 工数情報 */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '600' }}>
+                                      実施スケジュール
                                     </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                      <span style={{ fontSize: '10px', color: '#64748b' }}>
+                                        想定工数: <strong style={{ color: cfg.accent }}>{effortCfg.effort}</strong>
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* 四半期軸 */}
+                                  <div style={{ position: 'relative' }}>
+                                    {/* 四半期ラベル */}
+                                    <div style={{ display: 'flex', marginBottom: '6px' }}>
+                                      {quarters.map((q, i) => (
+                                        <div key={i} style={{
+                                          flex: 1,
+                                          textAlign: 'center',
+                                          fontSize: '9px',
+                                          color: '#94a3b8',
+                                          fontWeight: '600'
+                                        }}>{q.label}</div>
+                                      ))}
+                                    </div>
+
+                                    {/* ガントバー背景 */}
+                                    <div style={{
+                                      display: 'flex',
+                                      height: '28px',
+                                      background: 'rgba(226, 232, 240, 0.5)',
+                                      borderRadius: '6px',
+                                      overflow: 'hidden',
+                                      position: 'relative'
+                                    }}>
+                                      {/* 四半期区切り線 */}
+                                      {[1, 2, 3].map(i => (
+                                        <div key={i} style={{
+                                          position: 'absolute',
+                                          left: `${(i / 4) * 100}%`,
+                                          top: 0,
+                                          bottom: 0,
+                                          width: '1px',
+                                          background: 'rgba(148, 163, 184, 0.3)'
+                                        }} />
+                                      ))}
+
+                                      {/* 実施バー */}
+                                      <div style={{
+                                        position: 'absolute',
+                                        left: `${barLeft}%`,
+                                        width: `${barWidth}%`,
+                                        top: '4px',
+                                        bottom: '4px',
+                                        background: `linear-gradient(90deg, ${cfg.barColor}, ${cfg.barColor}dd)`,
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: `0 2px 6px ${cfg.shadow}`
+                                      }}>
+                                        <span style={{
+                                          fontSize: '9px',
+                                          color: 'white',
+                                          fontWeight: '600',
+                                          textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                          whiteSpace: 'nowrap',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          padding: '0 6px'
+                                        }}>{effortCfg.phases.join(' → ')}</span>
+                                      </div>
+                                    </div>
+
+                                    {/* 期間表示 */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '9px', color: '#64748b' }}>
+                                      <span>開始: {startYear}年Q{adjustedStartQ}</span>
+                                      <span style={{ color: cfg.accent, fontWeight: '600' }}>完了: {endYear}年{targetMonth}月</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -3671,83 +3767,85 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           })}
                         </div>
 
-                        {/* 相談CTA - 洗練されたデザイン */}
-                        <div style={{
-                          marginTop: '18px',
-                          padding: '16px 20px',
-                          background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-                          borderRadius: '12px',
-                          border: '1px solid rgba(99, 102, 241, 0.15)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '16px'
-                        }}>
-                          <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '10px',
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
-                          }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            </svg>
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{
-                              margin: '0 0 2px 0',
-                              fontSize: '13px',
-                              color: '#1e293b',
-                              fontWeight: '600'
-                            }}>
-                              課題は早期対応が必要です
-                            </p>
-                            <p style={{
-                              margin: 0,
-                              fontSize: '11px',
-                              color: '#64748b',
-                              lineHeight: '1.4'
-                            }}>
-                              AIが具体的な解決策をご支援します
-                            </p>
-                          </div>
-                          <button
+                        {/* AI相談CTA - ガラスデザイン（右寄せ） */}
+                        <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+                          <div
                             onClick={() => router.push('/dashboard/ai-consultant')}
                             style={{
-                              padding: '10px 18px',
-                              borderRadius: '8px',
-                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                              border: 'none',
-                              fontSize: '12px',
-                              color: 'white',
-                              fontWeight: '600',
-                              cursor: 'pointer',
+                              padding: '10px 14px',
+                              background: 'rgba(255, 255, 255, 0.45)',
+                              borderRadius: '10px',
+                              border: '1px solid rgba(99, 102, 241, 0.15)',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              whiteSpace: 'nowrap',
-                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-                              transition: 'all 0.2s ease'
+                              gap: '10px',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              overflow: 'hidden',
+                              transition: 'all 0.25s ease',
+                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.06), inset 0 1px 0 rgba(255,255,255,0.6)',
+                              backdropFilter: 'blur(12px)',
+                              WebkitBackdropFilter: 'blur(12px)'
                             }}
                             onMouseOver={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.4)';
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
+                              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.25)';
                             }}
                             onMouseOut={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.3)';
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.45)';
+                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.06), inset 0 1px 0 rgba(255,255,255,0.6)';
+                              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.15)';
                             }}
                           >
-                            相談する
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            {/* ガラス光沢 */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: '50%',
+                              background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%)',
+                              pointerEvents: 'none',
+                              borderRadius: '10px 10px 0 0'
+                            }} />
+
+                            {/* AIアイコン */}
+                            <div style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)',
+                              position: 'relative',
+                              zIndex: 1
+                            }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="white"/>
+                              </svg>
+                            </div>
+
+                            {/* テキスト */}
+                            <span style={{
+                              fontSize: '12px',
+                              color: '#4338ca',
+                              fontWeight: '600',
+                              position: 'relative',
+                              zIndex: 1
+                            }}>
+                              AIに相談
+                            </span>
+
+                            {/* 矢印 */}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, position: 'relative', zIndex: 1 }}>
                               <path d="M5 12h14"/>
                               <path d="M12 5l7 7-7 7"/>
                             </svg>
-                          </button>
+                          </div>
                         </div>
                       </div>
                     )}
