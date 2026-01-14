@@ -1,38 +1,42 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { getForexRate, getNikkeiProxy, generateWeeklyData } from '@/lib/alphavantage'
+import { fetchWithRetry } from '@/lib/fetch-with-retry'
 
 export const runtime = "nodejs"
-
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
 
 const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
   if (!key) return []
   const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
-  const resp = await fetchWithTimeout(
-    endpoint,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": key,
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+  
+  try {
+    // fetchWithRetry を使用（529/429エラー時に自動リトライ）
+    const resp = await fetchWithRetry(
+      endpoint,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "X-Subscription-Token": key,
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        },
       },
-    },
-    12_000
-  )
-  if (!resp.ok) return []
-  const json: any = await resp.json()
-  return json?.web?.results || []
+      12_000, // タイムアウト12秒
+      3 // 最大3回リトライ
+    )
+    
+    if (!resp.ok) {
+      console.warn(`⚠️ Brave Search returned status ${resp.status} for query: ${query}`)
+      return []
+    }
+    
+    const json: any = await resp.json()
+    return json?.web?.results || []
+  } catch (error) {
+    console.error(`❌ Brave Search error for query "${query}":`, error)
+    return []
+  }
 }
 
 // マーケットデータを取得（Alpha Vantage APIを使用）

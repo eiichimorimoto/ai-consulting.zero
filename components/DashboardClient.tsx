@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LineChart, IndustryChart } from './DashboardCharts'
 import { useRouter } from 'next/navigation'
+import { fetchWithRetry } from '@/lib/fetch-with-retry'
 // HealthMonitorは削除（自動修復はバックグラウンドで実行、ユーザーには見せない）
 import '../app/dashboard/dashboard.css'
 
@@ -309,12 +310,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
 
       // 強制更新の場合はキャッシュを無視
       const url = forceRefresh ? `${endpoint}?refresh=true` : endpoint
-      const response = await fetch(url, {
+      
+      // fetchWithRetry を使用（529/429エラー時に自動リトライ）
+      const response = await fetchWithRetry(url, {
         method: 'GET',
         headers: {
           'Cache-Control': forceRefresh ? 'no-cache' : 'default'
         }
-      })
+      }, 30_000, 3) // タイムアウト30秒、最大3回リトライ
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
