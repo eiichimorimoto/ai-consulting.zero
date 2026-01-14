@@ -3571,8 +3571,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             const startYear = currentYear + Math.floor((startQuarter - 1) / 4)
                             const adjustedStartQ = ((startQuarter - 1) % 4) + 1
 
-                            const endQuarter = Math.ceil(targetMonth / 3)
-                            const endYear = targetYear
+                            // 開始四半期から適切な期間（2〜3四半期）を確保
+                            const minDuration = [3, 2, 2][idx] // 施策ごとの最小期間（四半期数）
+
+                            // 終了四半期と年を計算（開始四半期 + 期間 - 1）
+                            const endQuarterOffset = currentQuarter - 1 + startOffsets[idx] + minDuration - 1
+                            const endYear = currentYear + Math.floor(endQuarterOffset / 4)
+                            const endQuarter = (endQuarterOffset % 4) + 1
+
+                            // 終了月を計算（四半期の最終月: Q1=3月, Q2=6月, Q3=9月, Q4=12月）
+                            const endMonth = endQuarter * 3
 
                             // 工数と体制の概算設定（施策の優先度に応じた目安値）
                             // ※実際の工数は要件定義後に精査が必要
@@ -3605,11 +3613,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             // バーの位置計算
                             const totalQuarters = 4
                             const startIdx = startOffsets[idx]
-                            const durationQuarters = Math.max(1, Math.min(totalQuarters - startIdx,
-                              ((endYear - startYear) * 4 + endQuarter - adjustedStartQ) + 1
-                            ))
+                            const durationQuarters = minDuration
                             const barLeft = (startIdx / totalQuarters) * 100
-                            const barWidth = (durationQuarters / totalQuarters) * 100
+                            const barWidth = (Math.min(durationQuarters, totalQuarters - startIdx) / totalQuarters) * 100
 
                             return (
                               <div key={idx} style={{
@@ -3779,7 +3785,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                     {/* 期間表示 */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '9px', color: '#64748b' }}>
                                       <span>開始: {startYear}年Q{adjustedStartQ}</span>
-                                      <span style={{ color: cfg.accent, fontWeight: '600' }}>完了: {endYear}年{targetMonth}月</span>
+                                      <span style={{ color: cfg.accent, fontWeight: '600' }}>完了: {endYear}年{endMonth}月</span>
                                     </div>
                                   </div>
                                 </div>
