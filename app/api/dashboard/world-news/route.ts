@@ -3,38 +3,41 @@ import { NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
+import { fetchWithRetry } from '@/lib/fetch-with-retry'
 
 export const runtime = "nodejs"
-
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
 
 const braveNewsSearch = async (query: string, count = 5): Promise<any[]> => {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
   if (!key) return []
   const endpoint = `https://api.search.brave.com/res/v1/news/search?q=${encodeURIComponent(query)}&count=${count}`
-  const resp = await fetchWithTimeout(
-    endpoint,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": key,
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+  
+  try {
+    const resp = await fetchWithRetry(
+      endpoint,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "X-Subscription-Token": key,
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        },
       },
-    },
-    12_000
-  )
-  if (!resp.ok) return []
-  const json: any = await resp.json()
-  return json?.results || []
+      12_000,
+      3
+    )
+    
+    if (!resp.ok) {
+      console.warn(`⚠️ Brave News Search returned status ${resp.status} for query: ${query}`)
+      return []
+    }
+    
+    const json: any = await resp.json()
+    return json?.results || []
+  } catch (error) {
+    console.error(`❌ Brave News Search error for query "${query}":`, error)
+    return []
+  }
 }
 
 const worldNewsSchema = z.object({

@@ -4,38 +4,41 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { checkAIResult } from "@/lib/fact-checker"
+import { fetchWithRetry } from '@/lib/fetch-with-retry'
 
 export const runtime = "nodejs"
-
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
 
 const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
   if (!key) return []
   const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
-  const resp = await fetchWithTimeout(
-    endpoint,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": key,
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+  
+  try {
+    const resp = await fetchWithRetry(
+      endpoint,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "X-Subscription-Token": key,
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        },
       },
-    },
-    12_000
-  )
-  if (!resp.ok) return []
-  const json: any = await resp.json()
-  return json?.web?.results || []
+      12_000,
+      3
+    )
+    
+    if (!resp.ok) {
+      console.warn(`⚠️ Brave Search returned status ${resp.status} for query: ${query}`)
+      return []
+    }
+    
+    const json: any = await resp.json()
+    return json?.web?.results || []
+  } catch (error) {
+    console.error(`❌ Brave Search error for query "${query}":`, error)
+    return []
+  }
 }
 
 const swotSchema = z.object({
