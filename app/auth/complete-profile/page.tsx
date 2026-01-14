@@ -243,6 +243,7 @@ export default function CompleteProfilePage() {
     fax: '',
     businessDescription: '',
     capital: '',
+    fiscalYearEnd: '', // 決算月（1-12）
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
   const [companyIntelMeta, setCompanyIntelMeta] = useState<Record<string, any> | null>(null)
@@ -1365,6 +1366,8 @@ export default function CompleteProfilePage() {
         companyPhone: intel.phone || prev.companyPhone,
         fax: intel.fax || prev.fax,
         businessDescription: intel.businessDescription || prev.businessDescription,
+        // 決算月を自動セット（取得できた場合のみ）
+        fiscalYearEnd: intel.fiscalYearEnd || prev.fiscalYearEnd,
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
         retrievedInfo: (() => {
           const lines: string[] = []
@@ -1611,6 +1614,7 @@ export default function CompleteProfilePage() {
             fax: companyData.fax || null,
             business_description: companyData.businessDescription || null,
             capital: companyData.capital || null,
+            fiscal_year_end: companyData.fiscalYearEnd ? parseInt(companyData.fiscalYearEnd) : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .select()
@@ -1716,6 +1720,7 @@ export default function CompleteProfilePage() {
             fax: companyData.fax || null,
             business_description: companyData.businessDescription || null,
             capital: companyData.capital || null,
+            fiscal_year_end: companyData.fiscalYearEnd ? parseInt(companyData.fiscalYearEnd) : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .eq('id', companyId)
@@ -2552,16 +2557,32 @@ export default function CompleteProfilePage() {
                     ))}
                   </select>
                 </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="companyEmail">メールアドレス</Label>
-                  <Input
-                    id="companyEmail"
-                    type="email"
-                    value={companyData.email}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="info@example.com"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="fiscalYearEnd">決算月</Label>
+                    <select
+                      id="fiscalYearEnd"
+                      value={companyData.fiscalYearEnd}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, fiscalYearEnd: e.target.value }))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">選択してください</option>
+                      {[...Array(12)].map((_, i) => (
+                        <option key={i + 1} value={String(i + 1)}>{i + 1}月</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="companyEmail">メールアドレス</Label>
+                    <Input
+                      id="companyEmail"
+                      type="email"
+                      value={companyData.email}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="info@example.com"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-2 md:col-span-2">
