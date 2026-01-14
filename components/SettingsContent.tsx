@@ -78,6 +78,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
     established_date: company?.established_date || '',
     representative_name: company?.representative_name || '',
     business_description: company?.business_description || '',
+    fiscal_year_end: company?.fiscal_year_end ? String(company.fiscal_year_end) : '',
   })
 
   // パスワード変更の状態
@@ -461,6 +462,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
           established_date: companyData.established_date || null,
           representative_name: companyData.representative_name || null,
           business_description: companyData.business_description || null,
+          fiscal_year_end: companyData.fiscal_year_end ? parseInt(companyData.fiscal_year_end) : null,
           documents_urls: allDocuments.length > 0 ? allDocuments : null,
         })
         .eq('id', company.id)
@@ -979,6 +981,23 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="fiscal_year_end">決算月</Label>
+                <select
+                  id="fiscal_year_end"
+                  value={companyData.fiscal_year_end}
+                  onChange={(e) => setCompanyData(prev => ({ ...prev, fiscal_year_end: e.target.value }))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">選択してください</option>
+                  {[...Array(12)].map((_, i) => (
+                    <option key={i + 1} value={String(i + 1)}>{i + 1}月</option>
+                  ))}
+                </select>
+              </div>
+              <div></div>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="business_description">事業内容</Label>
               <textarea
@@ -988,7 +1007,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[100px]"
               />
             </div>
-            
+
             {/* 会社資料アップロード */}
             <div className="grid gap-2">
               <Label>会社資料</Label>
