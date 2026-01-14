@@ -39,6 +39,7 @@ CREATE TABLE companies (
   established_date DATE,
   representative_name VARCHAR(100),
   business_description TEXT,
+  fiscal_year_end INTEGER CHECK (fiscal_year_end >= 1 AND fiscal_year_end <= 12), -- 決算月（1-12）
   main_products TEXT[],
   main_clients TEXT[],
   main_banks TEXT[],
@@ -498,6 +499,65 @@ CREATE POLICY "Users can view own activity logs"
 CREATE POLICY "Users can insert own activity logs"
   ON activity_logs FOR INSERT
   WITH CHECK (user_id = auth.uid());
+
+-- ==============================================
+-- 10. DASHBOARD_DATA TABLE (ダッシュボードデータキャッシュ)
+-- ==============================================
+CREATE TABLE dashboard_data (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  
+  -- データ種別（'swot_analysis', 'ai_summary', 'local_info', 'market'）
+  data_type VARCHAR(50) NOT NULL,
+  
+  -- データ本体（JSONB形式）
+  data JSONB NOT NULL,
+  
+  -- キャッシュ有効期限
+  expires_at TIMESTAMPTZ,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- ユニーク制約（ユーザー・会社・データ種別の組み合わせは1つのみ）
+  UNIQUE(user_id, company_id, data_type)
+);
+
+-- インデックス
+CREATE INDEX idx_dashboard_data_user_id ON dashboard_data (user_id);
+CREATE INDEX idx_dashboard_data_company_id ON dashboard_data (company_id);
+CREATE INDEX idx_dashboard_data_data_type ON dashboard_data (data_type);
+CREATE INDEX idx_dashboard_data_updated_at ON dashboard_data (updated_at DESC);
+CREATE INDEX idx_dashboard_data_expires_at ON dashboard_data (expires_at DESC);
+
+-- Auto-update updated_at
+CREATE TRIGGER update_dashboard_data_updated_at
+  BEFORE UPDATE ON dashboard_data
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Row Level Security
+ALTER TABLE dashboard_data ENABLE ROW LEVEL SECURITY;
+
+-- Users can view own dashboard data
+CREATE POLICY "Users can view own dashboard data"
+  ON dashboard_data FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Users can insert own dashboard data
+CREATE POLICY "Users can insert own dashboard data"
+  ON dashboard_data FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+-- Users can update own dashboard data
+CREATE POLICY "Users can update own dashboard data"
+  ON dashboard_data FOR UPDATE
+  USING (user_id = auth.uid());
+
+-- Users can delete own dashboard data
+CREATE POLICY "Users can delete own dashboard data"
+  ON dashboard_data FOR DELETE
+  USING (user_id = auth.uid());
 
 -- ==============================================
 -- STORAGE BUCKETS
