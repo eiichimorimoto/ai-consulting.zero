@@ -53,7 +53,11 @@ CREATE TABLE companies (
   source VARCHAR(100),
   source_url TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
-  
+
+  -- Web検索から取得した情報
+  retrieved_info JSONB,
+  documents_urls TEXT[],
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -371,18 +375,27 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
--- Companies: 同じ会社のユーザーは閲覧可能
-CREATE POLICY "Users can view their company"
+-- Companies: 認証済みユーザーは全ての会社を閲覧可能
+-- （INSERTがオープンなので、SELECTもオープンにする）
+CREATE POLICY "Users can view all companies"
   ON companies FOR SELECT
-  USING (
-    id IN (
-      SELECT company_id FROM profiles WHERE user_id = auth.uid()
-    )
-  );
+  USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Users can insert companies"
   ON companies FOR INSERT
   WITH CHECK (true);
+
+-- 自分が作成した会社を取得するためのRPC関数
+CREATE OR REPLACE FUNCTION get_latest_company_by_name(company_name TEXT)
+RETURNS UUID
+LANGUAGE SQL
+SECURITY DEFINER
+AS $$
+  SELECT id FROM companies
+  WHERE name = company_name
+  ORDER BY created_at DESC
+  LIMIT 1;
+$$;
 
 CREATE POLICY "Users can update their company"
   ON companies FOR UPDATE

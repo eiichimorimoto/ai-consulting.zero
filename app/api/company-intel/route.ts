@@ -1329,6 +1329,14 @@ export async function POST(request: Request) {
     const employeeRanges = Array.isArray(options?.employeeRanges) ? options!.employeeRanges : []
     const revenueRanges = Array.isArray(options?.revenueRanges) ? options!.revenueRanges : []
 
+    console.log("📊 API受信 - options確認:", {
+      hasOptions: !!options,
+      revenueRangesLength: revenueRanges.length,
+      revenueRanges,
+      employeeRangesLength: employeeRanges.length,
+      industriesLength: industries.length,
+    })
+
     // 上場企業の一次情報（決算短信/有報PDF）を見つけた場合は、先に売上/従業員数の最新を抽出して強い根拠として渡す
     let financialFacts: FinancialFacts | null = null
     let financialFactsSource: string | null = null
@@ -1524,6 +1532,12 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       const match = textContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
       const jsonText = match ? match[1] : textContent
       parsed = JSON.parse(jsonText)
+      console.log("📊 AI応答解析完了:", {
+        annualRevenue: parsed.annualRevenue,
+        employeeCount: parsed.employeeCount,
+        extraBulletsCount: parsed.extraBullets?.length || 0,
+        extraBullets: parsed.extraBullets,
+      })
     } catch (error) {
       console.error("JSON parse error:", error, textContent)
       return NextResponse.json(
@@ -1532,7 +1546,34 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       )
     }
 
-    // 3. 売上/従業員数の「最新」一次情報が取れている場合は、(a) dataにも格納 (b) 取得情報に出す (c) プルダウン値を確実に上書きする
+    // 3. AIが返したannualRevenueがrevenueRangesに含まれるか確認し、含まれない場合は正規化を試みる
+    if (parsed.annualRevenue && revenueRanges.length > 0) {
+      const exactMatch = revenueRanges.includes(parsed.annualRevenue)
+      if (!exactMatch) {
+        console.log("⚠️ AI annualRevenue 不一致:", { aiValue: parsed.annualRevenue, expectedRanges: revenueRanges })
+        // AIが返した値から数値を抽出して再マッピングを試みる
+        const aiRevenueNum = parseOkuYen(parsed.annualRevenue)
+        if (aiRevenueNum != null) {
+          const remapped = mapRevenueOkuToRange(aiRevenueNum, revenueRanges)
+          if (remapped) {
+            console.log("📊 AI annualRevenue 再マッピング:", { original: parsed.annualRevenue, extracted: aiRevenueNum, remapped })
+            parsed.annualRevenue = remapped
+          } else {
+            // 再マッピングも失敗した場合はnullにしてextractBullets抽出に任せる
+            console.log("⚠️ AI annualRevenue 再マッピング失敗、nullにリセット")
+            parsed.annualRevenue = null
+          }
+        } else {
+          // 数値抽出失敗の場合もnullにしてextractBullets抽出に任せる
+          console.log("⚠️ AI annualRevenue から数値抽出失敗、nullにリセット")
+          parsed.annualRevenue = null
+        }
+      } else {
+        console.log("✅ AI annualRevenue 完全一致:", { value: parsed.annualRevenue })
+      }
+    }
+
+    // 3a. 売上/従業員数の「最新」一次情報が取れている場合は、(a) dataにも格納 (b) 取得情報に出す (c) プルダウン値を確実に上書きする
     const revenueOku = financialFacts?.revenueText ? parseOkuYen(financialFacts.revenueText) : null
     const employeesN = financialFacts?.employeesText ? parseEmployeesNumber(financialFacts.employeesText) : null
     if (financialFacts?.revenueText) {
@@ -1566,9 +1607,16 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     // 3b. 外部情報由来で「古い年度」しか見えない場合は、フォーム値を誤って埋めない（nullに戻して注意喚起）
     // - IR PDF等の強い根拠がある場合は除外
     const staleByExternal = !!externalText && shouldTreatAsStale(externalText, 2)
+    console.log("📊 staleByExternal チェック:", {
+      hasExternalText: !!externalText,
+      staleByExternal,
+      hasFinancialFactsSource: !!financialFactsSource,
+      annualRevenueBeforeStaleCheck: parsed.annualRevenue,
+    })
     if (!financialFactsSource && staleByExternal) {
       const y = extractRecentYears(externalText)[0]
       // 既に埋めてしまったプルダウン値は消す（誤入力防止）
+      console.log("⚠️ staleByExternal: annualRevenueをnullにリセット", { annualRevenue: parsed.annualRevenue, year: y })
       if (parsed.annualRevenue) parsed.annualRevenue = null
       if (parsed.employeeCount) parsed.employeeCount = null
       const warn = y
@@ -1669,32 +1717,58 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     }
 
     // 【追加】AIが extraBullets に売上高を入れていても annualRevenue が未設定の場合、extraBulletsから抽出を試みる
+    console.log("📊 extraBullets売上抽出チェック:", {
+      currentAnnualRevenue: parsed.annualRevenue,
+      revenueRangesLength: revenueRanges.length,
+      revenueRanges: revenueRanges,
+      extraBulletsLength: parsed.extraBullets?.length || 0,
+      extraBullets: parsed.extraBullets,
+    })
     if (!parsed.annualRevenue && revenueRanges.length > 0 && parsed.extraBullets && parsed.extraBullets.length > 0) {
+      console.log("📊 extraBullets売上抽出: 条件クリア、抽出開始")
       for (const bullet of parsed.extraBullets) {
         // 売上高を含む箇条書きを探す
-        if (bullet.includes("売上高") || bullet.includes("売上収益") || bullet.includes("年商") || bullet.includes("営業収益")) {
+        const hasRevenueKeyword = bullet.includes("売上高") || bullet.includes("売上収益") || bullet.includes("年商") || bullet.includes("営業収益")
+        console.log("📊 bullet解析:", { bullet, hasRevenueKeyword })
+        if (hasRevenueKeyword) {
           // 金額パターンを抽出（複合パターン対応）
+          // より優先度の高いパターンを先に配置
           const patterns = [
+            // 複合パターン: 億+百万円 (例: "1,180億24百万円", "1180億24百万円")
             /(\d[\d,]*億\d+百万円)/,
-            /(\d[\d,]*億[\d,]*万円)/,
-            /(\d[\d,]*億円)/,
+            // 複合パターン: 億+万円 (例: "469億8,400万円", "469億8400万円")
+            /(\d[\d,]*億[\d,]+万円)/,
+            // 単純な億円 (例: "1,180億円", "1180億円")
+            /(\d[\d,]*(?:\.\d+)?億円)/,
+            // 百万円単位 (例: "46,984百万円")
             /(\d[\d,]*百万円)/,
+            // 千万円単位 (例: "4,698千万円")
             /(\d[\d,]*千万円)/,
+            // 万円単位 (例: "11,800万円")
             /(\d[\d,]*万円)/,
+            // 千円単位 (例: "1,180,000千円")
+            /(\d[\d,]*千円)/,
+            // 円単位 (大きな数値、例: "118,000,000,000円")
+            /(\d[\d,]{8,}円)/,
           ]
           for (const pattern of patterns) {
             const m = bullet.match(pattern)
+            console.log("📊 パターンマッチ:", { pattern: pattern.toString(), matched: !!m, matchResult: m?.[1] })
             if (m) {
               const extractedOku = parseOkuYen(m[1])
+              console.log("📊 parseOkuYen結果:", { input: m[1], extractedOku })
               if (extractedOku != null) {
                 const mapped = mapRevenueOkuToRange(extractedOku, revenueRanges)
+                console.log("📊 mapRevenueOkuToRange結果:", { extractedOku, mapped, revenueRanges })
                 if (mapped) {
                   parsed.annualRevenue = mapped
                   if (!parsed.latestRevenueText) {
                     parsed.latestRevenueText = m[1]
                   }
-                  console.log("📊 extraBulletsから売上高マッピング:", { bullet, extracted: m[1], oku: extractedOku, mapped })
+                  console.log("📊 extraBulletsから売上高マッピング成功:", { bullet, extracted: m[1], oku: extractedOku, mapped })
                   break
+                } else {
+                  console.log("⚠️ mapRevenueOkuToRange が空文字を返却:", { extractedOku, revenueRanges })
                 }
               }
             }
@@ -1702,6 +1776,12 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
           if (parsed.annualRevenue) break
         }
       }
+    } else {
+      console.log("📊 extraBullets売上抽出: 条件未達でスキップ", {
+        hasAnnualRevenue: !!parsed.annualRevenue,
+        revenueRangesEmpty: revenueRanges.length === 0,
+        extraBulletsEmpty: !parsed.extraBullets || parsed.extraBullets.length === 0,
+      })
     }
 
     // 【追加】AIが extraBullets に従業員数を入れていても employeeCount が未設定の場合、extraBulletsから抽出を試みる
@@ -1833,6 +1913,14 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     }
 
     console.log("📋 企業情報ファクトチェック:", JSON.stringify(factCheckResult.overall, null, 2))
+
+    // 最終状態のログ
+    console.log("📊 最終結果 - annualRevenue:", {
+      annualRevenue: parsed.annualRevenue,
+      latestRevenueText: parsed.latestRevenueText,
+      employeeCount: parsed.employeeCount,
+      latestEmployeesText: parsed.latestEmployeesText,
+    })
 
     return NextResponse.json({
       data: parsed,
