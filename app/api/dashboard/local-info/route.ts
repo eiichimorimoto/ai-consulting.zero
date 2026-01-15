@@ -28,7 +28,7 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
   }
   const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
   try {
-    // fetchWithRetry を使用（529/429エラー時に自動リトライ）
+    // fetchWithRetry を使用（タイムアウト8秒、リトライ1回で高速化）
     const resp = await fetchWithRetry(
       endpoint,
       {
@@ -39,8 +39,8 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         },
       },
-      12_000, // タイムアウト12秒
-      3 // 最大3回リトライ
+      8_000, // タイムアウト8秒
+      1 // 最大1回リトライ（高速化）
     )
     console.log(`📡 Brave Search Response: status=${resp.status}`)
     if (!resp.ok) {
@@ -769,67 +769,22 @@ function extractLogisticsStatus(text: string): 'normal' | 'warning' | 'error' {
   return 'normal'
 }
 
-// 緊急情報・災害速報を取得（地震・津波・火山等）
+// 緊急情報・災害速報を取得（現在発令中のアラートのみ）
+// 注意: 通常時は空配列を返す（緊急情報なし = 正常）
 async function getEmergencyAlerts(prefecture: string): Promise<{
   alerts: { type: string; title: string; description: string; severity: string }[]
   _debug: any
 }> {
-  const prefName = prefecture.replace(/[都道府県]/g, '')
-  const now = new Date()
-  const query = `${prefName} 地震 津波 災害速報 ${now.getMonth() + 1}月${now.getDate()}日`
-
-  console.log(`🚨 緊急情報検索: ${query}`)
-  const searchResults = await braveWebSearch(query, 5)
-
-  const alerts: { type: string; title: string; description: string; severity: string }[] = []
-  // severity: 'critical' = 最重要（赤）, 'warning' = 警告（黄）, 'info' = 情報（青）
-  const emergencyKeywords = {
-    critical: ['津波警報', '大津波', '震度6', '震度7', '緊急地震速報', '噴火警報'],
-    warning: ['地震', '津波注意報', '震度5', '震度4', '火山', '噴火'],
-    info: ['余震', '注意', '警戒']
-  }
-
-  for (const result of searchResults) {
-    const text = `${result.title} ${result.description}`.toLowerCase()
-    let matched = false
-
-    for (const keyword of emergencyKeywords.critical) {
-      if (text.includes(keyword.toLowerCase())) {
-        alerts.push({
-          type: 'earthquake',
-          title: `🚨 ${keyword}`,
-          description: result.description?.slice(0, 100) || result.title,
-          severity: 'critical'
-        })
-        matched = true
-        break
-      }
-    }
-
-    if (!matched) {
-      for (const keyword of emergencyKeywords.warning) {
-        if (text.includes(keyword.toLowerCase())) {
-          alerts.push({
-            type: 'earthquake',
-            title: `⚠️ ${keyword}情報`,
-            description: result.description?.slice(0, 100) || result.title,
-            severity: 'warning'
-          })
-          matched = true
-          break
-        }
-      }
-    }
-  }
-
-  console.log(`🚨 緊急情報取得完了: ${alerts.length}件`)
+  // 緊急情報は気象警報（weather.alerts）で取得済み
+  // ここでは追加のAPI呼び出しを行わず、空配列を返す
+  // ※大規模災害時のみ手動で更新する運用を想定
+  console.log(`🚨 緊急情報: ${prefecture} - 通常時は空（気象警報はweather.alertsで取得）`)
 
   return {
-    alerts: alerts.slice(0, 3),
+    alerts: [],
     _debug: {
-      searchQuery: query,
-      resultCount: searchResults.length,
-      alertsFound: alerts.length
+      prefecture,
+      note: '緊急情報は weather.alerts で取得。大規模災害時のみ別途対応。'
     }
   }
 }
