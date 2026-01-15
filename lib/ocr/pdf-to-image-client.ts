@@ -1,7 +1,60 @@
 /**
  * クライアントサイドでPDFを画像に変換する
- * ブラウザのPDF.jsを使用して、サーバーレス環境での問題を回避
+ * CDN経由でPDF.jsを読み込み、Webpackバンドリング問題を回避
  */
+
+// PDF.jsのCDN URL（安定版3.x）
+const PDFJS_VERSION = '3.11.174'
+const PDFJS_CDN_URL = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`
+const PDFJS_WORKER_URL = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`
+
+// グローバル型定義
+declare global {
+  interface Window {
+    pdfjsLib?: {
+      GlobalWorkerOptions: { workerSrc: string }
+      getDocument: (params: { data: Uint8Array }) => { promise: Promise<PDFDocument> }
+    }
+  }
+}
+
+interface PDFDocument {
+  getPage: (num: number) => Promise<PDFPage>
+}
+
+interface PDFPage {
+  getViewport: (params: { scale: number }) => { width: number; height: number }
+  render: (params: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> }
+}
+
+// PDF.jsをCDNから読み込む
+async function loadPdfJs(): Promise<Window['pdfjsLib']> {
+  if (typeof window === 'undefined') {
+    throw new Error('ブラウザ環境でのみ使用可能です')
+  }
+
+  // 既に読み込み済みならそれを返す
+  if (window.pdfjsLib) {
+    return window.pdfjsLib
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = PDFJS_CDN_URL
+    script.async = true
+    script.onload = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL
+        console.log('✅ PDF.js CDNから読み込み完了:', PDFJS_VERSION)
+        resolve(window.pdfjsLib)
+      } else {
+        reject(new Error('PDF.jsの読み込みに失敗しました'))
+      }
+    }
+    script.onerror = () => reject(new Error('PDF.js CDNからの読み込みに失敗しました'))
+    document.head.appendChild(script)
+  })
+}
 
 export async function convertPdfToImageClient(
   pdfDataUrl: string,
@@ -9,12 +62,10 @@ export async function convertPdfToImageClient(
   scale: number = 2.0
 ): Promise<string> {
   try {
-    // pdfjs-distを動的インポート（クライアントサイドのみ）
-    const pdfjsLib = await import('pdfjs-dist')
-    
-    // ワーカーの設定（ブラウザ環境では正常に動作）
-    if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+    // CDNからPDF.jsを読み込む
+    const pdfjsLib = await loadPdfJs()
+    if (!pdfjsLib) {
+      throw new Error('PDF.jsを読み込めませんでした')
     }
 
     // Base64データをUint8Arrayに変換
