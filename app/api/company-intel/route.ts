@@ -260,46 +260,83 @@ const parseEmployeesNumber = (text: string): number | null => {
 }
 
 const parseOkuYen = (text: string): number | null => {
-  // 例: "469億8,400万円" / "46,984百万円" / "4,698千万円" / "46,984,000千円"
+  // 例: "1,180億24百万円" / "469億8,400万円" / "46,984百万円" / "4,698千万円"
   const normalized = text.replace(/,/g, "").replace(/　/g, "")
 
-  // 百万円 → 億円（百万円 / 100 = 億円）
-  const hyakuMan = normalized.match(/(\d{1,10})\s*百万円/)
-  if (hyakuMan) {
-    const v = Number(hyakuMan[1])
-    if (Number.isFinite(v)) return v / 100
+  // 【最優先】複合パターン: 億 + 百万円（例: "1,180億24百万円" = 1180 + 0.24 = 1180.24億円）
+  const okuHyakuMan = normalized.match(/(\d+(?:\.\d+)?)\s*億\s*(\d+)\s*百万円/)
+  if (okuHyakuMan) {
+    const okuVal = Number(okuHyakuMan[1])
+    const hyakuManVal = Number(okuHyakuMan[2])
+    if (Number.isFinite(okuVal) && Number.isFinite(hyakuManVal)) {
+      console.log("📊 parseOkuYen 複合(億+百万円):", { text, okuVal, hyakuManVal, result: okuVal + hyakuManVal / 100 })
+      return okuVal + hyakuManVal / 100
+    }
   }
 
-  // 千万円 → 億円（千万円 / 10 = 億円）
-  const senMan = normalized.match(/(\d{1,10})\s*千万円/)
-  if (senMan) {
-    const v = Number(senMan[1])
-    if (Number.isFinite(v)) return v / 10
+  // 【優先】複合パターン: 億 + 万円（例: "469億8400万円" = 469 + 0.84 = 469.84億円）
+  const okuMan = normalized.match(/(\d+(?:\.\d+)?)\s*億\s*(\d+)\s*万円/)
+  if (okuMan) {
+    const okuVal = Number(okuMan[1])
+    const manVal = Number(okuMan[2])
+    if (Number.isFinite(okuVal) && Number.isFinite(manVal)) {
+      console.log("📊 parseOkuYen 複合(億+万円):", { text, okuVal, manVal, result: okuVal + manVal / 10000 })
+      return okuVal + manVal / 10000
+    }
   }
 
-  // 千円 → 億円（千円 / 100,000 = 億円）
-  const sen = normalized.match(/(\d{1,15})\s*千円/)
-  if (sen) {
-    const v = Number(sen[1])
-    if (Number.isFinite(v)) return v / 100000
+  // 億円のみ（例: "1180億円"）
+  const okuOnly = normalized.match(/(\d+(?:\.\d+)?)\s*億円/)
+  if (okuOnly) {
+    const okuVal = Number(okuOnly[1])
+    if (Number.isFinite(okuVal)) {
+      console.log("📊 parseOkuYen 億円:", { text, result: okuVal })
+      return okuVal
+    }
   }
 
-  // 万円 → 億円（万円 / 10,000 = 億円）
-  const man = normalized.match(/(\d{1,15})\s*万円/)
-  if (man && !normalized.includes("億")) {
-    const v = Number(man[1])
-    if (Number.isFinite(v)) return v / 10000
+  // 億（円なし、後続に百万/万がない場合、例: "1180億"）
+  const okuNoCurrency = normalized.match(/(\d+(?:\.\d+)?)\s*億(?![0-9万百千])/)
+  if (okuNoCurrency) {
+    const okuVal = Number(okuNoCurrency[1])
+    if (Number.isFinite(okuVal)) {
+      console.log("📊 parseOkuYen 億のみ:", { text, result: okuVal })
+      return okuVal
+    }
   }
 
-  // 億円形式（「469億8,400万円」など）
-  const oku = normalized.match(/(\d+(?:\.\d+)?)\s*億/)
-  if (oku) {
-    const okuVal = Number(oku[1])
-    if (!Number.isFinite(okuVal)) return null
-    const manMatch = normalized.match(/億\s*(\d+(?:\.\d+)?)\s*万/)
-    const manVal = manMatch ? Number(manMatch[1]) : 0
-    if (manMatch && !Number.isFinite(manVal)) return okuVal
-    return okuVal + manVal / 10000
+  // 以下は「億」を含まない場合のみ処理
+  if (!normalized.includes("億")) {
+    // 百万円 → 億円（百万円 / 100 = 億円）
+    const hyakuMan = normalized.match(/(\d{1,10})\s*百万円/)
+    if (hyakuMan) {
+      const v = Number(hyakuMan[1])
+      if (Number.isFinite(v)) {
+        console.log("📊 parseOkuYen 百万円:", { text, result: v / 100 })
+        return v / 100
+      }
+    }
+
+    // 千万円 → 億円（千万円 / 10 = 億円）
+    const senMan = normalized.match(/(\d{1,10})\s*千万円/)
+    if (senMan) {
+      const v = Number(senMan[1])
+      if (Number.isFinite(v)) return v / 10
+    }
+
+    // 千円 → 億円（千円 / 100,000 = 億円）
+    const sen = normalized.match(/(\d{1,15})\s*千円/)
+    if (sen) {
+      const v = Number(sen[1])
+      if (Number.isFinite(v)) return v / 100000
+    }
+
+    // 万円 → 億円（万円 / 10,000 = 億円）
+    const man = normalized.match(/(\d{1,15})\s*万円/)
+    if (man) {
+      const v = Number(man[1])
+      if (Number.isFinite(v)) return v / 10000
+    }
   }
 
   // 円単位（10億円以上の場合のみ対応）
