@@ -1656,43 +1656,80 @@ export default function CompleteProfilePage() {
         const normalizedAddress = await normalizeAddressForSave(companyData)
         console.log('📍 正規化済み住所:', normalizedAddress)
         
-        const { data: newCompany, error: companyError } = await supabase
-          .from('companies')
-          .insert({
-            name: companyData.name,
-            name_kana: companyData.nameKana || null,
-            industry: companyData.industry || null,
-            employee_count: companyData.employeeCount || null,
-            annual_revenue: companyData.annualRevenue || null,
-            website: companyData.website || null,
-            email: companyData.email || null,
-            postal_code: companyData.postalCode || null,
-            prefecture: normalizedAddress.prefecture || null,
-            city: normalizedAddress.city || null,
-            address: normalizedAddress.address || null,
-            // Web検索から取得した追加フィールド
-            established_date: companyData.establishedDate || null,
-            representative_name: companyData.representativeName || null,
-            phone: companyData.companyPhone || null,
-            fax: companyData.fax || null,
-            business_description: companyData.businessDescription || null,
-            capital: companyData.capital || null,
-            fiscal_year_end: companyData.fiscalYearEnd ? parseInt(companyData.fiscalYearEnd) : null,
-            ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
-          })
-          .select()
-          .single()
-        
-        if (companyError) {
-          console.error('Company insert error:', companyError)
-          throw new Error(`会社情報の作成に失敗しました: ${companyError.message || companyError.code || '不明なエラー'}`)
+        const insertData = {
+          name: companyData.name,
+          name_kana: companyData.nameKana || null,
+          industry: companyData.industry || null,
+          employee_count: companyData.employeeCount || null,
+          annual_revenue: companyData.annualRevenue || null,
+          website: companyData.website || null,
+          email: companyData.email || null,
+          postal_code: companyData.postalCode || null,
+          prefecture: normalizedAddress.prefecture || null,
+          city: normalizedAddress.city || null,
+          address: normalizedAddress.address || null,
+          // Web検索から取得した追加フィールド
+          established_date: companyData.establishedDate || null,
+          representative_name: companyData.representativeName || null,
+          phone: companyData.companyPhone || null,
+          fax: companyData.fax || null,
+          business_description: companyData.businessDescription || null,
+          capital: companyData.capital || null,
+          fiscal_year_end: companyData.fiscalYearEnd ? parseInt(companyData.fiscalYearEnd) : null,
+          ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
         }
-        
-        if (!newCompany || !newCompany.id) {
+        console.log('📝 会社データ挿入:', JSON.stringify(insertData, null, 2))
+
+        // RLSポリシーの関係で、INSERT後すぐにSELECTすると失敗するため、
+        // まずINSERTのみ実行し、その後会社名で検索してIDを取得する
+        const { error: insertError } = await supabase
+          .from('companies')
+          .insert(insertData)
+
+        if (insertError) {
+          console.error('Company insert error:', insertError)
+          console.error('Company insert error (JSON):', JSON.stringify(insertError, null, 2))
+          throw new Error(`会社情報の作成に失敗しました: ${insertError.message || insertError.code || insertError.hint || '不明なエラー'}`)
+        }
+
+        // 挿入した会社のIDを取得（会社名とWebサイトで特定）
+        // 注意: プロファイル更新後でないとRLSで取得できないため、一時的にservice roleが必要
+        // または、挿入時に返されるIDを使用できるように、SupabaseでRLSポリシーを更新する必要がある
+        // ここでは会社名で検索する（同名企業がある場合は最新のものを使用）
+        const { data: insertedCompany, error: selectError } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('name', companyData.name)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (selectError) {
+          console.error('Company select error:', selectError)
+          // SELECTエラーでも続行を試みる（RLSの問題の可能性）
+        }
+
+        if (!insertedCompany?.id) {
+          // RLSの問題でSELECTできない場合、別の方法で取得を試みる
+          console.log('⚠️ 通常のSELECTでIDを取得できませんでした。RPC経由で取得を試みます...')
+
+          // 最後に挿入された会社を取得（名前一致）
+          const { data: rpcData, error: rpcError } = await supabase.rpc('get_latest_company_by_name', {
+            company_name: companyData.name
+          })
+
+          if (rpcError || !rpcData) {
+            console.error('RPC error:', rpcError)
+            throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）。Supabaseの管理画面でRLSポリシーを確認してください。')
+          }
+          companyId = rpcData
+        } else {
+          companyId = insertedCompany.id
+        }
+
+        if (!companyId) {
           throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）')
         }
-        
-        companyId = newCompany.id
         console.log('✅ 会社作成完了:', companyId)
 
         // 会社資料をアップロード（会社作成後）
