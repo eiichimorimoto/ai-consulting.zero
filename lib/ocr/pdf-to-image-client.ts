@@ -12,12 +12,9 @@ export async function convertPdfToImageClient(
     // pdfjs-distを動的インポート（クライアントサイドのみ）
     const pdfjsLib = await import('pdfjs-dist')
     
-    // ワーカーファイルのパスを設定（Next.jsのパブリックフォルダから読み込む）
+    // ワーカーの設定（ブラウザ環境では正常に動作）
     if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-      // パブリックフォルダのワーカーファイルを使用
-      const workerPath = '/pdf.worker.min.mjs'
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath
-      console.log('✅ pdfjs-dist: ワーカーパスを設定:', workerPath)
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
     }
 
     // Base64データをUint8Arrayに変換
@@ -28,12 +25,8 @@ export async function convertPdfToImageClient(
       bytes[i] = binaryString.charCodeAt(i)
     }
 
-    // PDFを読み込む（ワーカーを使用）
-    const loadingTask = pdfjsLib.getDocument({ 
-      data: bytes,
-      useSystemFonts: true,
-      verbosity: 0,
-    })
+    // PDFを読み込む
+    const loadingTask = pdfjsLib.getDocument({ data: bytes })
     const pdf = await loadingTask.promise
 
     // 指定ページを取得
@@ -54,8 +47,7 @@ export async function convertPdfToImageClient(
     await page.render({
       canvasContext: context,
       viewport: viewport,
-      canvas: canvas,
-    } as any).promise
+    }).promise
 
     // Canvasを画像データURLに変換
     const imageDataUrl = canvas.toDataURL('image/png')
