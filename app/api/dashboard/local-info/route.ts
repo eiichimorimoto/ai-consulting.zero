@@ -854,10 +854,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const forceRefresh = searchParams.get('refresh') === 'true'
 
-    // 強制更新でない場合、キャッシュからデータを取得（有効期限: 30分）
+    // 強制更新でない場合、キャッシュからデータを取得（有効期限: 5分）
     if (!forceRefresh) {
       const cacheExpiry = new Date()
-      cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 30)
+      cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 5)
 
       const { data: cachedData } = await supabase
         .from('dashboard_data')
@@ -953,7 +953,7 @@ export async function GET(request: Request) {
         company_id: profile.company_id,
         data_type: 'local_info',
         data: localInfoData,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30分後
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5分後
       }, {
         onConflict: 'user_id,company_id,data_type'
       })
