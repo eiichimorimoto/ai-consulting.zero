@@ -260,27 +260,58 @@ const parseEmployeesNumber = (text: string): number | null => {
 }
 
 const parseOkuYen = (text: string): number | null => {
-  // 例: "469億8,400万円" / "46,984百万円"
-  const normalized = text.replace(/,/g, "")
+  // 例: "469億8,400万円" / "46,984百万円" / "4,698千万円" / "46,984,000千円"
+  const normalized = text.replace(/,/g, "").replace(/　/g, "")
 
-  // 百万円 → 億円（百万円×1,000,000円 / 100,000,000円 = 百万円 / 100）
+  // 百万円 → 億円（百万円 / 100 = 億円）
   const hyakuMan = normalized.match(/(\d{1,10})\s*百万円/)
   if (hyakuMan) {
     const v = Number(hyakuMan[1])
     if (Number.isFinite(v)) return v / 100
   }
 
+  // 千万円 → 億円（千万円 / 10 = 億円）
+  const senMan = normalized.match(/(\d{1,10})\s*千万円/)
+  if (senMan) {
+    const v = Number(senMan[1])
+    if (Number.isFinite(v)) return v / 10
+  }
+
+  // 千円 → 億円（千円 / 100,000 = 億円）
+  const sen = normalized.match(/(\d{1,15})\s*千円/)
+  if (sen) {
+    const v = Number(sen[1])
+    if (Number.isFinite(v)) return v / 100000
+  }
+
+  // 万円 → 億円（万円 / 10,000 = 億円）
+  const man = normalized.match(/(\d{1,15})\s*万円/)
+  if (man && !normalized.includes("億")) {
+    const v = Number(man[1])
+    if (Number.isFinite(v)) return v / 10000
+  }
+
+  // 億円形式（「469億8,400万円」など）
   const oku = normalized.match(/(\d+(?:\.\d+)?)\s*億/)
   if (oku) {
     const okuVal = Number(oku[1])
     if (!Number.isFinite(okuVal)) return null
-    const man = normalized.match(/億\s*(\d+(?:\.\d+)?)\s*万/)
-    const manVal = man ? Number(man[1]) : 0
-    if (man && !Number.isFinite(manVal)) return okuVal
+    const manMatch = normalized.match(/億\s*(\d+(?:\.\d+)?)\s*万/)
+    const manVal = manMatch ? Number(manMatch[1]) : 0
+    if (manMatch && !Number.isFinite(manVal)) return okuVal
     return okuVal + manVal / 10000
   }
 
-  // 円単位だけがある場合は扱わない（誤爆しやすい）
+  // 円単位（10億円以上の場合のみ対応）
+  // 例: "46984000000円" → 約469億円
+  const yen = normalized.match(/(\d{10,15})\s*円/)
+  if (yen) {
+    const v = Number(yen[1])
+    if (Number.isFinite(v) && v >= 1000000000) { // 10億円以上
+      return v / 100000000 // 億円に変換
+    }
+  }
+
   return null
 }
 
@@ -660,12 +691,22 @@ interface CompanyIntelResult {
   capital?: string | null
   /** 決算月（1-12の数値、例: 3月決算なら "3"） */
   fiscalYearEnd?: string | null
+  /** 主要製品・商品（配列） */
   products?: string[]
+  /** 主要サービス（配列） */
   services?: string[]
+  /** 支店一覧（配列） */
   branches?: string[]
+  /** 営業所・事業所一覧（配列） */
   offices?: string[]
+  /** 工場一覧（配列） */
   factories?: string[]
+  /** 店舗一覧（配列） */
+  stores?: string[]
+  /** その他拠点（配列） */
   otherLocations?: string[]
+  /** 代表者挨拶・ビジョン要約（50-100字程度） */
+  companyVision?: string | null
   summary?: string
   rawNotes?: string
   /**
@@ -1283,24 +1324,50 @@ export async function POST(request: Request) {
 - 決算月は1〜12の数値文字列で返す（例: 3月決算なら "3"、12月決算なら "12"）。「○月期」「○月決算」「事業年度末○月」などの記載から抽出する。
 - それ以外で取得できた有用情報は「取得情報」欄に流し込めるよう、箇条書き（短い1行）としてextraBulletsに入れる
 
+【売上高の抽出ルール - 最重要】
+- 売上高は「売上高」「売上収益」「年商」「営業収益」「経常収益」などの表記を探す
+- 必ず「通期（年間/12ヶ月）の売上高」のみを取得すること。四半期売上（3ヶ月/6ヶ月/9ヶ月）は絶対に使用しない。
+- 売上高の記載形式は多様:
+  - 「469億8,400万円」「46,984百万円」「4,698千万円」「469億円」
+  - 「売上高: 100億円」「年商: 50億円」「売上収益: 200百万円」
+- 通期の判断基準:
+  - 「○○年3月期」「○○年度」「通期」「年間売上」「年商」→ 通期売上として採用可
+  - 「第1四半期」「第2四半期」「第3四半期」「1Q」「2Q」「3Q」「累計」「○ヶ月」→ 四半期売上なので除外
+  - 判断できない場合は annualRevenue = null にする（誤った数値を入れるより空の方が良い）
+- 売上高が明記されているのに取得できない場合は、rawNotes に「売上高の記載: [原文]」を入れて確認できるようにする
+
+【製品・サービス・拠点の抽出ルール】
+- products: 主要な製品・商品名を配列で返す（例: ["会計ソフト", "給与計算ソフト", "人事管理システム"]）
+- services: 主要なサービス名を配列で返す（例: ["クラウドサービス", "導入コンサルティング", "保守サポート"]）
+- branches: 支店・支社の名称または所在地を配列で返す（例: ["大阪支店", "名古屋支社", "福岡営業所"]）
+- offices: 営業所・事業所の名称または所在地を配列で返す
+- factories: 工場の名称または所在地を配列で返す（例: ["川崎工場", "大阪工場"]）
+- stores: 店舗の名称または所在地を配列で返す
+- otherLocations: 上記に分類できない拠点（研究所、物流センター等）
+- 拠点数のみ記載がある場合（例: 「全国30店舗」）も、数値情報として extraBullets に入れる
+
+【代表者挨拶・ビジョンの抽出ルール】
+- companyVision: 代表者挨拶、社長メッセージ、経営理念、ビジョン、ミッション等から、会社が目指す方向性を50-100字で要約
+- 「お客様第一」「社会貢献」「持続可能な成長」など、会社の価値観・目標を簡潔にまとめる
+- 記載がない場合は null
+
 制約:
 - 推測は禁止。根拠がない場合は null / 空配列にする
 - 取得した情報（従業員数/売上/業種など）について、サイト内の複数箇所（会社概要、IR、採用、沿革、決算/IR資料）で整合性を確認し、矛盾する場合は確度の高い根拠（IR/有価証券報告書/決算説明資料 > 会社概要 > その他）を優先する。根拠が弱い場合はnullにする。
 - 上場企業の場合は、可能な範囲で公式サイト内のIR情報（決算/IRページ、有価証券報告書に相当する開示）を優先して参照する（本テキストにIR候補ページの抜粋があれば活用する）。
-- 【重要】売上高は必ず「通期（年間/12ヶ月）の売上高」のみを取得すること。四半期売上（3ヶ月/6ヶ月/9ヶ月）は絶対に使用しない。
-- 売上高の判断基準:
-  - 「○○年3月期」「○○年度」「通期」「年間売上」「年商」→ 通期売上として採用可
-  - 「第1四半期」「第2四半期」「第3四半期」「1Q」「2Q」「3Q」「累計」「○ヶ月」→ 四半期売上なので除外
-  - 判断できない場合は annualRevenue = null にする（誤った数値を入れるより空の方が良い）
 - 売上高（または売上収益）と従業員数は「最新の通期データ」を最優先で取得すること。古い年度の情報が混在する場合は最新年度を優先する。
 - 年度が2023年以前など古い記載しか見つからない場合、「最新」であることを確認できない限り、annualRevenue/employeeCount は null にする（フォームを誤って埋めないため）。ただし extraBullets に「古い記載しか見つからない」旨を必ず出す。
 - 売上/従業員数は、可能な限り「年度/期間」と「参照元URL」を添える（extraBulletsに入れる）。例: "売上高(2025年3月期/通期): 469億8,400万円（出典: <URL>）"
 - 外部サイトの情報は誤りが混ざるため、公式サイト/一次情報と矛盾する場合は採用しない（採用しない場合でも extraBullets に「矛盾検出」のメモを出す）。
-- extraBullets は「入力項目以外」の情報のみ（業種/従業員数/年間売上/設立日/代表者名/電話番号/FAX/事業内容/資本金/決算月は入れない）
-- extraBullets は日本語で、1項目=1行の短文。最大12件まで
+- extraBullets は日本語で、1項目=1行の短文。最大15件まで
+- extraBullets には以下の情報を優先的に入れる（見つかった場合）:
+  1. 主要製品/主要サービス（例: "主要製品: 会計ソフト、給与計算ソフト"）
+  2. 拠点情報（例: "支店数: 全国15拠点"、"工場: 3工場（川崎、大阪、福岡）"）
+  3. 会社ビジョン・理念（例: "経営理念: お客様と共に成長する"）
+  4. 売上高・従業員数の詳細（年度付き）
+  5. その他の有用情報
 - URLが会社サイトでない/情報が薄い場合も、無理に埋めずnullを返す
 - 候補から選ぶ時は、取得できた数値/表現を候補の範囲に寄せる（例: 従業員120名→「100-299名」、売上12億→「10-50億円」）
-- extraBullets の先頭には、可能なら「主要製品/主要サービス/主要事業」の情報を最優先で入れる（例: "主要製品: 〜", "主要サービス: 〜"）。複数ある場合は代表的なものに絞る。
 - companyNameKana（会社名カナ）は、法人格を除いた会社名をカタカナに変換して返す。英語名がある場合は英語名をそのまま返す（例: "ピーシーエー" または "PCA"）。
 
 必ず下記のJSON構造で、JSONのみを返してください:
@@ -1321,7 +1388,9 @@ export async function POST(request: Request) {
   "branches": string[],
   "offices": string[],
   "factories": string[],
+  "stores": string[],
   "otherLocations": string[],
+  "companyVision": string|null,
   "extraBullets": string[],
   "summary": string|null,
   "rawNotes": string|null
@@ -1468,31 +1537,167 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       const warn = y
         ? `外部情報の数値は${y}年の記載が中心で、最新であることを確認できないためフォーム入力は未設定にしました（要確認）`
         : `外部情報の数値が最新であることを確認できないためフォーム入力は未設定にしました（要確認）`
-      parsed.extraBullets = [warn, ...(parsed.extraBullets || [])].slice(0, 12)
+      parsed.extraBullets = [warn, ...(parsed.extraBullets || [])].slice(0, 15)
     }
 
-    // PDFが取れなかった場合でも、取得済みテキストから最低限の数値を拾う（誤爆回避のため“テキスト表記”だけ採用）
+    // PDFが取れなかった場合でも、取得済みテキストから最低限の数値を拾う（誤爆回避のため"テキスト表記"だけ採用）
     if (!financialFacts?.revenueText || !financialFacts?.employeesText) {
-      const combined = `${scrapedContent}\n${supplementalContent}`
-      // 売上候補（百万円/億万表記の断片）
-      if (!financialFacts?.revenueText) {
-        const m = combined.match(/(\d[\d,]{2,8})\s*百万円/)
-        if (m) parsed.latestRevenueText = `${m[1]}百万円`
+      const combined = `${scrapedContent}\n${supplementalContent}\n${externalText}`
+
+      // 売上候補（複数のフォーマットに対応）
+      if (!financialFacts?.revenueText && !parsed.latestRevenueText) {
+        // 「売上高」「売上収益」「年商」等のラベル付きパターン優先
+        const labeledPatterns = [
+          /(?:売上高|売上収益|年商|営業収益)[:\s:：]*(\d[\d,]{0,10}億[\d,]*万?円)/,
+          /(?:売上高|売上収益|年商|営業収益)[:\s:：]*(\d[\d,]{2,12}百万円)/,
+          /(?:売上高|売上収益|年商|営業収益)[:\s:：]*(\d[\d,]{2,12}千万円)/,
+          /(?:売上高|売上収益|年商|営業収益)[:\s:：]*(\d[\d,]{2,12}万円)/,
+          /(?:売上高|売上収益|年商|営業収益)[:\s:：]*(\d[\d,]{2,12}千円)/,
+        ]
+        for (const pattern of labeledPatterns) {
+          const m = combined.match(pattern)
+          if (m) {
+            parsed.latestRevenueText = m[1]
+            break
+          }
+        }
+
+        // ラベルなしでも億円/百万円パターンを探す（フォールバック）
+        if (!parsed.latestRevenueText) {
+          const fallbackPatterns = [
+            /(\d[\d,]{0,5}億[\d,]*万?円)/,
+            /(\d[\d,]{2,8}百万円)/,
+          ]
+          for (const pattern of fallbackPatterns) {
+            const m = combined.match(pattern)
+            if (m) {
+              parsed.latestRevenueText = m[1]
+              break
+            }
+          }
+        }
       }
-      if (!financialFacts?.employeesText) {
-        const m = combined.match(/(\d[\d,]{1,7})\s*(?:名|人)/)
-        if (m) parsed.latestEmployeesText = `${m[1]}名`
+
+      if (!financialFacts?.employeesText && !parsed.latestEmployeesText) {
+        // 従業員数のパターンマッチ
+        const empPatterns = [
+          /従業員(?:数)?[:\s:：]*(\d[\d,]{1,7})\s*(?:名|人)/,
+          /社員数[:\s:：]*(\d[\d,]{1,7})\s*(?:名|人)/,
+        ]
+        for (const pattern of empPatterns) {
+          const m = combined.match(pattern)
+          if (m) {
+            parsed.latestEmployeesText = `${m[1]}名`
+            break
+          }
+        }
+
+        // フォールバック
+        if (!parsed.latestEmployeesText) {
+          const m = combined.match(/(\d[\d,]{1,7})\s*(?:名|人)/)
+          if (m) parsed.latestEmployeesText = `${m[1]}名`
+        }
       }
-      if (parsed.latestRevenueText) factBullets.push(`売上高(参考): ${parsed.latestRevenueText}`)
-      if (parsed.latestEmployeesText) factBullets.push(`従業員数(参考): ${parsed.latestEmployeesText}`)
+
+      if (parsed.latestRevenueText && !factBullets.some(b => b.includes("売上高"))) {
+        factBullets.push(`売上高(参考): ${parsed.latestRevenueText}`)
+      }
+      if (parsed.latestEmployeesText && !factBullets.some(b => b.includes("従業員数"))) {
+        factBullets.push(`従業員数(参考): ${parsed.latestEmployeesText}`)
+      }
+
+      // 見つかった売上高テキストをプルダウン値にマッピング
+      if (parsed.latestRevenueText && !parsed.annualRevenue && revenueRanges.length > 0) {
+        const extractedOku = parseOkuYen(parsed.latestRevenueText)
+        if (extractedOku != null) {
+          const mapped = mapRevenueOkuToRange(extractedOku, revenueRanges)
+          if (mapped) {
+            parsed.annualRevenue = mapped
+            console.log("📊 売上高マッピング:", { text: parsed.latestRevenueText, oku: extractedOku, mapped })
+          }
+        }
+      }
+
+      // 見つかった従業員数をプルダウン値にマッピング
+      if (parsed.latestEmployeesText && !parsed.employeeCount && employeeRanges.length > 0) {
+        const extractedN = parseEmployeesNumber(parsed.latestEmployeesText)
+        if (extractedN != null) {
+          const mapped = mapEmployeesToRange(extractedN, employeeRanges)
+          if (mapped) {
+            parsed.employeeCount = mapped
+            console.log("👥 従業員数マッピング:", { text: parsed.latestEmployeesText, n: extractedN, mapped })
+          }
+        }
+      }
     }
 
     const evidence = (financialFacts?.evidenceLines || []).map((l) => l.trim()).filter(Boolean)
+
+    // 製品・サービス・拠点・ビジョン情報をextraBulletsに追加
+    const structuredBullets: string[] = []
+
+    // 主要製品
+    if (parsed.products && parsed.products.length > 0) {
+      structuredBullets.push(`主要製品: ${parsed.products.slice(0, 5).join("、")}`)
+    }
+
+    // 主要サービス
+    if (parsed.services && parsed.services.length > 0) {
+      structuredBullets.push(`主要サービス: ${parsed.services.slice(0, 5).join("、")}`)
+    }
+
+    // 拠点情報（支店）
+    if (parsed.branches && parsed.branches.length > 0) {
+      if (parsed.branches.length <= 3) {
+        structuredBullets.push(`支店: ${parsed.branches.join("、")}`)
+      } else {
+        structuredBullets.push(`支店数: ${parsed.branches.length}拠点（${parsed.branches.slice(0, 3).join("、")}等）`)
+      }
+    }
+
+    // 拠点情報（営業所・事業所）
+    if (parsed.offices && parsed.offices.length > 0) {
+      if (parsed.offices.length <= 3) {
+        structuredBullets.push(`営業所: ${parsed.offices.join("、")}`)
+      } else {
+        structuredBullets.push(`営業所数: ${parsed.offices.length}拠点（${parsed.offices.slice(0, 3).join("、")}等）`)
+      }
+    }
+
+    // 拠点情報（工場）
+    if (parsed.factories && parsed.factories.length > 0) {
+      if (parsed.factories.length <= 3) {
+        structuredBullets.push(`工場: ${parsed.factories.join("、")}`)
+      } else {
+        structuredBullets.push(`工場数: ${parsed.factories.length}工場（${parsed.factories.slice(0, 3).join("、")}等）`)
+      }
+    }
+
+    // 拠点情報（店舗）
+    if (parsed.stores && parsed.stores.length > 0) {
+      if (parsed.stores.length <= 3) {
+        structuredBullets.push(`店舗: ${parsed.stores.join("、")}`)
+      } else {
+        structuredBullets.push(`店舗数: ${parsed.stores.length}店舗（${parsed.stores.slice(0, 3).join("、")}等）`)
+      }
+    }
+
+    // その他拠点
+    if (parsed.otherLocations && parsed.otherLocations.length > 0) {
+      structuredBullets.push(`その他拠点: ${parsed.otherLocations.slice(0, 3).join("、")}`)
+    }
+
+    // 会社ビジョン・理念
+    if (parsed.companyVision) {
+      structuredBullets.push(`経営理念: ${parsed.companyVision}`)
+    }
+
     parsed.extraBullets = [
       ...factBullets,
+      ...structuredBullets,
       ...evidence,
       ...(parsed.extraBullets || []),
-    ].filter(Boolean).slice(0, 12)
+    ].filter(Boolean).slice(0, 15)
 
     // ファクトチェックを実行（AI結果 + 検索結果）
     const aiFactCheck = checkAIResult({
