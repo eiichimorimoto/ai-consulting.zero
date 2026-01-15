@@ -1065,8 +1065,20 @@ export default function CompleteProfilePage() {
     // 1. 郵便番号と住所の整合性チェック・自動修正
     if (ocrData.postalCode) {
       try {
-        const cleanPostalCode = ocrData.postalCode.replace(/[〒ー-]/g, '')
+        // 郵便番号のクリーンアップ（全角→半角、各種ハイフン・記号除去）
+        const cleanPostalCode = ocrData.postalCode
+          .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角数字→半角
+          .replace(/[〒\s　ー−‐‑–—\-]/g, '') // 〒、空白、各種ハイフン除去
+          .trim()
+
+        // クリーンアップした郵便番号を保存（フォーマット: XXX-XXXX）
         if (/^\d{7}$/.test(cleanPostalCode)) {
+          const formattedPostalCode = `${cleanPostalCode.slice(0, 3)}-${cleanPostalCode.slice(3)}`
+          if (formattedPostalCode !== ocrData.postalCode) {
+            correctedData.postalCode = formattedPostalCode
+            console.log('✅ 郵便番号を自動修正:', ocrData.postalCode, '→', formattedPostalCode)
+          }
+
           const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
           const response = await fetch(apiUrl)
           const data = await response.json()
@@ -1080,7 +1092,11 @@ export default function CompleteProfilePage() {
             const correctFullAddress = `${correctPrefecture}${correctCity}${correctAddress}`.trim()
             
             if (ocrData.address) {
-              const ocrAddress = ocrData.address.replace(/[〒ー-]/g, '').trim()
+              // 住所のクリーンアップ（全角数字→半角、記号除去）
+              const ocrAddress = ocrData.address
+                .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角→半角
+                .replace(/[〒ー−‐‑–—\-]/g, '') // 各種記号除去
+                .trim()
               
               // 住所の類似度をチェック
               const correctWords = correctFullAddress.split(/[都道府県市区町村]/).filter(w => w.length > 1)
@@ -1152,15 +1168,55 @@ export default function CompleteProfilePage() {
       }
     }
     
-    // 3. 電話番号の形式チェック（簡易版）
+    // 3. 電話番号の形式チェック・自動修正
     if (ocrData.phone) {
-      const phoneRegex = /^[\d-ー()]+$/
-      if (!phoneRegex.test(ocrData.phone.replace(/\s/g, ''))) {
+      // 電話番号をクリーンアップ（全角数字→半角、不要な文字を除去）
+      let cleanedPhone = ocrData.phone
+        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角→半角
+        .replace(/[ー−]/g, '-') // 全角ハイフン→半角
+        .replace(/[\s　]+/g, '') // 空白除去
+        .replace(/[TEL:tel:Tel:電話：電話:]/gi, '') // プレフィックス除去
+        .trim()
+
+      const phoneRegex = /^[\d-()（）]+$/
+      if (!phoneRegex.test(cleanedPhone)) {
         warnings.push(`電話番号の形式を確認してください: ${ocrData.phone}`)
+      } else if (cleanedPhone !== ocrData.phone) {
+        correctedData.phone = cleanedPhone
+        console.log('✅ 電話番号を自動修正:', ocrData.phone, '→', cleanedPhone)
       }
     }
-    
-    // 4. URLの形式チェック
+
+    // 4. 携帯電話番号の形式チェック・自動修正
+    if (ocrData.mobile) {
+      // 携帯番号をクリーンアップ（全角数字→半角、不要な文字を除去）
+      let cleanedMobile = ocrData.mobile
+        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角→半角
+        .replace(/[ー−]/g, '-') // 全角ハイフン→半角
+        .replace(/[\s　]+/g, '') // 空白除去
+        .replace(/[携帯：携帯:Mobile:mobile:MOBILE:]/gi, '') // プレフィックス除去
+        .trim()
+
+      const mobileRegex = /^[\d-()（）]+$/
+      if (!mobileRegex.test(cleanedMobile)) {
+        warnings.push(`携帯電話番号の形式を確認してください: ${ocrData.mobile}`)
+      } else {
+        // 携帯番号として妥当か確認（日本の携帯は070/080/090で始まる）
+        const digitsOnly = cleanedMobile.replace(/\D/g, '')
+        const isValidMobile = /^0[789]0\d{8}$/.test(digitsOnly)
+
+        if (!isValidMobile && digitsOnly.length >= 10) {
+          warnings.push(`携帯電話番号の形式を確認してください（固定電話の可能性があります）: ${cleanedMobile}`)
+        }
+
+        if (cleanedMobile !== ocrData.mobile) {
+          correctedData.mobile = cleanedMobile
+          console.log('✅ 携帯電話番号を自動修正:', ocrData.mobile, '→', cleanedMobile)
+        }
+      }
+    }
+
+    // 5. URLの形式チェック
     if (ocrData.website) {
       try {
         new URL(ocrData.website.startsWith('http') ? ocrData.website : `https://${ocrData.website}`)
@@ -1168,8 +1224,8 @@ export default function CompleteProfilePage() {
         warnings.push(`ウェブサイトのURL形式を確認してください: ${ocrData.website}`)
       }
     }
-    
-    // 5. 重要な情報の欠損チェック
+
+    // 6. 重要な情報の欠損チェック
     const hasName = !!ocrData.personName
     const hasCompany = !!ocrData.companyName
     const hasContact = !!(ocrData.email || ocrData.phone || ocrData.mobile)
