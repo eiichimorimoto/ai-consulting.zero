@@ -790,9 +790,14 @@ export default function CompleteProfilePage() {
         mobile: ocrResult.mobile || '',
       }
       
+      // websiteから「URL:」「url:」などのプレフィックスを除去
+      const cleanWebsite = (ocrResult.website || '')
+        .replace(/^(URL|url|Url)\s*[:：]\s*/i, '')
+        .trim()
+
       const newCompanyData = {
         name: ocrResult.companyName || '',
-        website: ocrResult.website || '',
+        website: cleanWebsite,
         postalCode: ocrResult.postalCode || '',
         address: ocrResult.address || '',
         email: ocrResult.email || '', // 会社のemailを追加
