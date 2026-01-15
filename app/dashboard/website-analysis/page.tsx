@@ -95,6 +95,40 @@ export default function WebsiteAnalysisPage() {
     fetchCompany()
   }, [router])
 
+  const mapDiagnosisError = (rawMessage: string) => {
+    const message = rawMessage || ''
+
+    if (message.includes('PageSpeed APIキー')) {
+      return '分析に必要な設定（PageSpeed APIキー）が未設定です。管理者にお問い合わせください。'
+    }
+    if (message.includes('400 Bad Request') || message.includes('無効なURL') || message.includes('Invalid URL')) {
+      return 'URLの形式が不正です。例: https://example.com の形式で入力してください。'
+    }
+    if (
+      message.includes('FAILED_DOCUMENT_REQUEST') ||
+      message.includes('ERR_CONNECTION_FAILED')
+    ) {
+      return 'サイトに接続できませんでした。URLが公開されているか、http/httpsが正しいか確認してください。'
+    }
+    if (message.includes('ENOTFOUND') || message.includes('DNS')) {
+      return 'URLのドメインが見つかりませんでした。スペルやドメインの有効性を確認してください。'
+    }
+    if (message.includes('SSL') || message.includes('CERT') || message.includes('HTTPS')) {
+      return 'SSL証明書の問題で接続できませんでした。httpsでアクセス可能か確認してください。'
+    }
+    if (message.includes('401') || message.includes('403') || message.includes('Forbidden')) {
+      return 'アクセスが拒否されました。認証やIP制限、WAF設定をご確認ください。'
+    }
+    if (message.includes('429')) {
+      return '混雑しています。少し時間をおいてから再度お試しください。'
+    }
+    if (message.includes('500') || message.includes('PageSpeed API error')) {
+      return '分析に失敗しました。しばらく待ってから再度お試しください。'
+    }
+
+    return message || '分析中に不明なエラーが発生しました。'
+  }
+
   const runAnalysis = async () => {
     if (!companyUrl) return
 
@@ -125,13 +159,7 @@ export default function WebsiteAnalysisPage() {
         url: data.url || companyUrl,
       })
     } catch (err: any) {
-      let errorMessage = err.message || '分析中にエラーが発生しました'
-      
-      // PageSpeed APIキーが設定されていない場合の特別なメッセージ
-      if (errorMessage.includes('PageSpeed APIキー') || errorMessage.includes('PageSpeed API key')) {
-        errorMessage = 'PageSpeed APIキーが設定されていません。管理者にお問い合わせください。'
-      }
-      
+      const errorMessage = mapDiagnosisError(err?.message || '')
       setError(errorMessage)
     } finally {
       setIsAnalyzing(false)
