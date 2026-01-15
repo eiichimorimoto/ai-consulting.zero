@@ -317,7 +317,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         headers: {
           'Cache-Control': forceRefresh ? 'no-cache' : 'default'
         }
-      }, 30_000, 3) // タイムアウト30秒、最大3回リトライ
+      }, 90_000, 3) // タイムアウト90秒、最大3回リトライ（業界予測等の重いClaude API処理対応）
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -379,6 +379,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   // セッションストレージのキー（v9: ログアウトまでキャッシュ保持、自動更新なし）
   const SESSION_KEY = `dashboard_data_v9_${profile?.id || 'guest'}`
   const SESSION_INITIALIZED_KEY = `dashboard_initialized_v9_${profile?.id || 'guest'}`
+  const COMPANY_VERSION_KEY = `dashboard_company_version_v1_${profile?.id || 'guest'}`
+  const COMPANY_VERSION = company?.updated_at || 'unknown'
 
   // キャッシュからデータを復元（全データが揃っている場合のみ成功）
   const restoreFromCache = () => {
@@ -447,26 +449,36 @@ export default function DashboardClient({ profile, company, subscription }: Dash
       try {
         setLoading(true)
         
+        // 会社情報が更新されていればキャッシュを破棄
+        const storedCompanyVersion = sessionStorage.getItem(COMPANY_VERSION_KEY)
+        const companyChanged = storedCompanyVersion !== COMPANY_VERSION
+        if (companyChanged) {
+          console.log('🏢 会社情報が更新されました。キャッシュをクリアします。')
+          sessionStorage.setItem(COMPANY_VERSION_KEY, COMPANY_VERSION)
+          sessionStorage.removeItem(SESSION_KEY)
+          sessionStorage.removeItem(SESSION_INITIALIZED_KEY)
+        }
+
         // セッションで初回かどうかをチェック
         const isFirstLoad = !sessionStorage.getItem(SESSION_INITIALIZED_KEY)
         
         // 全データを取得する関数
-        const fetchAllData = async () => {
+        const fetchAllData = async (forceRefresh = false) => {
           console.log('全データを取得中...')
           await Promise.all([
-            fetchSectionData('market'),
+            fetchSectionData('market', forceRefresh),
             fetchSectionData('local-info', true),
-            fetchSectionData('industry-trends'),
-            fetchSectionData('swot-analysis'),
-            fetchSectionData('world-news'),
-            fetchSectionData('industry-forecast'),
+            fetchSectionData('industry-trends', forceRefresh),
+            fetchSectionData('swot-analysis', forceRefresh),
+            fetchSectionData('world-news', forceRefresh),
+            fetchSectionData('industry-forecast', forceRefresh),
           ])
         }
         
         if (isFirstLoad) {
           // 初回ログイン時は全データを取得
           console.log('🚀 初回ログイン: 全データを取得します')
-          await fetchAllData()
+          await fetchAllData(companyChanged)
           // 初回フラグをセット
           sessionStorage.setItem(SESSION_INITIALIZED_KEY, Date.now().toString())
         } else {

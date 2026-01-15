@@ -62,7 +62,7 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<OpenW
   
   try {
     console.log(`🌤️ OpenWeatherMap API: 現在の天気取得中... (lat=${lat}, lon=${lon})`)
-    const response = await fetch(url, { next: { revalidate: 600 } }) // 10分キャッシュ
+    const response = await fetch(url, { cache: 'no-store' }) // キャッシュ無効化（リアルタイムデータ取得）
     
     if (!response.ok) {
       console.error(`❌ OpenWeatherMap API エラー: ${response.status} ${response.statusText}`)
@@ -93,7 +93,7 @@ export async function get5DayForecast(lat: number, lon: number): Promise<OpenWea
   
   try {
     console.log(`🌤️ OpenWeatherMap API: 5日間予報取得中... (lat=${lat}, lon=${lon})`)
-    const response = await fetch(url, { next: { revalidate: 1800 } }) // 30分キャッシュ
+    const response = await fetch(url, { cache: 'no-store' }) // キャッシュ無効化（リアルタイムデータ取得）
     
     if (!response.ok) {
       console.error(`❌ OpenWeatherMap API エラー: ${response.status} ${response.statusText}`)
