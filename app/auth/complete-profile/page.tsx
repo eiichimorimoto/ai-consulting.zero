@@ -1366,6 +1366,8 @@ export default function CompleteProfilePage() {
         companyPhone: intel.phone || prev.companyPhone,
         fax: intel.fax || prev.fax,
         businessDescription: intel.businessDescription || prev.businessDescription,
+        // 資本金を自動セット（取得できた場合のみ）
+        capital: intel.capital || prev.capital,
         // 決算月を自動セット（取得できた場合のみ）
         fiscalYearEnd: intel.fiscalYearEnd || prev.fiscalYearEnd,
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
