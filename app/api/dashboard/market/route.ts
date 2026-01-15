@@ -301,11 +301,25 @@ const industryMaterials: Record<string, { key: string; name: string; unit: strin
   ],
 }
 
-// 企業の業種から関連原材料を取得（業態・サービス内容・商品を詳細に考慮）
-function getRelevantMaterials(industry: string, businessDesc: string): { materials: typeof industryMaterials['default']; matchedCategory: string } {
+// 企業の業種から関連原材料を取得（業態・サービス内容・商品・retrieved_infoを詳細に考慮）
+function getRelevantMaterials(industry: string, businessDesc: string, retrievedInfo?: any): { materials: typeof industryMaterials['default']; matchedCategory: string } {
   const industryLower = (industry || '').toLowerCase()
   const descLower = (businessDesc || '').toLowerCase()
-  const searchText = `${industryLower} ${descLower}`
+
+  // retrieved_infoから追加情報を抽出
+  let retrievedText = ''
+  if (retrievedInfo) {
+    // 事業内容・サービス・製品情報を抽出
+    const relevantKeys = ['business', 'services', 'products', 'description', 'overview', 'mainBusiness', 'companyProfile']
+    for (const key of relevantKeys) {
+      if (retrievedInfo[key]) {
+        retrievedText += ` ${JSON.stringify(retrievedInfo[key])}`
+      }
+    }
+    console.log('📋 retrieved_infoから抽出した追加情報:', retrievedText.substring(0, 200))
+  }
+
+  const searchText = `${industryLower} ${descLower} ${retrievedText.toLowerCase()}`
 
   // 具体的な業態を優先判定（より詳細なマッチング）
 
@@ -522,17 +536,27 @@ export async function GET(request: Request) {
 
     const companyId = profile?.company_id || null
 
-    // 会社情報を取得（業種特定用）
+    // 会社情報を取得（業種特定用）- retrieved_infoも含める
     let companyIndustry = ''
     let companyBusinessDesc = ''
+    let companyRetrievedInfo: any = null
     if (companyId) {
       const { data: company } = await supabase
         .from('companies')
-        .select('industry, business_description')
+        .select('industry, business_description, retrieved_info, name')
         .eq('id', companyId)
         .single()
       companyIndustry = company?.industry || ''
       companyBusinessDesc = company?.business_description || ''
+      companyRetrievedInfo = company?.retrieved_info || null
+
+      // デバッグログ: 会社情報を出力
+      console.log('🏢 会社情報（原材料マッチング用）:', {
+        name: company?.name,
+        industry: companyIndustry,
+        business_description: companyBusinessDesc?.substring(0, 100),
+        retrieved_info_keys: companyRetrievedInfo ? Object.keys(companyRetrievedInfo) : null
+      })
     }
 
     // 強制更新パラメータをチェック
@@ -566,8 +590,9 @@ export async function GET(request: Request) {
     const loginDate = new Date()
     const baseMarketData = await getMarketData(loginDate)
 
-    // 企業の業種・業態・商品に応じた原材料を取得
-    const { materials: relevantMaterials, matchedCategory } = getRelevantMaterials(companyIndustry, companyBusinessDesc)
+    // 企業の業種・業態・商品に応じた原材料を取得（retrieved_infoも考慮）
+    const { materials: relevantMaterials, matchedCategory } = getRelevantMaterials(companyIndustry, companyBusinessDesc, companyRetrievedInfo)
+    console.log('🏭 マッチした業種カテゴリ:', matchedCategory, '→ 原材料:', relevantMaterials.map(m => m.name).join(', '))
     const commodities = generateCommodityPrices(relevantMaterials, baseMarketData.currentRate)
 
     const marketData = {

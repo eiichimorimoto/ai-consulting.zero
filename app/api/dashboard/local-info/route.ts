@@ -240,26 +240,15 @@ async function getLaborCosts(
   // 地域補正係数（東京を1.0として）
   const regionFactor = minimumWage / 1163
   
-  // 外部検索で最新の労務費情報を取得（月収・年収ベースで検索）
-  const queries = [
-    `${prefName} ${matchedIndustryName} 正社員 平均年収 2024`,
-    `${matchedIndustryName} 業界 平均月収 給与 2024`,
-    `${prefName} ${industry} 賃金 給与水準`,
-  ]
-
-  const results: any[] = []
-  const searchLogs: Array<{ query: string; resultCount: number; results: any[] }> = []
-  
-  for (const q of queries) {
-    const searchResults = await braveWebSearch(q, 3)
-    const verifiedResults = await factCheckSearchResults(searchResults, q, 'labor')
-    results.push(...verifiedResults)
-    searchLogs.push({
-      query: q,
-      resultCount: searchResults.length,
-      results: verifiedResults
-    })
-  }
+  // 外部検索で最新の労務費情報を取得（1クエリに統合して高速化）
+  const query = `${prefName} ${matchedIndustryName} 平均年収 月収 2024`
+  const searchResults = await braveWebSearch(query, 5)
+  const results = await factCheckSearchResults(searchResults, query, 'labor')
+  const searchLogs = [{
+    query,
+    resultCount: searchResults.length,
+    results
+  }]
 
   // 検索結果から年収・月収の数値を抽出
   let searchBasedYearly = 0
@@ -362,7 +351,7 @@ async function getLaborCosts(
       lastUpdated: '2024年10月',
     },
     _debug: {
-      searchQueries: queries,
+      searchQuery: query,
       searchLogs,
       matchedIndustry: matchedIndustryName,
       sizeCategory,
@@ -414,23 +403,20 @@ async function getEvents(prefecture: string, city: string, industry: string) {
   }
 }
 
-// インフラ情報を取得
+// インフラ情報を取得（高速化: 2クエリに統合）
 async function getInfrastructure(prefecture: string, city: string, industry: string) {
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const industryQuery = industry ? `${industry} ` : ''
+  // 2つのクエリに統合して高速化
   const queries = [
-    `${area} 高速道路 工事 規制`,
-    `${area} 電力 供給 状況`,
-    `${area} 港 運行 状況`,
-    `${area} ${industryQuery}物流 インフラ 影響`,
+    `${area} 高速道路 工事 規制 電力`,
+    `${area} 物流 インフラ 港 運行`,
   ]
 
   const results: any[] = []
   const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: any[] }> = []
-  
+
   for (const q of queries) {
     const searchResults = await braveWebSearch(q, 5)
-    // ファクトチェックを実行
     const verifiedResults = await factCheckSearchResults(searchResults, q, 'infrastructure')
     results.push(...verifiedResults)
     searchLogs.push({
@@ -441,7 +427,6 @@ async function getInfrastructure(prefecture: string, city: string, industry: str
     })
   }
 
-  // 注目度が高いもの3-5件を返す
   return {
     items: results.slice(0, 5).map((r: any) => ({
       title: r.title || '',
@@ -555,15 +540,16 @@ async function getWeather(prefecture: string, city: string) {
     })
   }
   
-  // 時間別予報（次の6時間、3時間ごと）
+  // 時間別予報（次の6時間、3時間ごと）- JST変換
   const hourlyForecast = []
   for (let i = 0; i < Math.min(6, forecast.list.length); i++) {
     const item = forecast.list[i]
-    const date = new Date(item.dt * 1000)
-    const hour = date.getHours()
-    
+    // UTCタイムスタンプをJSTに変換（+9時間）
+    const utcDate = new Date(item.dt * 1000)
+    const jstHour = (utcDate.getUTCHours() + 9) % 24
+
     hourlyForecast.push({
-      time: `${hour}:00`,
+      hour: `${jstHour}:00`,
       temp: Math.round(item.main.temp),
       icon: weatherIconToEmoji(item.weather[0].icon)
     })
@@ -674,49 +660,29 @@ function extractStatus(text: string): 'normal' | 'warning' | 'error' {
   return 'normal'
 }
 
-// トラフィック情報を取得
+// トラフィック情報を取得（高速化: 1クエリに統合）
 async function getTrafficInfo(prefecture: string, city: string) {
   console.log(`🚗 交通情報取得開始: ${prefecture}${city}`)
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const queries = [
-    `${area} 交通 渋滞 情報 現在`,
-    `${area} 高速道路 渋滞 リアルタイム`,
-    `${area} 交通規制 工事 現在`,
-  ]
+  const query = `${area} 交通 渋滞 高速道路 規制 現在`
 
-  const results: any[] = []
-  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: any[] }> = []
-  
-  for (const q of queries) {
-    console.log(`🔍 交通情報検索: ${q}`)
-    const searchResults = await braveWebSearch(q, 3)
-    console.log(`📊 検索結果: ${searchResults.length}件`)
-    // ファクトチェックを実行
-    const verifiedResults = await factCheckSearchResults(searchResults, q, 'infrastructure')
-    console.log(`✅ 検証済み結果: ${verifiedResults.length}件`)
-    results.push(...verifiedResults)
-    searchLogs.push({
-      query: q,
-      resultCount: searchResults.length,
-      verifiedCount: verifiedResults.length,
-      results: verifiedResults
-    })
-  }
+  console.log(`🔍 交通情報検索: ${query}`)
+  const searchResults = await braveWebSearch(query, 8)
+  const verifiedResults = await factCheckSearchResults(searchResults, query, 'infrastructure')
+  console.log(`🚗 交通情報取得完了: ${verifiedResults.length}件`)
 
-  console.log(`🚗 交通情報取得完了: 合計${results.length}件`)
-
-  // 注目度が高いもの3-5件を返す
   return {
-    items: results.slice(0, 5).map((r: any) => ({
+    items: verifiedResults.slice(0, 5).map((r: any) => ({
       title: r.title || '',
       url: r.url || '',
       description: r.description || '',
       status: extractTrafficStatus(r.description || r.title || '')
     })),
     _debug: {
-      searchQueries: queries,
-      searchLogs,
-      totalResults: results.length
+      searchQuery: query,
+      resultCount: searchResults.length,
+      verifiedCount: verifiedResults.length,
+      totalResults: verifiedResults.length
     }
   }
 }
@@ -731,24 +697,21 @@ function extractTrafficStatus(text: string): 'normal' | 'warning' | 'error' {
   return 'normal'
 }
 
-// ロジスティクス情報を取得
+// ロジスティクス情報を取得（高速化: 2クエリに統合）
 async function getLogisticsInfo(prefecture: string, city: string, industry: string) {
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const industryQuery = industry ? `${industry} ` : ''
+  const industryTerm = industry ? `${industry} ` : ''
+  // 2つのクエリに統合して高速化
   const queries = [
-    `${area} ${industryQuery}物流 配送 状況 2025`,
-    `${area} 運送 配送料 燃料費 動向`,
-    `${area} 倉庫 物流センター ニュース`,
-    `${area} ${industryQuery}サプライチェーン 最新`,
-    `物流業界 2025 トレンド ニュース`,
+    `${area} ${industryTerm}物流 配送 運送 燃料費 2025`,
+    `物流業界 サプライチェーン トレンド 2025`,
   ]
 
   const results: any[] = []
   const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: any[] }> = []
-  
+
   for (const q of queries) {
-    const searchResults = await braveWebSearch(q, 3)
-    // ファクトチェックを実行（logistics用のキーワード検証）
+    const searchResults = await braveWebSearch(q, 5)
     const verifiedResults = searchResults.filter(result => {
       const text = `${result.title || ''} ${result.description || ''}`.toLowerCase()
       if (!result.title && !result.description) return false
@@ -807,6 +770,70 @@ function extractLogisticsStatus(text: string): 'normal' | 'warning' | 'error' {
   return 'normal'
 }
 
+// 緊急情報・災害速報を取得（地震・津波・火山等）
+async function getEmergencyAlerts(prefecture: string): Promise<{
+  alerts: { type: string; title: string; description: string; severity: string }[]
+  _debug: any
+}> {
+  const prefName = prefecture.replace(/[都道府県]/g, '')
+  const now = new Date()
+  const query = `${prefName} 地震 津波 災害速報 ${now.getMonth() + 1}月${now.getDate()}日`
+
+  console.log(`🚨 緊急情報検索: ${query}`)
+  const searchResults = await braveWebSearch(query, 5)
+
+  const alerts: { type: string; title: string; description: string; severity: string }[] = []
+  const emergencyKeywords = {
+    extreme: ['津波警報', '大津波', '震度6', '震度7', '緊急地震速報', '噴火警報'],
+    severe: ['地震', '津波注意報', '震度5', '震度4', '火山', '噴火'],
+    warning: ['余震', '注意', '警戒']
+  }
+
+  for (const result of searchResults) {
+    const text = `${result.title} ${result.description}`.toLowerCase()
+    let matched = false
+
+    for (const keyword of emergencyKeywords.extreme) {
+      if (text.includes(keyword.toLowerCase())) {
+        alerts.push({
+          type: 'earthquake',
+          title: `🚨 ${keyword}`,
+          description: result.description?.slice(0, 100) || result.title,
+          severity: 'extreme'
+        })
+        matched = true
+        break
+      }
+    }
+
+    if (!matched) {
+      for (const keyword of emergencyKeywords.severe) {
+        if (text.includes(keyword.toLowerCase())) {
+          alerts.push({
+            type: 'earthquake',
+            title: `⚠️ ${keyword}情報`,
+            description: result.description?.slice(0, 100) || result.title,
+            severity: 'severe'
+          })
+          matched = true
+          break
+        }
+      }
+    }
+  }
+
+  console.log(`🚨 緊急情報取得完了: ${alerts.length}件`)
+
+  return {
+    alerts: alerts.slice(0, 3),
+    _debug: {
+      searchQuery: query,
+      resultCount: searchResults.length,
+      alertsFound: alerts.length
+    }
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
@@ -859,8 +886,7 @@ export async function GET(request: Request) {
     const industry = company.industry || ''
     const businessDescription = company.business_description || ''
     const employeeCount = company.employee_count || null
-    const loginDate = new Date()
-    
+
     // デフォルト値を使用した場合は警告ログ
     if (!company.prefecture) {
       console.warn('⚠️ prefecture がDBに保存されていません。デフォルト値（愛知県）を使用します。')
@@ -897,13 +923,14 @@ export async function GET(request: Request) {
     }
 
     // 各データを並列取得（業種・会社規模情報を含める）
-    const [laborCosts, events, infrastructure, weather, traffic, logistics] = await Promise.all([
+    const [laborCosts, events, infrastructure, weather, traffic, logistics, emergencyAlerts] = await Promise.all([
       getLaborCosts(prefecture, city, industry, employeeCount, businessDescription),
       getEvents(prefecture, city, industry),
       getInfrastructure(prefecture, city, industry),
       getWeather(prefecture, city),
       getTrafficInfo(prefecture, city),
-      getLogisticsInfo(prefecture, city, industry)
+      getLogisticsInfo(prefecture, city, industry),
+      getEmergencyAlerts(prefecture)
     ])
 
     // デバッグ情報を収集
@@ -926,6 +953,7 @@ export async function GET(request: Request) {
       weather: weather._debug,
       traffic: traffic._debug,
       logistics: logistics._debug,
+      emergencyAlerts: emergencyAlerts._debug,
       apiKeyConfigured: !!process.env.BRAVE_SEARCH_API_KEY
     }
 
@@ -953,10 +981,12 @@ export async function GET(request: Request) {
       },
       traffic: traffic.items,
       logistics: logistics.items,
+      emergencyAlerts: emergencyAlerts.alerts,
       _debug: {
         ...debugInfo,
         traffic: traffic._debug,
-        logistics: logistics._debug
+        logistics: logistics._debug,
+        emergencyAlerts: emergencyAlerts._debug
       }
     }
 
