@@ -59,7 +59,7 @@ const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
 
 // ファクトチェック関数（検索結果の信頼性を検証）
 // 重要: 検索結果を表示する前に必ずこの関数を実行すること
-async function factCheckSearchResults(results: any[], query: string, expectedType: 'labor' | 'event' | 'infrastructure' | 'weather'): Promise<any[]> {
+async function factCheckSearchResults(results: any[], _query: string, expectedType: 'labor' | 'event' | 'infrastructure' | 'weather'): Promise<any[]> {
   if (!results || results.length === 0) return []
   
   // 基本的なファクトチェック
@@ -217,15 +217,14 @@ function getEmployeeSizeCategory(employeeCount: string | number | null | undefin
 // 労務費データを取得（月別グラフ用）- 改善版
 // 会社の業種、所在地、従業員規模を考慮して実態に近い数値を算出
 async function getLaborCosts(
-  prefecture: string, 
-  city: string, 
+  prefecture: string,
+  _city: string,
   industry: string,
   employeeCount?: string | number | null,
   businessDescription?: string
 ) {
-  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
   const prefName = prefecture.replace(/[都道府県]/g, '')
-  
+
   // 都道府県の最低賃金を取得
   const minimumWage = MINIMUM_WAGE_2024[prefName] || 1000
   
@@ -404,7 +403,7 @@ async function getEvents(prefecture: string, city: string, industry: string) {
 }
 
 // インフラ情報を取得（高速化: 2クエリに統合）
-async function getInfrastructure(prefecture: string, city: string, industry: string) {
+async function getInfrastructure(prefecture: string, city: string, _industry: string) {
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
   // 2つのクエリに統合して高速化
   const queries = [
@@ -549,7 +548,7 @@ async function getWeather(prefecture: string, city: string) {
     const jstHour = (utcDate.getUTCHours() + 9) % 24
 
     hourlyForecast.push({
-      hour: `${jstHour}:00`,
+      hour: `${jstHour}時`,
       temp: Math.round(item.main.temp),
       icon: weatherIconToEmoji(item.weather[0].icon)
     })
@@ -783,23 +782,24 @@ async function getEmergencyAlerts(prefecture: string): Promise<{
   const searchResults = await braveWebSearch(query, 5)
 
   const alerts: { type: string; title: string; description: string; severity: string }[] = []
+  // severity: 'critical' = 最重要（赤）, 'warning' = 警告（黄）, 'info' = 情報（青）
   const emergencyKeywords = {
-    extreme: ['津波警報', '大津波', '震度6', '震度7', '緊急地震速報', '噴火警報'],
-    severe: ['地震', '津波注意報', '震度5', '震度4', '火山', '噴火'],
-    warning: ['余震', '注意', '警戒']
+    critical: ['津波警報', '大津波', '震度6', '震度7', '緊急地震速報', '噴火警報'],
+    warning: ['地震', '津波注意報', '震度5', '震度4', '火山', '噴火'],
+    info: ['余震', '注意', '警戒']
   }
 
   for (const result of searchResults) {
     const text = `${result.title} ${result.description}`.toLowerCase()
     let matched = false
 
-    for (const keyword of emergencyKeywords.extreme) {
+    for (const keyword of emergencyKeywords.critical) {
       if (text.includes(keyword.toLowerCase())) {
         alerts.push({
           type: 'earthquake',
           title: `🚨 ${keyword}`,
           description: result.description?.slice(0, 100) || result.title,
-          severity: 'extreme'
+          severity: 'critical'
         })
         matched = true
         break
@@ -807,13 +807,13 @@ async function getEmergencyAlerts(prefecture: string): Promise<{
     }
 
     if (!matched) {
-      for (const keyword of emergencyKeywords.severe) {
+      for (const keyword of emergencyKeywords.warning) {
         if (text.includes(keyword.toLowerCase())) {
           alerts.push({
             type: 'earthquake',
             title: `⚠️ ${keyword}情報`,
             description: result.description?.slice(0, 100) || result.title,
-            severity: 'severe'
+            severity: 'warning'
           })
           matched = true
           break
