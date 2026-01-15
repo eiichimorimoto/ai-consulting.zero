@@ -1668,6 +1668,65 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       }
     }
 
+    // 【追加】AIが extraBullets に売上高を入れていても annualRevenue が未設定の場合、extraBulletsから抽出を試みる
+    if (!parsed.annualRevenue && revenueRanges.length > 0 && parsed.extraBullets && parsed.extraBullets.length > 0) {
+      for (const bullet of parsed.extraBullets) {
+        // 売上高を含む箇条書きを探す
+        if (bullet.includes("売上高") || bullet.includes("売上収益") || bullet.includes("年商") || bullet.includes("営業収益")) {
+          // 金額パターンを抽出（複合パターン対応）
+          const patterns = [
+            /(\d[\d,]*億\d+百万円)/,
+            /(\d[\d,]*億[\d,]*万円)/,
+            /(\d[\d,]*億円)/,
+            /(\d[\d,]*百万円)/,
+            /(\d[\d,]*千万円)/,
+            /(\d[\d,]*万円)/,
+          ]
+          for (const pattern of patterns) {
+            const m = bullet.match(pattern)
+            if (m) {
+              const extractedOku = parseOkuYen(m[1])
+              if (extractedOku != null) {
+                const mapped = mapRevenueOkuToRange(extractedOku, revenueRanges)
+                if (mapped) {
+                  parsed.annualRevenue = mapped
+                  if (!parsed.latestRevenueText) {
+                    parsed.latestRevenueText = m[1]
+                  }
+                  console.log("📊 extraBulletsから売上高マッピング:", { bullet, extracted: m[1], oku: extractedOku, mapped })
+                  break
+                }
+              }
+            }
+          }
+          if (parsed.annualRevenue) break
+        }
+      }
+    }
+
+    // 【追加】AIが extraBullets に従業員数を入れていても employeeCount が未設定の場合、extraBulletsから抽出を試みる
+    if (!parsed.employeeCount && employeeRanges.length > 0 && parsed.extraBullets && parsed.extraBullets.length > 0) {
+      for (const bullet of parsed.extraBullets) {
+        if (bullet.includes("従業員") || bullet.includes("社員数")) {
+          const m = bullet.match(/(\d[\d,]*)\s*(?:名|人)/)
+          if (m) {
+            const extractedN = parseEmployeesNumber(m[1] + "名")
+            if (extractedN != null) {
+              const mapped = mapEmployeesToRange(extractedN, employeeRanges)
+              if (mapped) {
+                parsed.employeeCount = mapped
+                if (!parsed.latestEmployeesText) {
+                  parsed.latestEmployeesText = m[1] + "名"
+                }
+                console.log("👥 extraBulletsから従業員数マッピング:", { bullet, extracted: m[1], n: extractedN, mapped })
+                break
+              }
+            }
+          }
+        }
+      }
+    }
+
     const evidence = (financialFacts?.evidenceLines || []).map((l) => l.trim()).filter(Boolean)
 
     // 製品・サービス・拠点・ビジョン情報をextraBulletsに追加
