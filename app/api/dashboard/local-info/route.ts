@@ -441,6 +441,18 @@ async function getInfrastructure(prefecture: string, city: string, _industry: st
   }
 }
 
+// HTMLタグ、エンティティ、プレースホルダーを除去する関数
+function sanitizeDescription(text: string | undefined): string {
+  if (!text) return ''
+  return text
+    .replace(/<[^>]+>/g, '') // HTMLタグを除去
+    .replace(/&lt;[^&]+&gt;/g, '') // エスケープされたHTMLタグを除去
+    .replace(/&[a-z]+;/gi, ' ') // HTMLエンティティ（&gt; &lt; &amp; など）を除去
+    .replace(/&[#0-9]+;/g, ' ') // 数値参照エンティティを除去
+    .replace(/\s+/g, ' ') // 連続する空白を1つに
+    .trim()
+}
+
 // OpenWeatherMap APIから天気を取得
 async function getWeather(prefecture: string, city: string) {
   // 日本時間（JST）を使用
@@ -554,9 +566,10 @@ async function getWeather(prefecture: string, city: string) {
     })
   }
   
-  // 気象警報チェック（Brave Searchを使用）
+  // 気象警報チェック（Brave Searchを使用）- 最新の情報のみ取得
   const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const alertQuery = `${area} 気象警報 注意報 ${now.getMonth() + 1}月`
+  const today = `${now.getMonth() + 1}月${now.getDate()}日`
+  const alertQuery = `${area} 気象警報 注意報 現在 最新 ${today}`
   const alertResults = await braveWebSearch(alertQuery, 5)
   
   const alerts: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[] = []
@@ -569,12 +582,17 @@ async function getWeather(prefecture: string, city: string) {
   for (const result of alertResults) {
     const text = `${result.title} ${result.description}`.toLowerCase()
     
+    // 「発表なし」「解除」「解除しました」を含む結果はスキップ
+    if (text.includes('発表なし') || text.includes('解除') || text.includes('発令なし')) {
+      continue
+    }
+    
     for (const keyword of alertKeywords.extreme) {
       if (text.includes(keyword.toLowerCase())) {
         alerts.push({
           type: 'extreme',
           title: `🚨 ${keyword}発令中`,
-          description: result.description?.slice(0, 100) || result.title,
+          description: sanitizeDescription(result.description)?.slice(0, 100) || sanitizeDescription(result.title),
           severity: 'extreme'
         })
         break
@@ -587,7 +605,7 @@ async function getWeather(prefecture: string, city: string) {
           alerts.push({
             type: 'severe',
             title: `⚠️ ${keyword}発令中`,
-            description: result.description?.slice(0, 100) || result.title,
+            description: sanitizeDescription(result.description)?.slice(0, 100) || sanitizeDescription(result.title),
             severity: 'severe'
           })
           break
@@ -601,7 +619,7 @@ async function getWeather(prefecture: string, city: string) {
           alerts.push({
             type: 'warning',
             title: `ℹ️ ${keyword}発令中`,
-            description: result.description?.slice(0, 100) || result.title,
+            description: sanitizeDescription(result.description)?.slice(0, 100) || sanitizeDescription(result.title),
             severity: 'warning'
           })
           break
