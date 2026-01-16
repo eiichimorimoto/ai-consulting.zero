@@ -1726,45 +1726,87 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                     <span className="local-title">インフラ状況</span>
                   </div>
-                  {/* 影響度グラフ（6項目） */}
-                  <div style={{ marginBottom: '10px' }}>
-                    {[
-                      { name: '道路・交通', value: localInfo?.infrastructure?.[0]?.status === 'error' ? 80 : localInfo?.infrastructure?.[0]?.status === 'warning' ? 50 : 20, status: localInfo?.infrastructure?.[0]?.status || 'ok' },
-                      { name: '電力供給', value: 15, status: 'ok' },
-                      { name: '港湾・物流', value: localInfo?.infrastructure?.[2]?.status === 'warning' ? 40 : 10, status: localInfo?.infrastructure?.[2]?.status || 'ok' },
-                      { name: '通信回線', value: 5, status: 'ok' },
-                      { name: '上下水道', value: 10, status: 'ok' },
-                      { name: 'ガス供給', value: 8, status: 'ok' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{item.name}</span>
-                          <span style={{ 
-                            fontSize: '9px', 
-                            fontWeight: '600',
-                            color: item.status === 'error' ? '#ef4444' : item.status === 'warning' ? '#f59e0b' : '#10b981'
-                          }}>
-                            {item.status === 'error' ? '要注意' : item.status === 'warning' ? '注意' : '正常'}
-                          </span>
-                        </div>
-                        <div style={{ 
-                          height: '6px', 
-                          background: 'var(--bg-main)', 
-                          borderRadius: '3px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{ 
-                            height: '100%',
-                            width: `${item.value}%`,
-                            background: item.status === 'error' ? 'linear-gradient(90deg, #ef4444, #f87171)' : 
-                                        item.status === 'warning' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 
-                                        'linear-gradient(90deg, #10b981, #34d399)',
-                            borderRadius: '3px',
-                            transition: 'width 0.5s ease'
-                          }}></div>
-                        </div>
+                  {/* エリアマップ */}
+                  <div style={{ 
+                    marginBottom: '10px', 
+                    position: 'relative',
+                    background: 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    minHeight: '120px'
+                  }}>
+                    {/* エリア名表示 */}
+                    <div style={{ 
+                      fontSize: '11px', 
+                      fontWeight: '600', 
+                      color: '#0369a1',
+                      marginBottom: '8px',
+                      textAlign: 'center'
+                    }}>
+                      📍 {company?.prefecture || '愛知県'}{company?.city || '名古屋市'}エリア
+                    </div>
+                    
+                    {/* 簡易地図（SVG）*/}
+                    <svg viewBox="0 0 200 80" style={{ width: '100%', height: 'auto' }}>
+                      {/* 背景エリア */}
+                      <rect x="10" y="10" width="180" height="60" rx="4" fill="#bae6fd" fillOpacity="0.3" stroke="#0ea5e9" strokeWidth="1" strokeDasharray="3,3"/>
+                      
+                      {/* 道路（模擬）*/}
+                      <line x1="30" y1="40" x2="170" y2="40" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="100" y1="20" x2="100" y2="60" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
+                      
+                      {/* インフラ情報のマーカー */}
+                      {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
+                        localInfo.infrastructure.slice(0, 5).map((item, idx) => {
+                          const positions = [
+                            { x: 50, y: 30 },
+                            { x: 100, y: 25 },
+                            { x: 150, y: 35 },
+                            { x: 70, y: 50 },
+                            { x: 130, y: 55 }
+                          ]
+                          const pos = positions[idx] || { x: 100 + (idx * 20), y: 40 }
+                          const color = item.status === 'error' ? '#ef4444' : 
+                                       item.status === 'warning' ? '#f59e0b' : '#10b981'
+                          
+                          return (
+                            <g key={idx}>
+                              {/* マーカーピン */}
+                              <circle cx={pos.x} cy={pos.y} r="6" fill={color} stroke="white" strokeWidth="2"/>
+                              <circle cx={pos.x} cy={pos.y} r="3" fill="white" fillOpacity="0.8"/>
+                              {/* ツールチップ（ホバー時）*/}
+                              <title>{item.title}</title>
+                            </g>
+                          )
+                        })
+                      ) : (
+                        <text x="100" y="45" textAnchor="middle" fontSize="10" fill="#64748b" fontStyle="italic">
+                          情報なし
+                        </text>
+                      )}
+                    </svg>
+                    
+                    {/* 凡例 */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      gap: '12px', 
+                      marginTop: '8px',
+                      fontSize: '9px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
+                        <span style={{ color: 'var(--text-secondary)' }}>要注意</span>
                       </div>
-                    ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                        <span style={{ color: 'var(--text-secondary)' }}>注意</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
+                        <span style={{ color: 'var(--text-secondary)' }}>正常</span>
+                      </div>
+                    </div>
                   </div>
                   {/* 詳細リスト */}
                   <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '8px', borderRadius: '6px' }}>
@@ -1787,16 +1829,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         </div>
                       ))
                     ) : (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }}></span>
-                          <span>{company?.city || '名古屋'}高速: 工事規制中</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-                          <span>電力・通信: 正常稼働</span>
-                        </div>
-                      </>
+                      <div style={{ 
+                        padding: '6px 0', 
+                        color: 'var(--text-secondary)', 
+                        textAlign: 'center',
+                        fontStyle: 'italic'
+                      }}>
+                        現在、インフラに関する特記事項はありません
+                      </div>
                     )}
                   </div>
                 </div>
