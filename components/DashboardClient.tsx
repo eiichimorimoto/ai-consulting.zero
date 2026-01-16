@@ -1755,17 +1755,31 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <line x1="30" y1="40" x2="170" y2="40" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
                       <line x1="100" y1="20" x2="100" y2="60" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
                       
-                      {/* インフラ情報のマーカー */}
+                      {/* 会社位置（中心）*/}
+                      <g>
+                        {/* 会社マーカー（青い特別なピン）*/}
+                        <circle cx="100" cy="40" r="10" fill="#0ea5e9" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+                        <path d="M 100 40 L 100 47" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                        <circle cx="100" cy="40" r="4" fill="white"/>
+                        <text x="100" y="68" textAnchor="middle" fontSize="8" fill="#0369a1" fontWeight="600">
+                          {company?.name?.slice(0, 6) || '自社'}
+                        </text>
+                        {/* 会社位置のツールチップ */}
+                        <title>📍 {company?.name || '自社'}の位置</title>
+                      </g>
+                      
+                      {/* インフラ情報のマーカー（会社を中心に配置）*/}
                       {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
                         localInfo.infrastructure.slice(0, 5).map((item, idx) => {
+                          // 会社（中心：100,40）を基準に周辺に配置
                           const positions = [
-                            { x: 50, y: 30 },
-                            { x: 100, y: 25 },
-                            { x: 150, y: 35 },
-                            { x: 70, y: 50 },
-                            { x: 130, y: 55 }
+                            { x: 65, y: 25 },   // 北西
+                            { x: 135, y: 25 },  // 北東
+                            { x: 65, y: 55 },   // 南西
+                            { x: 135, y: 55 },  // 南東
+                            { x: 155, y: 40 }   // 東
                           ]
-                          const pos = positions[idx] || { x: 100 + (idx * 20), y: 40 }
+                          const pos = positions[idx] || { x: 100 + (idx * 15), y: 40 }
                           const color = item.status === 'error' ? '#ef4444' : 
                                        item.status === 'warning' ? '#f59e0b' : '#10b981'
                           
@@ -1774,14 +1788,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               {/* マーカーピン */}
                               <circle cx={pos.x} cy={pos.y} r="6" fill={color} stroke="white" strokeWidth="2"/>
                               <circle cx={pos.x} cy={pos.y} r="3" fill="white" fillOpacity="0.8"/>
+                              {/* 会社からのライン（薄い線）*/}
+                              <line x1="100" y1="40" x2={pos.x} y2={pos.y} stroke={color} strokeWidth="1" strokeOpacity="0.2" strokeDasharray="2,2"/>
                               {/* ツールチップ（ホバー時）*/}
                               <title>{item.title}</title>
                             </g>
                           )
                         })
                       ) : (
-                        <text x="100" y="45" textAnchor="middle" fontSize="10" fill="#64748b" fontStyle="italic">
-                          情報なし
+                        <text x="100" y="25" textAnchor="middle" fontSize="9" fill="#64748b" fontStyle="italic">
+                          周辺にインフラ情報なし
                         </text>
                       )}
                     </svg>
@@ -1790,10 +1806,15 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'center', 
-                      gap: '12px', 
+                      gap: '10px', 
                       marginTop: '8px',
-                      fontSize: '9px'
+                      fontSize: '9px',
+                      flexWrap: 'wrap'
                     }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0ea5e9', border: '2px solid white' }}></span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>自社</span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
                         <span style={{ color: 'var(--text-secondary)' }}>要注意</span>
