@@ -608,26 +608,44 @@ export default function DiagnosisReportPage() {
         </div>
 
         {/* 注意事項 */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-300">
-          <h3 className="text-sm font-bold text-gray-700 mb-2">⚠️ 診断結果に関する注意事項</h3>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li className="flex items-start gap-2">
-              <span className="text-gray-400">•</span>
-              <span>本診断結果は、診断実施時点でのサイト状況を反映しています。</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-gray-400">•</span>
-              <span><strong>外部要因による変動</strong>: ネットワーク速度、サーバー負荷、診断元の地域・時間帯などにより、スコアが変動する場合があります。</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-gray-400">•</span>
-              <span>より正確な評価のため、異なる時間帯での再診断をお勧めします。</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-gray-400">•</span>
-              <span>スコアが0または「取得不可」の場合、対象サイトの設定やアクセス制限が原因の可能性があります。</span>
-            </li>
-          </ul>
+        <div className="mt-6 p-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 shadow-sm">
+          <h3 className="text-base font-bold text-amber-900 mb-4 flex items-center gap-2">
+            <span className="text-xl">⚠️</span>
+            診断結果に関する重要な注意事項
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
+              <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">①</span>
+              <div>
+                <div className="text-sm font-bold text-gray-800 mb-1">📅 診断時点の状況</div>
+                <div className="text-xs text-gray-600">本診断結果は、診断実施時点でのサイト状況を反映しています。時間経過により状況が変わる場合があります。</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
+              <span className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">②</span>
+              <div>
+                <div className="text-sm font-bold text-gray-800 mb-1">🌐 外部要因による変動</div>
+                <div className="text-xs text-gray-600">ネットワーク速度、サーバー負荷、診断元の地域・時間帯などにより、スコアが変動する場合があります。</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
+              <span className="flex-shrink-0 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">③</span>
+              <div>
+                <div className="text-sm font-bold text-gray-800 mb-1">🔄 推奨：複数回診断</div>
+                <div className="text-xs text-gray-600">より正確な評価のため、異なる時間帯での再診断をお勧めします。平均的な傾向を把握できます。</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-100">
+              <span className="flex-shrink-0 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">④</span>
+              <div>
+                <div className="text-sm font-bold text-gray-800 mb-1">🚫 スコア0の場合</div>
+                <div className="text-xs text-gray-600">対象サイトの設定（robots.txt）、アクセス制限、ファイアウォール設定が原因の可能性があります。サイト管理者に確認してください。</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       </div>
