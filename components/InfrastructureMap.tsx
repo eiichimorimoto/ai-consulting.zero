@@ -157,11 +157,18 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, co
           {/* インフラマーカー */}
           {infrastructure.slice(0, 5).map((item, index) => {
             const position = getInfraPosition(index)
+            const circleNumbers = ['①', '②', '③', '④', '⑤']
             return (
               <Marker
                 key={index}
                 position={position}
                 icon={getMarkerIcon(item.status)}
+                label={{
+                  text: circleNumbers[index],
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
                 title={item.title}
                 onClick={() => setSelectedMarker(index)}
               />

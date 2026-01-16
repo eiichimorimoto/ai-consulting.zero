@@ -1734,95 +1734,39 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     city={company?.city || '名古屋市'}
                     companyName={company?.name}
                   />
-                  {/* 詳細リスト（番号付き） */}
-                  <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '10px', borderRadius: '6px' }}>
+                  {/* 詳細リスト（タイトルのみ・3件） */}
+                  <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '8px', borderRadius: '6px' }}>
                     {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
-                      <>
-                        <div style={{ 
-                          fontSize: '9px', 
-                          fontWeight: '600', 
-                          color: 'var(--text-secondary)', 
-                          marginBottom: '8px',
-                          paddingBottom: '4px',
-                          borderBottom: '1px solid var(--border)'
-                        }}>
-                          📌 インフラ情報詳細（地図マーカーと対応）
-                        </div>
-                        {localInfo.infrastructure.slice(0, 5).map((item, idx) => {
-                          const circleNumbers = ['①', '②', '③', '④', '⑤']
-                          const statusColor = item.status === 'error' ? '#ef4444' : 
-                                             item.status === 'warning' ? '#f59e0b' : '#10b981'
-                          const statusLabel = item.status === 'error' ? '要注意' : 
-                                             item.status === 'warning' ? '注意' : '正常'
-                          
-                          return (
-                            <div key={idx} style={{ 
-                              display: 'flex', 
-                              alignItems: 'flex-start', 
-                              gap: '8px',
-                              padding: '6px 8px',
-                              marginBottom: idx < localInfo.infrastructure.length - 1 && idx < 4 ? '6px' : '0',
-                              background: 'white',
-                              borderRadius: '6px',
-                              border: `1px solid ${statusColor}20`
+                      localInfo.infrastructure.slice(0, 3).map((item, idx) => {
+                        const circleNumbers = ['①', '②', '③']
+                        const statusColor = item.status === 'error' ? '#ef4444' : 
+                                           item.status === 'warning' ? '#f59e0b' : '#10b981'
+                        
+                        return (
+                          <div key={idx} style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px',
+                            padding: '4px 0',
+                            borderBottom: idx < 2 ? '1px solid var(--border)' : 'none'
+                          }}>
+                            <span style={{ 
+                              fontSize: '12px',
+                              flexShrink: 0
                             }}>
-                              <span style={{ 
-                                fontSize: '14px',
-                                lineHeight: 1,
-                                flexShrink: 0
-                              }}>
-                                {circleNumbers[idx]}
-                              </span>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '6px',
-                                  marginBottom: '3px'
-                                }}>
-                                  <span style={{ 
-                                    width: '6px', 
-                                    height: '6px', 
-                                    borderRadius: '50%',
-                                    background: statusColor,
-                                    flexShrink: 0
-                                  }}></span>
-                                  <span style={{ 
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    color: 'var(--text-primary)',
-                                    flex: 1
-                                  }}>
-                                    {item.title}
-                                  </span>
-                                  <span style={{
-                                    fontSize: '8px',
-                                    padding: '1px 4px',
-                                    borderRadius: '3px',
-                                    background: statusColor,
-                                    color: 'white',
-                                    fontWeight: '600',
-                                    flexShrink: 0
-                                  }}>
-                                    {statusLabel}
-                                  </span>
-                                </div>
-                                {item.description && (
-                                  <div style={{ 
-                                    fontSize: '9px', 
-                                    color: 'var(--text-secondary)', 
-                                    lineHeight: '1.4',
-                                    paddingLeft: '12px'
-                                  }}>
-                                    {item.description.slice(0, 80)}
-                                    {item.description.length > 80 ? '...' : ''}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </>
+                              {circleNumbers[idx]}
+                            </span>
+                            <span style={{ 
+                              width: '6px', 
+                              height: '6px', 
+                              borderRadius: '50%',
+                              background: statusColor,
+                              flexShrink: 0
+                            }}></span>
+                            <span style={{ flex: 1, fontSize: '10px' }}>{item.title}</span>
+                          </div>
+                        )
+                      })
                     ) : (
                       <div style={{ 
                         padding: '6px 0', 
