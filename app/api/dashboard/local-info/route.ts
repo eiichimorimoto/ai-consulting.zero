@@ -582,8 +582,33 @@ async function getWeather(prefecture: string, city: string) {
   for (const result of alertResults) {
     const text = `${result.title} ${result.description}`.toLowerCase()
     
-    // 「発表なし」「解除」「解除しました」を含む結果はスキップ
-    if (text.includes('発表なし') || text.includes('解除') || text.includes('発令なし')) {
+    // 除外キーワード（無関係な情報をフィルタリング）
+    const excludeKeywords = [
+      '発表なし', '解除', '発令なし', '解除しました',
+      // テレビ・メディア関連
+      '番組表', 'アナウンサー', 'バラエティ', 'ドラマ', '映画', 'アニメ', 
+      'ヒーロー', 'スポーツ', '音楽', '旅', 'ニュース・情報',
+      // ウェブサイトのナビゲーション
+      '閉じる', 'メニュー', 'ログイン', '会員登録', 'お問い合わせ',
+      'トップページ', 'サイトマップ', 'プライバシー', '利用規約',
+      // その他
+      '広告', 'pr', 'sponsored', 'おすすめ', 'ランキング'
+    ]
+    
+    // 除外キーワードが含まれている場合はスキップ
+    if (excludeKeywords.some(keyword => text.includes(keyword))) {
+      continue
+    }
+    
+    // 気象庁関連のURLでない場合はスキップ（信頼性を確保）
+    const trustedDomains = ['jma.go.jp', 'weather.yahoo.co.jp', 'tenki.jp', 'weathernews.jp']
+    const hasTrustedDomain = trustedDomains.some(domain => 
+      result.url?.includes(domain) || result.title?.includes('気象庁') || result.description?.includes('気象庁')
+    )
+    
+    // 信頼できるドメインか、警報関連のキーワードが複数含まれている場合のみ処理
+    const alertKeywordCount = ['警報', '注意報', '特別警報', '気象'].filter(kw => text.includes(kw)).length
+    if (!hasTrustedDomain && alertKeywordCount < 2) {
       continue
     }
     
