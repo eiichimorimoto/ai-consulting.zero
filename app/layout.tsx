@@ -30,6 +30,12 @@ export const metadata: Metadata = {
   title: "SolveWise - AI Powered Consulting",
   description: "AIが伴走する経営支援サービス。24時間休まない分析力で、あなたの経営を次のステージへ。",
   generator: "v0.app",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
   icons: {
     icon: [
       {
