@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api'
 
 interface InfrastructureItem {
   title: string
@@ -21,9 +21,13 @@ interface InfrastructureMapProps {
 
 export default function InfrastructureMap({ infrastructure, prefecture, city, address, postalCode, companyName }: InfrastructureMapProps) {
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null)
-  const [mapLoaded, setMapLoaded] = useState(false)
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 35.6762, lng: 139.6503 }) // デフォルトは東京
   const [isLoadingLocation, setIsLoadingLocation] = useState(true)
+
+  // Google Maps APIを読み込み（重複読み込みを防止）
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  })
 
   // Google Geocoding APIで住所から座標を取得
   useEffect(() => {
@@ -145,10 +149,35 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
         📍 {prefecture}{city}エリア
       </div>
 
-      <LoadScript 
-        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-        onLoad={() => setMapLoaded(true)}
-      >
+      {loadError && (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '20px', 
+          color: '#ef4444',
+          fontSize: '12px'
+        }}>
+          ❌ 地図の読み込みに失敗しました
+        </div>
+      )}
+
+      {!isLoaded ? (
+        <div style={{ 
+          position: 'relative',
+          height: '200px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-main)',
+          borderRadius: '8px',
+          color: 'var(--text-secondary)',
+          fontSize: '10px'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '4px' }}>🗺️</div>
+            地図を読み込み中...
+          </div>
+        </div>
+      ) : (
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={center}
@@ -227,7 +256,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
             </InfoWindow>
           )}
         </GoogleMap>
-      </LoadScript>
+      )}
 
       {/* 凡例 */}
       <div style={{ 
@@ -256,7 +285,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
         </div>
       </div>
 
-      {(isLoadingLocation || !mapLoaded) && (
+      {isLoadingLocation && isLoaded && (
         <div style={{ 
           position: 'absolute',
           top: '50%',
@@ -272,7 +301,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           zIndex: 1000
         }}>
           <div style={{ marginBottom: '4px' }}>🗺️</div>
-          {isLoadingLocation ? '住所を検索中...' : '地図を読み込み中...'}
+          住所を検索中...
         </div>
       )}
     </div>
