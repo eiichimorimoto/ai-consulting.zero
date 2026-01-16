@@ -2472,7 +2472,10 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 <div id="world-news-section" className="analysis-card">
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title" style={{ fontSize: '12px' }}>
-                      <span style={{ fontSize: '14px', marginRight: '4px' }}>🌏</span>
+                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                      </svg>
                       世界情勢
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2521,12 +2524,33 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 ? 'linear-gradient(135deg, #ef4444, #f87171)' 
                                 : 'linear-gradient(135deg, #6366f1, #818cf8)',
                             flexShrink: 0,
-                            fontSize: '14px'
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                           }}>
-                            {cat.category === 'economy' && '💹'}
-                            {cat.category === 'ai' && '🤖'}
-                            {cat.category === 'it_tech' && '💻'}
-                            {!['economy', 'ai', 'it_tech'].includes(cat.category) && '🌍'}
+                            {cat.category === 'economy' && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                              </svg>
+                            )}
+                            {cat.category === 'ai' && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                                <circle cx="9" cy="10" r="1" fill="white"/>
+                                <circle cx="15" cy="10" r="1" fill="white"/>
+                                <path d="M9 15h6"/>
+                              </svg>
+                            )}
+                            {cat.category === 'it_tech' && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <polyline points="16,18 22,12 16,6"/>
+                                <polyline points="8,6 2,12 8,18"/>
+                              </svg>
+                            )}
+                            {!['economy', 'ai', 'it_tech'].includes(cat.category) && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                              </svg>
+                            )}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
