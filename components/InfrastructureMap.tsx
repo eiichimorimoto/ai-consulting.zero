@@ -17,29 +17,45 @@ interface InfrastructureMapProps {
   companyName?: string
 }
 
-// 都道府県と市区町村から緯度経度を取得（主要都市のマッピング）
-const getCityCoordinates = (prefecture: string, city: string) => {
-  const coordinates: { [key: string]: { lat: number; lng: number } } = {
-    '愛知県名古屋市': { lat: 35.1815, lng: 136.9066 },
-    '東京都千代田区': { lat: 35.6938, lng: 139.7536 },
-    '東京都': { lat: 35.6762, lng: 139.6503 },
-    '大阪府大阪市': { lat: 34.6937, lng: 135.5023 },
-    '大阪府': { lat: 34.6937, lng: 135.5023 },
-    '神奈川県横浜市': { lat: 35.4437, lng: 139.6380 },
-    '福岡県福岡市': { lat: 33.5904, lng: 130.4017 },
-    '北海道札幌市': { lat: 43.0642, lng: 141.3469 },
-    '宮城県仙台市': { lat: 38.2682, lng: 140.8694 },
-  }
-
-  const key = `${prefecture}${city}`.replace(/[市区町村]/g, '')
-  return coordinates[key] || coordinates[prefecture] || { lat: 35.6762, lng: 139.6503 } // デフォルトは東京
-}
-
 export default function InfrastructureMap({ infrastructure, prefecture, city, companyName }: InfrastructureMapProps) {
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 35.6762, lng: 139.6503 }) // デフォルトは東京
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true)
 
-  const center = getCityCoordinates(prefecture, city)
+  // Google Geocoding APIで住所から座標を取得
+  useEffect(() => {
+    const fetchCoordinates = async () => {
+      try {
+        const address = `${prefecture}${city}`
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        
+        if (!apiKey) {
+          console.error('Google Maps APIキーが設定されていません')
+          setIsLoadingLocation(false)
+          return
+        }
+
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&language=ja`
+        )
+        const data = await response.json()
+
+        if (data.status === 'OK' && data.results[0]) {
+          const location = data.results[0].geometry.location
+          setCenter({ lat: location.lat, lng: location.lng })
+        } else {
+          console.error('住所の座標取得に失敗:', data.status)
+        }
+      } catch (error) {
+        console.error('Geocoding APIエラー:', error)
+      } finally {
+        setIsLoadingLocation(false)
+      }
+    }
+
+    fetchCoordinates()
+  }, [prefecture, city])
 
   // マーカーの色を取得
   const getMarkerIcon = (status: string) => {
@@ -231,14 +247,23 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, co
         </div>
       </div>
 
-      {!mapLoaded && (
+      {(isLoadingLocation || !mapLoaded) && (
         <div style={{ 
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
           textAlign: 'center', 
-          padding: '20px', 
+          padding: '12px 20px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           color: 'var(--text-secondary)',
-          fontSize: '10px'
+          fontSize: '10px',
+          zIndex: 1000
         }}>
-          地図を読み込み中...
+          <div style={{ marginBottom: '4px' }}>🗺️</div>
+          {isLoadingLocation ? '住所を検索中...' : '地図を読み込み中...'}
         </div>
       )}
     </div>
