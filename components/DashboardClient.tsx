@@ -2472,10 +2472,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 <div id="world-news-section" className="analysis-card">
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title" style={{ fontSize: '12px' }}>
-                      <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
-                      </svg>
+                      <span style={{ fontSize: '14px', marginRight: '4px' }}>🌏</span>
                       世界情勢
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2533,7 +2530,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
-                              {cat.title?.slice(0, 15)}
+                              {cat.title}
                             </div>
                             <div style={{ 
                               fontSize: '10px', 
@@ -2544,7 +2541,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical' as const
                             }}>
-                              {cat.items?.[0]?.impact?.slice(0, 50) || '情報なし'}
+                              {cat.items?.[0]?.impact || '情報なし'}
                             </div>
                           </div>
                         </div>
