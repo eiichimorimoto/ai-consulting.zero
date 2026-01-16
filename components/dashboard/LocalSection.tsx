@@ -329,8 +329,7 @@ export default function LocalSection({
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '6px', 
-                  marginBottom: '4px',
+                  gap: '6px',
                   fontSize: '11px',
                   fontWeight: '600',
                   color: localInfo.weather.alerts[0].severity === 'extreme' 
@@ -342,11 +341,8 @@ export default function LocalSection({
                   <span>{localInfo.weather.alerts[0].severity === 'extreme' ? '🚨' : localInfo.weather.alerts[0].severity === 'severe' ? '⚠️' : 'ℹ️'}</span>
                   {localInfo.weather.alerts[0].title}
                 </div>
-                <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  {localInfo.weather.alerts[0].description}
-                </div>
                 {localInfo.weather.alerts.length > 1 && (
-                  <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '4px' }}>
+                  <div style={{ fontSize: '9px', color: 'var(--text-light)', marginTop: '6px' }}>
                     +{localInfo.weather.alerts.length - 1}件の気象警報
                   </div>
                 )}
