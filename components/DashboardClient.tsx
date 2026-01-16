@@ -2504,16 +2504,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <div key={catIdx} style={{ 
                           display: 'flex', 
                           alignItems: 'center', 
-                          padding: '8px 10px',
-                          marginBottom: '6px',
+                          padding: '10px 12px',
+                          marginBottom: '8px',
                           background: 'var(--bg-main)',
                           borderRadius: '8px',
-                          gap: '8px',
+                          gap: '12px',
                           border: '1px solid var(--border)'
                         }}>
                           <div style={{ 
-                            width: '32px',
-                            height: '32px',
+                            width: '36px',
+                            height: '36px',
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
@@ -2553,16 +2553,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             )}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
                               {cat.title}
                             </div>
                             <div style={{ 
-                              fontSize: '10px', 
+                              fontSize: '11px', 
                               color: 'var(--text-secondary)', 
-                              lineHeight: '1.4',
+                              lineHeight: '1.6',
                               overflow: 'hidden',
                               display: '-webkit-box',
-                              WebkitLineClamp: 2,
+                              WebkitLineClamp: 3,
                               WebkitBoxOrient: 'vertical' as const
                             }}>
                               {cat.items?.[0]?.impact || '情報なし'}
