@@ -1732,6 +1732,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     infrastructure={localInfo?.infrastructure || []}
                     prefecture={company?.prefecture || '愛知県'}
                     city={company?.city || '名古屋市'}
+                    address={company?.address}
                     companyName={company?.name}
                   />
                   {/* 詳細リスト（タイトルのみ・3件） */}
