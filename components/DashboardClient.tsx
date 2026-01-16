@@ -2360,7 +2360,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 {/* 業界予測（右側） */}
                 <div className="analysis-card">
                   <div className="analysis-card-header">
-                    <h4 className="analysis-card-title">
+                    <h4 className="analysis-card-title" style={{ fontSize: '12px' }}>
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
@@ -2471,7 +2471,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 {/* 世界情勢・業界影響（3列目） */}
                 <div id="world-news-section" className="analysis-card">
                   <div className="analysis-card-header">
-                    <h4 className="analysis-card-title">
+                    <h4 className="analysis-card-title" style={{ fontSize: '12px' }}>
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
