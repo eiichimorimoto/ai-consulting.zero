@@ -14,10 +14,11 @@ interface InfrastructureMapProps {
   infrastructure: InfrastructureItem[]
   prefecture: string
   city: string
+  address?: string
   companyName?: string
 }
 
-export default function InfrastructureMap({ infrastructure, prefecture, city, companyName }: InfrastructureMapProps) {
+export default function InfrastructureMap({ infrastructure, prefecture, city, address, companyName }: InfrastructureMapProps) {
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 35.6762, lng: 139.6503 }) // デフォルトは東京
@@ -27,7 +28,8 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, co
   useEffect(() => {
     const fetchCoordinates = async () => {
       try {
-        const address = `${prefecture}${city}`
+        // 完全な住所を組み立て（都道府県+市区町村+詳細住所）
+        const fullAddress = `${prefecture}${city}${address || ''}`
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         
         if (!apiKey) {
@@ -37,7 +39,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, co
         }
 
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&language=ja`
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}&language=ja`
         )
         const data = await response.json()
 
@@ -55,7 +57,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, co
     }
 
     fetchCoordinates()
-  }, [prefecture, city])
+  }, [prefecture, city, address])
 
   // マーカーの色を取得
   const getMarkerIcon = (status: string) => {
