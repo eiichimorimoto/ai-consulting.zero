@@ -86,6 +86,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
       strokeColor: '#ffffff',
       strokeWeight: 2,
       scale: 1.5,
+      anchor: new google.maps.Point(12, 22), // ピンの先端が位置を指す
     }
   }
 
@@ -97,6 +98,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     strokeColor: '#ffffff',
     strokeWeight: 3,
     scale: 2,
+    anchor: new google.maps.Point(12, 22), // ピンの先端が位置を指す
   }
 
   // インフラマーカーの位置（会社の周辺にランダム配置）
