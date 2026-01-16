@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { LineChart, IndustryChart } from './DashboardCharts'
 import { useRouter } from 'next/navigation'
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
+import InfrastructureMap from './InfrastructureMap'
 // HealthMonitorは削除（自動修復はバックグラウンドで実行、ユーザーには見せない）
 import '../app/dashboard/dashboard.css'
 
@@ -1726,109 +1727,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     </div>
                     <span className="local-title">インフラ状況</span>
                   </div>
-                  {/* エリアマップ */}
-                  <div style={{ 
-                    marginBottom: '10px', 
-                    position: 'relative',
-                    background: 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    minHeight: '120px'
-                  }}>
-                    {/* エリア名表示 */}
-                    <div style={{ 
-                      fontSize: '11px', 
-                      fontWeight: '600', 
-                      color: '#0369a1',
-                      marginBottom: '8px',
-                      textAlign: 'center'
-                    }}>
-                      📍 {company?.prefecture || '愛知県'}{company?.city || '名古屋市'}エリア
-                    </div>
-                    
-                    {/* 簡易地図（SVG）*/}
-                    <svg viewBox="0 0 200 80" style={{ width: '100%', height: 'auto' }}>
-                      {/* 背景エリア */}
-                      <rect x="10" y="10" width="180" height="60" rx="4" fill="#bae6fd" fillOpacity="0.3" stroke="#0ea5e9" strokeWidth="1" strokeDasharray="3,3"/>
-                      
-                      {/* 道路（模擬）*/}
-                      <line x1="30" y1="40" x2="170" y2="40" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
-                      <line x1="100" y1="20" x2="100" y2="60" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
-                      
-                      {/* 会社位置（中心）*/}
-                      <g>
-                        {/* 会社マーカー（青い特別なピン）*/}
-                        <circle cx="100" cy="40" r="10" fill="#0ea5e9" stroke="white" strokeWidth="2.5" opacity="0.9"/>
-                        <path d="M 100 40 L 100 47" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                        <circle cx="100" cy="40" r="4" fill="white"/>
-                        <text x="100" y="68" textAnchor="middle" fontSize="8" fill="#0369a1" fontWeight="600">
-                          {company?.name?.slice(0, 6) || '自社'}
-                        </text>
-                        {/* 会社位置のツールチップ */}
-                        <title>📍 {company?.name || '自社'}の位置</title>
-                      </g>
-                      
-                      {/* インフラ情報のマーカー（会社を中心に配置）*/}
-                      {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
-                        localInfo.infrastructure.slice(0, 5).map((item, idx) => {
-                          // 会社（中心：100,40）を基準に周辺に配置
-                          const positions = [
-                            { x: 65, y: 25 },   // 北西
-                            { x: 135, y: 25 },  // 北東
-                            { x: 65, y: 55 },   // 南西
-                            { x: 135, y: 55 },  // 南東
-                            { x: 155, y: 40 }   // 東
-                          ]
-                          const pos = positions[idx] || { x: 100 + (idx * 15), y: 40 }
-                          const color = item.status === 'error' ? '#ef4444' : 
-                                       item.status === 'warning' ? '#f59e0b' : '#10b981'
-                          
-                          return (
-                            <g key={idx}>
-                              {/* マーカーピン */}
-                              <circle cx={pos.x} cy={pos.y} r="6" fill={color} stroke="white" strokeWidth="2"/>
-                              <circle cx={pos.x} cy={pos.y} r="3" fill="white" fillOpacity="0.8"/>
-                              {/* 会社からのライン（薄い線）*/}
-                              <line x1="100" y1="40" x2={pos.x} y2={pos.y} stroke={color} strokeWidth="1" strokeOpacity="0.2" strokeDasharray="2,2"/>
-                              {/* ツールチップ（ホバー時）*/}
-                              <title>{item.title}</title>
-                            </g>
-                          )
-                        })
-                      ) : (
-                        <text x="100" y="25" textAnchor="middle" fontSize="9" fill="#64748b" fontStyle="italic">
-                          周辺にインフラ情報なし
-                        </text>
-                      )}
-                    </svg>
-                    
-                    {/* 凡例 */}
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'center', 
-                      gap: '10px', 
-                      marginTop: '8px',
-                      fontSize: '9px',
-                      flexWrap: 'wrap'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0ea5e9', border: '2px solid white' }}></span>
-                        <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>自社</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
-                        <span style={{ color: 'var(--text-secondary)' }}>要注意</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
-                        <span style={{ color: 'var(--text-secondary)' }}>注意</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-                        <span style={{ color: 'var(--text-secondary)' }}>正常</span>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Google Maps */}
+                  <InfrastructureMap
+                    infrastructure={localInfo?.infrastructure || []}
+                    prefecture={company?.prefecture || '愛知県'}
+                    city={company?.city || '名古屋市'}
+                    companyName={company?.name}
+                  />
                   {/* 詳細リスト */}
                   <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '8px', borderRadius: '6px' }}>
                     {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
