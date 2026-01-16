@@ -183,6 +183,12 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           center={center}
           zoom={14}
           options={mapOptions}
+          key={`${center.lat}-${center.lng}`}
+          onLoad={(map) => {
+            // 地図読み込み後に中心を確実に設定
+            map.setCenter(center)
+            console.log('🗺️ 地図の中心を設定:', center)
+          }}
         >
           {/* 会社位置マーカー */}
           <Marker
