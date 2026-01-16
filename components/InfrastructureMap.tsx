@@ -5,7 +5,7 @@ import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/ap
 
 interface InfrastructureItem {
   title: string
-  status: 'ok' | 'warning' | 'error'
+  status: string
   description?: string
   url?: string
 }
