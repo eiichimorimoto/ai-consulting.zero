@@ -15,10 +15,11 @@ interface InfrastructureMapProps {
   prefecture: string
   city: string
   address?: string
+  postalCode?: string
   companyName?: string
 }
 
-export default function InfrastructureMap({ infrastructure, prefecture, city, address, companyName }: InfrastructureMapProps) {
+export default function InfrastructureMap({ infrastructure, prefecture, city, address, postalCode, companyName }: InfrastructureMapProps) {
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 35.6762, lng: 139.6503 }) // デフォルトは東京
@@ -28,8 +29,13 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
   useEffect(() => {
     const fetchCoordinates = async () => {
       try {
-        // 完全な住所を組み立て（都道府県+市区町村+詳細住所）
-        const fullAddress = `${prefecture}${city}${address || ''}`
+        // 完全な住所を組み立て（郵便番号+都道府県+市区町村+詳細住所）
+        // 例: 〒460-0008 愛知県名古屋市中区栄3-18-1
+        const fullAddress = postalCode 
+          ? `〒${postalCode} ${prefecture}${city}${address || ''}`.trim()
+          : `${prefecture}${city}${address || ''}`.trim()
+        
+        console.log('🗺️ Geocoding API 住所検索:', fullAddress)
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         
         if (!apiKey) {
@@ -45,9 +51,10 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
 
         if (data.status === 'OK' && data.results[0]) {
           const location = data.results[0].geometry.location
+          console.log('✅ 座標取得成功:', location, 'formatted_address:', data.results[0].formatted_address)
           setCenter({ lat: location.lat, lng: location.lng })
         } else {
-          console.error('住所の座標取得に失敗:', data.status)
+          console.error('❌ 住所の座標取得に失敗:', data.status, 'address:', fullAddress)
         }
       } catch (error) {
         console.error('Geocoding APIエラー:', error)
@@ -57,7 +64,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     }
 
     fetchCoordinates()
-  }, [prefecture, city, address])
+  }, [prefecture, city, address, postalCode])
 
   // マーカーの色を取得
   const getMarkerIcon = (status: string) => {

@@ -1733,6 +1733,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     prefecture={company?.prefecture || '愛知県'}
                     city={company?.city || '名古屋市'}
                     address={company?.address}
+                    postalCode={company?.postal_code}
                     companyName={company?.name}
                   />
                   {/* 詳細リスト（タイトルのみ・3件） */}
