@@ -39,7 +39,8 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           ? `〒${postalCode} ${prefecture}${city}${address || ''}`.trim()
           : `${prefecture}${city}${address || ''}`.trim()
         
-        console.log('🗺️ Geocoding API 住所検索:', fullAddress)
+        console.log('🗺️ [InfrastructureMap] Geocoding API 住所検索:', fullAddress)
+        console.log('🗺️ [InfrastructureMap] APIキー存在確認:', process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? 'あり（長さ:' + process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.length + '）' : 'なし❌')
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         
         if (!apiKey) {
@@ -53,12 +54,14 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
         )
         const data = await response.json()
 
+        console.log('🗺️ [InfrastructureMap] Geocoding APIレスポンス:', data)
+
         if (data.status === 'OK' && data.results[0]) {
           const location = data.results[0].geometry.location
           console.log('✅ 座標取得成功:', location, 'formatted_address:', data.results[0].formatted_address)
           setCenter({ lat: location.lat, lng: location.lng })
         } else {
-          console.error('❌ 住所の座標取得に失敗:', data.status, 'address:', fullAddress)
+          console.error('❌ 住所の座標取得に失敗:', data.status, 'error_message:', data.error_message || 'なし', 'address:', fullAddress)
         }
       } catch (error) {
         console.error('Geocoding APIエラー:', error)
