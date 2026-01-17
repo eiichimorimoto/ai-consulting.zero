@@ -48,8 +48,9 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
   }, [])
 
   // Google Maps APIを読み込み（重複読み込みを防止）
+  // APIキーが空の場合はundefinedを渡して読み込みを防ぐ
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey,
+    googleMapsApiKey: apiKey || undefined,
   })
 
   // Google Geocoding APIで住所から座標を取得
@@ -94,7 +95,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     fetchCoordinates()
   }, [prefecture, city, address, postalCode, apiKey])
 
-  // マーカーの色を取得
+  // マーカーの色を取得（google.maps.Pointはgoogleが読み込まれた後に使用）
   const getMarkerIcon = (status: string) => {
     const colors = {
       error: '#ef4444',    // 赤
@@ -103,26 +104,40 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     }
     const color = colors[status as keyof typeof colors] || colors.ok
 
-    return {
+    const icon: any = {
       path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
       fillColor: color,
       fillOpacity: 1,
       strokeColor: '#ffffff',
       strokeWeight: 2,
       scale: 1.5,
-      anchor: new google.maps.Point(12, 22), // ピンの先端が位置を指す
     }
+    
+    // googleが利用可能な場合のみanchorを設定
+    if (typeof google !== 'undefined' && google.maps && google.maps.Point) {
+      icon.anchor = new google.maps.Point(12, 22)
+    }
+    
+    return icon
   }
 
   // 会社マーカーアイコン（青い特別なピン）
-  const companyIcon = {
-    path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-    fillColor: '#0ea5e9',
-    fillOpacity: 1,
-    strokeColor: '#ffffff',
-    strokeWeight: 3,
-    scale: 2,
-    anchor: new google.maps.Point(12, 22), // ピンの先端が位置を指す
+  const getCompanyIcon = () => {
+    const icon: any = {
+      path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+      fillColor: '#0ea5e9',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+      scale: 2,
+    }
+    
+    // googleが利用可能な場合のみanchorを設定
+    if (typeof google !== 'undefined' && google.maps && google.maps.Point) {
+      icon.anchor = new google.maps.Point(12, 22)
+    }
+    
+    return icon
   }
 
   // インフラマーカーの位置（会社の周辺にランダム配置）
@@ -220,7 +235,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           {/* 会社位置マーカー */}
           <Marker
             position={center}
-            icon={companyIcon}
+            icon={getCompanyIcon()}
             title={`📍 ${companyName || '自社'}の位置`}
             onClick={() => setSelectedMarker(-1)}
           />
