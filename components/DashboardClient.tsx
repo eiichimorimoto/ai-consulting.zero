@@ -1728,14 +1728,6 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <span className="local-title">インフラ状況</span>
                   </div>
                   {/* Google Maps */}
-                  {/* デバッグ: 会社情報を確認 */}
-                  {typeof window !== 'undefined' && console.log('🏢 会社情報（DashboardClient）:', {
-                    prefecture: company?.prefecture,
-                    city: company?.city,
-                    address: company?.address,
-                    postal_code: company?.postal_code,
-                    name: company?.name
-                  })}
                   <InfrastructureMap
                     infrastructure={localInfo?.infrastructure || []}
                     prefecture={company?.prefecture || '愛知県'}
