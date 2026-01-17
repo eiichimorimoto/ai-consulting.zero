@@ -23,15 +23,43 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null)
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 35.6762, lng: 139.6503 }) // デフォルトは東京
   const [isLoadingLocation, setIsLoadingLocation] = useState(true)
+  const [apiKey, setApiKey] = useState<string>('')
+  const [apiKeyError, setApiKeyError] = useState<string>('')
+
+  // サーバーからAPIキーを取得（NEXT_PUBLIC_プレフィックスなしの環境変数にも対応）
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        const response = await fetch('/api/google-maps-config')
+        const data = await response.json()
+        if (data.error) {
+          console.error('❌ APIキー取得エラー:', data.error)
+          setApiKeyError(data.error)
+        } else {
+          console.log('✅ APIキー取得成功（長さ:', data.apiKey.length, '）')
+          setApiKey(data.apiKey)
+        }
+      } catch (error) {
+        console.error('❌ APIキー取得に失敗:', error)
+        setApiKeyError('APIキーの取得に失敗しました')
+      }
+    }
+    fetchApiKey()
+  }, [])
 
   // Google Maps APIを読み込み（重複読み込みを防止）
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: apiKey,
   })
 
   // Google Geocoding APIで住所から座標を取得
   useEffect(() => {
     const fetchCoordinates = async () => {
+      // APIキーが取得されるまで待機
+      if (!apiKey) {
+        return
+      }
+
       try {
         // 完全な住所を組み立て（郵便番号+都道府県+市区町村+詳細住所）
         // 例: 〒460-0008 愛知県名古屋市中区栄3-18-1
@@ -40,14 +68,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           : `${prefecture}${city}${address || ''}`.trim()
         
         console.log('🗺️ [InfrastructureMap] Geocoding API 住所検索:', fullAddress)
-        console.log('🗺️ [InfrastructureMap] APIキー存在確認:', process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? 'あり（長さ:' + process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.length + '）' : 'なし❌')
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-        
-        if (!apiKey) {
-          console.error('Google Maps APIキーが設定されていません')
-          setIsLoadingLocation(false)
-          return
-        }
+        console.log('🗺️ [InfrastructureMap] APIキー存在確認: あり（長さ:', apiKey.length, '）')
 
         const response = await fetch(
           `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}&language=ja`
@@ -71,7 +92,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     }
 
     fetchCoordinates()
-  }, [prefecture, city, address, postalCode])
+  }, [prefecture, city, address, postalCode, apiKey])
 
   // マーカーの色を取得
   const getMarkerIcon = (status: string) => {
@@ -154,7 +175,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
         📍 {prefecture}{city}エリア
       </div>
 
-      {loadError && (
+      {(loadError || apiKeyError) && (
         <div style={{ 
           textAlign: 'center', 
           padding: '20px', 
@@ -162,10 +183,11 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           fontSize: '12px'
         }}>
           ❌ 地図の読み込みに失敗しました
+          {apiKeyError && <div style={{ marginTop: '8px', fontSize: '10px' }}>{apiKeyError}</div>}
         </div>
       )}
 
-      {!isLoaded ? (
+      {!isLoaded || !apiKey ? (
         <div style={{ 
           position: 'relative',
           height: '200px',
@@ -179,7 +201,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
         }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ marginBottom: '4px' }}>🗺️</div>
-            地図を読み込み中...
+            {!apiKey ? 'APIキーを取得中...' : '地図を読み込み中...'}
           </div>
         </div>
       ) : (
