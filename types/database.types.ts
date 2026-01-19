@@ -110,51 +110,60 @@ export interface Database {
       consulting_sessions: {
         Row: {
           id: string
-          profile_id: string
-          company_id: string
-          category: string
-          title: string | null
-          status: string
-          dify_conversation_id: string | null
-          context_data: Json | null
-          initial_prompt: string | null
-          max_rounds: number
-          current_round: number
+          user_id: string
+          company_id: string | null
+          title: string
+          session_type: string | null
+          status: string | null
+          analysis_summary: string | null
+          key_insights: Json | null
+          recommendations: Json | null
+          risk_assessment: Json | null
+          message_count: number | null
+          created_at: string | null
+          updated_at: string | null
+          category: string | null
+          max_rounds: number | null
+          current_round: number | null
           completed_at: string | null
-          created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
-          profile_id: string
-          company_id: string
-          category: string
-          title?: string | null
-          status?: string
-          dify_conversation_id?: string | null
-          context_data?: Json | null
-          initial_prompt?: string | null
-          max_rounds?: number
-          current_round?: number
+          user_id: string
+          company_id?: string | null
+          title: string
+          session_type?: string | null
+          status?: string | null
+          analysis_summary?: string | null
+          key_insights?: Json | null
+          recommendations?: Json | null
+          risk_assessment?: Json | null
+          message_count?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          category?: string | null
+          max_rounds?: number | null
+          current_round?: number | null
           completed_at?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
-          profile_id?: string
-          company_id?: string
-          category?: string
-          title?: string | null
-          status?: string
-          dify_conversation_id?: string | null
-          context_data?: Json | null
-          initial_prompt?: string | null
-          max_rounds?: number
-          current_round?: number
+          user_id?: string
+          company_id?: string | null
+          title?: string
+          session_type?: string | null
+          status?: string | null
+          analysis_summary?: string | null
+          key_insights?: Json | null
+          recommendations?: Json | null
+          risk_assessment?: Json | null
+          message_count?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          category?: string | null
+          max_rounds?: number | null
+          current_round?: number | null
           completed_at?: string | null
-          created_at?: string
-          updated_at?: string
         }
       }
       consulting_messages: {
