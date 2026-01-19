@@ -26,11 +26,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // ユーザーのprofile_idを取得
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
+
     // セッション一覧取得
     const { data: sessions, error: sessionsError } = await supabase
       .from('consulting_sessions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('profile_id', profile.id)
       .order('created_at', { ascending: false })
 
     if (sessionsError) {
@@ -88,19 +102,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ユーザープロフィール取得（company_id取得のため）
-    const { data: profile } = await supabase
+    // ユーザープロフィール取得（profile_id, company_id取得のため）
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('company_id')
+      .select('id, company_id')
       .eq('user_id', user.id)
       .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
+
+    if (!profile.company_id) {
+      return NextResponse.json(
+        { error: 'Company information required' },
+        { status: 400 }
+      )
+    }
 
     // セッション作成
     const { data: session, error: sessionError } = await supabase
       .from('consulting_sessions')
       .insert({
-        user_id: user.id,
-        company_id: profile?.company_id || null,
+        profile_id: profile.id,
+        company_id: profile.company_id,
         title: title || initial_message.slice(0, 50) + '...',
         category: category || 'general',
         status: 'active',
