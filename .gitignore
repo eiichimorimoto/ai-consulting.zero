@@ -51,7 +51,7 @@ supabase/.branches
 supabase/.temp
 
 # Logs
-logs
+logs/
 *.log
 lerna-debug.log*
 

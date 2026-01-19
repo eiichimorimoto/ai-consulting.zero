@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- ラベル（一意の識別子） -->
+    <key>Label</key>
+    <string>com.ai-consulting-zero.daily-backup</string>
+    
+    <!-- 実行するスクリプト -->
+    <key>Program</key>
+    <string>/Users/eiichi/Documents/ai-consulting-zero/scripts/backup-to-mypassport.sh</string>
+    
+    <!-- 実行ディレクトリ -->
+    <key>WorkingDirectory</key>
+    <string>/Users/eiichi/Documents/ai-consulting-zero</string>
+    
+    <!-- 標準出力のログファイル -->
+    <key>StandardOutPath</key>
+    <string>/Users/eiichi/Documents/ai-consulting-zero/logs/backup.log</string>
+    
+    <!-- エラー出力のログファイル -->
+    <key>StandardErrorPath</key>
+    <string>/Users/eiichi/Documents/ai-consulting-zero/logs/backup-error.log</string>
+    
+    <!-- 実行スケジュール: 毎日午前2時 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    
+    <!-- バッテリー動作中も実行 -->
+    <key>RunAtLoad</key>
+    <false/>
+    
+    <!-- 実行失敗時に再試行しない -->
+    <key>SuccessfulExit</key>
+    <false/>
+</dict>
+</plist>
