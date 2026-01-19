@@ -31,26 +31,12 @@ export async function GET(
 
     const { id: sessionId } = await params
 
-    // ユーザーのprofile_idを取得
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
     // セッション取得（所有権確認を含む）
     const { data: session, error: sessionError } = await supabase
       .from('consulting_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('profile_id', profile.id)
+      .eq('user_id', user.id)
       .single()
 
     if (sessionError) {
@@ -104,26 +90,12 @@ export async function PATCH(
 
     const { id: sessionId } = await params
 
-    // ユーザーのprofile_idを取得
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
     // セッション所有権確認
     const { data: existingSession, error: checkError } = await supabase
       .from('consulting_sessions')
       .select('id')
       .eq('id', sessionId)
-      .eq('profile_id', profile.id)
+      .eq('user_id', user.id)
       .single()
 
     if (checkError || !existingSession) {
@@ -219,26 +191,12 @@ export async function DELETE(
 
     const { id: sessionId } = await params
 
-    // ユーザーのprofile_idを取得
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
-
     // セッション削除（所有権確認を含む）
     const { error: deleteError } = await supabase
       .from('consulting_sessions')
       .delete()
       .eq('id', sessionId)
-      .eq('profile_id', profile.id)
+      .eq('user_id', user.id)
 
     if (deleteError) {
       console.error('Session delete error:', deleteError)
