@@ -75,7 +75,7 @@ export default function RecommendationSection({
             </div>
           </div>
           <button
-            onClick={() => router.push('/dashboard/ai-consultant')}
+            onClick={() => router.push('/consulting/start')}
             style={{
               padding: '6px 12px',
               background: 'rgba(255,255,255,0.1)',
