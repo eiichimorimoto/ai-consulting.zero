@@ -31,12 +31,26 @@ export async function GET(
 
     const { id: sessionId } = await params
 
+    // ユーザーのprofile_idを取得
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
+
     // セッション所有権確認
     const { data: session, error: sessionError } = await supabase
       .from('consulting_sessions')
       .select('id')
       .eq('id', sessionId)
-      .eq('user_id', user.id)
+      .eq('profile_id', profile.id)
       .single()
 
     if (sessionError || !session) {
@@ -113,12 +127,26 @@ export async function POST(
       )
     }
 
+    // ユーザーのprofile_idを取得
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
+
     // セッション所有権確認＆情報取得
     const { data: session, error: sessionError } = await supabase
       .from('consulting_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', user.id)
+      .eq('profile_id', profile.id)
       .single()
 
     if (sessionError || !session) {
