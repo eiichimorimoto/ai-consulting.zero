@@ -1,257 +1,233 @@
 'use client'
 
-/**
- * Consulting Start Page
- * 
- * AI相談の開始ページ（新規相談・既存相談一覧）
- */
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageSquare, Loader2, Clock, CheckCircle } from 'lucide-react'
+import { SimpleSidebar } from '../components/SimpleSidebar'
+import { ConsultingHeader } from '../components/ConsultingHeader'
+import { ContextPanel } from '../components/ContextPanel'
+import { MessageInput } from '../components/MessageInput'
+import { ChatView } from '../components/ChatView'
+import { MobileNav } from '../components/MobileNav'
+import type { ConsultingSession, Message as ConsultingMessage, ContextData } from '../types/consulting'
 
-interface Session {
-  id: string
-  title: string
-  category: string
-  status: string
-  current_round: number
-  max_rounds: number
-  created_at: string
-}
-
-export default function ConsultingStartPage() {
+export default function ConsultingPage() {
   const router = useRouter()
-  const [message, setMessage] = useState('')
+  
+  // 状態管理
+  const [currentSession, setCurrentSession] = useState<ConsultingSession | null>(null)
+  const [messages, setMessages] = useState<ConsultingMessage[]>([])
+  const [inputMessage, setInputMessage] = useState('')
   const [category, setCategory] = useState('general')
   const [isLoading, setIsLoading] = useState(false)
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true)
+  const [isTyping, setIsTyping] = useState(false)
+  const [sessions, setSessions] = useState<ConsultingSession[]>([])
+  const [mobileTab, setMobileTab] = useState<'chat' | 'context' | 'proposal'>('chat')
+  
+  // コンテキストデータ
+  const [contextData, setContextData] = useState<ContextData>({
+    digitalScore: 45, // デモ用
+    issueCount: 3, // デモ用
+    attachments: [],
+    proposal: {
+      status: 'none',
+      id: null,
+    },
+  })
 
-  // 既存セッション一覧を取得
+  // セッション一覧の取得
   useEffect(() => {
     fetchSessions()
   }, [])
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/consulting/sessions')
-      if (response.ok) {
-        const data = await response.json()
+      const res = await fetch('/api/consulting/sessions')
+      if (res.ok) {
+        const data = await res.json()
         setSessions(data.sessions || [])
       }
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
-    } finally {
-      setIsLoadingSessions(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // 添付ファイルアップロード
+  const handleFileUpload = useCallback(async (files: FileList) => {
+    const newAttachments = Array.from(files).map((file, index) => ({
+      id: `file-${Date.now()}-${index}`,
+      name: file.name,
+      type: file.type,
+      url: URL.createObjectURL(file), // プレビュー用URL
+    }))
     
-    if (!message.trim()) {
-      return
-    }
+    setContextData(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...newAttachments],
+    }))
+  }, [])
 
-    setIsLoading(true)
-
+  // カテゴリー変更時の処理（新規セッション作成）
+  const handleCategoryChange = async (selectedCategory: string) => {
+    setCategory(selectedCategory)
+    
+    // 新規セッション作成
     try {
-      const response = await fetch('/api/consulting/sessions', {
+      setIsLoading(true)
+      const res = await fetch('/api/consulting/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: message.slice(0, 50) + (message.length > 50 ? '...' : ''),
-          category,
-          initial_message: message
-        })
+          category: selectedCategory,
+          initial_message: `${getCategoryLabel(selectedCategory)}について相談させてください。`,
+        }),
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to create session')
-      }
-
-      const data = await response.json()
-
-      if (data.session) {
-        // チャット画面へ遷移
-        router.push(`/consulting/sessions/${data.session.id}`)
+      
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentSession(data.session)
+        setMessages(data.messages || [])
+        await fetchSessions()
       }
     } catch (error) {
       console.error('Failed to create session:', error)
-      alert('相談セッションの作成に失敗しました。もう一度お試しください。')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-            <Clock className="w-3 h-3" />
-            進行中
-          </span>
-        )
-      case 'completed':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-            <CheckCircle className="w-3 h-3" />
-            完了
-          </span>
-        )
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-            {status}
-          </span>
-        )
+  // メッセージ送信
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !currentSession) return
+    
+    const userMessage = inputMessage.trim()
+    setInputMessage('')
+    setIsTyping(true)
+    
+    // ユーザーメッセージを即座に表示
+    const tempUserMessage: ConsultingMessage = {
+      id: `temp-${Date.now()}`,
+      session_id: currentSession.id,
+      role: 'user',
+      content: userMessage,
+      created_at: new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, tempUserMessage])
+    
+    try {
+      const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage }),
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        // メッセージ履歴を更新
+        setMessages(data.messages || [])
+        setCurrentSession(data.session)
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error)
+    } finally {
+      setIsTyping(false)
     }
   }
 
+  // セッション終了
+  const handleEndSession = () => {
+    setCurrentSession(null)
+    setMessages([])
+    setInputMessage('')
+    setCategory('general')
+    fetchSessions()
+  }
+
+  // カテゴリーラベル取得
   const getCategoryLabel = (cat: string) => {
     const labels: Record<string, string> = {
       general: '一般相談',
-      sales: '営業・販売',
-      marketing: 'マーケティング',
-      finance: '財務・経理',
+      sales: '売上改善',
+      cost: 'コスト削減',
+      digital: 'DX推進',
       hr: '人事・組織',
-      it: 'IT・デジタル'
+      strategy: '経営戦略',
     }
-    return labels[cat] || cat
+    return labels[cat] || '一般相談'
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">AI経営相談</h1>
-        <p className="text-gray-600">
-          経営課題について、AIコンサルタントに相談できます
-        </p>
-      </div>
+    <div className="flex h-screen w-full overflow-hidden">
+      {/* 左サイドバー */}
+      <SimpleSidebar 
+        sessions={sessions.map(s => ({
+          id: s.id,
+          title: s.title,
+          category: s.category,
+          current_round: s.current_round,
+          max_rounds: s.max_rounds,
+          created_at: s.created_at,
+        }))}
+        selectedCategory={category}
+        onCategoryChange={handleCategoryChange}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 新規相談フォーム */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" />
-              新規相談を始める
-            </CardTitle>
-            <CardDescription>
-              相談したい課題を入力してください
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  相談内容 <span className="text-red-500">*</span>
-                </label>
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="w-full min-h-[150px]"
-                  placeholder="例: 売上が伸び悩んでいます。新規顧客の獲得方法について相談したいです。"
-                  required
-                />
-              </div>
+      {/* メインコンテンツエリア */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* ヘッダー */}
+        {currentSession && (
+          <ConsultingHeader
+            sessionTitle={currentSession.title}
+            currentRound={currentSession.current_round}
+            maxRounds={currentSession.max_rounds}
+            onEndSession={handleEndSession}
+          />
+        )}
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  カテゴリ（オプション）
-                </label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">一般相談</SelectItem>
-                    <SelectItem value="sales">営業・販売</SelectItem>
-                    <SelectItem value="marketing">マーケティング</SelectItem>
-                    <SelectItem value="finance">財務・経理</SelectItem>
-                    <SelectItem value="hr">人事・組織</SelectItem>
-                    <SelectItem value="it">IT・デジタル</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* モバイルタブナビゲーション */}
+        {currentSession && (
+          <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />
+        )}
 
-              <Button
-                type="submit"
-                disabled={isLoading || !message.trim()}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    相談を開始中...
-                  </>
-                ) : (
-                  '相談を始める'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* メインコンテンツ */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* PC: チャットエリア / モバイル: タブ切替 */}
+          <div className={`flex flex-1 flex-col overflow-hidden ${mobileTab !== 'chat' ? 'hidden lg:flex' : 'flex'}`}>
+            <ChatView messages={messages} isTyping={isTyping} />
+            <MessageInput
+              value={inputMessage}
+              onChange={setInputMessage}
+              onSend={handleSendMessage}
+              category={category}
+              onCategoryChange={setCategory}
+              isLoading={isLoading || isTyping}
+              showCategorySelect={false}
+              placeholder={currentSession ? "メッセージを入力..." : "左のメニューからカテゴリーを選択して、相談を開始してください"}
+              onFileUpload={handleFileUpload}
+              disabled={!currentSession}
+            />
+          </div>
 
-        {/* 既存相談一覧 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>過去の相談</CardTitle>
-            <CardDescription>
-              継続して相談できます
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingSessions ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-              </div>
-            ) : sessions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p>まだ相談履歴がありません</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/consulting/sessions/${session.id}`)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium text-sm line-clamp-2">
-                        {session.title}
-                      </h3>
-                      {getStatusBadge(session.status)}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>{getCategoryLabel(session.category)}</span>
-                      <span>
-                        往復: {session.current_round}/{session.max_rounds}
-                      </span>
-                      <span>
-                        {new Date(session.created_at).toLocaleDateString('ja-JP')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* 右サイドパネル（PC: 常時表示 / モバイル: タブで表示） */}
+          <div className={`w-full border-l bg-muted/30 lg:w-80 ${mobileTab !== 'context' ? 'hidden lg:block' : 'block'}`}>
+            <ContextPanel
+              digitalScore={contextData.digitalScore}
+              issueCount={contextData.issueCount}
+              attachments={contextData.attachments}
+              proposalStatus={contextData.proposal.status}
+              proposalId={contextData.proposal.id}
+              onViewProposal={() => {
+                if (contextData.proposal.id) {
+                  router.push(`/consulting/reports/${contextData.proposal.id}`)
+                }
+              }}
+              onDownloadProposal={() => {
+                if (contextData.proposal.id) {
+                  window.open(`/api/consulting/reports/${contextData.proposal.id}/pdf`, '_blank')
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )

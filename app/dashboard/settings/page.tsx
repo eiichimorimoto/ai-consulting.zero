@@ -20,17 +20,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     .eq('user_id', data.user.id)
     .single()
 
-  // プロファイルが未完成の場合
-  if (!profile || !profile.name || profile.name === 'User' || !profile.company_id) {
-    redirect("/auth/complete-profile")
-  }
-
-  // 会社情報を取得
-  const { data: company } = await supabase
+  // 会社情報を取得（プロファイルにcompany_idがある場合のみ）
+  const { data: company } = profile?.company_id ? await supabase
     .from('companies')
     .select('*')
     .eq('id', profile.company_id)
-    .single()
+    .single() : { data: null }
 
   // サブスクリプション情報を取得
   const { data: subscription } = await supabase
