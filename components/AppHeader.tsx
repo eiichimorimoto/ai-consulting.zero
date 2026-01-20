@@ -78,7 +78,7 @@ export default function AppHeader() {
             {/* ロゴ（クリックでダッシュボードへ） */}
             <Link href="/dashboard" className="flex items-center gap-3">
               <Image
-                src="/info-data/AI-LOGO001.png"
+                src="/info-data/AI-LOGO007.png"
                 alt="SolveWise"
                 width={40}
                 height={40}
