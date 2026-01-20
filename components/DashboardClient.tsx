@@ -652,7 +652,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 </svg>
                 ダッシュボード
               </Link>
-              <a className="nav-item" onClick={() => router.push('/consulting/start')}>
+              <a className="nav-item" onClick={() => window.location.href = '/consulting/start'}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                 </svg>
@@ -984,7 +984,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   
                   {/* AIコンサルタントに相談ボタン */}
                   <button 
-                    onClick={() => router.push('/consulting/start')}
+                    onClick={() => window.location.href = '/consulting/start'}
                     style={{
                       padding: '8px 16px',
                       background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -3227,7 +3227,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </div>
                     </div>
                     <button
-                      onClick={() => router.push('/consulting/start')}
+                      onClick={() => window.location.href = '/consulting/start'}
                       style={{
                         padding: '8px 14px',
                         background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -3811,7 +3811,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         {/* AI相談CTA - ガラスデザイン（右寄せ） */}
                         <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
                           <div
-                            onClick={() => router.push('/consulting/start')}
+                            onClick={() => window.location.href = '/consulting/start'}
                             style={{
                               padding: '10px 14px',
                               background: 'rgba(255, 255, 255, 0.45)',
