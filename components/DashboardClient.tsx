@@ -318,7 +318,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         headers: {
           'Cache-Control': forceRefresh ? 'no-cache' : 'default'
         }
-      }, 90_000, 3) // タイムアウト90秒、最大3回リトライ（業界予測等の重いClaude API処理対応）
+      }, 120_000, 3) // タイムアウト120秒、最大3回リトライ（業界予測等の重いClaude API処理対応）
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

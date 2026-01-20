@@ -14,7 +14,7 @@ function AppFooter() {
           {/* ロゴ */}
           <Link href="/dashboard" className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
             <Image
-              src="/info-data/AI-LOGO001.png"
+              src="/info-data/AI-LOGO007.png"
               alt="SolveWise"
               width={24}
               height={24}
