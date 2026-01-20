@@ -3,18 +3,18 @@ import { NextResponse, type NextRequest } from "next/server"
 
 // Edge Runtimeではファイルシステムへの書き込みができないため、コンソールログのみ使用
 const logToConsole = async (data: any) => {
-  console.log("[proxy]", JSON.stringify(data))
+  console.log("[middleware]", JSON.stringify(data))
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Supabaseのメール確認（PKCE）の戻り先がトップ(/)になってしまっても、
   // `?code=` が付いていれば /auth/callback に渡してセッション交換→プロフィール入力へ遷移させる。
   const url = request.nextUrl
   const code = url.searchParams.get("code")
 
   await logToConsole({
-    location: "proxy.ts",
-    message: "proxy entry",
+    location: "middleware.ts",
+    message: "middleware entry",
     data: { pathname: url.pathname, search: url.search, hasCode: !!code },
     timestamp: Date.now(),
   })
@@ -43,3 +43,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 }
+
+
