@@ -84,7 +84,7 @@ export function SimpleSidebar({
               {CATEGORIES.map((category) => {
                 const Icon = category.icon
                 return (
-                  <div key={category.id} className="flex items-center space-x-2">
+                  <div key={category.id} className="flex items-center space-x-2 pl-4">
                     <RadioGroupItem 
                       value={category.id} 
                       id={category.id}

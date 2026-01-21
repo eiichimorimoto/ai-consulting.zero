@@ -28,8 +28,20 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
-      {/* AI背景（グラデーション + ドットパターン + ロボット） */}
-      <div className="pointer-events-none absolute inset-0 opacity-60">
+      {/* AI背景（グラデーション + ドットパターン + AI相談画像） */}
+      <div className="pointer-events-none absolute inset-0 opacity-35">
+        {/* AI相談画像（背景全体に薄く表示） */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'url(/AI相談画像01.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: 0.22,
+            filter: 'blur(0.5px)',
+          }}
+        />
         {/* グラデーション背景 */}
         <div 
           className="absolute inset-0"
@@ -43,18 +55,6 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
           style={{
             backgroundImage: 'radial-gradient(circle, rgba(99, 102, 241, 0.2) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
-          }}
-        />
-        {/* リアルなロボット画像（背景） */}
-        <div 
-          className="absolute inset-0 flex items-center justify-center"
-          style={{
-            backgroundImage: 'url(/robot-bg.png)',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            opacity: 0.15,
-            filter: 'grayscale(20%) blur(0.5px)',
           }}
         />
         {/* サーキットライン */}

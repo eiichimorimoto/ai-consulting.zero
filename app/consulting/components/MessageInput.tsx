@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Paperclip, Mic, Send } from 'lucide-react'
+import { Paperclip, Mic, Send, AlertCircle } from 'lucide-react'
 
 interface MessageInputProps {
   value: string
@@ -23,6 +23,7 @@ interface MessageInputProps {
   placeholder?: string
   onFileUpload?: (files: FileList) => void
   disabled?: boolean
+  hasSession?: boolean
 }
 
 const CATEGORIES = [
@@ -42,11 +43,13 @@ export function MessageInput({
   onCategoryChange,
   isLoading = false,
   showCategorySelect = false,
-  placeholder = 'メッセージを入力...',
+  placeholder = '新規の場合は、左メニューからカテゴリーを選択の上相談内容を入力してください。また既存の相談の続きは相談履歴から選択してください。',
   onFileUpload,
-  disabled = false
+  disabled = false,
+  hasSession = false
 }: MessageInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showError, setShowError] = useState(false)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -68,30 +71,95 @@ export function MessageInput({
     }
   }
 
+  const handleFocus = () => {
+    if (!hasSession) {
+      setShowError(true)
+    }
+  }
+
+  const handleBlur = () => {
+    // 少し遅延させてからエラーを非表示（クリックイベントが発火するまで待つ）
+    setTimeout(() => {
+      setShowError(false)
+    }, 200)
+  }
+
   return (
-    <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4">
-      <div className="mx-auto max-w-4xl space-y-2">
-        {/* 上部ツールバー */}
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+    <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-4 px-4">
+      <div className="mx-auto max-w-4xl">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+        />
+        
+        {/* エラーメッセージ */}
+        {showError && !hasSession && (
+          <div className="mb-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>左メニューからカテゴリーを選択するか、相談履歴から既存の相談を選択してください。</span>
+          </div>
+        )}
+        
+        {/* メッセージ入力 */}
+        <div className="flex items-start gap-2">
+          <Textarea
+            value={value}
+            onChange={(e) => {
+              if (hasSession || !disabled) {
+                onChange(e.target.value)
+              }
+            }}
+            onKeyDown={(e) => {
+              if (hasSession) {
+                handleKeyDown(e)
+              } else {
+                e.preventDefault()
+              }
+            }}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            disabled={isLoading}
+            className={`min-h-[100px] max-h-[200px] resize-none flex-1 ${!hasSession && disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+            rows={4}
           />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={isLoading || disabled}
-            onClick={handleFileClick}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
           
-          {showCategorySelect && onCategoryChange && (
+          <div className="flex flex-col gap-2 pt-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10"
+              disabled={isLoading || disabled}
+              onClick={handleFileClick}
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10"
+              disabled={isLoading || disabled}
+            >
+              <Mic className="h-5 w-5" />
+            </Button>
+            <Button
+              onClick={onSend}
+              disabled={isLoading || disabled || !value.trim()}
+              size="icon"
+              className="h-10 w-10"
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* カテゴリー選択（必要な場合のみ表示） */}
+        {showCategorySelect && onCategoryChange && (
+          <div className="mt-2">
             <Select value={category} onValueChange={onCategoryChange} disabled={isLoading}>
               <SelectTrigger className="h-8 w-[140px]">
                 <SelectValue />
@@ -104,39 +172,8 @@ export function MessageInput({
                 ))}
               </SelectContent>
             </Select>
-          )}
-        </div>
-
-        {/* メッセージ入力 */}
-        <div className="flex items-end gap-2">
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={isLoading || disabled}
-            className="min-h-[60px] max-h-[200px] resize-none"
-            rows={2}
-          />
-          
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={isLoading || disabled}
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
-            
-            <Button
-              onClick={onSend}
-              disabled={isLoading || disabled || !value.trim()}
-              size="icon"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
