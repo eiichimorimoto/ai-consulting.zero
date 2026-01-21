@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Paperclip, Mic, Send } from 'lucide-react'
 
 interface InitialIssueModalProps {
   open: boolean
@@ -76,26 +76,52 @@ export function InitialIssueModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex items-end justify-between">
+          {/* アイコンボタン */}
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+              disabled={isLoading}
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+              disabled={isLoading}
+            >
+              <Mic className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col items-center">
+              <Button
+                type="button"
+                size="icon"
+                className="h-9 w-9"
+                disabled={isLoading || !issue.trim()}
+                onClick={handleSubmit}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
+              <span className="text-[10px] text-muted-foreground mt-1">相談を開始</span>
+            </div>
+          </div>
+
+          {/* キャンセルボタン */}
           <Button
             variant="outline"
             onClick={handleClose}
             disabled={isLoading}
           >
             キャンセル
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading || !issue.trim()}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                送信中...
-              </>
-            ) : (
-              '相談を開始'
-            )}
           </Button>
         </div>
       </DialogContent>
