@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         company_id: profile?.company_id || null,
-        title: title || initial_message.slice(0, 50) + '...',
+        title: title || (initial_message ? initial_message.slice(0, 50) + '...' : '新規相談'),
         category: category || 'general',
         status: 'active',
         max_rounds: 5,
@@ -118,22 +118,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 初期メッセージ保存
-    const { error: messageError } = await supabase
-      .from('consulting_messages')
-      .insert({
-        session_id: session.id,
-        role: 'user',
-        content: initial_message,
-        message_order: 1
-      })
-
-    if (messageError) {
-      console.error('Initial message save error:', messageError)
-      // セッションは作成されたが、メッセージ保存に失敗した場合
-      // セッションはそのまま返す（後でメッセージを追加可能）
-      console.warn('Session created but initial message failed to save')
-    }
+    // 初期メッセージは保存しない（メッセージAPI経由で送信される）
+    // これにより、Difyへの送信もメッセージAPI経由で一元管理される
 
     return NextResponse.json({ 
       session,
