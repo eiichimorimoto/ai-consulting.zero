@@ -14,9 +14,9 @@ let detectedLocalUrl = null;
 
 let browserOpened = false;
 
-// 安定優先: 既定は Webpack で dev 起動（Turbopack はキャッシュ破損で落ちることがあるため）
-// Turbopack を使いたい場合は `NEXT_DEV_ENGINE=turbopack` を環境変数で指定する。
-const engine = (process.env.NEXT_DEV_ENGINE || 'webpack').toLowerCase();
+// Next.js 16 推奨: Turbopack をデフォルトで使用（安定版、高速）
+// Webpack を使いたい場合は `NEXT_DEV_ENGINE=webpack` を環境変数で指定する。
+const engine = (process.env.NEXT_DEV_ENGINE || 'turbopack').toLowerCase();
 const devArgs = [nextBin, 'dev', engine === 'turbopack' ? '--turbo' : '--webpack'];
 
 const nextProcess = spawn(process.execPath, devArgs, {
