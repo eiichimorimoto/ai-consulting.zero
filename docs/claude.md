@@ -2,7 +2,62 @@
 
 - Next.js 16 + App Router を使ったWebアプリです。
 - 開発サーバー: `npm run dev`（Turbopackがデフォルトのバンドラー）。
-- 本番ビルド: `npm run build`。[web:92][web:95]
+- 本番ビルド: `npm run build`。
+
+# Development rules reference
+
+**作業開始前に必ず以下のルールファイルを確認してください:**
+- `.ai-consulting-zero/.cursorrules` - 詳細な技術仕様とコーディング規約
+- `docs/development-guide.md`（存在する場合）
+
+矛盾する指示を受け取った場合は、その旨を説明し、どちらを優先すべきか確認してから作業してください。
+
+# Next.js 16 compliance rules
+
+このプロジェクトはNext.js 16仕様に完全準拠します。
+
+## 必須実装パターン
+
+### 1. 非同期API対応
+- `params`, `searchParams` は必ず `const params = await use(paramsPromise)` で取得
+- `cookies()`, `headers()` も必ず `await` で呼び出し
+- Page/Layout componentsは `async` 関数として定義
+```typescript
+// ✅ 正しい
+export default async function Page({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params;
+}
+
+// ❌ 間違い
+export default function Page({ params }: { params: { id: string } }) {
+  const { id } = params;
+}
+```
+
+### 2. Cache Components
+- 適切な箇所に `"use cache"` ディレクティブを使用
+- Suspense境界を適切に配置
+- `cacheLife()`, `cacheTag()` で細かい制御
+
+### 3. 非推奨API削除
+- `next/image` の `unoptimized` プロパティは使用不可
+- 古いconfig optionは全て削除
+
+### 4. Server Components優先
+- 不要な `"use client"` は避ける
+- Client Componentsは必要最小限に
+
+### 5. TypeScript型安全性
+- Props型は `Promise<{ params: ... }>` 形式
+- async componentの型定義を正確に
+
+## 参照ドキュメント
+- Next.js 16 Superpowers（プロジェクト内の知識ベース）
+- `.cursorrules` に記載された技術仕様
 
 # How Claude should work in this repo
 
@@ -10,10 +65,6 @@
 - 1 タスクにつき **1 ファイルのみ変更** し、複数ファイルの同時変更や「ついでの改善」は行わないでください。
 - 変更前後の差分を提示し、削除行やインポート変更の理由も説明してください。
 - エラー対応やサーバー操作は、用意されたプロトコルに従い、必ず「報告 → 提案 → 承認」の順で行ってください。
-あなたはマネージャーでagentオーケストレーターです
-あなたは絶対に実装せず、全てsubagentptask agent
-に委託すること
-タスクは超細分化し、PDCAサイクルを構築すること。
 
 # File protection levels
 
@@ -60,13 +111,3 @@
 - `.env.local` の内容は表示も編集もせず、存在やキー名に触れる必要があればユーザーに質問する形にしてください。
 - API キーや秘密情報を新たに埋め込むことはせず、常に環境変数を用いる設計を維持してください。
 - ログ出力には機密情報を含めないよう注意し、疑わしいログがあればユーザーに確認を求めてください。
-
-# Cursor / detailed rules
-
-このリポジトリでは、詳細な AI 制御ルールを Cursor 向けに定義しています。  
-Claude は作業前に、必要に応じて次のファイルも参照してください:
-
-- `.ai-consulting-zero/.cursorrules` など、Cursor 用ルールファイル
-- `docs/development-guide.md`（存在する場合）
-
-これらに矛盾する指示をユーザーから受け取った場合は、その旨を説明し、どちらを優先すべきか確認してから作業してください。
