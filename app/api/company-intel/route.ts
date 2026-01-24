@@ -6,6 +6,28 @@ import { fetchWithRetry, fetchWithTimeout } from "@/lib/fetch-with-retry"
 import { braveWebSearch, BraveWebResult } from "@/lib/brave-search"
 import { applyRateLimit } from "@/lib/rate-limit"
 
+// BraveWebResultを拡張したランキング付き検索結果
+interface RankedBraveResult extends BraveWebResult {
+  _score: number
+  _companyNameMatch: number
+}
+
+// 外部検索のフェッチログ
+interface FetchLog {
+  url: string
+  ok: boolean
+  status?: number
+  contentType?: string
+  title?: string
+  description?: string
+  preview?: string
+  companyNameVerified?: boolean
+  addressMatch?: { score: number; matchedPrefecture: boolean; matchedCity: boolean; reason: string }
+  isAddressConflict?: boolean
+  label?: string
+  error?: string
+}
+
 export const runtime = "nodejs"
 export const maxDuration = 120 // Vercelの関数実行時間制限（2分）
 
@@ -1020,35 +1042,35 @@ export async function POST(request: Request) {
         }
 
         const ranked = Array.from(uniq.values())
-          .map((r: any) => ({
+          .map((r: BraveWebResult) => ({
             ...r,
             _score: preferredDomainScore(r.url) + keywordScore(r) + companyNameMatchScore(r),
             _companyNameMatch: companyNameMatchScore(r),
           }))
           // 非上場企業の場合、会社名マッチスコアが0のものは除外（同名他社の可能性が高い）
-          .filter((r: any) => isListedCompany || r._companyNameMatch > 0 || preferredDomainScore(r.url) > 0)
-          .sort((a: any, b: any) => b._score - a._score)
+          .filter((r: RankedBraveResult) => isListedCompany || r._companyNameMatch > 0 || preferredDomainScore(r.url) > 0)
+          .sort((a: RankedBraveResult, b: RankedBraveResult) => b._score - a._score)
           .slice(0, isListedCompany ? 10 : 5) // 非上場は絞り込む
 
-        console.log("📋 外部検索結果:", { 
-          isListedCompany, 
-          totalResults: uniq.size, 
+        console.log("📋 外部検索結果:", {
+          isListedCompany,
+          totalResults: uniq.size,
           filteredResults: ranked.length,
-          topResults: ranked.slice(0, 3).map((r: any) => ({ url: r.url, score: r._score, nameMatch: r._companyNameMatch }))
+          topResults: ranked.slice(0, 3).map((r: RankedBraveResult) => ({ url: r.url, score: r._score, nameMatch: r._companyNameMatch }))
         })
 
         const chunks: string[] = []
         const fetched: string[] = []
-        const fetchLogs: any[] = []
+        const fetchLogs: FetchLog[] = []
         for (const r of ranked) {
           try {
             const { ok, status, contentType, html, text } = await fetchHtmlToText(r.url, 20_000)
-            
+
             // 非上場企業の場合、取得したテキストにも会社名が含まれているか確認
             const nameToCheck = companyNameGuess.replace(/株式会社|有限会社|合同会社/g, "").trim()
-            const textContainsCompanyName = isListedCompany || 
-              (text && (text.includes(nameToCheck) || text.includes(officialDomain)))
-            
+            const textContainsCompanyName = isListedCompany ||
+              !!(text && (text.includes(nameToCheck) || text.includes(officialDomain)))
+
             // 非上場企業の場合、住所マッチングで同名他社を排除
             let addressMatch = { score: 0, matchedPrefecture: false, matchedCity: false, reason: "" }
             let isAddressConflict = false
@@ -1063,14 +1085,14 @@ export async function POST(request: Request) {
                 console.log("⚠️ 住所不一致で除外:", { url: r.url, addressMatch })
               }
             }
-            
+
             fetchLogs.push({
               url: r.url,
               ok,
               status,
               contentType,
-              title: (r as any).title,
-              description: (r as any).description,
+              title: r.title,
+              description: r.description,
               preview: safeSlice(text || stripHtmlToText(html || ""), 400),
               companyNameVerified: textContainsCompanyName,
               addressMatch: addressMatch,
@@ -1093,7 +1115,7 @@ export async function POST(request: Request) {
             
             fetched.push(r.url)
             chunks.push(
-              `(外部情報: ${r.url})\n(title: ${(r as any).title || ""})\n(desc: ${(r as any).description || ""})\n${safeSlice(text, 2500)}`
+              `(外部情報: ${r.url})\n(title: ${r.title || ""})\n(desc: ${r.description || ""})\n${safeSlice(text, 2500)}`
             )
           } catch (e) {
             fetchLogs.push({ url: r.url, ok: false, error: String(e) })
@@ -1115,10 +1137,10 @@ export async function POST(request: Request) {
           needsRevenue,
           needsLocations,
           queries,
-          results: ranked.map((r: any) => ({ 
-            url: r.url, 
-            title: r.title, 
-            description: r.description, 
+          results: ranked.map((r: RankedBraveResult) => ({
+            url: r.url,
+            title: r.title,
+            description: r.description,
             score: r._score,
             companyNameMatch: r._companyNameMatch,
           })),
@@ -1133,7 +1155,7 @@ export async function POST(request: Request) {
         const candidates = buildKnownExternalSources(stockCode)
         const chunks: string[] = []
         const fetched: string[] = []
-        const fetchLogs: any[] = []
+        const fetchLogs: FetchLog[] = []
 
         for (const c of candidates) {
           try {

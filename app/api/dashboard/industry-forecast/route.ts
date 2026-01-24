@@ -4,7 +4,7 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
-import { braveWebSearch } from '@/lib/brave-search'
+import { braveWebSearch, BraveWebResult } from '@/lib/brave-search'
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
@@ -121,9 +121,9 @@ export async function GET(request: Request) {
 
     const searchResults = await Promise.all(searchPromises)
     
-    const formatResults = (results: any[]) => results
+    const formatResults = (results: BraveWebResult[]) => results
       .slice(0, 6)
-      .map((r: any) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
+      .map((r: BraveWebResult) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
       .join('\n')
 
     const searchContext = `
