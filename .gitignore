@@ -175,3 +175,5 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 google-credentials.json.git/index.lock
+*.backup.*
+.next*/
