@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
-import { braveWebSearch } from '@/lib/brave-search'
+import { braveWebSearch, BraveWebResult } from '@/lib/brave-search'
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
     const allResults = searchResults.flat()
     const searchText = allResults
       .slice(0, 20)
-      .map((r: any) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
+      .map((r: BraveWebResult) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
       .join('\n')
 
     // AIで業界動向を分析

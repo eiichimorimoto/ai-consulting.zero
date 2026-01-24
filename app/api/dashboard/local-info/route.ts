@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkSearchResult } from "@/lib/fact-checker"
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
-import { braveWebSearch } from '@/lib/brave-search'
+import { braveWebSearch, BraveWebResult } from '@/lib/brave-search'
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
@@ -23,7 +23,7 @@ const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
 
 // ファクトチェック関数（検索結果の信頼性を検証）
 // 重要: 検索結果を表示する前に必ずこの関数を実行すること
-async function factCheckSearchResults(results: any[], _query: string, expectedType: 'labor' | 'event' | 'infrastructure' | 'weather'): Promise<any[]> {
+async function factCheckSearchResults(results: BraveWebResult[], _query: string, expectedType: 'labor' | 'event' | 'infrastructure' | 'weather'): Promise<BraveWebResult[]> {
   if (!results || results.length === 0) return []
   
   // 基本的なファクトチェック
@@ -351,7 +351,7 @@ async function getEvents(prefecture: string, city: string, industry: string) {
   
   // 注目度が高いもの3-5件を返す
   return {
-    events: verifiedResults.slice(0, 5).map((r: any) => ({
+    events: verifiedResults.slice(0, 5).map((r: BraveWebResult) => ({
       title: r.title || '',
       url: r.url || '',
       description: r.description || '',
@@ -375,8 +375,8 @@ async function getInfrastructure(prefecture: string, city: string, _industry: st
     `${area} 物流 インフラ 港 運行`,
   ]
 
-  const results: any[] = []
-  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: any[] }> = []
+  const results: BraveWebResult[] = []
+  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: BraveWebResult[] }> = []
 
   for (const q of queries) {
     const searchResults = await braveWebSearch(q, 5)
@@ -391,7 +391,7 @@ async function getInfrastructure(prefecture: string, city: string, _industry: st
   }
 
   return {
-    items: results.slice(0, 5).map((r: any) => ({
+    items: results.slice(0, 5).map((r: BraveWebResult) => ({
       title: r.title || '',
       url: r.url || '',
       description: r.description || '',
@@ -678,7 +678,7 @@ async function getTrafficInfo(prefecture: string, city: string) {
   console.log(`🚗 交通情報取得完了: ${verifiedResults.length}件`)
 
   return {
-    items: verifiedResults.slice(0, 5).map((r: any) => ({
+    items: verifiedResults.slice(0, 5).map((r: BraveWebResult) => ({
       title: r.title || '',
       url: r.url || '',
       description: r.description || '',
@@ -713,8 +713,8 @@ async function getLogisticsInfo(prefecture: string, city: string, industry: stri
     `物流業界 サプライチェーン トレンド 2025`,
   ]
 
-  const results: any[] = []
-  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: any[] }> = []
+  const results: BraveWebResult[] = []
+  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: BraveWebResult[] }> = []
 
   for (const q of queries) {
     const searchResults = await braveWebSearch(q, 5)
@@ -734,14 +734,14 @@ async function getLogisticsInfo(prefecture: string, city: string, industry: stri
   }
 
   // 重複を除去
-  const uniqueResults = results.reduce((acc: any[], current) => {
+  const uniqueResults = results.reduce((acc: BraveWebResult[], current) => {
     const exists = acc.find(item => item.url === current.url)
     if (!exists) acc.push(current)
     return acc
   }, [])
 
   return {
-    items: uniqueResults.slice(0, 6).map((r: any) => ({
+    items: uniqueResults.slice(0, 6).map((r: BraveWebResult) => ({
       title: r.title || '',
       url: r.url || '',
       description: r.description || '',
