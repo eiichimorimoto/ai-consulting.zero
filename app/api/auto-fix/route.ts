@@ -69,12 +69,12 @@ export async function POST(request: Request) {
       },
       { status: 400 }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         success: false,
         error: '自動修復の実行に失敗しました',
-        details: error.message
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     )

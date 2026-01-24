@@ -225,11 +225,12 @@ export async function POST(request: Request) {
     let pageSpeedData;
     try {
       pageSpeedData = await analyzeWithPageSpeed(url);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string; stack?: string }
       console.error('❌ PageSpeed分析エラー:', {
         url,
-        error: error.message,
-        stack: error.stack,
+        error: err?.message,
+        stack: err?.stack,
       });
       throw error;
     }
@@ -379,18 +380,19 @@ ${metrics.failedAudits && metrics.failedAudits.length > 0
       factCheck: factCheckResult,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string; stack?: string; name?: string; cause?: unknown }
     console.error('❌ Diagnosis preview error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      cause: error.cause,
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name,
+      cause: err?.cause,
     });
-    
+
     // PageSpeed APIキーが設定されていない場合の特別な処理
-    if (error.message?.includes('PageSpeed APIキー') || error.message?.includes('PageSpeed API key') || error.message?.includes('GOOGLE_PAGESPEED_API_KEY')) {
+    if (err?.message?.includes('PageSpeed APIキー') || err?.message?.includes('PageSpeed API key') || err?.message?.includes('GOOGLE_PAGESPEED_API_KEY')) {
       return NextResponse.json(
-        { 
+        {
           error: 'PageSpeed APIキーが設定されていません',
           details: 'Vercelの環境変数に GOOGLE_PAGESPEED_API_KEY を設定してください。設定後、デプロイを再実行してください。',
           code: 'PAGESPEED_API_KEY_NOT_CONFIGURED',
@@ -399,9 +401,9 @@ ${metrics.failedAudits && metrics.failedAudits.length > 0
         { status: 503 } // Service Unavailable
       );
     }
-    
+
     // ANTHROPIC APIキーが設定されていない場合の特別な処理
-    if (error.message?.includes('ANTHROPIC_API_KEY') || error.message?.includes('Anthropic')) {
+    if (err?.message?.includes('ANTHROPIC_API_KEY') || err?.message?.includes('Anthropic')) {
       return NextResponse.json(
         {
           error: 'ANTHROPIC_API_KEYが設定されていません',
@@ -411,24 +413,24 @@ ${metrics.failedAudits && metrics.failedAudits.length > 0
         { status: 503 }
       );
     }
-    
+
     // その他のエラー（詳細を返すが、本番環境では機密情報を隠す）
     const isProduction = process.env.NODE_ENV === 'production';
-    const errorDetails = isProduction 
+    const errorDetails = isProduction
       ? 'サーバー内部エラーが発生しました。詳細はサーバーログを確認してください。'
-      : error.message || '分析に失敗しました';
-    
+      : err?.message || '分析に失敗しました';
+
     return NextResponse.json(
-      { 
+      {
         error: errorDetails,
-        details: error.message?.includes('PageSpeed API error') 
+        details: err?.message?.includes('PageSpeed API error')
           ? 'PageSpeed APIの呼び出しに失敗しました。APIキーやURLを確認してください。'
-          : error.message?.includes('Failed to parse AI response')
+          : err?.message?.includes('Failed to parse AI response')
           ? 'AIレスポンスの解析に失敗しました。'
           : undefined,
         code: isProduction ? 'INTERNAL_SERVER_ERROR' : undefined,
         // 開発環境でのみスタックトレースを返す
-        ...(isProduction ? {} : { stack: error.stack }),
+        ...(isProduction ? {} : { stack: err?.stack }),
       },
       { status: 500 }
     );

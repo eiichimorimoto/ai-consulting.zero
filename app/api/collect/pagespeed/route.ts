@@ -67,20 +67,21 @@ export async function POST(request: Request) {
         isMobileFriendly: metrics.isMobileFriendly,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PageSpeed collection error:', error);
+    const message = error instanceof Error ? error.message : String(error)
 
     // エラーログ記録
     const supabase = await createClient();
     await supabase.from('data_collection_logs').insert({
-      company_id: request.json().then((d: any) => d.companyId).catch(() => null),
+      company_id: request.json().then((d: { companyId?: string }) => d.companyId).catch(() => null),
       collection_type: 'pagespeed',
       status: 'error',
-      error_message: error.message,
+      error_message: message,
     });
 
     return NextResponse.json(
-      { error: error.message },
+      { error: message },
       { status: 500 }
     );
   }

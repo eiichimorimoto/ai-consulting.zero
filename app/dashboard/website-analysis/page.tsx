@@ -85,7 +85,7 @@ export default function WebsiteAnalysisPage() {
         setCompanyUrl(company.website)
         setCompanyName(company.name || '')
         setIsLoading(false)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching company:', err)
         setError('会社情報の取得に失敗しました')
         setIsLoading(false)
@@ -158,8 +158,8 @@ export default function WebsiteAnalysisPage() {
         metrics: data.metrics,
         url: data.url || companyUrl,
       })
-    } catch (err: any) {
-      const errorMessage = mapDiagnosisError(err?.message || '')
+    } catch (err: unknown) {
+      const errorMessage = mapDiagnosisError(err instanceof Error ? err.message : '')
       setError(errorMessage)
     } finally {
       setIsAnalyzing(false)

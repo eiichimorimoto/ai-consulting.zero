@@ -161,11 +161,11 @@ export default function TestAuthPage() {
         })
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Test error:', err)
       updateResult('SignUp API', {
         status: 'fail',
-        message: `例外: ${err.message}`
+        message: `例外: ${err instanceof Error ? err.message : String(err)}`
       })
       updateResult('Response Analysis', {
         status: 'fail',

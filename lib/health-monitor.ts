@@ -64,12 +64,12 @@ export async function checkNextJS(): Promise<HealthCheckResult[]> {
           fixable: false
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         status: 'warning',
         category: 'Next.js',
         message: '.nextディレクトリの確認中にエラーが発生しました',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         fixable: true,
         fixAction: 'clean_cache'
       })
@@ -177,12 +177,12 @@ export async function checkCSS(): Promise<HealthCheckResult[]> {
           fixable: false
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         status: 'error',
         category: 'CSS',
         message: 'tailwind.config.jsの読み込みに失敗しました',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         fixable: true,
         fixAction: 'fix_tailwind_config'
       })
@@ -255,12 +255,12 @@ export async function checkCache(): Promise<HealthCheckResult[]> {
           fixAction: 'clean_cache'
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         status: 'warning',
         category: 'キャッシュ',
         message: 'キャッシュディレクトリの確認中にエラーが発生しました',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         fixable: true,
         fixAction: 'clean_cache'
       })
@@ -285,7 +285,7 @@ export async function checkCache(): Promise<HealthCheckResult[]> {
           fixAction: 'clean_turbo_cache'
         })
       }
-    } catch (error: any) {
+    } catch {
       // エラーは無視（Turbopack未使用の可能性）
     }
   }
@@ -358,12 +358,12 @@ export async function checkServer(): Promise<HealthCheckResult[]> {
           fixable: false
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         status: 'error',
         category: 'サーバー',
         message: 'package.jsonの読み込みに失敗しました',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         fixable: false
       })
     }

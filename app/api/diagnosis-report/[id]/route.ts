@@ -36,10 +36,10 @@ export async function GET(
       data: report,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching report:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch report' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch report' },
       { status: 500 }
     );
   }

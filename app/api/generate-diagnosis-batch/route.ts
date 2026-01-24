@@ -39,11 +39,11 @@ export async function POST(request: Request) {
         // レート制限対策（2秒待機）
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.push({
           companyId,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -55,10 +55,10 @@ export async function POST(request: Request) {
       results,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Batch diagnosis error:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
