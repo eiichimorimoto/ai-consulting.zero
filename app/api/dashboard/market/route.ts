@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { getForexRate, getNikkeiProxy, generateWeeklyData } from '@/lib/alphavantage'
 import { braveWebSearch } from '@/lib/brave-search'
+import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 
@@ -482,6 +483,10 @@ function generateCommodityPrices(materials: typeof industryMaterials['default'],
 }
 
 export async function GET(request: Request) {
+  // レート制限チェック（30回/時間）
+  const rateLimitError = applyRateLimit(request, 'dashboard')
+  if (rateLimitError) return rateLimitError
+
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()

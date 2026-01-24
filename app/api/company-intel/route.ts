@@ -4,6 +4,7 @@ import { convertPdfBufferToPngBuffer } from "@/lib/ocr/pdf-to-png"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
 import { fetchWithRetry, fetchWithTimeout } from "@/lib/fetch-with-retry"
 import { braveWebSearch, BraveWebResult } from "@/lib/brave-search"
+import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 export const maxDuration = 120 // Vercelの関数実行時間制限（2分）
@@ -679,6 +680,10 @@ interface CompanyIntelResult {
 }
 
 export async function POST(request: Request) {
+  // レート制限チェック（30回/時間）
+  const rateLimitError = applyRateLimit(request, 'companyIntel')
+  if (rateLimitError) return rateLimitError
+
   try {
     const body = await request.json()
     const website = (body?.website as string | undefined)?.trim()

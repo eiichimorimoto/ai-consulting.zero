@@ -5,6 +5,7 @@ import { generateObject } from "ai"
 import { z } from "zod"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
 import { braveWebSearch } from '@/lib/brave-search'
+import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 export const maxDuration = 120 // 2分のタイムアウト
@@ -52,6 +53,10 @@ const forecastSchema = z.object({
 })
 
 export async function GET(request: Request) {
+  // レート制限チェック（30回/時間）
+  const rateLimitError = applyRateLimit(request, 'dashboard')
+  if (rateLimitError) return rateLimitError
+
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()

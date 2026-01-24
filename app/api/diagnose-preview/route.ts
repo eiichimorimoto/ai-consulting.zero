@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAIResult } from '@/lib/fact-checker';
+import { applyRateLimit } from "@/lib/rate-limit";
 
 // PageSpeed Insights APIを使用してサイトを分析
 async function analyzeWithPageSpeed(url: string) {
@@ -173,6 +174,10 @@ function extractIssues(pageSpeedData: any) {
 }
 
 export async function POST(request: Request) {
+  // レート制限チェック（10回/時間）
+  const rateLimitError = applyRateLimit(request, 'diagnosis')
+  if (rateLimitError) return rateLimitError
+
   try {
     let { url } = await request.json();
 
