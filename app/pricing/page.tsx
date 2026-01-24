@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { CheckCircle, Home } from 'lucide-react'
 import { Header } from '@/components/Header'
 
@@ -15,6 +15,7 @@ export default function PricingPage() {
   }
 
   return (
+    <LazyMotion features={domAnimation}>
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Header />
       
@@ -30,7 +31,7 @@ export default function PricingPage() {
           </Link>
 
           {/* Title */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -47,7 +48,7 @@ export default function PricingPage() {
               まずは無料プランでお試しください。<br />
               貴社の事業に永続的な価値をもたらすための羅針盤として、共に未来を描きましょう。
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -56,7 +57,7 @@ export default function PricingPage() {
               { name: 'Standard', price: '12,000', desc: '本格的な活用に', featured: true, features: ['AIチャット 無制限', '名刺OCR 無制限', '詳細レポート', 'Web情報自動取得', '優先サポート'] },
               { name: 'Enterprise', price: 'お問い合わせ', desc: '大規模利用に', features: ['全機能利用可能', 'API連携', '専任サポート', 'カスタム分析'] }
             ].map((plan, index) => (
-              <motion.div
+              <m.div
                 key={plan.name}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -106,12 +107,13 @@ export default function PricingPage() {
                     無料で登録
                   </Link>
                 )}
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
       </main>
     </div>
+    </LazyMotion>
   )
 }
 
