@@ -42,8 +42,8 @@ function AuthErrorContent() {
       } else {
         setResendSuccess(true)
       }
-    } catch (err: any) {
-      setResendError(err.message || '再送信に失敗しました')
+    } catch (err: unknown) {
+      setResendError(err instanceof Error ? err.message : '再送信に失敗しました')
     } finally {
       setResending(false)
     }

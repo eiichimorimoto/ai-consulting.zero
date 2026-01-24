@@ -63,12 +63,13 @@ module.exports = nextConfig
       message: 'next.config.jsを作成しました',
       action: 'create_next_config'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `next.config.jsの作成に失敗しました: ${error.message}`,
+      message: `next.config.jsの作成に失敗しました: ${message}`,
       action: 'create_next_config',
-      details: error.message
+      details: message
     }
   }
 }
@@ -95,12 +96,13 @@ export async function cleanCache(): Promise<FixResult> {
         action: 'clean_cache'
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `キャッシュのクリーンアップに失敗しました: ${error.message}`,
+      message: `キャッシュのクリーンアップに失敗しました: ${message}`,
       action: 'clean_cache',
-      details: error.message
+      details: message
     }
   }
 }
@@ -127,12 +129,13 @@ export async function cleanTurboCache(): Promise<FixResult> {
         action: 'clean_turbo_cache'
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `Turbopackキャッシュのクリーンアップに失敗しました: ${error.message}`,
+      message: `Turbopackキャッシュのクリーンアップに失敗しました: ${message}`,
       action: 'clean_turbo_cache',
-      details: error.message
+      details: message
     }
   }
 }
@@ -195,12 +198,13 @@ body {
       message: 'globals.cssを作成しました',
       action: 'create_globals_css'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `globals.cssの作成に失敗しました: ${error.message}`,
+      message: `globals.cssの作成に失敗しました: ${message}`,
       action: 'create_globals_css',
-      details: error.message
+      details: message
     }
   }
 }
@@ -234,12 +238,13 @@ module.exports = {
       message: 'tailwind.config.jsを作成しました',
       action: 'create_tailwind_config'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `tailwind.config.jsの作成に失敗しました: ${error.message}`,
+      message: `tailwind.config.jsの作成に失敗しました: ${message}`,
       action: 'create_tailwind_config',
-      details: error.message
+      details: message
     }
   }
 }
@@ -286,12 +291,13 @@ export async function fixTailwindConfig(): Promise<FixResult> {
         action: 'fix_tailwind_config'
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `tailwind.config.jsの修正に失敗しました: ${error.message}`,
+      message: `tailwind.config.jsの修正に失敗しました: ${message}`,
       action: 'fix_tailwind_config',
-      details: error.message
+      details: message
     }
   }
 }
@@ -327,12 +333,13 @@ export async function createPostCSSConfig(): Promise<FixResult> {
       message: 'postcss.config.jsを作成しました',
       action: 'create_postcss_config'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `postcss.config.jsの作成に失敗しました: ${error.message}`,
+      message: `postcss.config.jsの作成に失敗しました: ${message}`,
       action: 'create_postcss_config',
-      details: error.message
+      details: message
     }
   }
 }
@@ -355,12 +362,13 @@ export async function installDependencies(): Promise<FixResult> {
       message: '依存関係のインストールが完了しました',
       action: 'install_dependencies'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      message: `依存関係のインストールに失敗しました: ${error.message}`,
+      message: `依存関係のインストールに失敗しました: ${message}`,
       action: 'install_dependencies',
-      details: error.message
+      details: message
     }
   }
 }

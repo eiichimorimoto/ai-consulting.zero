@@ -69,14 +69,15 @@ export async function POST() {
         // レート制限対策：1秒待機
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
         results.failed++;
         results.details.push({
           company: company.name,
           status: 'failed',
-          error: error.message,
+          error: message,
         });
-        console.log(`✗ Error: ${company.name} - ${error.message}`);
+        console.log(`✗ Error: ${company.name} - ${message}`);
       }
     }
 
@@ -86,10 +87,10 @@ export async function POST() {
       message: `Processed ${results.total} companies: ${results.succeeded} succeeded, ${results.failed} failed`,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Batch processing error:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

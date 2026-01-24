@@ -52,17 +52,18 @@ const fetchHtmlToText = async (url: string, timeoutMs = 30_000): Promise<{
   const html = await resp.text()
   const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
   return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラーの詳細を返す
-    let errorMessage = error?.message || String(error)
-    let errorType = error?.name || "UnknownError"
-    
+    const err = error as { message?: string; name?: string }
+    let errorMessage = err?.message || String(error)
+    let errorType = err?.name || "UnknownError"
+
     // AbortError（タイムアウト）の場合は特別なメッセージ
-    if (error?.name === 'AbortError' || errorMessage.includes('aborted') || errorMessage.includes('AbortError')) {
+    if (err?.name === 'AbortError' || errorMessage.includes('aborted') || errorMessage.includes('AbortError')) {
       errorMessage = `サイトへの接続がタイムアウトしました（${timeoutMs / 1000}秒、最大3回リトライ済み）。サイトの応答が遅いか、アクセス制限がある可能性があります。しばらく時間をおいてから再度お試しください。`
       errorType = 'TimeoutError'
     }
-    
+
     return {
       ok: false,
       status: 0,
@@ -619,9 +620,10 @@ JSONのみで返してください:
     const jsonText = match ? match[1] : textContent
     const parsed = JSON.parse(jsonText) as FinancialFacts
     return parsed
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 429エラー（クォータ超過）の場合はnullを返す（メイン処理で適切にハンドリングされる）
-    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota')) {
+    const err = error as { status?: number; message?: string }
+    if (err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota')) {
       console.error('OpenAI API quota exceeded in extractFinancialFactsFromPdf')
     }
     return null
@@ -772,14 +774,15 @@ export async function POST(request: Request) {
           errorDetails,
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Direct fetch failed:", e)
+      const err = e as { name?: string; message?: string }
       scrapeMeta = {
         ...scrapeMeta,
         method: "direct_fetch_exception",
         directException: String(e),
-        directErrorType: e?.name || "Exception",
-        directErrorMessage: e?.message || String(e),
+        directErrorType: err?.name || "Exception",
+        directErrorMessage: err?.message || String(e),
       }
     }
 
@@ -1399,34 +1402,35 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       temperature: 0.2,
       messages: [{ role: "user", content: prompt }],
     })
-    } catch (error: any) {
+    } catch (error: unknown) {
       // エラーの詳細をログに出力（デバッグ用）
+      const err = error as { status?: number; statusCode?: number; code?: string; message?: string; type?: string }
       console.error('❌ OpenAI API Error:', {
-        status: error?.status,
-        statusCode: error?.statusCode,
-        code: error?.code,
-        message: error?.message,
-        type: error?.type,
+        status: err?.status,
+        statusCode: err?.statusCode,
+        code: err?.code,
+        message: err?.message,
+        type: err?.type,
         error: error,
       })
-      
+
       // 429エラー（クォータ超過）の場合は適切なエラーメッセージを返す
-      const isQuotaError = 
-        error?.status === 429 || 
-        error?.statusCode === 429 ||
-        error?.code === 'insufficient_quota' ||
-        error?.message?.includes('429') || 
-        error?.message?.includes('quota') || 
-        error?.message?.includes('exceeded') ||
-        error?.message?.includes('rate_limit')
-      
+      const isQuotaError =
+        err?.status === 429 ||
+        err?.statusCode === 429 ||
+        err?.code === 'insufficient_quota' ||
+        err?.message?.includes('429') ||
+        err?.message?.includes('quota') ||
+        err?.message?.includes('exceeded') ||
+        err?.message?.includes('rate_limit')
+
       if (isQuotaError) {
         console.error('❌ OpenAI API quota exceeded - Full error:', JSON.stringify(error, null, 2))
         return NextResponse.json(
           {
             error: "OpenAI APIの利用制限に達しました",
-            details: `現在、OpenAI APIの利用制限（クォータ）に達しています。エラー詳細: ${error?.message || '不明'}`,
-            originalError: error?.message || error?.code || 'Unknown error',
+            details: `現在、OpenAI APIの利用制限（クォータ）に達しています。エラー詳細: ${err?.message || '不明'}`,
+            originalError: err?.message || err?.code || 'Unknown error',
           },
           { status: 429 }
         )
@@ -1436,8 +1440,8 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       return NextResponse.json(
         {
           error: "OpenAI APIの呼び出しに失敗しました",
-          details: error?.message || "不明なエラーが発生しました",
-          originalError: error?.message || error?.code || 'Unknown error',
+          details: err?.message || "不明なエラーが発生しました",
+          originalError: err?.message || err?.code || 'Unknown error',
         },
         { status: 500 }
       )
