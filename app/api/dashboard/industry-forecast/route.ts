@@ -4,43 +4,10 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
-import { fetchWithRetry } from '@/lib/fetch-with-retry'
+import { braveWebSearch } from '@/lib/brave-search'
 
 export const runtime = "nodejs"
 export const maxDuration = 120 // 2分のタイムアウト
-
-const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
-  const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
-  if (!key) return []
-  const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
-  
-  try {
-    const resp = await fetchWithRetry(
-      endpoint,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "X-Subscription-Token": key,
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        },
-      },
-      12_000,
-      3
-    )
-    
-    if (!resp.ok) {
-      console.warn(`⚠️ Brave Search returned status ${resp.status} for query: ${query}`)
-      return []
-    }
-    
-    const json: any = await resp.json()
-    return json?.web?.results || []
-  } catch (error) {
-    console.error(`❌ Brave Search error for query "${query}":`, error)
-    return []
-  }
-}
 
 const forecastSchema = z.object({
   shortTerm: z.object({

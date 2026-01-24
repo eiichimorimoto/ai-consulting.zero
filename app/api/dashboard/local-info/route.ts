@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkSearchResult } from "@/lib/fact-checker"
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
+import { braveWebSearch } from '@/lib/brave-search'
 
 export const runtime = "nodejs"
 
@@ -17,44 +18,6 @@ const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
   '広島県': { lat: 34.3853, lon: 132.4553 },
   '京都府': { lat: 35.0116, lon: 135.7681 },
   '兵庫県': { lat: 34.6913, lon: 135.1830 },
-}
-
-const braveWebSearch = async (query: string, count = 5): Promise<any[]> => {
-  const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
-  console.log(`🔍 Brave Search: query="${query}", apiKey=${key ? '設定済み(' + key.substring(0, 8) + '...)' : '未設定'}`)
-  if (!key) {
-    console.log('❌ Brave Search APIキーが未設定です')
-    return []
-  }
-  const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
-  try {
-    // fetchWithRetry を使用（タイムアウト8秒、リトライ1回で高速化）
-    const resp = await fetchWithRetry(
-      endpoint,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "X-Subscription-Token": key,
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        },
-      },
-      8_000, // タイムアウト8秒
-      1 // 最大1回リトライ（高速化）
-    )
-    console.log(`📡 Brave Search Response: status=${resp.status}`)
-    if (!resp.ok) {
-      console.warn(`⚠️ Brave Search returned status ${resp.status} for query: ${query}`)
-      return []
-    }
-    const json: any = await resp.json()
-    const results = json?.web?.results || []
-    console.log(`✅ Brave Search Results: ${results.length}件`)
-    return results
-  } catch (error) {
-    console.error(`❌ Brave Search error for query "${query}":`, error)
-    return []
-  }
 }
 
 // ファクトチェック関数（検索結果の信頼性を検証）
