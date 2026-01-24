@@ -2,66 +2,11 @@ import { NextResponse } from "next/server"
 import OpenAI from "openai"
 import { convertPdfBufferToPngBuffer } from "@/lib/ocr/pdf-to-png"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
+import { fetchWithRetry, fetchWithTimeout } from "@/lib/fetch-with-retry"
+import { braveWebSearch, BraveWebResult } from "@/lib/brave-search"
 
 export const runtime = "nodejs"
 export const maxDuration = 120 // Vercelの関数実行時間制限（2分）
-
-// リトライロジック付きfetch（指数バックオフ）
-const fetchWithRetry = async (
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  timeoutMs = 30_000,
-  maxRetries = 3
-): Promise<Response> => {
-  let lastError: Error | null = null
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-    
-  try {
-      const response = await fetch(input, { ...init, signal: controller.signal })
-    clearTimeout(timeoutId)
-      
-      // 成功した場合は即座に返す
-      if (response.ok || attempt === maxRetries) {
-        return response
-      }
-      
-      // 5xxエラーの場合はリトライ
-      if (response.status >= 500 && attempt < maxRetries) {
-        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 5000) // 最大5秒
-        console.log(`⚠️ サーバーエラー (${response.status})、${backoffMs}ms後にリトライ (${attempt + 1}/${maxRetries})`)
-        await new Promise(resolve => setTimeout(resolve, backoffMs))
-        continue
-      }
-      
-      return response
-    } catch (error: any) {
-      clearTimeout(timeoutId)
-      lastError = error
-      
-      // AbortError（タイムアウト）の場合はリトライ
-      if ((error?.name === 'AbortError' || error?.message?.includes('aborted')) && attempt < maxRetries) {
-        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 5000) // 最大5秒
-        console.log(`⚠️ タイムアウト、${backoffMs}ms後にリトライ (${attempt + 1}/${maxRetries})`)
-        await new Promise(resolve => setTimeout(resolve, backoffMs))
-        continue
-      }
-      
-      // 最後の試行でエラーが発生した場合はエラーを投げる
-      if (attempt === maxRetries) {
-        throw error
-      }
-    }
-  }
-  
-  throw lastError || new Error('リトライが失敗しました')
-}
-
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30_000) => {
-  return fetchWithRetry(input, init, timeoutMs, 3)
-}
 
 const stripHtmlToText = (html: string) => {
   return html
@@ -181,32 +126,6 @@ const extractInternalLinksFromHtml = (html: string, baseUrl: string) => {
   return Array.from(links)
     .sort((a, b) => keywordScore(b) - keywordScore(a))
     .slice(0, 10)
-}
-
-type BraveWebResult = { url: string; title?: string; description?: string }
-
-const braveWebSearch = async (query: string, count = 5): Promise<BraveWebResult[]> => {
-  const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
-  if (!key) return []
-  const endpoint = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`
-  const resp = await fetchWithTimeout(
-    endpoint,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": key,
-        "User-Agent": DEFAULT_UA,
-      },
-    },
-    12_000
-  )
-  if (!resp.ok) return []
-  const json: any = await resp.json()
-  const items: any[] = json?.web?.results || []
-  return items
-    .map((r) => ({ url: r?.url, title: r?.title, description: r?.description }))
-    .filter((r) => typeof r.url === "string" && r.url.length > 0)
 }
 
 const guessCompanyName = (text: string) => {
