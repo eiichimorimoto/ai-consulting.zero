@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import { Download, AlertTriangle, CheckCircle, TrendingUp, Mail } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -53,6 +52,9 @@ export default function DiagnosisReportClient({ report }: DiagnosisReportClientP
     setDownloading(true);
 
     try {
+      // 動的importでhtml2canvasを読み込み（初期バンドルから除外）
+      const html2canvas = (await import('html2canvas')).default;
+
       const canvas = await html2canvas(printRef.current, {
         scale: 2,
         useCORS: true,

@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import Link from 'next/link'
 import { Orbitron, Montserrat, Noto_Sans_JP } from 'next/font/google'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ const notoSansJP = Noto_Sans_JP({ subsets: ['latin'], weight: ['400', '500', '60
 
 export default function LandingPage() {
   return (
+    <LazyMotion features={domAnimation}>
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Hero Section - ClaudeDesign1220デザイン */}
       <LandingHero />
@@ -58,7 +59,7 @@ export default function LandingPage() {
                 number: '03'
               }
             ].map((feature, index) => (
-              <motion.div
+              <m.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -82,7 +83,7 @@ export default function LandingPage() {
                   <h3 className="text-2xl font-light text-gray-900 mb-3 tracking-wide">{feature.title}</h3>
                   <p className="text-gray-600 text-base font-light leading-relaxed">{feature.description}</p>
                 </div>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -92,7 +93,7 @@ export default function LandingPage() {
       <section className="py-24 px-4 relative bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -111,8 +112,8 @@ export default function LandingPage() {
                   </video>
                 </div>
               </div>
-            </motion.div>
-            <motion.div
+            </m.div>
+            <m.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -126,7 +127,7 @@ export default function LandingPage() {
                 データ分析から戦略立案、実行支援まで。<br />
                 経営の意思決定を、確かな根拠とともに。
               </p>
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </section>
@@ -287,7 +288,7 @@ export default function LandingPage() {
                 icon: Brain
               }
             ].map((item, index) => (
-              <motion.div
+              <m.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -355,12 +356,12 @@ export default function LandingPage() {
                     <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             ))}
             </div>
           </div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
@@ -390,7 +391,7 @@ export default function LandingPage() {
                 </Link>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -405,7 +406,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-16 items-center">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -422,8 +423,8 @@ export default function LandingPage() {
                   お使いのブラウザは動画タグをサポートしていません。
                 </video>
               </div>
-            </motion.div>
-            <motion.div
+            </m.div>
+            <m.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -439,7 +440,7 @@ export default function LandingPage() {
                   </Button>
                 </Link>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </section>
@@ -476,7 +477,7 @@ export default function LandingPage() {
                 icon: Zap
               }
             ].map((item, index) => (
-              <motion.div
+              <m.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -489,15 +490,13 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-2xl font-light text-gray-900 mb-4">{item.title}</h3>
                 <p className="text-gray-600 leading-relaxed font-light">{item.description}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
       </section>
 
     </div>
+    </LazyMotion>
   )
 }
-
-
-
