@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 
 const footerLinks = {
   サービス: [
@@ -27,9 +28,11 @@ export function Footer() {
           {/* Logo and Description */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-3 mb-4">
-              <img 
-                src="/info-data/AI-LOGO007.png" 
-                alt="SolveWise" 
+              <Image
+                src="/info-data/AI-LOGO007.png"
+                alt="SolveWise"
+                width={40}
+                height={40}
                 className="h-10 w-auto"
               />
               <span className="text-xl font-bold">SolveWise</span>
