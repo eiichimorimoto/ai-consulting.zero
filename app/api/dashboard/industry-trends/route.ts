@@ -4,6 +4,7 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { braveWebSearch } from '@/lib/brave-search'
+import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 
@@ -24,6 +25,10 @@ const industryTrendSchema = z.object({
 })
 
 export async function GET(request: Request) {
+  // レート制限チェック（30回/時間）
+  const rateLimitError = applyRateLimit(request, 'dashboard')
+  if (rateLimitError) return rateLimitError
+
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
