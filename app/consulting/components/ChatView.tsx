@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { ChatMessage, TypingIndicator } from './ChatMessage'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { PlusCircle, MessageSquare } from 'lucide-react'
 
 interface Message {
   id: string
@@ -77,7 +78,13 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
           <div className="flex h-full items-center justify-center">
             <div className="text-center text-muted-foreground">
               <p className="mb-2 text-lg font-medium">AI経営相談へようこそ</p>
-              <p className="text-sm">メッセージを入力して相談を開始してください</p>
+              <p className="text-sm flex items-center justify-center gap-2">
+                左メニューの
+                <PlusCircle className="h-4 w-4 text-primary" />
+                新規相談、
+                <MessageSquare className="h-4 w-4 text-primary" />
+                相談履歴から選択して、開始してください。
+              </p>
             </div>
           </div>
         ) : (
