@@ -25,6 +25,13 @@ export default function ConsultingPage() {
   const [mobileTab, setMobileTab] = useState<'chat' | 'context' | 'proposal'>('chat')
   const [showInitialModal, setShowInitialModal] = useState(false)
   const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+  const [industryForecast, setIndustryForecast] = useState<{
+    shortTerm?: {
+      period?: string
+      outlook?: 'positive' | 'neutral' | 'negative'
+      prediction?: string
+    }
+  } | null | undefined>(undefined) // undefined: 取得中, null: 取得失敗, object: 取得成功
   
   // コンテキストデータ
   const [contextData, setContextData] = useState<ContextData>({
@@ -40,6 +47,41 @@ export default function ConsultingPage() {
   // セッション一覧の取得
   useEffect(() => {
     fetchSessions()
+    
+    // ダッシュボードのセッションストレージから業界見通しデータを取得（表示のみ、検索不要）
+    const loadIndustryForecastFromCache = () => {
+      try {
+        // セッションストレージのキーを検索（dashboard_data_v9_で始まるキー）
+        const keys = Object.keys(sessionStorage)
+        const dashboardKey = keys.find(key => key.startsWith('dashboard_data_v9_'))
+        
+        if (dashboardKey) {
+          const cached = sessionStorage.getItem(dashboardKey)
+          if (cached) {
+            const data = JSON.parse(cached)
+            if (data.industryForecast) {
+              // ダッシュボードと同じデータ構造から shortTerm を取得（グラフ表示用）
+              const forecast = data.industryForecast
+              setIndustryForecast({
+                shortTerm: {
+                  period: forecast.shortTerm?.period,
+                  outlook: forecast.shortTerm?.outlook,
+                  prediction: forecast.shortTerm?.prediction,
+                }
+              })
+              return
+            }
+          }
+        }
+        // キャッシュにデータがない場合は null に設定（取得失敗として扱う）
+        setIndustryForecast(null)
+      } catch (error) {
+        console.error('Failed to load industry forecast from cache:', error)
+        setIndustryForecast(null)
+      }
+    }
+    
+    loadIndustryForecastFromCache()
   }, [])
 
   const fetchSessions = async () => {
@@ -201,6 +243,7 @@ export default function ConsultingPage() {
         }}
         onSubmit={handleInitialIssueSubmit}
         isLoading={isLoading}
+        onFileUpload={handleFileUpload}
       />
 
       <div className="flex h-screen w-full overflow-hidden">
@@ -263,6 +306,7 @@ export default function ConsultingPage() {
               attachments={contextData.attachments}
               proposalStatus={contextData.proposal.status}
               proposalId={contextData.proposal.id}
+              industryForecast={industryForecast}
               onViewProposal={() => {
                 if (contextData.proposal.id) {
                   router.push(`/consulting/reports/${contextData.proposal.id}`)

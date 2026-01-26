@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { FileText, Paperclip, Download, Eye, X, TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { FileText, Download, Eye, X } from 'lucide-react'
 
 interface ContextPanelProps {
   digitalScore?: number | null
@@ -17,6 +16,13 @@ interface ContextPanelProps {
   }>
   proposalStatus?: 'none' | 'generating' | 'ready'
   proposalId?: string | null
+  industryForecast?: {
+    shortTerm?: {
+      period?: string
+      outlook?: 'positive' | 'neutral' | 'negative'
+      prediction?: string
+    }
+  } | null | undefined
   onViewProposal?: () => void
   onDownloadProposal?: () => void
   onRemoveAttachment?: (id: string) => void
@@ -28,85 +34,104 @@ export function ContextPanel({
   attachments = [],
   proposalStatus = 'none',
   proposalId,
+  industryForecast,
   onViewProposal,
   onDownloadProposal,
   onRemoveAttachment
 }: ContextPanelProps) {
-  const getScoreLevel = (score: number | null | undefined) => {
-    if (score === null || score === undefined) return 'unknown'
-    if (score < 40) return 'low'
-    if (score < 70) return 'medium'
-    return 'high'
-  }
-
-  const scoreLevel = getScoreLevel(digitalScore)
-
   return (
     <div className="h-full w-full space-y-4 overflow-y-auto p-4">
-      {/* デジタル診断スコア - グラデーションカード */}
-      <Card className="overflow-hidden border-none bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+      {/* 業界見通し - 1番目 */}
+      <Card className="overflow-hidden border-none bg-gradient-to-br from-indigo-500/10 via-blue-500/10 to-purple-500/10">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
               📊
             </div>
-            <span>デジタル診断</span>
+            <span>業界見通し</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {digitalScore !== null && digitalScore !== undefined ? (
-            <>
-              {/* スコア表示 */}
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold">{digitalScore}</span>
-                <span className="mb-1 text-lg text-muted-foreground">/ 100</span>
-              </div>
-              
-              {/* プログレスバー */}
-              <div className="space-y-2">
-                <Progress 
-                  value={digitalScore} 
-                  className={cn(
-                    "h-2",
-                    scoreLevel === 'low' && "[&>div]:bg-red-500",
-                    scoreLevel === 'medium' && "[&>div]:bg-yellow-500",
-                    scoreLevel === 'high' && "[&>div]:bg-green-500"
-                  )}
-                />
-                <div className="flex items-center justify-between text-xs">
-                  <span className={cn(
-                    "font-medium",
-                    scoreLevel === 'low' && "text-red-500",
-                    scoreLevel === 'medium' && "text-yellow-500",
-                    scoreLevel === 'high' && "text-green-500"
-                  )}>
-                    {scoreLevel === 'low' && '要改善'}
-                    {scoreLevel === 'medium' && '標準的'}
-                    {scoreLevel === 'high' && '優良'}
-                  </span>
-                  {scoreLevel === 'low' && <TrendingDown className="h-3 w-3 text-red-500" />}
-                  {scoreLevel === 'medium' && <Minus className="h-3 w-3 text-yellow-500" />}
-                  {scoreLevel === 'high' && <TrendingUp className="h-3 w-3 text-green-500" />}
+        <CardContent>
+          {industryForecast?.shortTerm ? (
+            <div className="space-y-3">
+              {/* 業界見通しゲージ（ダッシュボードと同じ） */}
+              <div className="flex items-center gap-3">
+                {/* 円形ゲージ */}
+                <div className="relative flex-shrink-0" style={{ width: '60px', height: '60px' }}>
+                  <svg viewBox="0 0 36 36" className="w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle 
+                      cx="18" 
+                      cy="18" 
+                      r="15" 
+                      fill="none" 
+                      stroke="rgba(99, 102, 241, 0.12)" 
+                      strokeWidth="3" 
+                    />
+                    <circle 
+                      cx="18" 
+                      cy="18" 
+                      r="15" 
+                      fill="none" 
+                      stroke={
+                        industryForecast.shortTerm.outlook === 'positive' ? '#10b981' : 
+                        industryForecast.shortTerm.outlook === 'negative' ? '#ef4444' : 
+                        '#f59e0b'
+                      }
+                      strokeWidth="3" 
+                      strokeDasharray={
+                        industryForecast.shortTerm.outlook === 'positive' ? '75 100' : 
+                        industryForecast.shortTerm.outlook === 'negative' ? '30 100' : 
+                        '50 100'
+                      }
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center text-base">
+                    {industryForecast.shortTerm.outlook === 'positive' ? '📈' : 
+                     industryForecast.shortTerm.outlook === 'negative' ? '📉' : 
+                     '➡️'}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div 
+                    className="text-sm font-bold"
+                    style={{
+                      color: industryForecast.shortTerm.outlook === 'positive' ? '#10b981' : 
+                             industryForecast.shortTerm.outlook === 'negative' ? '#ef4444' : 
+                             '#f59e0b'
+                    }}
+                  >
+                    {industryForecast.shortTerm.outlook === 'positive' ? 'ポジティブ' : 
+                     industryForecast.shortTerm.outlook === 'negative' ? 'ネガティブ' : 
+                     '中立'}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    短期（{industryForecast.shortTerm.period || '3ヶ月'}）
+                  </div>
                 </div>
               </div>
-            </>
-          ) : (
+              {/* 説明文 */}
+              <div className="text-[10px] text-muted-foreground leading-relaxed">
+                業界全体の短期見通しを示すゲージです。<br/>
+                市場動向・需要予測・競合状況を総合評価。<br/>
+                緑:好調 / 黄:横ばい / 赤:低調
+              </div>
+            </div>
+          ) : industryForecast === null ? (
             <div className="py-4 text-center text-sm text-muted-foreground">
-              デジタル診断を実施すると<br />スコアが表示されます
+              業界見通しデータを取得中...
+            </div>
+          ) : (
+            <div className="py-4 text-center text-xs text-muted-foreground">
+              業界見通しデータが取得できませんでした
+              <br />
+              <span className="text-[10px]">ダッシュボードで業界見通しを確認してください</span>
             </div>
           )}
-          
-          {/* 課題数 */}
-          <div className="flex items-center justify-between rounded-lg bg-background/50 p-3">
-            <span className="text-sm text-muted-foreground">検出された課題</span>
-            <Badge variant={issueCount > 5 ? 'destructive' : issueCount > 0 ? 'secondary' : 'default'}>
-              {issueCount}件
-            </Badge>
-          </div>
         </CardContent>
       </Card>
 
-      {/* 添付ファイル - ドラッグ可能エリア */}
+      {/* 添付ファイル - 2番目（簡略化：ファイル名一覧のみ） */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -119,35 +144,25 @@ export function ContextPanel({
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent>
           {attachments.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/30 p-6 text-center">
-              <Paperclip className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground">
-                クリップアイコンから<br />ファイルを添付できます
-              </p>
+            <div className="py-2 text-center text-xs text-muted-foreground">
+              添付ファイルはありません
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {attachments.map((file) => (
                 <div 
                   key={file.id}
-                  className="group flex items-center gap-2 rounded-lg border bg-card p-3 transition-all hover:border-primary hover:shadow-sm"
+                  className="flex items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-xs"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10">
-                    <FileText className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-sm font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                    </p>
-                  </div>
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-muted-foreground">{file.name}</span>
                   {onRemoveAttachment && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                      className="ml-auto h-5 w-5 opacity-0 transition-opacity hover:opacity-100"
                       onClick={() => onRemoveAttachment(file.id)}
                     >
                       <X className="h-3 w-3" />
@@ -160,7 +175,7 @@ export function ContextPanel({
         </CardContent>
       </Card>
 
-      {/* 提案書 - アクションカード */}
+      {/* AI提案書 - 3番目（そのまま） */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">

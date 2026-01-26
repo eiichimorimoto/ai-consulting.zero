@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ interface InitialIssueModalProps {
   onClose: () => void
   onSubmit: (issue: string) => Promise<void>
   isLoading?: boolean
+  onFileUpload?: (files: FileList) => void
 }
 
 export function InitialIssueModal({
@@ -27,9 +28,11 @@ export function InitialIssueModal({
   categoryLabel,
   onClose,
   onSubmit,
-  isLoading = false
+  isLoading = false,
+  onFileUpload
 }: InitialIssueModalProps) {
   const [issue, setIssue] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async () => {
     if (!issue.trim()) return
@@ -44,6 +47,17 @@ export function InitialIssueModal({
     }
   }
 
+  const handleFileClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && onFileUpload) {
+      onFileUpload(e.target.files)
+      e.target.value = '' // リセット
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] bg-white border border-border shadow-xl">
@@ -55,6 +69,15 @@ export function InitialIssueModal({
             最初の課題や相談内容を入力してください。AIコンサルタントが分析して回答します。
           </DialogDescription>
         </DialogHeader>
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+        />
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -78,26 +101,33 @@ export function InitialIssueModal({
 
         <div className="flex items-end justify-between">
           {/* アイコンボタン */}
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground"
-              disabled={isLoading}
-            >
-              <Paperclip className="h-5 w-5" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground"
-              disabled={isLoading}
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
-            <div className="flex flex-col items-center">
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                disabled={isLoading}
+                onClick={handleFileClick}
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground">添付</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                disabled={isLoading}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground">音声</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
               <Button
                 type="button"
                 size="icon"
@@ -111,7 +141,7 @@ export function InitialIssueModal({
                   <Send className="h-5 w-5" />
                 )}
               </Button>
-              <span className="text-[10px] text-muted-foreground mt-1">相談を開始</span>
+              <span className="text-[10px] text-muted-foreground">送信</span>
             </div>
           </div>
 

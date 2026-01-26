@@ -7,6 +7,7 @@ import { LineChart, IndustryChart } from './DashboardCharts'
 import { useRouter } from 'next/navigation'
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
 import InfrastructureMap from './InfrastructureMap'
+import { MessageSquare } from 'lucide-react'
 // HealthMonitorは削除（自動修復はバックグラウンドで実行、ユーザーには見せない）
 import '../app/dashboard/dashboard.css'
 
@@ -242,6 +243,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState<Record<string, boolean>>({})
   const [lastUpdated, setLastUpdated] = useState<Record<string, string>>({})
+  const [consultationHistoryCount, setConsultationHistoryCount] = useState<number>(0)
   const [swotInfoOpen, setSwotInfoOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -443,6 +445,22 @@ export default function DashboardClient({ profile, company, subscription }: Dash
       saveToCache()
     }
   }, [marketData, industryTrends, swotAnalysis, worldNews, industryForecast])
+
+  // 相談履歴の件数を取得
+  useEffect(() => {
+    const fetchConsultationHistoryCount = async () => {
+      try {
+        const res = await fetch('/api/consulting/sessions')
+        if (res.ok) {
+          const data = await res.json()
+          setConsultationHistoryCount(data.sessions?.length || 0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch consultation history count:', error)
+      }
+    }
+    fetchConsultationHistoryCount()
+  }, [])
 
   // 初回データ取得（ログイン後の初回セッションのみ全データ取得）
   useEffect(() => {
@@ -658,14 +676,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 </svg>
                 AIコンサルタント
               </a>
-              <a className="nav-item" onClick={() => router.push('/dashboard/history')}>
-                <svg className="nav-icon" viewBox="0 0 24 24">
-                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
-                  <rect x="9" y="3" width="6" height="4" rx="1"/>
-                  <path d="M9 12h6M9 16h6"/>
-                </svg>
+              <a className="nav-item" onClick={() => window.location.href = '/consulting/start'}>
+                <MessageSquare className="nav-icon" style={{ width: '18px', height: '18px' }} />
                 相談履歴
-                <span className="nav-badge">2</span>
+                {consultationHistoryCount > 0 && (
+                  <span className="nav-badge">{consultationHistoryCount}</span>
+                )}
               </a>
             </div>
             <div className="nav-section">
