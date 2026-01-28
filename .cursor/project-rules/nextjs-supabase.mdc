@@ -1,0 +1,228 @@
+---
+description: Next.js 16 + Supabase 技術スタック固有ルール
+alwaysApply: true
+---
+
+# Next.js 16 + Supabase 技術スタック
+
+## プロジェクト情報
+
+- **プロジェクト名**: AI Consulting Zero
+- **技術スタック**: Next.js 16 + TypeScript + Supabase
+- **開発環境**: Cursor + Claude Code
+- **バンドラー**: Turbopack（Next.js 16でstableでデフォルト）
+
+---
+
+## ファイル保護レベル
+
+### レベル1: 絶対変更禁止（触る前に必ず確認）
+```
+middleware.ts          # 認証の根幹（Next.js 16でdeprecated）
+.env.local            # 機密情報
+next.config.js        # ビルド設定
+package.json          # 依存関係
+package-lock.json     # ロックファイル
+```
+
+### レベル2: 慎重に扱う（変更前に影響範囲報告）
+```
+lib/supabase.ts       # DB接続
+lib/auth.ts           # 認証ロジック
+app/layout.tsx        # グローバルレイアウト
+app/api/**            # APIルート
+```
+
+### レベル3: 変更可能（ただし1ファイルずつ、承認後）
+```
+app/**/page.tsx       # 個別ページ
+components/**         # UIコンポーネント
+```
+
+---
+
+## Next.js 16での重要事項
+
+### middleware.ts → proxy.ts 移行
+
+**現状（このプロジェクト）**:
+- 現在は`middleware.ts`を使用中
+- Next.js 16で動作するが**deprecated（非推奨）**
+- 将来のバージョンで削除される予定
+
+**Next.js 16の公式推奨**:
+- `proxy.ts`への移行が推奨される
+- `proxy.ts`はNode.js runtimeで動作（Edge非対応）
+- より明確なネットワーク境界の表現
+
+**このプロジェクトでの方針**:
+- 当面は`middleware.ts`を継続使用
+- 移行は慎重に計画的に実施
+
+**移行するべきタイミング**:
+- ✅ プロジェクトが安定している時
+- ✅ テストカバレッジが十分な時
+- ✅ 時間的余裕がある時
+- ❌ 緊急の機能実装中
+- ❌ 本番環境でトラブル発生中
+
+**移行する場合の厳守手順**:
+```bash
+# Step 1: 事前準備
+git add -A
+git commit -m "chore: middleware.ts移行前のバックアップ"
+
+# Step 2: codemod実行
+npx @next/codemod@canary middleware-to-proxy .
+
+# Step 3: 関数名変更確認
+# middleware.ts → proxy.ts
+# export function middleware() → export function proxy()
+
+# Step 4: クリーンビルド（必須）
+pkill -f "next"
+sleep 10
+rm -rf .next node_modules/.cache
+npm run dev
+
+# Step 5: 全ページ動作確認
+# 認証フロー、保護ルート、リダイレクトを確認
+
+# Step 6: 問題があればロールバック
+git reset --hard HEAD~1
+```
+
+---
+
+## Supabase使用ルール
+
+### 環境変数
+```
+NEXT_PUBLIC_SUPABASE_URL       # クライアント・サーバー両方
+NEXT_PUBLIC_SUPABASE_ANON_KEY  # クライアント・サーバー両方
+SUPABASE_SERVICE_ROLE_KEY      # サーバー専用（絶対に公開しない）
+```
+
+### クライアントの初期化
+```typescript
+// lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+```
+
+### Server Actions
+```typescript
+// app/actions.ts
+'use server'
+
+import { createClient } from '@supabase/supabase-js'
+
+export async function getData() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY! // サーバーサイドのみ
+  )
+  
+  const { data, error } = await supabase
+    .from('table')
+    .select('*')
+    
+  return { data, error }
+}
+```
+
+---
+
+## キャッシュ管理
+
+### クリーンビルドが必要なタイミング
+
+**必須実施**:
+```bash
+pkill -f "next"
+rm -rf .next node_modules/.cache
+npm run dev
+```
+
+**推奨タイミング**:
+- ✅ middleware.ts、next.config.js、package.json変更後
+- ✅ 原因不明のエラー発生時
+- ✅ デプロイ前の最終確認
+- ✅ 週1回（定期メンテナンス）
+
+**通常時は不要**:
+- ❌ 毎回の起動時
+- ❌ UIコンポーネントの変更時
+- ❌ 通常のコード変更時
+
+### Turbopack File System Caching（Next.js 16.1+）
+
+- Next.js 16.1以降、Turbopackのファイルシステムキャッシュは**stableでデフォルト有効**
+- 開発サーバー再起動時のコンパイル時間が大幅短縮
+- 設定不要（自動的に有効）
+
+---
+
+## サーバー操作
+
+### 開発サーバー起動
+```bash
+npm run dev
+# Cursorサンドボックスでは required_permissions: ["all"]
+```
+
+**理由**: Next.jsは`os.networkInterfaces()`を使用
+→ `["network"]`だけでは`SystemError`が発生
+
+### 起動前チェック（報告のみ、勝手に実行しない）
+```bash
+# 1. Nextプロセス確認
+ps aux | grep "[n]ext"
+
+# 2. ポート使用状況
+lsof -i :3000
+
+# 3. .nextフォルダ状態
+ls -la .next
+
+# 4. キャッシュサイズ
+du -sh node_modules/.cache
+```
+
+---
+
+## Next.js App Router パターン
+
+### ページ構成
+```
+app/
+  layout.tsx          # ルートレイアウト
+  page.tsx            # トップページ
+  loading.tsx         # ローディング状態
+  error.tsx           # エラー処理
+  not-found.tsx       # 404ページ
+  [slug]/
+    page.tsx          # 動的ルート
+```
+
+### Server Components vs Client Components
+```typescript
+// デフォルトはServer Component
+export default function ServerComponent() {
+  // サーバーでのみ実行
+  return <div>Server</div>
+}
+
+// Client Componentは明示的に指定
+'use client'
+
+export default function ClientComponent() {
+  // ブラウザで実行
+  const [state, setState] = useState(0)
+  return <div>Client: {state}</div>
+}
+```
