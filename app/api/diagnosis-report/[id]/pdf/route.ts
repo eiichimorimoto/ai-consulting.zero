@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { ReportData } from '@/app/diagnosis/[id]/components/DiagnosisReportClient';
 
 // PDFをサーバーサイドで生成
-async function generatePDF(report: any): Promise<Buffer> {
+async function generatePDF(report: ReportData): Promise<Buffer> {
   // PDFKit や puppeteer などのライブラリを使う代わりに
   // シンプルなHTMLからPDFを生成するアプローチを取る
   
@@ -119,7 +120,7 @@ async function generatePDF(report: any): Promise<Buffer> {
 
     <div class="issues-section">
       <h2>⚠️ 検出された課題</h2>
-      ${report.top_issues.map((issue: any, index: number) => `
+      ${report.top_issues.map((issue, index) => `
         <div class="issue-card">
           <div class="issue-header">
             <span style="font-size: 24px; color: #64748b;">#${index + 1}</span>

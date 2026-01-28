@@ -3,6 +3,36 @@ import Anthropic from '@anthropic-ai/sdk';
 import { checkAIResult } from '@/lib/fact-checker';
 import { applyRateLimit } from "@/lib/rate-limit";
 
+// PageSpeed API レスポンス型定義
+interface LighthouseAudit {
+  score: number | null;
+  title?: string;
+  numericValue?: number;
+}
+
+interface PageSpeedResponse {
+  lighthouseResult?: {
+    categories?: {
+      performance?: { score: number | null };
+      seo?: { score: number | null };
+      accessibility?: { score: number | null };
+    };
+    audits?: Record<string, LighthouseAudit>;
+  };
+}
+
+interface PageSpeedData {
+  mobile?: PageSpeedResponse;
+  desktop?: PageSpeedResponse;
+}
+
+// API エラーレスポンス型
+interface ApiErrorResponse {
+  error?: {
+    message?: string;
+  };
+}
+
 // PageSpeed Insights APIを使用してサイトを分析
 async function analyzeWithPageSpeed(url: string) {
   const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
@@ -89,7 +119,7 @@ async function analyzeWithPageSpeed(url: string) {
       });
       
       // エラーレスポンスをパースして詳細を取得
-      let errorJson: any = null;
+      let errorJson: ApiErrorResponse | null = null;
       try {
         errorJson = JSON.parse(errorText);
       } catch {
@@ -121,14 +151,14 @@ async function analyzeWithPageSpeed(url: string) {
 }
 
 // PageSpeed結果から課題を抽出
-function extractIssues(pageSpeedData: any) {
+function extractIssues(pageSpeedData: PageSpeedData) {
   const mobile = pageSpeedData.mobile;
   const desktop = pageSpeedData.desktop;
 
-  const mobileScore = mobile?.lighthouseResult?.categories?.performance?.score * 100 || 0;
-  const desktopScore = desktop?.lighthouseResult?.categories?.performance?.score * 100 || 0;
-  const seoScore = mobile?.lighthouseResult?.categories?.seo?.score * 100 || 0;
-  const accessibilityScore = mobile?.lighthouseResult?.categories?.accessibility?.score * 100 || 0;
+  const mobileScore = (mobile?.lighthouseResult?.categories?.performance?.score ?? 0) * 100;
+  const desktopScore = (desktop?.lighthouseResult?.categories?.performance?.score ?? 0) * 100;
+  const seoScore = (mobile?.lighthouseResult?.categories?.seo?.score ?? 0) * 100;
+  const accessibilityScore = (mobile?.lighthouseResult?.categories?.accessibility?.score ?? 0) * 100;
 
   // SSL確認（is-on-https監査を使用）
   const hasSSL = mobile?.lighthouseResult?.audits?.['is-on-https']?.score === 1;
@@ -146,12 +176,12 @@ function extractIssues(pageSpeedData: any) {
   // 失敗したauditsを抽出（スコア0.5未満の監査項目）
   const audits = mobile?.lighthouseResult?.audits || {};
   const failedAudits = Object.entries(audits)
-    .filter(([_, audit]: [string, any]) => {
+    .filter(([_, audit]) => {
       const score = audit?.score;
       return typeof score === 'number' && score < 0.5 && audit?.title;
     })
     .slice(0, 10) // 最大10件
-    .map(([id, audit]: [string, any]) => ({
+    .map(([id, audit]) => ({
       id,
       title: audit.title,
       score: Math.round((audit.score || 0) * 100),
@@ -273,7 +303,7 @@ export async function POST(request: Request) {
 
 # 検出された改善項目
 ${metrics.failedAudits && metrics.failedAudits.length > 0
-  ? metrics.failedAudits.map((a: any) => `- ${a.title}（スコア: ${a.score}/100）`).join('\n')
+  ? metrics.failedAudits.map((a) => `- ${a.title}（スコア: ${a.score}/100）`).join('\n')
   : '- 特になし'}
 
 # 出力形式
