@@ -48,7 +48,11 @@ export interface LocalInfo {
     current: number
     change: number
     monthlyData: { month: string; value: number }[]
-    sources: any[]
+    sources: Array<{
+      url: string
+      title: string
+      snippet?: string
+    }>
   }
   events: { title: string; url: string; description: string; date: string }[]
   infrastructure: { title: string; url: string; description: string; status: string }[]
@@ -66,10 +70,38 @@ export interface LocalInfo {
   _debug?: {
     searchArea: string
     searchTimestamp: string
-    laborCosts?: any
-    events?: any
-    infrastructure?: any
-    weather?: any
+    laborCosts?: {
+      searchQuery: string
+      searchLogs: Array<{
+        query: string
+        results: unknown[]
+      }>
+      matchedIndustry: string
+      finalMonthly: number
+      calculation: string
+    }
+    events?: {
+      searchQuery: string
+      resultCount: number
+      verifiedCount: number
+      allResults: Array<{
+        title: string
+        url: string
+      }>
+    }
+    infrastructure?: {
+      searchLogs: Array<{
+        query: string
+        results: unknown[]
+        verifiedCount: number
+      }>
+    }
+    weather?: {
+      searchResults: Array<{
+        title: string
+        url: string
+      }>
+    }
     apiKeyConfigured: boolean
   }
 }
