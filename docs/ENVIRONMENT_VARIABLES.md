@@ -18,13 +18,13 @@
 
 ```bash
 # Supabase URL（クライアント・サーバー共通）
-NEXT_PUBLIC_SUPABASE_URL=https://fwruumlkxzfihlmygrww.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 
 # Supabase Anon Key（クライアント認証用）
-NEXT_PUBLIC_SUPABASE_ANON_KEY=***REMOVED***
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
 # Supabase Service Role Key（サーバー管理操作用）
-SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 ```
 
 **用途**:
@@ -42,16 +42,16 @@ SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
 
 ```bash
 # /api/dify/context の認証用APIキー
-DIFY_API_KEY=***REMOVED***
+DIFY_API_KEY=your-dify-api-key-here
 
 # Dify Workflow API の Bearer Token
-DIFY_WORKFLOW_API_KEY=***REMOVED***
+DIFY_WORKFLOW_API_KEY=app-xxxxxxxxxxxxx
 
 # Dify API のベースURL
 DIFY_API_BASE_URL=http://localhost/v1
 
 # 実行するワークフローのID
-DIFY_WORKFLOW_ID=***REMOVED***
+DIFY_WORKFLOW_ID=your-workflow-id-here
 ```
 
 **用途**:
@@ -82,7 +82,7 @@ DIFY_API_BASE_URL=https://api.dify.ai/v1
 2. **DIFY_WORKFLOW_ID**:
    - Difyダッシュボード → 対象ワークフロー → URL から取得
    - URL: `http://localhost/app/{WORKFLOW_ID}/workflow`
-   - 形式: `***REMOVED***` (UUID形式)
+   - 形式: `6f6461c7-b018-415c-bcf2-c1b501621553` (UUID形式)
 
 3. **DIFY_API_KEY**:
    - 自分で生成（ランダムな文字列）
@@ -138,15 +138,15 @@ touch .env.local
 
 ```bash
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://fwruumlkxzfihlmygrww.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=***REMOVED***
-SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 
 # Dify Configuration
-DIFY_API_KEY=***REMOVED***
-DIFY_WORKFLOW_API_KEY=***REMOVED***
+DIFY_API_KEY=your-dify-api-key-here
+DIFY_WORKFLOW_API_KEY=app-xxxxxxxxxxxxx
 DIFY_API_BASE_URL=http://localhost/v1
-DIFY_WORKFLOW_ID=***REMOVED***
+DIFY_WORKFLOW_ID=your-workflow-id-here
 
 # Application Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -176,10 +176,10 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://fwruumlkxzfihlmygrww.supabase.co` | Production, Preview, Development |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` | Production, Preview, Development |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` | Production, Preview, Development |
-| `DIFY_API_KEY` | `***REMOVED***` | Production, Preview, Development |
-| `DIFY_WORKFLOW_API_KEY` | `***REMOVED***` | Production, Preview, Development |
+| `DIFY_API_KEY` | `your-dify-api-key-here` | Production, Preview, Development |
+| `DIFY_WORKFLOW_API_KEY` | `app-XshFJVgsLzHM3FxAgJ9NXY07` | Production, Preview, Development |
 | `DIFY_API_BASE_URL` | `https://your-dify-domain/v1` | Production, Preview, Development |
-| `DIFY_WORKFLOW_ID` | `***REMOVED***` | Production, Preview, Development |
+| `DIFY_WORKFLOW_ID` | `6f6461c7-b018-415c-bcf2-c1b501621553` | Production, Preview, Development |
 | `NEXT_PUBLIC_APP_URL` | `https://ai-consulting-zero.vercel.app` | Production |
 | `NEXT_PUBLIC_APP_URL` | `https://your-preview-url.vercel.app` | Preview |
 | `NEXT_PUBLIC_SITE_URL` | `https://ai-consulting-zero.vercel.app` | Production |

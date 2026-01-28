@@ -306,10 +306,10 @@ export async function GET() {
 **実装内容**:
 ```bash
 # Dify設定（ローカルテスト用）
-DIFY_API_KEY=***REMOVED***
-DIFY_WORKFLOW_API_KEY=***REMOVED***
+DIFY_API_KEY=your-dify-api-key-here
+DIFY_WORKFLOW_API_KEY=app-xxxxxxxxxxxxx
 DIFY_API_BASE_URL=http://localhost/v1
-DIFY_WORKFLOW_ID=***REMOVED***
+DIFY_WORKFLOW_ID=your-workflow-id-here
 ```
 
 **注意事項**:
@@ -431,10 +431,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Dify
-DIFY_API_KEY=***REMOVED***
-DIFY_WORKFLOW_API_KEY=***REMOVED***
+DIFY_API_KEY=your-dify-api-key-here
+DIFY_WORKFLOW_API_KEY=app-xxxxxxxxxxxxx
 DIFY_API_BASE_URL=https://ai-consulting-zero.vercel.app/v1  # 本番URL
-DIFY_WORKFLOW_ID=***REMOVED***
+DIFY_WORKFLOW_ID=your-workflow-id-here
 
 # その他
 NEXT_PUBLIC_APP_URL=https://ai-consulting-zero.vercel.app
@@ -453,7 +453,7 @@ NEXT_PUBLIC_APP_URL=https://ai-consulting-zero.vercel.app
 - **URL**: `https://ai-consulting-zero.vercel.app/api/dify/context`
 - **Method**: POST
 - **Headers**:
-  - `x-api-key`: `***REMOVED***`
+  - `x-api-key`: `your-dify-api-key-here`
 - **Body**:
 ```json
 {

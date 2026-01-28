@@ -205,10 +205,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Dify
-DIFY_API_KEY=***REMOVED***
-DIFY_WORKFLOW_API_KEY=***REMOVED***
+DIFY_API_KEY=your-dify-api-key-here
+DIFY_WORKFLOW_API_KEY=app-xxxxxxxxxxxxx
 DIFY_API_BASE_URL=http://localhost/v1
-DIFY_WORKFLOW_ID=***REMOVED***
+DIFY_WORKFLOW_ID=your-workflow-id-here
 
 # Application
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -232,7 +232,7 @@ DIFY_API_BASE_URL=http://localhost/v1
 **DIFY_WORKFLOW_ID の確認**:
 ```bash
 # 現在の設定
-DIFY_WORKFLOW_ID=***REMOVED***
+DIFY_WORKFLOW_ID=your-workflow-id-here
 
 # 確認方法:
 # 1. Dify ダッシュボードを開く
@@ -316,7 +316,7 @@ fetch('/api/consulting/dify', {
 - **Headers**:
   ```json
   {
-    "x-api-key": "***REMOVED***"
+    "x-api-key": "your-dify-api-key-here"
   }
   ```
 - **Body**:
