@@ -531,8 +531,8 @@ export function checkAIResult(data: {
 export function checkDBUpdate(data: {
   operation: 'insert' | 'update' | 'delete'
   table: string
-  fields?: { [key: string]: any }
-  previousData?: { [key: string]: any }
+  fields?: Record<string, unknown>
+  previousData?: Record<string, unknown>
 }): FactCheckResult {
   const checks: FactCheckItem[] = []
   let totalScore = 0
@@ -674,16 +674,16 @@ export function checkDBUpdate(data: {
 /**
  * 汎用ファクトチェッカー - 複数のチェックを統合
  */
-export function runFactCheck(type: 'ocr' | 'search' | 'ai' | 'db', data: any): FactCheckResult {
+export function runFactCheck(type: 'ocr' | 'search' | 'ai' | 'db', data: unknown): FactCheckResult {
   switch (type) {
     case 'ocr':
-      return checkOCRResult(data)
+      return checkOCRResult(data as Parameters<typeof checkOCRResult>[0])
     case 'search':
-      return checkSearchResult(data)
+      return checkSearchResult(data as Parameters<typeof checkSearchResult>[0])
     case 'ai':
-      return checkAIResult(data)
+      return checkAIResult(data as Parameters<typeof checkAIResult>[0])
     case 'db':
-      return checkDBUpdate(data)
+      return checkDBUpdate(data as Parameters<typeof checkDBUpdate>[0])
     default:
       return {
         passed: false,
