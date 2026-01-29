@@ -5,11 +5,12 @@
  * 新規案件・継続案件に応じて必要なコンテキストを返す
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient, SupabaseClient as SupabaseClientType } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Supabase Client 型
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+// Supabase Client 型（Service Role Key用）
+// NOTE: anyを使用してRLS関連の型エラーを回避
+type SupabaseClient = SupabaseClientType<any>
 
 // レスポンス型定義
 interface DifyContextResponse {
@@ -23,14 +24,13 @@ interface DifyContextResponse {
     externalInformation?: ExternalInformation | null
     initialEvaluation?: InitialEvaluationData | null
     initialIssue?: InitialIssue | null
+    attachments?: AttachmentContext[] | null
   }
   error?: string
 }
 
 interface ProfileContext {
   name: string
-  position: string | null
-  department: string | null
   email: string
   phone: string | null
 }
@@ -152,6 +152,18 @@ interface InitialIssue {
   createdAt: string
 }
 
+interface AttachmentContext {
+  id: string
+  name: string
+  type: string
+  size: number
+  content: string
+  preview: string
+  wordCount: number
+  lineCount: number
+  url?: string
+}
+
 interface ConversationHistoryContext {
   session: {
     id: string
@@ -179,7 +191,7 @@ export async function POST(request: NextRequest) {
   try {
     // リクエストボディ取得
     const body = await request.json()
-    const { userId, isNewCase = true, initialIssue: initialIssueRaw } = body
+    const { userId, sessionId, isNewCase = true, initialIssue: initialIssueRaw } = body
 
     // バリデーション
     if (!userId) {
@@ -208,7 +220,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    // Service Role Key を使用してSupabaseクライアント作成
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Supabase環境変数が設定されていません')
+    }
+
+    const supabase = createSupabaseClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
     // 1. 基本情報取得（新規・継続共通）
     const baseContext = await getBaseContext(supabase, userId)
@@ -225,10 +250,11 @@ export async function POST(request: NextRequest) {
       ? null 
       : await getConversationHistory(supabase, userId)
 
-    // 3. 外部情報・初回評価情報を並列取得
-    const [externalInformation, initialEvaluation] = await Promise.all([
+    // 3. 外部情報・初回評価情報・添付ファイルを並列取得
+    const [externalInformation, initialEvaluation, attachments] = await Promise.all([
       getExternalInformation(supabase, userId),
       getInitialEvaluationData(supabase, userId),
+      sessionId ? getAttachments(supabase, sessionId) : Promise.resolve(null),
     ])
 
     // 4. 新規課題内容を明示的に含める
@@ -250,7 +276,8 @@ export async function POST(request: NextRequest) {
         conversationHistory,
         externalInformation: externalInformation ?? null,
         initialEvaluation: initialEvaluation ?? null,
-        initialIssue
+        initialIssue,
+        attachments: attachments ?? null
       }
     }
 
@@ -278,8 +305,6 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
       .from('profiles')
       .select(`
         name,
-        position,
-        department,
         email,
         phone,
         company_id,
@@ -341,8 +366,6 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
     return {
       profile: {
         name: profile.name,
-        position: profile.position,
-        department: profile.department,
         email: profile.email,
         phone: profile.phone
       },
@@ -722,6 +745,43 @@ async function getInitialEvaluationData(
     return result
   } catch (error) {
     console.error('Error in getInitialEvaluationData:', error)
+    return null
+  }
+}
+
+/**
+ * 添付ファイル情報の取得
+ * 
+ * セッションの最初のユーザーメッセージから添付ファイルを取得
+ */
+async function getAttachments(
+  supabase: SupabaseClient,
+  sessionId: string
+): Promise<AttachmentContext[] | null> {
+  try {
+    // 最初のユーザーメッセージから添付ファイル取得
+    const { data: message, error } = await supabase
+      .from('consulting_messages')
+      .select('attachments')
+      .eq('session_id', sessionId)
+      .eq('role', 'user')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    
+    if (error) {
+      console.error('Error fetching attachments:', error)
+      return null
+    }
+    
+    if (!message || !message.attachments) {
+      return null
+    }
+    
+    // attachmentsはJSONB配列として保存されている
+    return message.attachments as AttachmentContext[]
+  } catch (error) {
+    console.error('Error in getAttachments:', error)
     return null
   }
 }

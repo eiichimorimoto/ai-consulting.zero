@@ -1,11 +1,13 @@
 /**
  * Consulting Sessions API
  * 
- * 相談セッションの一覧取得・新規作成
+ * 相談セッションの一覧取得・新規作成（添付ファイル対応）
  */
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { uploadFile } from '@/lib/storage/upload'
+import { extractText, isSupportedTextFile } from '@/lib/file-processing/text-extractor'
 
 /**
  * GET /api/consulting/sessions
@@ -60,7 +62,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/consulting/sessions
  * 
- * 新規相談セッション作成
+ * 新規相談セッション作成（添付ファイル対応）
  */
 export async function POST(request: NextRequest) {
   try {
@@ -76,16 +78,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // リクエストボディ取得
-    const body = await request.json()
-    const { title, category, initial_message } = body
+    // FormData取得（添付ファイル対応）
+    const formData = await request.formData()
+    const category = formData.get('category') as string
+    const initialMessage = formData.get('initial_message') as string
+    const title = formData.get('title') as string | null
 
     // バリデーション
-    if (!initial_message || initial_message.trim().length === 0) {
+    if (!initialMessage || initialMessage.trim().length === 0) {
       return NextResponse.json(
         { error: 'initial_message is required' },
         { status: 400 }
       )
+    }
+
+    // 添付ファイル取得
+    const files: File[] = []
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith('file_') && value instanceof File) {
+        files.push(value)
+      }
     }
 
     // ユーザープロフィール取得（company_id取得のため）
@@ -101,7 +113,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         company_id: profile?.company_id || null,
-        title: title || (initial_message ? initial_message.slice(0, 50) + '...' : '新規相談'),
+        title: title || (initialMessage ? initialMessage.slice(0, 50) + '...' : '新規相談'),
         category: category || 'general',
         status: 'active',
         max_rounds: 5,
@@ -118,11 +130,84 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 初期メッセージは保存しない（メッセージAPI経由で送信される）
-    // これにより、Difyへの送信もメッセージAPI経由で一元管理される
+    // 添付ファイル処理
+    let attachments: any[] = []
+    
+    if (files.length > 0) {
+      try {
+        attachments = await Promise.all(
+          files.map(async (file) => {
+            // ファイルサイズ検証
+            if (file.size > 10 * 1024 * 1024) {
+              throw new Error(`File ${file.name} exceeds 10MB limit`)
+            }
+            
+            // ファイルタイプ検証
+            if (!isSupportedTextFile(file)) {
+              throw new Error(`File ${file.name} is not supported (only .txt and .csv are allowed)`)
+            }
+            
+            // Supabase Storageにアップロード
+            const uploadResult = await uploadFile(file, user.id, session.id)
+            
+            // テキスト抽出
+            const extraction = await extractText(file)
+            
+            return {
+              id: crypto.randomUUID(),
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              url: uploadResult.url,
+              path: uploadResult.path,
+              content: extraction.content,
+              preview: extraction.preview,
+              wordCount: extraction.wordCount,
+              lineCount: extraction.lineCount,
+            }
+          })
+        )
+      } catch (error) {
+        // ファイル処理エラーの場合、セッションは作成済みだが添付ファイルはなし
+        console.error('File processing error:', error)
+        return NextResponse.json(
+          { 
+            error: error instanceof Error ? error.message : 'File processing failed',
+            session,
+            attachments: []
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // 初期メッセージ作成（添付ファイル情報を含む）
+    const { error: messageError } = await supabase
+      .from('consulting_messages')
+      .insert({
+        session_id: session.id,
+        role: 'user',
+        content: initialMessage,
+        attachments: attachments.length > 0 ? attachments : null,
+      })
+    
+    if (messageError) {
+      console.error('Message creation error:', messageError)
+      // メッセージ作成失敗だが、セッションは作成済み
+      return NextResponse.json(
+        { 
+          error: 'Failed to save initial message',
+          session,
+          attachments
+        },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ 
+      success: true,
       session,
+      attachments,
       message: 'Session created successfully'
     }, { status: 201 })
 
