@@ -486,7 +486,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
           console.log('全データを取得中...')
           await Promise.all([
             fetchSectionData('market', forceRefresh),
-            fetchSectionData('local-info', true),
+            fetchSectionData('local-info', forceRefresh), // キャッシュ活用: 初回のみ取得、更新ボタンで再取得可能
             fetchSectionData('industry-trends', forceRefresh),
             fetchSectionData('swot-analysis', forceRefresh),
             fetchSectionData('world-news', forceRefresh),
