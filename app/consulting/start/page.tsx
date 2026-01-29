@@ -33,6 +33,9 @@ export default function ConsultingPage() {
     }
   } | null | undefined>(undefined) // undefined: 取得中, null: 取得失敗, object: 取得成功
   
+  // 添付ファイル（Fileオブジェクト）を保持
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([])
+  
   // コンテキストデータ
   const [contextData, setContextData] = useState<ContextData>({
     digitalScore: 45, // デモ用
@@ -98,7 +101,13 @@ export default function ConsultingPage() {
 
   // 添付ファイルアップロード
   const handleFileUpload = useCallback(async (files: FileList) => {
-    const newAttachments = Array.from(files).map((file, index) => ({
+    const fileArray = Array.from(files)
+    
+    // Fileオブジェクトを保存（FormData送信用）
+    setAttachmentFiles(prev => [...prev, ...fileArray])
+    
+    // UI表示用のメタデータを作成
+    const newAttachments = fileArray.map((file, index) => ({
       id: `file-${Date.now()}-${index}`,
       name: file.name,
       type: file.type,
@@ -125,14 +134,20 @@ export default function ConsultingPage() {
     try {
       setIsLoading(true)
       
-      // 1. セッション作成（初期メッセージは保存されるが、AI応答はまだ）
+      // 1. セッション作成（FormDataで添付ファイルも送信）
+      const formData = new FormData()
+      formData.append('category', pendingCategory)
+      formData.append('initial_message', issue)
+      
+      // 添付ファイルをFormDataに追加
+      attachmentFiles.forEach((file, index) => {
+        formData.append(`file_${index}`, file)
+      })
+      
       const sessionRes = await fetch('/api/consulting/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: pendingCategory,
-          initial_message: issue,
-        }),
+        // Content-Typeはブラウザが自動設定（multipart/form-data）
+        body: formData,
       })
       
       if (!sessionRes.ok) {
@@ -161,6 +176,11 @@ export default function ConsultingPage() {
       setMessages(messageData.messages || [])
       setShowInitialModal(false)
       setPendingCategory(null)
+      
+      // 添付ファイルをクリア
+      setAttachmentFiles([])
+      setContextData(prev => ({ ...prev, attachments: [] }))
+      
       await fetchSessions()
     } catch (error) {
       console.error('Failed to start consultation:', error)
