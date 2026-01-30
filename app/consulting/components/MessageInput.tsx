@@ -85,7 +85,7 @@ export function MessageInput({
   }
 
   return (
-    <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-4 px-4">
+    <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-24 px-4">
       <div className="mx-auto max-w-4xl">
         <input
           ref={fileInputRef}
