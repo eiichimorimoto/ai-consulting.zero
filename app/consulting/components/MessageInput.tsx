@@ -128,32 +128,41 @@ export function MessageInput({
             rows={4}
           />
           
-          <div className="flex flex-col gap-2 pt-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10"
-              disabled={isLoading || disabled}
-              onClick={handleFileClick}
-            >
-              <Paperclip className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10"
-              disabled={isLoading || disabled}
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
-            <Button
-              onClick={onSend}
-              disabled={isLoading || disabled || !value.trim()}
-              size="icon"
-              className="h-10 w-10"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                disabled={isLoading || disabled}
+                onClick={handleFileClick}
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground">添付</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                disabled={isLoading || disabled}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground">録音</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                onClick={onSend}
+                disabled={isLoading || disabled || !value.trim()}
+                size="icon"
+                className="h-10 w-10"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground">送信</span>
+            </div>
           </div>
         </div>
         
