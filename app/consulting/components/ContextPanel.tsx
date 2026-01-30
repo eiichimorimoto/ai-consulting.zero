@@ -132,7 +132,7 @@ export function ContextPanel({
       </Card>
 
       {/* 添付ファイル - 2番目（簡略化：ファイル名一覧のみ） */}
-      <Card>
+      <Card className="bg-white">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">

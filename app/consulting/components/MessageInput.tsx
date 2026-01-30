@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Paperclip, Mic, Send, AlertCircle, X, FileText } from 'lucide-react'
+import { Paperclip, Mic, Send, AlertCircle } from 'lucide-react'
 
 interface MessageInputProps {
   value: string
@@ -50,7 +50,6 @@ export function MessageInput({
 }: MessageInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showError, setShowError] = useState(false)
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -66,49 +65,10 @@ export function MessageInput({
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files)
-      
-      // ファイルサイズ検証（10MB制限）
-      const maxSize = 10 * 1024 * 1024 // 10MB
-      const oversizedFiles = files.filter(f => f.size > maxSize)
-      
-      if (oversizedFiles.length > 0) {
-        alert(`以下のファイルはサイズが大きすぎます（10MB以下にしてください）:\n${oversizedFiles.map(f => f.name).join('\n')}`)
-        e.target.value = ''
-        return
-      }
-      
-      // ファイルタイプ検証
-      const allowedTypes = ['text/plain', 'text/csv', 'application/csv']
-      const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
-      
-      if (invalidFiles.length > 0) {
-        alert(`以下のファイルは対応していない形式です（.txt, .csvのみ対応）:\n${invalidFiles.map(f => f.name).join('\n')}`)
-        e.target.value = ''
-        return
-      }
-      
-      // ファイルリストに追加
-      setAttachedFiles(prev => [...prev, ...files])
-      
-      // 親コンポーネントに通知
-      if (onFileUpload) {
-        onFileUpload(e.target.files)
-      }
-      
+    if (e.target.files && e.target.files.length > 0 && onFileUpload) {
+      onFileUpload(e.target.files)
       e.target.value = '' // リセット
     }
-  }
-
-  const handleFileRemove = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   const handleFocus = () => {
@@ -141,31 +101,6 @@ export function MessageInput({
           <div className="mb-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>左メニューからカテゴリーを選択するか、相談履歴から既存の相談を選択してください。</span>
-          </div>
-        )}
-        
-        {/* 添付ファイルリスト */}
-        {attachedFiles.length > 0 && (
-          <div className="mb-3 space-y-2">
-            {attachedFiles.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
-              >
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate text-sm">{file.name}</span>
-                <span className="text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0"
-                  onClick={() => handleFileRemove(index)}
-                  disabled={isLoading}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
           </div>
         )}
         
