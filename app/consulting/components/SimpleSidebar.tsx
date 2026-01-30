@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -11,11 +11,13 @@ import {
   DollarSign,
   Zap,
   Users,
-  Target
+  Target,
+  Search
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Input } from '@/components/ui/input'
 
 interface SimpleSidebarProps {
   sessions?: Array<{
@@ -45,6 +47,7 @@ export function SimpleSidebar({
   onCategoryChange 
 }: SimpleSidebarProps) {
   const pathname = usePathname()
+  const [searchQuery, setSearchQuery] = useState('')
 
   // カテゴリーに応じたアイコンを取得
   const getCategoryIcon = (category: string) => {
@@ -142,13 +145,32 @@ export function SimpleSidebar({
             <MessageSquare className="h-4 w-4 text-primary" />
             <p className="text-[13px] font-semibold">相談履歴</p>
           </div>
+          
+          {/* 検索ボックス */}
+          {sessions.length > 0 && (
+            <div className="mb-3 relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="相談履歴を検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 pl-8 text-[13px]"
+              />
+            </div>
+          )}
+          
           <div className="space-y-0.5">
             {sessions.length === 0 ? (
               <p className="px-3 py-4 text-[13px] text-muted-foreground">
                 まだ相談履歴がありません
               </p>
+            ) : filteredSessions.length === 0 ? (
+              <p className="px-3 py-4 text-[13px] text-muted-foreground">
+                検索結果がありません
+              </p>
             ) : (
-              sessions.map((session) => {
+              filteredSessions.map((session) => {
                 const Icon = getCategoryIcon(session.category)
                 return (
                   <Link
