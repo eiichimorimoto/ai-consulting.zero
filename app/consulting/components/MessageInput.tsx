@@ -65,8 +65,34 @@ export function MessageInput({
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0 && onFileUpload) {
-      onFileUpload(e.target.files)
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files)
+      
+      // ファイルサイズ検証（10MB制限）
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      const oversizedFiles = files.filter(f => f.size > maxSize)
+      
+      if (oversizedFiles.length > 0) {
+        alert(`以下のファイルはサイズが大きすぎます（10MB以下にしてください）:\n${oversizedFiles.map(f => f.name).join('\n')}`)
+        e.target.value = ''
+        return
+      }
+      
+      // ファイルタイプ検証
+      const allowedTypes = ['text/plain', 'text/csv', 'application/csv']
+      const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
+      
+      if (invalidFiles.length > 0) {
+        alert(`以下のファイルは対応していない形式です（.txt, .csvのみ対応）:\n${invalidFiles.map(f => f.name).join('\n')}`)
+        e.target.value = ''
+        return
+      }
+      
+      // 親コンポーネントに通知
+      if (onFileUpload) {
+        onFileUpload(e.target.files)
+      }
+      
       e.target.value = '' // リセット
     }
   }
