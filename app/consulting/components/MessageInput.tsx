@@ -105,7 +105,7 @@ export function MessageInput({
         )}
         
         {/* メッセージ入力 */}
-        <div className="flex items-start gap-2">
+        <div>
           <Textarea
             value={value}
             onChange={(e) => {
@@ -124,11 +124,11 @@ export function MessageInput({
             onBlur={handleBlur}
             placeholder={placeholder}
             disabled={isLoading}
-            className={`min-h-[100px] max-h-[200px] resize-none flex-1 ${!hasSession && disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+            className={`min-h-[100px] max-h-[200px] resize-none w-full ${!hasSession && disabled ? 'cursor-not-allowed opacity-60' : ''}`}
             rows={4}
           />
           
-          <div className="flex items-end gap-3">
+          <div className="flex items-end gap-3 mt-3">
             <div className="flex flex-col items-center gap-1">
               <Button
                 variant="ghost"
