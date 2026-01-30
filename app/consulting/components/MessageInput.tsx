@@ -128,12 +128,12 @@ export function MessageInput({
             rows={4}
           />
           
-          <div className="flex flex-col gap-3 pt-1">
+          <div className="flex items-end gap-3">
             <div className="flex flex-col items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
                 disabled={isLoading || disabled}
                 onClick={handleFileClick}
               >
@@ -145,19 +145,19 @@ export function MessageInput({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
                 disabled={isLoading || disabled}
               >
                 <Mic className="h-5 w-5" />
               </Button>
-              <span className="text-[10px] text-muted-foreground">録音</span>
+              <span className="text-[10px] text-muted-foreground">音声</span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <Button
                 onClick={onSend}
                 disabled={isLoading || disabled || !value.trim()}
                 size="icon"
-                className="h-10 w-10"
+                className="h-9 w-9"
               >
                 <Send className="h-5 w-5" />
               </Button>
