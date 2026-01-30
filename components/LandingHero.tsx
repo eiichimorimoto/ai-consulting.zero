@@ -7,7 +7,7 @@ export default function LandingHero() {
       {/* 背景画像（薄く表示） */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-10"
-        style={{ backgroundImage: 'url(/info-data/LP画像002.jpg)' }}
+        style={{ backgroundImage: 'url(/LP画像002.jpg)' }}
       />
       
       <LandingHeroBackground />
