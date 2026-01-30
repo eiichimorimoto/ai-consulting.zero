@@ -162,7 +162,7 @@ export function ContextPanel({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="ml-auto h-5 w-5 opacity-0 transition-opacity hover:opacity-100"
+                      className="ml-auto h-5 w-5"
                       onClick={() => onRemoveAttachment(file.id)}
                     >
                       <X className="h-3 w-3" />
