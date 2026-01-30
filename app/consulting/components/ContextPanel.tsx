@@ -157,12 +157,12 @@ export function ContextPanel({
                   className="flex items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-xs"
                 >
                   <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="truncate text-muted-foreground">{file.name}</span>
+                  <span className="flex-1 truncate text-muted-foreground">{file.name}</span>
                   {onRemoveAttachment && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="ml-auto h-5 w-5"
+                      className="h-5 w-5 shrink-0"
                       onClick={() => onRemoveAttachment(file.id)}
                     >
                       <X className="h-3 w-3" />
