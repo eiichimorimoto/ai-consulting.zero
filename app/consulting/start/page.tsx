@@ -120,6 +120,21 @@ export default function ConsultingPage() {
     }))
   }, [])
 
+  // 添付ファイル削除
+  const handleRemoveAttachment = useCallback((id: string) => {
+    // UI表示用のメタデータから削除
+    setContextData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter(att => att.id !== id),
+    }))
+    
+    // Fileオブジェクトも削除（インデックスで特定）
+    const index = contextData.attachments.findIndex(att => att.id === id)
+    if (index !== -1) {
+      setAttachmentFiles(prev => prev.filter((_, i) => i !== index))
+    }
+  }, [contextData.attachments])
+
   // カテゴリー変更時の処理（モーダルを開く）
   const handleCategoryChange = (selectedCategory: string) => {
     setCategory(selectedCategory)
@@ -337,6 +352,7 @@ export default function ConsultingPage() {
                   window.open(`/api/consulting/reports/${contextData.proposal.id}/pdf`, '_blank')
                 }
               }}
+              onRemoveAttachment={handleRemoveAttachment}
             />
           </div>
         </div>
