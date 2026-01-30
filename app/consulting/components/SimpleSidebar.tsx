@@ -63,6 +63,36 @@ export function SimpleSidebar({
     return `${year}/${month}/${day} ${hours}:${minutes}`
   }
 
+  // カテゴリーラベル取得
+  const getCategoryLabel = (categoryId: string) => {
+    const cat = CATEGORIES.find(c => c.id === categoryId)
+    return cat ? cat.label : ''
+  }
+
+  // 検索フィルタリング（タイトル、カテゴリー、日付、回数）
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions
+    
+    const query = searchQuery.toLowerCase()
+    return sessions.filter(session => {
+      // タイトル検索
+      const titleMatch = session.title.toLowerCase().includes(query)
+      
+      // カテゴリー検索
+      const categoryMatch = getCategoryLabel(session.category).toLowerCase().includes(query)
+      
+      // 日付検索（フォーマットされた日付文字列）
+      const dateMatch = session.created_at 
+        ? formatDate(session.created_at).toLowerCase().includes(query)
+        : false
+      
+      // 回数検索（例: "1/5" で検索可能）
+      const roundMatch = `${session.current_round}/${session.max_rounds}`.includes(query)
+      
+      return titleMatch || categoryMatch || dateMatch || roundMatch
+    })
+  }, [sessions, searchQuery])
+
   return (
     <div className="flex h-full w-64 flex-col border-r bg-muted/30">
       {/* ヘッダー */}
