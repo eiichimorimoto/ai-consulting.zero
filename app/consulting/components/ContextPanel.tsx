@@ -154,18 +154,18 @@ export function ContextPanel({
               {attachments.map((file) => (
                 <div 
                   key={file.id}
-                  className="flex items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-xs"
+                  className="group flex items-center gap-2 rounded-md border bg-white px-2 py-1.5 text-xs hover:bg-muted/50"
                 >
                   <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate text-muted-foreground">{file.name}</span>
+                  <span className="flex-1 truncate text-foreground">{file.name}</span>
                   {onRemoveAttachment && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-5 w-5 shrink-0"
+                      className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => onRemoveAttachment(file.id)}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
