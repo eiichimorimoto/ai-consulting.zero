@@ -144,14 +144,19 @@ export async function POST(request: NextRequest) {
             
             // ファイルタイプ検証
             if (!isSupportedTextFile(file)) {
-              throw new Error(`File ${file.name} is not supported (only .txt and .csv are allowed)`)
+              throw new Error(`File ${file.name} is not supported. Allowed: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx`)
             }
             
             // Supabase Storageにアップロード
             const uploadResult = await uploadFile(file, user.id, session.id)
             
-            // テキスト抽出
-            const extraction = await extractText(file)
+            // テキスト抽出（テキストファイルのみ）
+            const textTypes = ['text/plain', 'text/csv', 'application/csv', 'text/markdown']
+            let extraction = null
+            
+            if (textTypes.includes(file.type)) {
+              extraction = await extractText(file)
+            }
             
             return {
               id: crypto.randomUUID(),
@@ -160,10 +165,10 @@ export async function POST(request: NextRequest) {
               size: file.size,
               url: uploadResult.url,
               path: uploadResult.path,
-              content: extraction.content,
-              preview: extraction.preview,
-              wordCount: extraction.wordCount,
-              lineCount: extraction.lineCount,
+              content: extraction?.content || null,
+              preview: extraction?.preview || `${file.name} (${(file.size / 1024).toFixed(1)}KB)`,
+              wordCount: extraction?.wordCount || 0,
+              lineCount: extraction?.lineCount || 0,
             }
           })
         )

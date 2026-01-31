@@ -1,7 +1,10 @@
 /**
  * テキスト抽出ライブラリ
  * 
- * テキストファイル（.txt, .csv, .md）から内容を抽出します。
+ * サポート形式:
+ * - テキスト: .txt, .csv, .md
+ * - PDF: .pdf（Phase 2.2で実装予定）
+ * - Office: .doc, .docx, .xls, .xlsx, .ppt, .pptx（Phase 2.3で実装予定）
  * 
  * @module lib/file-processing/text-extractor
  */
@@ -71,15 +74,31 @@ export async function extractText(
 /**
  * ファイルタイプがサポート対象か確認
  * 
+ * Phase 2.1: テキストファイル（.txt, .csv, .md）
+ * Phase 2.2: PDFファイル（.pdf）
+ * Phase 2.3: Officeファイル（.doc, .docx, .xls, .xlsx, .ppt, .pptx）
+ * 
  * @param file - 確認するファイル
  * @returns サポート対象の場合true
  */
 export function isSupportedTextFile(file: File): boolean {
   const supportedTypes = [
+    // テキストファイル（Phase 2.1）
     'text/plain',
     'text/csv',
     'application/csv',
-    'text/markdown', // Markdownファイル対応
+    'text/markdown',
+    
+    // PDFファイル（Phase 2.2 - アップロードのみ許可）
+    'application/pdf',
+    
+    // Microsoft Office（Phase 2.3 - アップロードのみ許可）
+    'application/msword', // .doc
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/vnd.ms-excel', // .xls
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.ms-powerpoint', // .ppt
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
   ]
   return supportedTypes.includes(file.type)
 }
@@ -87,8 +106,9 @@ export function isSupportedTextFile(file: File): boolean {
 /**
  * ファイルタイプに応じた抽出方法を選択
  * 
- * Phase 2.1: テキストファイル（.txt, .csv, .md）のみ対応
- * Phase 2.2: PDFファイル対応予定
+ * Phase 2.1: テキストファイル（.txt, .csv, .md）のみ抽出可能
+ * Phase 2.2: PDFファイル抽出実装予定
+ * Phase 2.3: Officeファイル抽出実装予定
  * 
  * @param file - 処理するファイル
  * @returns 抽出結果
@@ -97,14 +117,22 @@ export function isSupportedTextFile(file: File): boolean {
 export async function extractContent(
   file: File
 ): Promise<ExtractionResult> {
-  if (isSupportedTextFile(file)) {
+  // テキストファイル（.txt, .csv, .md）のみ抽出可能
+  const textTypes = ['text/plain', 'text/csv', 'application/csv', 'text/markdown']
+  
+  if (textTypes.includes(file.type)) {
     return extractText(file)
   }
   
-  // Phase 2.2で実装予定
-  // if (file.type === 'application/pdf') {
-  //   return extractPdfText(file)
-  // }
+  // PDF, Officeファイルはアップロードのみ許可（テキスト抽出は今後実装）
+  if (file.type === 'application/pdf') {
+    throw new TextExtractionError('PDF text extraction not yet implemented (Phase 2.2)')
+  }
+  
+  if (file.type.includes('officedocument') || file.type.includes('msword') || 
+      file.type.includes('ms-excel') || file.type.includes('ms-powerpoint')) {
+    throw new TextExtractionError('Office file text extraction not yet implemented (Phase 2.3)')
+  }
   
   throw new TextExtractionError(`Unsupported file type: ${file.type}`)
 }
