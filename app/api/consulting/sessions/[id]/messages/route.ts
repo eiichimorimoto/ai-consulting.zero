@@ -242,9 +242,16 @@ export async function POST(
     // 5. 往復回数上限チェック
     const isLimitReached = newRound >= session.max_rounds
 
+    // 6. 更新されたセッション情報とメッセージ一覧を返す
+    const updatedSession = {
+      ...session,
+      current_round: newRound,
+      updated_at: new Date().toISOString()
+    }
+
     return NextResponse.json({ 
-      userMessage,
-      aiMessage,
+      session: updatedSession,
+      messages: [userMessage, aiMessage],
       current_round: newRound,
       max_rounds: session.max_rounds,
       is_limit_reached: isLimitReached,
