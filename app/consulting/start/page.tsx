@@ -195,9 +195,7 @@ export default function ConsultingPage() {
       setShowInitialModal(false)
       setPendingCategory(null)
       
-      // 添付ファイルをクリア
-      setAttachmentFiles([])
-      setContextData(prev => ({ ...prev, attachments: [] }))
+      // 添付ファイルは保持（相談継続中）
       
       await fetchSessions()
     } catch (error) {
@@ -247,12 +245,31 @@ export default function ConsultingPage() {
   }
 
   // セッション終了
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
+    if (!currentSession) return
+    
+    try {
+      // ステータスをcompletedに更新
+      await fetch(`/api/consulting/sessions/${currentSession.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      })
+    } catch (error) {
+      console.error('Failed to update session status:', error)
+    }
+    
+    // 状態をクリア
     setCurrentSession(null)
     setMessages([])
     setInputMessage('')
     setCategory('general')
-    fetchSessions()
+    
+    // 添付ファイルをクリア（相談終了のため）
+    setAttachmentFiles([])
+    setContextData(prev => ({ ...prev, attachments: [] }))
+    
+    await fetchSessions()
   }
 
   // カテゴリーラベル取得
@@ -296,9 +313,11 @@ export default function ConsultingPage() {
           current_round: s.current_round,
           max_rounds: s.max_rounds,
           created_at: s.created_at,
+          status: s.status,
         }))}
         selectedCategory={category}
         onCategoryChange={handleCategoryChange}
+        currentSessionStatus={currentSession?.status}
       />
 
       {/* メインコンテンツエリア */}
@@ -309,6 +328,7 @@ export default function ConsultingPage() {
             sessionTitle={currentSession.title}
             currentRound={currentSession.current_round}
             maxRounds={currentSession.max_rounds}
+            sessionStatus={currentSession.status}
             onEndSession={handleEndSession}
           />
         )}
