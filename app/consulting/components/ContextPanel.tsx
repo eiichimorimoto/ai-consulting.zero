@@ -290,7 +290,7 @@ export function ContextPanel({
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">
               📎
             </div>
-            <span>添付ファイル</span>
+            <span>添付ファイル一覧</span>
             <Badge variant="outline" className="ml-auto">
               {attachments.length}
             </Badge>
