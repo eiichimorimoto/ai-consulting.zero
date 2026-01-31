@@ -76,12 +76,24 @@ export function InitialIssueModal({
         return
       }
       
-      // ファイルタイプ検証（テキストファイルのみ）
-      const allowedTypes = ['text/plain', 'text/csv', 'application/csv']
+      // ファイルタイプ検証
+      const allowedTypes = [
+        'text/plain',
+        'text/csv',
+        'application/csv',
+        'text/markdown',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      ]
       const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
       
       if (invalidFiles.length > 0) {
-        alert(`以下のファイルは対応していない形式です（.txt, .csvのみ対応）:\n${invalidFiles.map(f => f.name).join('\n')}`)
+        alert(`以下のファイルは対応していない形式です（対応: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx）:\n${invalidFiles.map(f => f.name).join('\n')}`)
         e.target.value = ''
         return
       }
@@ -97,6 +109,17 @@ export function InitialIssueModal({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] bg-white border border-border shadow-xl">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          multiple
+          onChange={handleFileChange}
+          disabled={isLoading}
+        />
+        
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {categoryLabel}について相談を開始
