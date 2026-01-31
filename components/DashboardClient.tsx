@@ -1364,7 +1364,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
 
             <section className="action-section">
               <div className="action-grid">
-                <div className="ai-card" onClick={() => router.push('/dashboard/chat')}>
+                <div className="ai-card">
                   <div className="ai-card-left">
                     <div className="ai-avatar">
                       <div className="ai-pulse"></div>
@@ -1383,7 +1383,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </div>
                     </div>
                   </div>
-                  <button className="ai-card-btn">
+                  <button className="ai-card-btn" onClick={() => router.push('/consulting/start')}>
                     相談を始める
                     <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--primary)', fill: 'none', strokeWidth: 2 }}>
                       <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -1415,7 +1415,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       </div>
                     </div>
                   </div>
-                  <button className="history-btn" onClick={() => router.push('/dashboard/history')}>
+                  <button className="history-btn" onClick={() => router.push('/consulting/start')}>
                     履歴を見る
                     <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
                       <path d="M5 12h14M12 5l7 7-7 7"/>
