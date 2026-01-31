@@ -28,6 +28,7 @@ interface ContextPanelProps {
   onDownloadProposal?: () => void
   onRemoveAttachment?: (id: string) => void
   onFileUpload?: (files: FileList) => void
+  disabled?: boolean
 }
 
 export function ContextPanel({
@@ -40,7 +41,8 @@ export function ContextPanel({
   onViewProposal,
   onDownloadProposal,
   onRemoveAttachment,
-  onFileUpload
+  onFileUpload,
+  disabled = false
 }: ContextPanelProps) {
   // State追加
   const [isDragging, setIsDragging] = useState(false)
@@ -119,6 +121,8 @@ export function ContextPanel({
     e.stopPropagation()
     setIsDragging(false)
     
+    if (disabled) return
+    
     const files = Array.from(e.dataTransfer.files)
     if (files.length === 0) return
     
@@ -140,14 +144,15 @@ export function ContextPanel({
       valid.forEach(file => dataTransfer.items.add(file))
       onFileUpload(dataTransfer.files)
     }
-  }, [validateFiles, onFileUpload])
+  }, [validateFiles, onFileUpload, disabled])
 
   const handleClick = useCallback(() => {
+    if (disabled) return
     fileInputRef.current?.click()
-  }, [])
+  }, [disabled])
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return
+    if (disabled || !e.target.files || e.target.files.length === 0) return
     
     const files = Array.from(e.target.files)
     const { valid, errors } = validateFiles(files)
@@ -169,7 +174,7 @@ export function ContextPanel({
     
     // リセット
     e.target.value = ''
-  }, [validateFiles, onFileUpload])
+  }, [validateFiles, onFileUpload, disabled])
   
   // エラーメッセージ自動削除
   useEffect(() => {
@@ -300,6 +305,7 @@ export function ContextPanel({
             accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             multiple
             onChange={handleFileChange}
+            disabled={disabled}
           />
           
           {/* エラーメッセージ */}
@@ -315,21 +321,38 @@ export function ContextPanel({
           
           {/* ドロップゾーン */}
           <div
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleClick}
+            onDragOver={!disabled ? handleDragOver : undefined}
+            onDragEnter={!disabled ? handleDragEnter : undefined}
+            onDragLeave={!disabled ? handleDragLeave : undefined}
+            onDrop={!disabled ? handleDrop : undefined}
+            onClick={!disabled ? handleClick : undefined}
             className={`
-              relative rounded-lg border-2 border-dashed transition-all cursor-pointer
-              ${isDragging 
+              relative rounded-lg border-2 border-dashed transition-all
+              ${disabled 
+                ? 'cursor-not-allowed opacity-50 bg-muted/20 border-muted' 
+                : 'cursor-pointer'
+              }
+              ${!disabled && isDragging 
                 ? 'border-primary bg-primary/5' 
-                : 'border-muted hover:border-primary/50 hover:bg-muted/30'
+                : !disabled && 'border-muted hover:border-primary/50 hover:bg-muted/30'
               }
               ${attachments.length === 0 ? 'py-8' : 'py-4'}
             `}
           >
-            {attachments.length === 0 ? (
+            {disabled ? (
+              <div className="text-center">
+                <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  相談を開始してください
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  左メニューからカテゴリーを選択して相談を開始すると
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  ファイルを添付できます
+                </p>
+              </div>
+            ) : attachments.length === 0 ? (
               <div className="text-center">
                 <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-xs font-medium text-foreground mb-1">

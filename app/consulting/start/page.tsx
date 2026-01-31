@@ -475,6 +475,7 @@ export default function ConsultingPage() {
                 }
               }}
               onRemoveAttachment={handleRemoveAttachment}
+              disabled={!currentSession}
             />
           </div>
         </div>
