@@ -204,6 +204,28 @@ export default function WebsiteAnalysisPage() {
     }
   }
 
+  const handleConsultAboutReport = () => {
+    if (!result) return
+    
+    try {
+      // sessionStorageに診断結果を保存
+      sessionStorage.setItem('website_analysis_result', JSON.stringify({
+        url: result.url,
+        overallScore: result.overallScore,
+        topIssues: result.topIssues,
+        metrics: result.metrics,
+        analyzedAt: new Date().toISOString()
+      }))
+      
+      // 相談画面へ遷移
+      router.push('/consulting/start')
+    } catch (error) {
+      console.error('Failed to save analysis result:', error)
+      // フォールバック: 通常の遷移
+      router.push('/consulting/start')
+    }
+  }
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-500'
     if (score >= 60) return 'text-yellow-500'
@@ -566,7 +588,7 @@ export default function WebsiteAnalysisPage() {
                   詳細な改善プランについてはお問い合わせください。
                 </p>
                 <button
-                  onClick={() => router.push('/contact')}
+                  onClick={handleConsultAboutReport}
                   className="px-6 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
                 >
                   改善について相談する

@@ -11,6 +11,56 @@ import { MobileNav } from '../components/MobileNav'
 import { InitialIssueModal } from '../components/InitialIssueModal'
 import type { ConsultingSession, Message as ConsultingMessage, ContextData } from '../types/consulting'
 
+// Webサイト分析結果をマークダウン形式に変換
+const generateAnalysisMarkdown = (data: any): string => {
+  const { url, overallScore, topIssues, metrics, analyzedAt } = data
+  
+  let markdown = `# Webサイト分析レポート\n\n`
+  markdown += `**分析日時**: ${new Date(analyzedAt).toLocaleString('ja-JP')}\n\n`
+  markdown += `**分析URL**: ${url}\n\n`
+  markdown += `---\n\n`
+  
+  // 総合スコア
+  markdown += `## 📊 総合スコア\n\n`
+  markdown += `**${overallScore}** / 100\n\n`
+  
+  // メトリクス
+  if (metrics) {
+    markdown += `## 📈 詳細メトリクス\n\n`
+    markdown += `- **モバイルスコア**: ${metrics.mobileScore}\n`
+    markdown += `- **デスクトップスコア**: ${metrics.desktopScore}\n`
+    markdown += `- **SEOスコア**: ${metrics.seoScore}\n`
+    markdown += `- **アクセシビリティスコア**: ${metrics.accessibilityScore}\n\n`
+    
+    markdown += `### Core Web Vitals\n\n`
+    markdown += `- **FCP (初回描画)**: ${(metrics.fcp / 1000).toFixed(2)}秒\n`
+    markdown += `- **LCP (最大描画)**: ${(metrics.lcp / 1000).toFixed(2)}秒\n`
+    markdown += `- **CLS (レイアウトシフト)**: ${metrics.cls}\n`
+    markdown += `- **TTFB (応答時間)**: ${(metrics.ttfb / 1000).toFixed(2)}秒\n`
+    markdown += `- **TBT (ブロック時間)**: ${metrics.tbt}ms\n\n`
+    
+    markdown += `### セキュリティ\n\n`
+    markdown += `- **SSL対応**: ${metrics.hasSSL ? '✅ 対応済み' : '❌ 未対応'}\n`
+    markdown += `- **モバイル対応**: ${metrics.isMobileFriendly ? '✅ 良好' : '❌ 要改善'}\n\n`
+  }
+  
+  // 課題
+  if (topIssues && topIssues.length > 0) {
+    markdown += `## ⚠️ 検出された課題\n\n`
+    topIssues.forEach((issue: any, index: number) => {
+      markdown += `### ${index + 1}. ${issue.issue}\n\n`
+      markdown += `- **カテゴリ**: ${issue.category}\n`
+      markdown += `- **優先度**: ${issue.severity}\n`
+      markdown += `- **影響**: ${issue.impact}\n\n`
+    })
+  }
+  
+  markdown += `---\n\n`
+  markdown += `このレポートはAI Consulting Zeroで生成されました。\n`
+  
+  return markdown
+}
+
 export default function ConsultingPage() {
   const router = useRouter()
   
@@ -85,6 +135,52 @@ export default function ConsultingPage() {
     }
     
     loadIndustryForecastFromCache()
+    
+    // Webサイト分析結果の読み込み
+    const loadWebsiteAnalysisResult = () => {
+      try {
+        const stored = sessionStorage.getItem('website_analysis_result')
+        if (stored) {
+          const data = JSON.parse(stored)
+          
+          // マークダウン生成
+          const mdContent = generateAnalysisMarkdown(data)
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+          const filename = `website-analysis-report-${timestamp}.md`
+          
+          // Blobからファイル作成
+          const blob = new Blob([mdContent], { type: 'text/markdown' })
+          const file = new File([blob], filename, { 
+            type: 'text/markdown',
+            lastModified: Date.now()
+          })
+          
+          // BlobからURLを生成
+          const fileUrl = URL.createObjectURL(file)
+          
+          // 添付ファイルに追加
+          setAttachmentFiles([file])
+          setContextData(prev => ({
+            ...prev,
+            attachments: [{
+              id: `analysis-${Date.now()}`,
+              name: filename,
+              type: 'text/markdown',
+              url: fileUrl
+            }]
+          }))
+          
+          // sessionStorageクリア
+          sessionStorage.removeItem('website_analysis_result')
+          
+          console.log('Website analysis report attached:', filename)
+        }
+      } catch (error) {
+        console.error('Failed to load website analysis result:', error)
+      }
+    }
+    
+    loadWebsiteAnalysisResult()
   }, [])
 
   const fetchSessions = async () => {
