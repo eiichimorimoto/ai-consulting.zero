@@ -50,6 +50,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showError, setShowError] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -132,6 +133,83 @@ export function MessageInput({
     }, 200)
   }
 
+  // ドラッグ&ドロップハンドラ
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Textareaの境界から出た時のみfalseにする
+    if (e.currentTarget === e.target) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+
+    const fileArray = Array.from(files)
+    
+    // ファイルサイズ検証（10MB制限）
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const oversizedFiles = fileArray.filter(f => f.size > maxSize)
+    
+    if (oversizedFiles.length > 0) {
+      alert(`以下のファイルはサイズが大きすぎます（10MB以下にしてください）:\n${oversizedFiles.map(f => f.name).join('\n')}`)
+      return
+    }
+    
+    // ファイルタイプ検証（MIMEタイプと拡張子の両方でチェック）
+    const allowedTypes = [
+      'text/plain',
+      'text/csv',
+      'application/csv',
+      'text/markdown',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ]
+    
+    const allowedExtensions = ['.txt', '.csv', '.md', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+    
+    const invalidFiles = fileArray.filter(f => {
+      const ext = '.' + f.name.split('.').pop()?.toLowerCase()
+      const hasValidMimeType = allowedTypes.includes(f.type)
+      const hasValidExtension = allowedExtensions.includes(ext)
+      
+      // MIMEタイプまたは拡張子のいずれかが有効ならOK（.mdファイル対策）
+      return !hasValidMimeType && !hasValidExtension
+    })
+    
+    if (invalidFiles.length > 0) {
+      alert(`以下のファイルは対応していない形式です（対応: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx）:\n${invalidFiles.map(f => f.name).join('\n')}`)
+      return
+    }
+    
+    // 検証OKならアップロード
+    if (onFileUpload) {
+      onFileUpload(files)
+    }
+  }
+
   return (
     <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-24 px-4">
       <div className="mx-auto max-w-4xl">
@@ -171,9 +249,17 @@ export function MessageInput({
             }}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
             placeholder={placeholder}
             disabled={isLoading}
-            className={`min-h-[100px] max-h-[200px] resize-none w-full ${!hasSession && disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+            className={`min-h-[100px] max-h-[200px] resize-none w-full transition-colors ${
+              isDragging 
+                ? 'bg-primary/5 border-primary border-2' 
+                : ''
+            } ${!hasSession && disabled ? 'cursor-not-allowed opacity-60' : ''}`}
             rows={4}
           />
           

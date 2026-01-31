@@ -44,6 +44,7 @@ export function InitialIssueModal({
 }: InitialIssueModalProps) {
   const [issue, setIssue] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleSubmit = async () => {
     if (!issue.trim()) return
@@ -116,6 +117,83 @@ export function InitialIssueModal({
     }
   }
 
+  // ドラッグ&ドロップハンドラ
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Textareaの境界から出た時のみfalseにする
+    if (e.currentTarget === e.target) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+
+    const fileArray = Array.from(files)
+    
+    // ファイルサイズ検証（10MB制限）
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const oversizedFiles = fileArray.filter(f => f.size > maxSize)
+    
+    if (oversizedFiles.length > 0) {
+      alert(`以下のファイルはサイズが大きすぎます（10MB以下にしてください）:\n${oversizedFiles.map(f => f.name).join('\n')}`)
+      return
+    }
+    
+    // ファイルタイプ検証（MIMEタイプと拡張子の両方でチェック）
+    const allowedTypes = [
+      'text/plain',
+      'text/csv',
+      'application/csv',
+      'text/markdown',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ]
+    
+    const allowedExtensions = ['.txt', '.csv', '.md', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+    
+    const invalidFiles = fileArray.filter(f => {
+      const ext = '.' + f.name.split('.').pop()?.toLowerCase()
+      const hasValidMimeType = allowedTypes.includes(f.type)
+      const hasValidExtension = allowedExtensions.includes(ext)
+      
+      // MIMEタイプまたは拡張子のいずれかが有効ならOK（.mdファイル対策）
+      return !hasValidMimeType && !hasValidExtension
+    })
+    
+    if (invalidFiles.length > 0) {
+      alert(`以下のファイルは対応していない形式です（対応: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx）:\n${invalidFiles.map(f => f.name).join('\n')}`)
+      return
+    }
+    
+    // 検証OKならアップロード
+    if (onFileUpload) {
+      onFileUpload(files)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] bg-white border border-border shadow-xl">
@@ -148,9 +226,17 @@ export function InitialIssueModal({
               id="initial-issue"
               value={issue}
               onChange={(e) => setIssue(e.target.value)}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
               placeholder="例：売上を向上させるための施策を検討したいです。現在の売上は前年比で5%減少しています。"
               disabled={isLoading}
-              className="min-h-[120px] resize-none"
+              className={`min-h-[120px] resize-none transition-colors ${
+                isDragging 
+                  ? 'bg-primary/5 border-primary border-2' 
+                  : ''
+              }`}
               rows={5}
             />
             <p className="text-xs text-muted-foreground">
