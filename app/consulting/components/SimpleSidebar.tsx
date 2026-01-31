@@ -12,7 +12,9 @@ import {
   Zap,
   Users,
   Target,
-  Search
+  Search,
+  Disc,
+  CheckCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
@@ -27,9 +29,11 @@ interface SimpleSidebarProps {
     current_round: number
     max_rounds: number
     created_at?: string
+    status?: 'active' | 'completed' | 'archived'
   }>
   selectedCategory?: string
   onCategoryChange?: (category: string) => void
+  currentSessionStatus?: 'active' | 'completed' | 'archived'
 }
 
 const CATEGORIES = [
@@ -44,7 +48,8 @@ const CATEGORIES = [
 export function SimpleSidebar({ 
   sessions = [], 
   selectedCategory = 'general',
-  onCategoryChange 
+  onCategoryChange,
+  currentSessionStatus
 }: SimpleSidebarProps) {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
@@ -113,7 +118,17 @@ export function SimpleSidebar({
             <p className="text-[13px] font-semibold">新規相談</p>
           </div>
           
-          <RadioGroup value={selectedCategory} onValueChange={onCategoryChange}>
+          <RadioGroup 
+            value={selectedCategory} 
+            onValueChange={(value) => {
+              if (currentSessionStatus === 'active') {
+                alert('現在の相談が継続中です。相談を終了してから新しい相談を開始してください。')
+                return
+              }
+              onCategoryChange?.(value)
+            }}
+            disabled={currentSessionStatus === 'active'}
+          >
             <div className="space-y-2">
               {CATEGORIES.map((category) => {
                 const Icon = category.icon
@@ -123,12 +138,22 @@ export function SimpleSidebar({
                       value={category.id} 
                       id={category.id}
                       className="h-4 w-4"
+                      disabled={currentSessionStatus === 'active'}
                     />
                     <Label
                       htmlFor={category.id}
-                      className="flex flex-1 cursor-pointer items-center gap-2"
+                      className={cn(
+                        "flex flex-1 cursor-pointer items-center gap-2",
+                        currentSessionStatus === 'active' && "opacity-50 cursor-not-allowed"
+                      )}
                       style={{ fontSize: '13px', fontWeight: 500 }}
-                      onClick={() => onCategoryChange?.(category.id)}
+                      onClick={() => {
+                        if (currentSessionStatus === 'active') {
+                          alert('現在の相談が継続中です。相談を終了してから新しい相談を開始してください。')
+                          return
+                        }
+                        onCategoryChange?.(category.id)
+                      }}
                     >
                       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>{category.label}</span>
@@ -177,15 +202,34 @@ export function SimpleSidebar({
                   <Link
                     key={session.id}
                     href={`/consulting/sessions/${session.id}`}
+                    onClick={(e) => {
+                      if (currentSessionStatus === 'active') {
+                        e.preventDefault()
+                        alert('現在の相談が継続中です。相談を終了してから別の相談履歴を開いてください。')
+                      }
+                    }}
                     className={cn(
                       "flex items-start gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground",
-                      pathname === `/consulting/sessions/${session.id}` && "bg-white text-primary shadow-sm"
+                      pathname === `/consulting/sessions/${session.id}` && "bg-white text-primary shadow-sm",
+                      currentSessionStatus === 'active' && "opacity-50 cursor-not-allowed"
                     )}
                     style={{ fontSize: '13px', fontWeight: 500 }}
                   >
                     <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <div className="flex-1 overflow-hidden">
-                      <p className="truncate" style={{ fontSize: '13px', fontWeight: 500 }}>{session.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate flex-1" style={{ fontSize: '13px', fontWeight: 500 }}>{session.title}</p>
+                        {/* ステータスアイコン */}
+                        {session.status === 'active' && (
+                          <Disc className="h-3 w-3 text-blue-500 fill-blue-500 shrink-0" />
+                        )}
+                        {session.status === 'completed' && (
+                          <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                        )}
+                        {session.status === 'archived' && (
+                          <Disc className="h-3 w-3 text-gray-400 fill-gray-400 shrink-0" />
+                        )}
+                      </div>
                       <p className="text-muted-foreground" style={{ fontSize: '10px' }}>
                         {session.current_round}/{session.max_rounds}回 • {formatDate(session.created_at)}
                       </p>

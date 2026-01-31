@@ -2,13 +2,14 @@
 
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Bot, X, Sparkles } from 'lucide-react'
+import { Bot, X, Sparkles, Disc } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ConsultingHeaderProps {
   sessionTitle?: string
   currentRound?: number
   maxRounds?: number
+  sessionStatus?: 'active' | 'completed' | 'archived'
   onEndSession?: () => void
 }
 
@@ -16,6 +17,7 @@ export function ConsultingHeader({
   sessionTitle = 'AI経営相談',
   currentRound = 0,
   maxRounds = 5,
+  sessionStatus,
   onEndSession
 }: ConsultingHeaderProps) {
   const progress = maxRounds > 0 ? (currentRound / maxRounds) * 100 : 0
@@ -34,9 +36,14 @@ export function ConsultingHeader({
 
           {/* タイトルと進捗 */}
           <div className="flex-1 overflow-hidden">
-            <h1 className="truncate text-base font-semibold sm:text-lg">
-              {sessionTitle}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-base font-semibold sm:text-lg">
+                {sessionTitle}
+              </h1>
+              {sessionStatus === 'active' && (
+                <Disc className="h-3 w-3 text-blue-500 fill-blue-500 shrink-0" />
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {/* ラウンド表示 */}
               <div className="flex items-center gap-1.5">
