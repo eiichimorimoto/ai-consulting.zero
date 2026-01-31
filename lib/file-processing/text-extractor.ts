@@ -1,7 +1,7 @@
 /**
  * テキスト抽出ライブラリ
  * 
- * テキストファイル（.txt, .csv）から内容を抽出します。
+ * テキストファイル（.txt, .csv, .md）から内容を抽出します。
  * 
  * @module lib/file-processing/text-extractor
  */
@@ -79,6 +79,7 @@ export function isSupportedTextFile(file: File): boolean {
     'text/plain',
     'text/csv',
     'application/csv',
+    'text/markdown', // Markdownファイル対応
   ]
   return supportedTypes.includes(file.type)
 }
@@ -86,7 +87,7 @@ export function isSupportedTextFile(file: File): boolean {
 /**
  * ファイルタイプに応じた抽出方法を選択
  * 
- * Phase 2.1: テキストファイル（.txt, .csv）のみ対応
+ * Phase 2.1: テキストファイル（.txt, .csv, .md）のみ対応
  * Phase 2.2: PDFファイル対応予定
  * 
  * @param file - 処理するファイル
