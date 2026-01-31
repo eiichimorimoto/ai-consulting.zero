@@ -78,7 +78,7 @@ export function MessageInput({
         return
       }
       
-      // ファイルタイプ検証
+      // ファイルタイプ検証（MIMEタイプと拡張子の両方でチェック）
       const allowedTypes = [
         'text/plain',
         'text/csv',
@@ -92,7 +92,17 @@ export function MessageInput({
         'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       ]
-      const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
+      
+      const allowedExtensions = ['.txt', '.csv', '.md', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+      
+      const invalidFiles = files.filter(f => {
+        const ext = '.' + f.name.split('.').pop()?.toLowerCase()
+        const hasValidMimeType = allowedTypes.includes(f.type)
+        const hasValidExtension = allowedExtensions.includes(ext)
+        
+        // MIMEタイプまたは拡張子のいずれかが有効ならOK（.mdファイル対策）
+        return !hasValidMimeType && !hasValidExtension
+      })
       
       if (invalidFiles.length > 0) {
         alert(`以下のファイルは対応していない形式です（対応: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx）:\n${invalidFiles.map(f => f.name).join('\n')}`)
@@ -132,6 +142,7 @@ export function MessageInput({
           className="hidden"
           onChange={handleFileChange}
           accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          disabled={isLoading || disabled}
         />
         
         {/* エラーメッセージ */}

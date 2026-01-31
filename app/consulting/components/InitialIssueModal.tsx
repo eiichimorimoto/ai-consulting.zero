@@ -76,7 +76,7 @@ export function InitialIssueModal({
         return
       }
       
-      // ファイルタイプ検証
+      // ファイルタイプ検証（MIMEタイプと拡張子の両方でチェック）
       const allowedTypes = [
         'text/plain',
         'text/csv',
@@ -90,7 +90,17 @@ export function InitialIssueModal({
         'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       ]
-      const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
+      
+      const allowedExtensions = ['.txt', '.csv', '.md', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+      
+      const invalidFiles = files.filter(f => {
+        const ext = '.' + f.name.split('.').pop()?.toLowerCase()
+        const hasValidMimeType = allowedTypes.includes(f.type)
+        const hasValidExtension = allowedExtensions.includes(ext)
+        
+        // MIMEタイプまたは拡張子のいずれかが有効ならOK（.mdファイル対策）
+        return !hasValidMimeType && !hasValidExtension
+      })
       
       if (invalidFiles.length > 0) {
         alert(`以下のファイルは対応していない形式です（対応: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx）:\n${invalidFiles.map(f => f.name).join('\n')}`)
@@ -128,15 +138,6 @@ export function InitialIssueModal({
             最初の課題や相談内容を入力してください。AIコンサルタントが分析して回答します。
           </DialogDescription>
         </DialogHeader>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-        />
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
