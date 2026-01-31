@@ -1,10 +1,11 @@
 'use client'
 
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { FileText, Download, Eye, X } from 'lucide-react'
+import { FileText, Download, Eye, X, Upload, AlertCircle } from 'lucide-react'
 
 interface ContextPanelProps {
   digitalScore?: number | null
@@ -26,6 +27,7 @@ interface ContextPanelProps {
   onViewProposal?: () => void
   onDownloadProposal?: () => void
   onRemoveAttachment?: (id: string) => void
+  onFileUpload?: (files: FileList) => void
 }
 
 export function ContextPanel({
@@ -37,8 +39,153 @@ export function ContextPanel({
   industryForecast,
   onViewProposal,
   onDownloadProposal,
-  onRemoveAttachment
+  onRemoveAttachment,
+  onFileUpload
 }: ContextPanelProps) {
+  // State追加
+  const [isDragging, setIsDragging] = useState(false)
+  const [errorMessages, setErrorMessages] = useState<Array<{
+    id: string
+    type: 'error' | 'warning' | 'info'
+    message: string
+  }>>([])
+  
+  // Ref追加
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // ファイル検証関数
+  const validateFiles = useCallback((files: File[]): { valid: File[], errors: string[] } => {
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const allowedTypes = [
+      'text/plain', 'text/csv', 'application/csv', 'text/markdown',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ]
+    const allowedExtensions = ['.txt', '.csv', '.md', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+    
+    const validFiles: File[] = []
+    const errors: string[] = []
+    
+    files.forEach(file => {
+      // サイズチェック
+      if (file.size > maxSize) {
+        errors.push(`${file.name}: ファイルサイズが大きすぎます（最大10MB）`)
+        return
+      }
+      
+      // タイプチェック
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+      const hasValidMimeType = allowedTypes.includes(file.type)
+      const hasValidExtension = allowedExtensions.includes(ext)
+      
+      if (!hasValidMimeType && !hasValidExtension) {
+        errors.push(`${file.name}: 対応していない形式です`)
+        return
+      }
+      
+      validFiles.push(file)
+    })
+    
+    return { valid: validFiles, errors }
+  }, [])
+  
+  // イベントハンドラ
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // 子要素のイベントを無視
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length === 0) return
+    
+    const { valid, errors } = validateFiles(files)
+    
+    // エラーメッセージ表示
+    if (errors.length > 0) {
+      const newErrors = errors.map((msg, i) => ({
+        id: `error-${Date.now()}-${i}`,
+        type: 'error' as const,
+        message: msg
+      }))
+      setErrorMessages(prev => [...prev, ...newErrors])
+    }
+    
+    // 有効なファイルがあればアップロード
+    if (valid.length > 0 && onFileUpload) {
+      const dataTransfer = new DataTransfer()
+      valid.forEach(file => dataTransfer.items.add(file))
+      onFileUpload(dataTransfer.files)
+    }
+  }, [validateFiles, onFileUpload])
+
+  const handleClick = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    
+    const files = Array.from(e.target.files)
+    const { valid, errors } = validateFiles(files)
+    
+    // エラーメッセージ表示
+    if (errors.length > 0) {
+      const newErrors = errors.map((msg, i) => ({
+        id: `error-${Date.now()}-${i}`,
+        type: 'error' as const,
+        message: msg
+      }))
+      setErrorMessages(prev => [...prev, ...newErrors])
+    }
+    
+    // 有効なファイルがあればアップロード
+    if (valid.length > 0 && onFileUpload) {
+      onFileUpload(e.target.files)
+    }
+    
+    // リセット
+    e.target.value = ''
+  }, [validateFiles, onFileUpload])
+  
+  // エラーメッセージ自動削除
+  useEffect(() => {
+    if (errorMessages.length === 0) return
+    
+    const timers = errorMessages.map(err => 
+      setTimeout(() => {
+        setErrorMessages(prev => prev.filter(e => e.id !== err.id))
+      }, 5000)
+    )
+    
+    return () => {
+      timers.forEach(timer => clearTimeout(timer))
+    }
+  }, [errorMessages])
+
   return (
     <div className="h-full w-full space-y-4 overflow-y-auto p-4">
       {/* 業界見通し - 1番目 */}
@@ -131,7 +278,7 @@ export function ContextPanel({
         </CardContent>
       </Card>
 
-      {/* 添付ファイル - 2番目（簡略化：ファイル名一覧のみ） */}
+      {/* 添付ファイル - 2番目 */}
       <Card className="bg-white">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -145,33 +292,86 @@ export function ContextPanel({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {attachments.length === 0 ? (
-            <div className="py-2 text-center text-xs text-muted-foreground">
-              添付ファイルはありません
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            multiple
+            onChange={handleFileChange}
+          />
+          
+          {/* エラーメッセージ */}
+          {errorMessages.map(err => (
+            <div
+              key={err.id}
+              className="mb-2 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="flex-1">{err.message}</span>
             </div>
-          ) : (
-            <div className="space-y-1.5">
-              {attachments.map((file) => (
-                <div 
-                  key={file.id}
-                  className="group flex items-center gap-2 rounded-md border bg-white px-2 py-1.5 text-xs hover:bg-muted/50"
-                >
-                  <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate text-foreground">{file.name}</span>
-                  {onRemoveAttachment && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => onRemoveAttachment(file.id)}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
+          
+          {/* ドロップゾーン */}
+          <div
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleClick}
+            className={`
+              relative rounded-lg border-2 border-dashed transition-all cursor-pointer
+              ${isDragging 
+                ? 'border-primary bg-primary/5' 
+                : 'border-muted hover:border-primary/50 hover:bg-muted/30'
+              }
+              ${attachments.length === 0 ? 'py-8' : 'py-4'}
+            `}
+          >
+            {attachments.length === 0 ? (
+              <div className="text-center">
+                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-xs font-medium text-foreground mb-1">
+                  ファイルをドロップまたはクリック
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  最大サイズ: 10MB
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {attachments.map((file) => (
+                  <div 
+                    key={file.id}
+                    className="group flex items-center gap-2 rounded-md border bg-white px-2 py-1.5 text-xs hover:bg-muted/50"
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate text-foreground">{file.name}</span>
+                    {onRemoveAttachment && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRemoveAttachment(file.id)
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <p className="text-[10px] text-muted-foreground text-center pt-2">
+                  追加でドロップまたはクリック
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
