@@ -128,6 +128,7 @@ export function SimpleSidebar({
                       htmlFor={category.id}
                       className="flex flex-1 cursor-pointer items-center gap-2"
                       style={{ fontSize: '13px', fontWeight: 500 }}
+                      onClick={() => onCategoryChange?.(category.id)}
                     >
                       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>{category.label}</span>
