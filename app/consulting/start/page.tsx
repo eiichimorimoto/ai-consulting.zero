@@ -463,6 +463,7 @@ export default function ConsultingPage() {
               proposalStatus={contextData.proposal.status}
               proposalId={contextData.proposal.id}
               industryForecast={industryForecast}
+              onFileUpload={handleFileUpload}
               onViewProposal={() => {
                 if (contextData.proposal.id) {
                   router.push(`/consulting/reports/${contextData.proposal.id}`)
