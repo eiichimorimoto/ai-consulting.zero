@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Globe, Loader2, AlertTriangle, CheckCircle, TrendingUp, Shield, Smartphone, Zap, RefreshCw, Play } from 'lucide-react'
+import { Globe, Loader2, AlertTriangle, CheckCircle, CheckCircle2, Circle, TrendingUp, Shield, Smartphone, Zap, RefreshCw, Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface DiagnosisResult {
@@ -37,6 +37,18 @@ export default function WebsiteAnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [result, setResult] = useState<DiagnosisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [currentStep, setCurrentStep] = useState(0)
+
+  // 分析ステップの定義
+  const analysisSteps = [
+    { label: 'サイトに接続中...', duration: 2000 },
+    { label: 'ページ構造を解析中...', duration: 3000 },
+    { label: 'パフォーマンスを測定中...', duration: 5000 },
+    { label: 'SEO要素をチェック中...', duration: 4000 },
+    { label: 'セキュリティを確認中...', duration: 3000 },
+    { label: 'AIが課題を分析中...', duration: 8000 },
+    { label: 'レポートを生成中...', duration: 3000 },
+  ]
 
   // 会社情報を取得（分析は実行しない）
   useEffect(() => {
@@ -94,6 +106,32 @@ export default function WebsiteAnalysisPage() {
 
     fetchCompany()
   }, [router])
+
+  // 分析中のステップ進行
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setCurrentStep(0)
+      return
+    }
+
+    // 各ステップの時間に応じて進行
+    const timers: NodeJS.Timeout[] = []
+    let accumulatedTime = 0
+    
+    analysisSteps.forEach((step, index) => {
+      if (index > 0) {
+        accumulatedTime += analysisSteps[index - 1].duration
+        const timer = setTimeout(() => {
+          setCurrentStep(index)
+        }, accumulatedTime)
+        timers.push(timer)
+      }
+    })
+
+    return () => {
+      timers.forEach(timer => clearTimeout(timer))
+    }
+  }, [isAnalyzing, analysisSteps])
 
   const mapDiagnosisError = (rawMessage: string) => {
     const message = rawMessage || ''
@@ -289,13 +327,61 @@ export default function WebsiteAnalysisPage() {
 
           {/* Analyzing State */}
           {isAnalyzing && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-900">Webサイトを分析中...</p>
-              <p className="text-gray-600 mt-2">
-                Google PageSpeed Insightsでサイトを分析しています。<br/>
-                通常30〜60秒程度かかります。
-              </p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+              <div className="max-w-2xl mx-auto">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Webサイトを分析中...</h3>
+                  <p className="text-sm text-gray-600">
+                    Google PageSpeed Insightsでサイトを分析しています
+                  </p>
+                </div>
+
+                {/* 進捗バー */}
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden mb-6">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min(95, ((currentStep + 1) / analysisSteps.length) * 100)}%` }}
+                  />
+                </div>
+
+                {/* 進捗ステップリスト */}
+                <div className="space-y-3">
+                  {analysisSteps.map((step, index) => (
+                    <div 
+                      key={index}
+                      className={`flex items-center gap-3 text-sm transition-all duration-300 ${
+                        index < currentStep 
+                          ? 'text-green-600' 
+                          : index === currentStep 
+                            ? 'text-blue-600 font-medium' 
+                            : 'text-gray-400'
+                      }`}
+                    >
+                      {index < currentStep ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      ) : index === currentStep ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-blue-600 flex-shrink-0" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                      )}
+                      <span className="flex-1">{step.label}</span>
+                      {index === currentStep && (
+                        <span className="text-xs text-gray-500 animate-pulse">実行中</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* 推定残り時間 */}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center text-sm">
+                  <span className="text-gray-500">
+                    ステップ {currentStep + 1} / {analysisSteps.length}
+                  </span>
+                  <span className="text-gray-600 font-medium">
+                    推定残り時間: 約{Math.max(5, 30 - currentStep * 4)}秒
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 
