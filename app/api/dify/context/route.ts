@@ -752,34 +752,65 @@ async function getInitialEvaluationData(
 /**
  * 添付ファイル情報の取得
  * 
- * セッションの最初のユーザーメッセージから添付ファイルを取得
+ * セッションの全メッセージから添付ファイルを取得し、Difyに渡す形式に整形
  */
 async function getAttachments(
   supabase: SupabaseClient,
   sessionId: string
 ): Promise<AttachmentContext[] | null> {
   try {
-    // 最初のユーザーメッセージから添付ファイル取得
-    const { data: message, error } = await supabase
+    // セッションの全ユーザーメッセージから添付ファイル取得
+    const { data: messages, error } = await supabase
       .from('consulting_messages')
-      .select('attachments')
+      .select('attachments, created_at')
       .eq('session_id', sessionId)
       .eq('role', 'user')
+      .not('attachments', 'is', null)
       .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
     
     if (error) {
       console.error('Error fetching attachments:', error)
       return null
     }
     
-    if (!message || !message.attachments) {
+    if (!messages || messages.length === 0) {
       return null
     }
     
-    // attachmentsはJSONB配列として保存されている
-    return message.attachments as AttachmentContext[]
+    // 全メッセージから添付ファイルを抽出
+    const allAttachments: AttachmentContext[] = []
+    const seenIds = new Set<string>()
+    
+    for (const message of messages) {
+      if (!message.attachments || !Array.isArray(message.attachments)) {
+        continue
+      }
+      
+      for (const attachment of message.attachments) {
+        // 重複チェック（IDまたはURLで判定）
+        const uniqueKey = attachment.id || attachment.url || attachment.name
+        if (seenIds.has(uniqueKey)) {
+          continue
+        }
+        
+        seenIds.add(uniqueKey)
+        
+        // Dify用に必要な情報のみ抽出
+        allAttachments.push({
+          id: attachment.id || crypto.randomUUID(),
+          name: attachment.name || 'unnamed',
+          type: attachment.type || 'application/octet-stream',
+          size: attachment.size || 0,
+          url: attachment.url || '',
+          content: attachment.content || '',
+          preview: attachment.preview || '',
+          wordCount: attachment.wordCount || 0,
+          lineCount: attachment.lineCount || 0,
+        })
+      }
+    }
+    
+    return allAttachments.length > 0 ? allAttachments : null
   } catch (error) {
     console.error('Error in getAttachments:', error)
     return null
