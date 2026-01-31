@@ -131,7 +131,7 @@ export default function WebsiteAnalysisPage() {
     return () => {
       timers.forEach(timer => clearTimeout(timer))
     }
-  }, [isAnalyzing, analysisSteps])
+  }, [isAnalyzing])
 
   const mapDiagnosisError = (rawMessage: string) => {
     const message = rawMessage || ''
