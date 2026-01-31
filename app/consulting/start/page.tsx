@@ -282,6 +282,8 @@ export default function ConsultingPage() {
         onSubmit={handleInitialIssueSubmit}
         isLoading={isLoading}
         onFileUpload={handleFileUpload}
+        attachments={contextData.attachments}
+        onRemoveFile={handleRemoveAttachment}
       />
 
       <div className="flex h-screen w-full overflow-hidden">

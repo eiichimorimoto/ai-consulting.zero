@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         response: mockResponse,
-        tokens_used: mockResponse.length * 0.75, // 概算
+        tokens_used: Math.round(mockResponse.length * 0.75), // 概算（整数化）
         processing_time: processingTime,
         is_mock: true
       })
