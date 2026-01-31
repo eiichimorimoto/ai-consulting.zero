@@ -78,6 +78,8 @@ export async function extractText(
  * Phase 2.2: PDFファイル（.pdf）
  * Phase 2.3: Officeファイル（.doc, .docx, .xls, .xlsx, .ppt, .pptx）
  * 
+ * MIMEタイプと拡張子の両方でチェック（.mdファイル対策）
+ * 
  * @param file - 確認するファイル
  * @returns サポート対象の場合true
  */
@@ -100,7 +102,14 @@ export function isSupportedTextFile(file: File): boolean {
     'application/vnd.ms-powerpoint', // .ppt
     'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
   ]
-  return supportedTypes.includes(file.type)
+  
+  const supportedExtensions = ['.txt', '.csv', '.md', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+  
+  // 拡張子を取得
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+  
+  // MIMEタイプまたは拡張子のいずれかが有効ならOK
+  return supportedTypes.includes(file.type) || supportedExtensions.includes(ext)
 }
 
 /**
