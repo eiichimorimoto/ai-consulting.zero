@@ -79,11 +79,23 @@ export function MessageInput({
       }
       
       // ファイルタイプ検証
-      const allowedTypes = ['text/plain', 'text/csv', 'application/csv']
+      const allowedTypes = [
+        'text/plain',
+        'text/csv',
+        'application/csv',
+        'text/markdown',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      ]
       const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
       
       if (invalidFiles.length > 0) {
-        alert(`以下のファイルは対応していない形式です（.txt, .csvのみ対応）:\n${invalidFiles.map(f => f.name).join('\n')}`)
+        alert(`以下のファイルは対応していない形式です（対応: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx）:\n${invalidFiles.map(f => f.name).join('\n')}`)
         e.target.value = ''
         return
       }
@@ -119,7 +131,7 @@ export function MessageInput({
           multiple
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+          accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
         />
         
         {/* エラーメッセージ */}
