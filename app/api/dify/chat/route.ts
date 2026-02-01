@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // 実際のDify Chatflow API呼び出し
     try {
-      console.log('Received conversationId:', conversationId)  // デバッグ
+      console.log('📥 /api/dify/chat - Received conversationId:', conversationId || 'null')
       
       const requestBody: any = {
         inputs: {},  // Chatflow APIでは inputs が必須
@@ -59,14 +59,14 @@ export async function POST(request: NextRequest) {
       // 会話履歴管理: conversation_idがあれば送信
       if (conversationId) {
         requestBody.conversation_id = conversationId
-        console.log('Adding conversation_id to request:', conversationId)  // デバッグ
+        console.log('✅ Adding conversation_id to Dify request:', conversationId)
       } else {
-        console.log('No conversation_id provided - starting new conversation')  // デバッグ
+        console.log('🆕 No conversation_id - starting new Dify conversation')
       }
 
-      console.log('Dify Chatflow Request:', {
+      console.log('📤 Dify Chatflow Request:', {
         url: difyChatflowUrl,
-        body: requestBody
+        has_conversation_id: !!requestBody.conversation_id
       })
 
       const difyResponse = await fetch(difyChatflowUrl, {
@@ -92,13 +92,19 @@ export async function POST(request: NextRequest) {
       const difyData = await difyResponse.json()
       const processingTime = Date.now() - startTime
 
-      // デバッグ: Difyレスポンス全体をログ出力
-      console.log('Dify Chatflow Response:', JSON.stringify(difyData, null, 2))
-
       // Chatflow APIのレスポンス形式
       const aiResponse = difyData.answer || difyData.data?.answer || JSON.stringify(difyData)
       const newConversationId = difyData.conversation_id
       const tokensUsed = difyData.metadata?.usage?.total_tokens || 0
+
+      // デバッグ: 重要なレスポンス情報をログ出力
+      console.log('📥 Dify Chatflow Response:', {
+        has_answer: !!difyData.answer,
+        has_conversation_id: !!newConversationId,
+        conversation_id: newConversationId || 'null',
+        tokens: tokensUsed,
+        time: processingTime + 'ms'
+      })
 
       return NextResponse.json({
         response: aiResponse,

@@ -105,6 +105,13 @@ export async function POST(
     const body = await request.json()
     const { message, conversationId } = body
 
+    console.log('📥 POST /messages - Received:', {
+      sessionId,
+      has_message: !!message,
+      has_conversationId: !!conversationId,
+      conversationId: conversationId || 'null'
+    })
+
     // バリデーション
     if (!message || message.trim().length === 0) {
       return NextResponse.json(
@@ -287,10 +294,12 @@ export async function POST(
         : 'Message sent successfully'
     }
     
-    console.log('POST /messages response:', JSON.stringify({
-      conversation_id: responseData.conversation_id,
-      has_conversation_id: !!responseData.conversation_id
-    }))
+    console.log('📤 POST /messages Response:', {
+      has_conversation_id: !!responseData.conversation_id,
+      conversation_id: responseData.conversation_id || 'null',
+      message_count: responseData.messages.length,
+      round: newRound
+    })
     
     return NextResponse.json(responseData, { status: 201 })
 
