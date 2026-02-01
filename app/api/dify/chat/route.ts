@@ -26,39 +26,8 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now()
 
-    // 1. Dify Context API からコンテキスト取得
-    let context: any
-    
-    try {
-      const contextResponse = await fetch(`${request.nextUrl.origin}/api/dify/context`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.DIFY_API_KEY || ''
-        },
-        body: JSON.stringify({
-          userId,
-          isNewCase: !sessionId // セッションIDがない場合は新規案件
-        })
-      })
-
-      if (!contextResponse.ok) {
-        throw new Error('Failed to fetch context')
-      }
-
-      const contextData = await contextResponse.json()
-      context = contextData.data
-
-    } catch (contextError) {
-      console.error('Context fetch error:', contextError)
-      // コンテキスト取得失敗時はエラーを返す
-      return NextResponse.json(
-        { error: 'Failed to prepare consultation context' },
-        { status: 500 }
-      )
-    }
-
-    // 2. Difyワークフロー呼び出し
+    // Difyワークフロー呼び出し
+    // 注: Context APIはDifyワークフロー内のHTTP Requestノードで呼び出されます
     // 注: 実際のDifyワークフローURLは環境変数で設定
     const difyWorkflowUrl = process.env.DIFY_WORKFLOW_URL
 
@@ -66,7 +35,7 @@ export async function POST(request: NextRequest) {
       console.warn('DIFY_WORKFLOW_URL not set, using mock response')
       
       // モックレスポンス（開発・テスト用）
-      const mockResponse = generateMockResponse(message, context)
+      const mockResponse = generateMockResponse(message, { profile: { name: 'お客様' }, company: { name: 'お客様の会社' } })
       const processingTime = Date.now() - startTime
 
       return NextResponse.json({
@@ -82,31 +51,51 @@ export async function POST(request: NextRequest) {
       const difyResponse = await fetch(difyWorkflowUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.DIFY_API_KEY}`,
+          'Authorization': `Bearer ${process.env.DIFY_WORKFLOW_API_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           inputs: {
-            user_message: message,
-            context: JSON.stringify(context)
+            user_id: userId,
+            query: message,
+            session_id: sessionId || ''
           },
-          user: userId,
-          response_mode: 'blocking' // または 'streaming'
+          response_mode: 'blocking',
+          user: userId
         })
       })
 
       if (!difyResponse.ok) {
-        throw new Error(`Dify API error: ${difyResponse.status} ${difyResponse.statusText}`)
+        // エラーレスポンスの詳細を取得
+        const errorText = await difyResponse.text()
+        console.error('Dify API Error Details:', {
+          status: difyResponse.status,
+          statusText: difyResponse.statusText,
+          body: errorText,
+          requestUrl: difyWorkflowUrl,
+          requestBody: JSON.stringify({
+            inputs: { user_id: userId, query: message, session_id: sessionId || '' },
+            response_mode: 'blocking',
+            user: userId
+          }, null, 2)
+        })
+        throw new Error(`Dify API error: ${difyResponse.status} ${difyResponse.statusText} - ${errorText}`)
       }
 
       const difyData = await difyResponse.json()
       const processingTime = Date.now() - startTime
 
+      // デバッグ: Difyレスポンス全体をログ出力
+      console.log('Dify API Response:', JSON.stringify(difyData, null, 2))
+
       // Difyレスポンスの形式に応じて調整
-      const aiResponse = difyData.data?.outputs?.response 
+      const aiResponse = difyData.data?.outputs?.text
+        || difyData.data?.outputs?.response 
         || difyData.answer 
         || difyData.data?.answer
-        || 'AI応答の取得に失敗しました。'
+        || difyData.outputs?.text
+        || difyData.outputs?.response
+        || JSON.stringify(difyData)  // 最終手段：全体を文字列化
 
       const tokensUsed = difyData.metadata?.usage?.total_tokens 
         || difyData.usage?.total_tokens 
@@ -123,7 +112,7 @@ export async function POST(request: NextRequest) {
       console.error('Dify API call error:', difyError)
       
       // Difyエラー時はフォールバックレスポンス
-      const fallbackResponse = generateFallbackResponse(message, context)
+      const fallbackResponse = generateFallbackResponse(message, { profile: { name: 'お客様' } })
       const processingTime = Date.now() - startTime
 
       return NextResponse.json({
@@ -201,7 +190,7 @@ function generateFallbackResponse(message: string, context: any): string {
  */
 export async function GET() {
   const difyWorkflowUrl = process.env.DIFY_WORKFLOW_URL
-  const difyApiKey = process.env.DIFY_API_KEY
+  const difyApiKey = process.env.DIFY_WORKFLOW_API_KEY
 
   return NextResponse.json({
     status: 'ok',
