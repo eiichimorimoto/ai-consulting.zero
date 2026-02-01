@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
 
     // 実際のDify Chatflow API呼び出し
     try {
+      console.log('Received conversationId:', conversationId)  // デバッグ
+      
       const requestBody: any = {
         inputs: {},  // Chatflow APIでは inputs が必須
         query: message,
@@ -57,6 +59,9 @@ export async function POST(request: NextRequest) {
       // 会話履歴管理: conversation_idがあれば送信
       if (conversationId) {
         requestBody.conversation_id = conversationId
+        console.log('Adding conversation_id to request:', conversationId)  // デバッグ
+      } else {
+        console.log('No conversation_id provided - starting new conversation')  // デバッグ
       }
 
       console.log('Dify Chatflow Request:', {

@@ -255,7 +255,7 @@ export function MessageInput({
             onDrop={handleDrop}
             placeholder={placeholder}
             disabled={isLoading}
-            className={`min-h-[100px] max-h-[200px] resize-none w-full transition-colors ${
+            className={`min-h-[100px] max-h-[200px] resize-none w-full text-lg transition-colors ${
               isDragging 
                 ? 'bg-primary/5 border-primary border-2' 
                 : ''
