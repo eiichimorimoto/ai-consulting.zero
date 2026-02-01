@@ -11,18 +11,37 @@
 
 ### 確定したレイアウト構造
 
-#### page.tsx（メインコンテナ）
+#### page.tsx（最上位コンテナ）
 ```tsx
-<div className={`flex flex-1 flex-col overflow-hidden ...`}>
-  <ChatView messages={messages} isTyping={isTyping} />
-  <MessageInput ... />
+// 最上位div（ブラウザースクロール防止）
+<div className="relative h-screen overflow-hidden">
+  {/* メインコンテナ */}
+  <div className="flex h-full w-full overflow-hidden">
+    <SimpleSidebar />
+    
+    {/* メインコンテンツエリア */}
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <ConsultingHeader />
+      <MobileNav />
+      
+      {/* チャットエリア */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <ChatView />
+          <MessageInput />
+        </div>
+        <ContextPanel />
+      </div>
+    </div>
+  </div>
 </div>
 ```
 
 **ポイント**:
-- `flex flex-col`: 縦方向に配置
-- `overflow-hidden`: 子要素のスクロールを制御
-- ChatViewとMessageInputが縦に並ぶ
+- **最上位div**: `h-screen overflow-hidden`でブラウザー高さに固定、ブラウザースクロールバー非表示
+- **メインコンテナ**: `h-full`で親の100%の高さを使用
+- **チャットエリア**: `flex-1 flex-col`で縦方向に配置、ChatViewとMessageInputが縦に並ぶ
+- **overflow-hidden**: 各レベルで子要素のスクロールを制御
 
 #### ChatView.tsx（チャット表示エリア）
 ```tsx
@@ -88,6 +107,36 @@
 - `absolute` で配置し、フローから除外
 - `pointer-events-none` でクリックイベントを透過
 - コンテンツは `relative z-10` で前面に配置
+
+---
+
+## ブラウザースクロールバーの制御
+
+### ✅ 正解: 最上位divにh-screen + overflow-hidden
+```tsx
+// page.tsx
+<div className="relative h-screen overflow-hidden">
+  <div className="flex h-full w-full overflow-hidden">
+    {/* コンテンツ */}
+  </div>
+</div>
+```
+
+**理由**:
+- `h-screen`でブラウザー高さに固定
+- `overflow-hidden`でブラウザーのスクロールバーを非表示
+- 内部でFlexboxを使って適切にスペース配分
+
+### ❌ 間違い: 最上位divに高さ指定なし
+```tsx
+// 間違い
+<div className="relative">
+```
+
+**問題**:
+- ブラウザー全体がスクロールする
+- チャット入力エリアが画面下部に固定されない
+- レイアウトが崩れる
 
 ---
 
@@ -199,7 +248,9 @@ git show [コミットハッシュ]:app/consulting/components/ChatView.tsx
 
 ## 参考コミット
 
-- `85669c0`: チャット入力エリアを画面下部に固定（最新版・確定版）
+- `44996b0`: ブラウザーの縦スクロールバーを削除（最新版・確定版）
+- `3acd9cd`: 相談履歴を正しいページネーション形式に変更
+- `85669c0`: チャット入力エリアを画面下部に固定
 - `287bbaf`: ConsultingHeader正しく固定 & 相談履歴「もっと見る」機能追加
 - `161915c`: チャットスクロール修正
 - `db2bfbf`: 相談画面UI改善
@@ -209,16 +260,19 @@ git show [コミットハッシュ]:app/consulting/components/ChatView.tsx
 ## 最終確定版のポイント（2026-02-01）
 
 ### レイアウトの鉄則
-1. **ChatView**: `flex-1`（残りのスペースを使用）
-2. **MessageInput**: `flex-shrink-0`（圧縮されない）
-3. **ConsultingHeader**: `sticky top-0`（メインコンテンツエリア内で固定）
-4. **相談履歴**: 15件ずつ表示、「もっと見る」ボタンで追加表示
+1. **最上位div**: `h-screen overflow-hidden`（ブラウザースクロールバー非表示）
+2. **ChatView**: `flex-1`（残りのスペースを使用）
+3. **MessageInput**: `flex-shrink-0`（圧縮されない、ブラウザー最下段に固定）
+4. **ConsultingHeader**: `sticky top-0`（メインコンテンツエリア内で固定）
+5. **相談履歴**: 15件ずつページネーション表示
 
 ### なぜ`h-full`ではなく`flex-1`なのか
 - `h-full`: 親の100%の高さを取ろうとする → MessageInputのスペースを圧迫
 - `flex-1`: 残りのスペースを使用 → MessageInputと共存可能
 
 これにより:
+- **ブラウザーの縦スクロールバーが出ない**
 - MessageInputが**常にブラウザー最下段に固定**
-- ChatViewが**スクロール可能**で適切な高さを維持
+- ブラウザーが縦に広がれば、**ChatViewが広くなる**
+- ChatView内部のみが**スクロール可能**
 - レイアウトが**崩れない**
