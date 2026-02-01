@@ -32,9 +32,9 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
   const remainingMessages = messages.length > 1 ? messages.slice(1) : []
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-full flex-col overflow-hidden">
       {/* AI背景（グラデーション + ドットパターン + AI相談画像） */}
-      <div className="pointer-events-none absolute inset-0 opacity-35 z-0 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 opacity-35 z-0">
         {/* AI相談画像（背景全体に薄く表示） */}
         <div 
           className="absolute inset-0"
@@ -77,23 +77,22 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
       </div>
 
       {/* チャットコンテンツ */}
-      {messages.length === 0 ? (
-        <div className="relative z-10 flex h-full items-center justify-center pointer-events-auto">
-          <div className="text-center text-muted-foreground">
-            <p className="mb-2 text-lg font-medium">AI経営相談へようこそ</p>
-            <p className="text-sm flex items-center justify-center gap-2">
-              左メニューの
-              <PlusCircle className="h-4 w-4 text-primary" />
-              新規相談、
-              <MessageSquare className="h-4 w-4 text-primary" />
-              相談履歴から選択して、開始してください。
-            </p>
+      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto scroll-smooth">
+        {messages.length === 0 ? (
+          <div className="flex h-full items-center justify-center pointer-events-auto">
+            <div className="text-center text-muted-foreground">
+              <p className="mb-2 text-lg font-medium">AI経営相談へようこそ</p>
+              <p className="text-sm flex items-center justify-center gap-2">
+                左メニューの
+                <PlusCircle className="h-4 w-4 text-primary" />
+                新規相談、
+                <MessageSquare className="h-4 w-4 text-primary" />
+                相談履歴から選択して、開始してください。
+              </p>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto scroll-smooth pointer-events-auto">
-          {/* 全てのメッセージを通常表示（固定なし） */}
-          <div className="space-y-1 py-4">
+        ) : (
+          <div className="space-y-1 py-4 pointer-events-auto">
             {messages.map((message) => (
               <ChatMessage
                 key={message.id}
@@ -104,8 +103,8 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
             ))}
             {isTyping && <TypingIndicator />}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
