@@ -103,7 +103,7 @@ export async function POST(
 
     // リクエストボディ取得
     const body = await request.json()
-    const { message } = body
+    const { message, conversationId } = body
 
     // バリデーション
     if (!message || message.trim().length === 0) {
@@ -189,6 +189,7 @@ export async function POST(
     let aiResponse: string
     let tokensUsed = 0
     let processingTime = 0
+    let newConversationId: string | undefined
 
     try {
       // Dify Chat APIを呼び出し
@@ -200,7 +201,8 @@ export async function POST(
         body: JSON.stringify({
           sessionId,
           message,
-          userId: user.id
+          userId: user.id,
+          conversationId  // Dify会話履歴用
         })
       })
 
@@ -212,6 +214,7 @@ export async function POST(
       aiResponse = difyData.response || 'AI応答の取得に失敗しました。'
       tokensUsed = difyData.tokens_used || 0
       processingTime = Date.now() - difyStartTime
+      newConversationId = difyData.conversation_id  // Difyから返ってきたconversation_id
 
     } catch (difyError) {
       console.error('Dify API call error:', difyError)
@@ -278,6 +281,7 @@ export async function POST(
       current_round: newRound,
       max_rounds: session.max_rounds,
       is_limit_reached: isLimitReached,
+      conversation_id: newConversationId,  // フロントエンドに返す
       message: isLimitReached 
         ? 'Maximum round limit reached. Session will be completed.'
         : 'Message sent successfully'

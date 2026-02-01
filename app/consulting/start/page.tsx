@@ -96,10 +96,22 @@ export default function ConsultingPage() {
       id: null,
     },
   })
+  
+  // Dify Chatflow の conversation_id を管理
+  const [conversationId, setConversationId] = useState<string | null>(null)
 
   // セッション一覧の取得
   useEffect(() => {
-    fetchSessions()
+    // 初回ロード時の処理
+    const initializePage = async () => {
+      // 1. セッション一覧取得
+      await fetchSessions()
+      
+      // 2. 最新のactiveセッションを復元
+      await loadLatestActiveSession()
+    }
+    
+    initializePage()
     
     // ダッシュボードのセッションストレージから業界見通しデータを取得（表示のみ、検索不要）
     const loadIndustryForecastFromCache = () => {
@@ -189,9 +201,40 @@ export default function ConsultingPage() {
       if (res.ok) {
         const data = await res.json()
         setSessions(data.sessions || [])
+        return data.sessions || []
       }
+      return []
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
+      return []
+    }
+  }
+
+  // 最新のactiveセッションとメッセージを復元
+  const loadLatestActiveSession = async () => {
+    try {
+      const res = await fetch('/api/consulting/sessions')
+      if (!res.ok) return
+
+      const data = await res.json()
+      const sessions = data.sessions || []
+      
+      // activeステータスの最新セッションを取得
+      const activeSession = sessions.find((s: ConsultingSession) => s.status === 'active')
+      
+      if (activeSession) {
+        // セッション情報を設定
+        setCurrentSession(activeSession)
+        
+        // メッセージ履歴を取得
+        const messagesRes = await fetch(`/api/consulting/sessions/${activeSession.id}/messages`)
+        if (messagesRes.ok) {
+          const messagesData = await messagesRes.json()
+          setMessages(messagesData.messages || [])
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load latest active session:', error)
     }
   }
 
@@ -324,7 +367,10 @@ export default function ConsultingPage() {
       const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ 
+          message: userMessage,
+          conversationId: conversationId  // Dify会話履歴用
+        }),
       })
       
       if (res.ok) {
@@ -332,6 +378,11 @@ export default function ConsultingPage() {
         // メッセージ履歴を更新
         setMessages(data.messages || [])
         setCurrentSession(data.session)
+        
+        // Difyから返ってきた conversation_id を保存
+        if (data.conversation_id) {
+          setConversationId(data.conversation_id)
+        }
       }
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -360,6 +411,7 @@ export default function ConsultingPage() {
     setMessages([])
     setInputMessage('')
     setCategory('general')
+    setConversationId(null)  // Dify会話履歴もリセット
     
     // 添付ファイルをクリア（相談終了のため）
     setAttachmentFiles([])
