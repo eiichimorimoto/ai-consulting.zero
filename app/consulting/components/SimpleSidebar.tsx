@@ -56,11 +56,11 @@ export function SimpleSidebar({
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'active' | 'completed' | 'all'>('active')
-  const [displayLimit, setDisplayLimit] = useState(15)
+  const [currentPage, setCurrentPage] = useState(0)
 
-  // 検索クエリやフィルターが変更されたら表示件数をリセット
+  // 検索クエリやフィルターが変更されたらページをリセット
   useEffect(() => {
-    setDisplayLimit(15)
+    setCurrentPage(0)
   }, [searchQuery, statusFilter])
 
   // カテゴリーに応じたアイコンを取得
@@ -242,7 +242,7 @@ export function SimpleSidebar({
               </p>
             ) : (
               <>
-                {filteredSessions.slice(0, displayLimit).map((session) => {
+                {filteredSessions.slice(currentPage * 15, (currentPage + 1) * 15).map((session) => {
                   const Icon = getCategoryIcon(session.category)
                   return (
                   <Link
@@ -284,17 +284,39 @@ export function SimpleSidebar({
                 )
               })}
               
-              {/* もっと見るボタン */}
-              {filteredSessions.length > displayLimit && (
-                <div className="px-3 py-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-[12px] h-8"
-                    onClick={() => setDisplayLimit(prev => prev + 15)}
-                  >
-                    もっと見る（残り{filteredSessions.length - displayLimit}件）
-                  </Button>
+              {/* ページネーションボタン */}
+              {(currentPage > 0 || filteredSessions.length > (currentPage + 1) * 15) && (
+                <div className="px-3 py-2 flex gap-2">
+                  {/* 前へボタン */}
+                  {currentPage > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-[12px] h-8"
+                      onClick={() => setCurrentPage(prev => prev - 1)}
+                    >
+                      ← 前の15件
+                    </Button>
+                  )}
+                  
+                  {/* 次へボタン */}
+                  {filteredSessions.length > (currentPage + 1) * 15 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-[12px] h-8"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                    >
+                      次の15件 →
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              {/* 現在のページ情報 */}
+              {filteredSessions.length > 15 && (
+                <div className="px-3 py-1 text-center text-[11px] text-muted-foreground">
+                  {currentPage * 15 + 1}〜{Math.min((currentPage + 1) * 15, filteredSessions.length)}件 / 全{filteredSessions.length}件
                 </div>
               )}
               </>
