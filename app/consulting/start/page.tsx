@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/hooks/use-toast'
 import { SimpleSidebar } from '../components/SimpleSidebar'
 import { ConsultingHeader } from '../components/ConsultingHeader'
 import { ContextPanel } from '../components/ContextPanel'
@@ -11,8 +12,34 @@ import { MobileNav } from '../components/MobileNav'
 import { InitialIssueModal } from '../components/InitialIssueModal'
 import type { ConsultingSession, Message as ConsultingMessage, ContextData } from '../types/consulting'
 
+// Webサイト分析結果の型定義
+interface WebsiteAnalysisResult {
+  url: string
+  overallScore: number
+  analyzedAt: string
+  metrics?: {
+    mobileScore: number
+    desktopScore: number
+    seoScore: number
+    accessibilityScore: number
+    fcp: number
+    lcp: number
+    cls: number
+    ttfb: number
+    tbt: number
+    hasSSL: boolean
+    isMobileFriendly: boolean
+  }
+  topIssues?: Array<{
+    issue: string
+    category: string
+    severity: string
+    impact: string
+  }>
+}
+
 // Webサイト分析結果をマークダウン形式に変換
-const generateAnalysisMarkdown = (data: any): string => {
+const generateAnalysisMarkdown = (data: WebsiteAnalysisResult): string => {
   const { url, overallScore, topIssues, metrics, analyzedAt } = data
   
   let markdown = `# Webサイト分析レポート\n\n`
@@ -47,7 +74,7 @@ const generateAnalysisMarkdown = (data: any): string => {
   // 課題
   if (topIssues && topIssues.length > 0) {
     markdown += `## ⚠️ 検出された課題\n\n`
-    topIssues.forEach((issue: any, index: number) => {
+    topIssues.forEach((issue, index) => {
       markdown += `### ${index + 1}. ${issue.issue}\n\n`
       markdown += `- **カテゴリ**: ${issue.category}\n`
       markdown += `- **優先度**: ${issue.severity}\n`
@@ -63,6 +90,7 @@ const generateAnalysisMarkdown = (data: any): string => {
 
 export default function ConsultingPage() {
   const router = useRouter()
+  const { toast } = useToast()
   
   // 状態管理
   const [currentSession, setCurrentSession] = useState<ConsultingSession | null>(null)
@@ -113,6 +141,17 @@ export default function ConsultingPage() {
       console.log('💾 Saved conversationId to sessionStorage:', conversationId)
     }
   }, [conversationId])
+
+  // メモリリーク対策: Blob URLのクリーンアップ
+  useEffect(() => {
+    return () => {
+      contextData.attachments.forEach(att => {
+        if (att.url.startsWith('blob:')) {
+          URL.revokeObjectURL(att.url)
+        }
+      })
+    }
+  }, [contextData.attachments])
 
   // セッション一覧の取得
   useEffect(() => {
@@ -370,7 +409,11 @@ export default function ConsultingPage() {
       await fetchSessions()
     } catch (error) {
       console.error('Failed to start consultation:', error)
-      alert('相談の開始に失敗しました。もう一度お試しください。')
+      toast({
+        variant: 'destructive',
+        title: 'エラーが発生しました',
+        description: '相談の開始に失敗しました。もう一度お試しください。',
+      })
     } finally {
       setIsLoading(false)
     }
