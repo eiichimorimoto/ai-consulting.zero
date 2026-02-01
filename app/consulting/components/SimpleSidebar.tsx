@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 interface SimpleSidebarProps {
   sessions?: Array<{
@@ -55,6 +56,12 @@ export function SimpleSidebar({
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'active' | 'completed' | 'all'>('active')
+  const [displayLimit, setDisplayLimit] = useState(15)
+
+  // 検索クエリやフィルターが変更されたら表示件数をリセット
+  useEffect(() => {
+    setDisplayLimit(15)
+  }, [searchQuery, statusFilter])
 
   // カテゴリーに応じたアイコンを取得
   const getCategoryIcon = (category: string) => {
@@ -235,7 +242,7 @@ export function SimpleSidebar({
               </p>
             ) : (
               <>
-                {filteredSessions.slice(0, 15).map((session) => {
+                {filteredSessions.slice(0, displayLimit).map((session) => {
                   const Icon = getCategoryIcon(session.category)
                   return (
                   <Link
@@ -277,10 +284,17 @@ export function SimpleSidebar({
                 )
               })}
               
-              {/* 15件超過の通知 */}
-              {filteredSessions.length > 15 && (
-                <div className="px-3 py-2 text-center text-[11px] text-muted-foreground">
-                  他 {filteredSessions.length - 15}件の相談履歴があります
+              {/* もっと見るボタン */}
+              {filteredSessions.length > displayLimit && (
+                <div className="px-3 py-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[12px] h-8"
+                    onClick={() => setDisplayLimit(prev => prev + 15)}
+                  >
+                    もっと見る（残り{filteredSessions.length - displayLimit}件）
+                  </Button>
                 </div>
               )}
               </>
