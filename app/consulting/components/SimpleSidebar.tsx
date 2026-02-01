@@ -234,9 +234,10 @@ export function SimpleSidebar({
                 検索結果がありません
               </p>
             ) : (
-              filteredSessions.slice(0, 15).map((session) => {
-                const Icon = getCategoryIcon(session.category)
-                return (
+              <>
+                {filteredSessions.slice(0, 15).map((session) => {
+                  const Icon = getCategoryIcon(session.category)
+                  return (
                   <Link
                     key={session.id}
                     href={`/consulting/sessions/${session.id}`}
@@ -274,7 +275,15 @@ export function SimpleSidebar({
                     </div>
                   </Link>
                 )
-              })
+              })}
+              
+              {/* 15件超過の通知 */}
+              {filteredSessions.length > 15 && (
+                <div className="px-3 py-2 text-center text-[11px] text-muted-foreground">
+                  他 {filteredSessions.length - 15}件の相談履歴があります
+                </div>
+              )}
+              </>
             )}
           </div>
         </div>
