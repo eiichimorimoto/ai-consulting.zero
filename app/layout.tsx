@@ -5,6 +5,7 @@ import "./globals.css"
 import ConditionalHeader from "@/components/ConditionalHeader"
 import ConditionalFooter from "@/components/ConditionalFooter"
 import FloatingDiagnosis from "@/components/FloatingDiagnosis"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -68,6 +69,7 @@ export default function RootLayout({
         {children}
         <ConditionalFooter />
         <FloatingDiagnosis />
+        <Toaster />
       </body>
     </html>
   )
