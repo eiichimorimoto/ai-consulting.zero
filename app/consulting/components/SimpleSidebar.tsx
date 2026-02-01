@@ -234,7 +234,7 @@ export function SimpleSidebar({
                 検索結果がありません
               </p>
             ) : (
-              filteredSessions.map((session) => {
+              filteredSessions.slice(0, 15).map((session) => {
                 const Icon = getCategoryIcon(session.category)
                 return (
                   <Link
