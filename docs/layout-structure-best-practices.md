@@ -26,7 +26,7 @@
 
 #### ChatView.tsx（チャット表示エリア）
 ```tsx
-<div className="relative flex h-full flex-col overflow-hidden">
+<div className="relative flex flex-1 flex-col overflow-hidden">
   {/* 背景 */}
   <div className="pointer-events-none absolute inset-0 opacity-35 z-0">
     {/* グラデーション、ドットパターン等 */}
@@ -51,20 +51,21 @@
 ```
 
 **ポイント**:
-- **外側のdiv**: `h-full` で親の高さを100%使用
+- **外側のdiv**: `flex-1` で残りのスペースを使用（MessageInputと共存）
 - **内側のスクロールdiv**: `flex-1` で残りのスペースを占有、`overflow-y-auto` でスクロール可能
 - 背景は `absolute` で配置し、コンテンツの上に重ならないように `z-0`
 
 #### MessageInput.tsx（入力エリア）
 ```tsx
-<div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-24 px-4">
+<div className="flex-shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-24 px-4">
   {/* 入力フォーム */}
 </div>
 ```
 
 **ポイント**:
+- `flex-shrink-0`で圧縮されないことを保証
 - 固定高さ（`pt-6 pb-24`）
-- 画面下部に固定される
+- 画面下部に固定される（Flexboxにより自動配置）
 - ChatViewが`flex-1`なので、残りのスペースを自動的に占有
 
 ---
@@ -146,12 +147,19 @@ const [displayLimit, setDisplayLimit] = useState(15)
 
 ## よくある間違い
 
-### ❌ 間違い1: ChatView自体を`flex-1`にする
+### ❌ 間違い1: ChatViewに`h-full`を使う
 ```tsx
 // 間違い
+<div className="relative flex h-full flex-col overflow-hidden">
+```
+**問題**: 親の100%の高さを取ろうとするため、MessageInputのスペースを圧迫
+
+### ✅ 正解: ChatViewに`flex-1`を使う
+```tsx
+// 正解
 <div className="relative flex flex-1 flex-col overflow-hidden">
 ```
-**問題**: MessageInputが見えなくなる
+**理由**: 残りのスペースを使用するため、MessageInputと共存可能
 
 ### ❌ 間違い2: 親に`overflow-hidden`を付けない
 ```tsx
@@ -191,8 +199,26 @@ git show [コミットハッシュ]:app/consulting/components/ChatView.tsx
 
 ## 参考コミット
 
-- `287bbaf`: ConsultingHeader正しく固定 & 相談履歴「もっと見る」機能追加（最新版）
+- `85669c0`: チャット入力エリアを画面下部に固定（最新版・確定版）
+- `287bbaf`: ConsultingHeader正しく固定 & 相談履歴「もっと見る」機能追加
 - `161915c`: チャットスクロール修正
 - `db2bfbf`: 相談画面UI改善
 
 **重要**: 修正前に必ずこれらのコミットを確認すること
+
+## 最終確定版のポイント（2026-02-01）
+
+### レイアウトの鉄則
+1. **ChatView**: `flex-1`（残りのスペースを使用）
+2. **MessageInput**: `flex-shrink-0`（圧縮されない）
+3. **ConsultingHeader**: `sticky top-0`（メインコンテンツエリア内で固定）
+4. **相談履歴**: 15件ずつ表示、「もっと見る」ボタンで追加表示
+
+### なぜ`h-full`ではなく`flex-1`なのか
+- `h-full`: 親の100%の高さを取ろうとする → MessageInputのスペースを圧迫
+- `flex-1`: 残りのスペースを使用 → MessageInputと共存可能
+
+これにより:
+- MessageInputが**常にブラウザー最下段に固定**
+- ChatViewが**スクロール可能**で適切な高さを維持
+- レイアウトが**崩れない**
