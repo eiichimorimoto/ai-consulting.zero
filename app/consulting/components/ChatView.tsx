@@ -27,10 +27,6 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
     }
   }, [messages, isTyping])
 
-  // 最初のメッセージ（相談内容）と残りのメッセージを分離
-  const firstMessage = messages.length > 0 ? messages[0] : null
-  const remainingMessages = messages.length > 1 ? messages.slice(1) : []
-
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       {/* AI背景（グラデーション + ドットパターン + AI相談画像） */}
