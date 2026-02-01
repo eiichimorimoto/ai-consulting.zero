@@ -24,7 +24,7 @@ export function ConsultingHeader({
   const isNearComplete = progress >= 80
 
   return (
-    <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
         {/* 左側: アイコン + タイトル + 進捗 */}
         <div className="flex items-center gap-3 overflow-hidden">
