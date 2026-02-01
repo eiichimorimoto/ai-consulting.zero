@@ -210,7 +210,7 @@ export function MessageInput({
   }
 
   return (
-    <div className="flex-shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-6 pb-24 px-4">
+    <div className="shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-3 pb-3 px-4 h-[200px]">
       <div className="mx-auto max-w-4xl">
         <input
           ref={fileInputRef}
@@ -254,7 +254,7 @@ export function MessageInput({
             onDrop={handleDrop}
             placeholder={placeholder}
             disabled={isLoading}
-            className={`min-h-[100px] max-h-[200px] resize-none w-full text-lg transition-colors ${
+            className={`min-h-[80px] max-h-[200px] resize-none w-full text-lg transition-colors ${
               isDragging 
                 ? 'bg-primary/5 border-primary border-2' 
                 : ''
@@ -262,7 +262,7 @@ export function MessageInput({
             rows={4}
           />
           
-          <div className="flex items-end gap-3 mt-3">
+          <div className="flex items-end gap-3 mt-2">
             <div className="flex flex-col items-center gap-1">
               <Button
                 variant="ghost"

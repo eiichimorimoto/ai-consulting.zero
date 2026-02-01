@@ -35,9 +35,14 @@ function AppFooter() {
 
 export default function ConditionalFooter() {
   const pathname = usePathname()
-  
+
   // ダッシュボードメインページはサイドバーがあるためフッター不要
   if (pathname === '/dashboard') {
+    return null
+  }
+
+  // コンサルティングページは独自レイアウト（h-screen）のためフッター不要
+  if (pathname?.startsWith('/consulting')) {
     return null
   }
   

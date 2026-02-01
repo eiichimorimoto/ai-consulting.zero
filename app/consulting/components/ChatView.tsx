@@ -28,7 +28,7 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
   }, [messages, isTyping])
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden">
+    <div className="relative flex flex-1 flex-col overflow-hidden min-h-0">
       {/* AI背景（グラデーション + ドットパターン + AI相談画像） */}
       <div className="pointer-events-none absolute inset-0 opacity-35 z-0">
         {/* AI相談画像（背景全体に薄く表示） */}
