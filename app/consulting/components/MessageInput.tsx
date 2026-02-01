@@ -53,11 +53,10 @@ export function MessageInput({
   const [isDragging, setIsDragging] = useState(false)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Enterキーでの送信を無効化（送信ボタンでのみ送信）
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (!isLoading && !disabled && value.trim()) {
-        onSend()
-      }
+      // 送信はボタンでのみ可能
     }
   }
 
