@@ -353,6 +353,8 @@ export default function ConsultingPage() {
     setInputMessage('')
     setIsTyping(true)
     
+    console.log('Sending message with conversationId:', conversationId)  // デバッグ
+    
     // ユーザーメッセージを即座に表示
     const tempUserMessage: ConsultingMessage = {
       id: `temp-${Date.now()}`,
@@ -375,13 +377,19 @@ export default function ConsultingPage() {
       
       if (res.ok) {
         const data = await res.json()
+        console.log('API Response:', data)  // デバッグ
+        
         // メッセージ履歴を更新
         setMessages(data.messages || [])
         setCurrentSession(data.session)
         
         // Difyから返ってきた conversation_id を保存
+        console.log('Received conversation_id:', data.conversation_id)  // デバッグ
         if (data.conversation_id) {
+          console.log('Saving conversation_id:', data.conversation_id)  // デバッグ
           setConversationId(data.conversation_id)
+        } else {
+          console.log('No conversation_id in response')  // デバッグ
         }
       }
     } catch (error) {
