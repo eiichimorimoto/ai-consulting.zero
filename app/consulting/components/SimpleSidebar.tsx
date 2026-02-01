@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface SimpleSidebarProps {
   sessions?: Array<{
@@ -53,6 +54,7 @@ export function SimpleSidebar({
 }: SimpleSidebarProps) {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'active' | 'completed' | 'all'>('active')
 
   // カテゴリーに応じたアイコンを取得
   const getCategoryIcon = (category: string) => {
@@ -78,29 +80,42 @@ export function SimpleSidebar({
     return cat ? cat.label : ''
   }
 
-  // 検索フィルタリング（タイトル、カテゴリー、日付、回数）
+  // ステータスと検索でフィルタリング
   const filteredSessions = useMemo(() => {
-    if (!searchQuery.trim()) return sessions
-    
-    const query = searchQuery.toLowerCase()
-    return sessions.filter(session => {
-      // タイトル検索
-      const titleMatch = session.title.toLowerCase().includes(query)
-      
-      // カテゴリー検索
-      const categoryMatch = getCategoryLabel(session.category).toLowerCase().includes(query)
-      
-      // 日付検索（フォーマットされた日付文字列）
-      const dateMatch = session.created_at 
-        ? formatDate(session.created_at).toLowerCase().includes(query)
-        : false
-      
-      // 回数検索（例: "1/5" で検索可能）
-      const roundMatch = `${session.current_round}/${session.max_rounds}`.includes(query)
-      
-      return titleMatch || categoryMatch || dateMatch || roundMatch
+    // 1. ステータスフィルター
+    let filtered = sessions.filter(session => {
+      if (statusFilter === 'all') return true
+      return session.status === statusFilter
     })
-  }, [sessions, searchQuery])
+    
+    // 2. 検索フィルター
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(session => {
+        // タイトル検索
+        const titleMatch = session.title.toLowerCase().includes(query)
+        
+        // カテゴリー検索
+        const categoryMatch = getCategoryLabel(session.category).toLowerCase().includes(query)
+        
+        // 日付検索（フォーマットされた日付文字列）
+        const dateMatch = session.created_at 
+          ? formatDate(session.created_at).toLowerCase().includes(query)
+          : false
+        
+        // 回数検索（例: "1/5" で検索可能）
+        const roundMatch = `${session.current_round}/${session.max_rounds}`.includes(query)
+        
+        return titleMatch || categoryMatch || dateMatch || roundMatch
+      })
+    }
+    
+    return filtered
+  }, [sessions, searchQuery, statusFilter])
+  
+  // 各ステータスの件数を計算
+  const activeCount = sessions.filter(s => s.status === 'active').length
+  const completedCount = sessions.filter(s => s.status === 'completed').length
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-muted/30">
@@ -171,6 +186,28 @@ export function SimpleSidebar({
             <MessageSquare className="h-4 w-4 text-primary" />
             <p className="text-[13px] font-semibold">相談履歴</p>
           </div>
+          
+          {/* ステータスフィルター */}
+          {sessions.length > 0 && (
+            <div className="mb-3">
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                <SelectTrigger className="h-8 text-[13px]">
+                  <SelectValue placeholder="フィルター" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">
+                    相談中 ({activeCount})
+                  </SelectItem>
+                  <SelectItem value="completed">
+                    完了 ({completedCount})
+                  </SelectItem>
+                  <SelectItem value="all">
+                    すべて ({sessions.length})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           
           {/* 検索ボックス */}
           {sessions.length > 0 && (

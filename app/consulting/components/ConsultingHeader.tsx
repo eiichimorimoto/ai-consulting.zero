@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Bot, X, Sparkles, Disc } from 'lucide-react'
+import { Bot, Pause, CheckCircle, Sparkles, Disc } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ConsultingHeaderProps {
@@ -10,7 +10,7 @@ interface ConsultingHeaderProps {
   currentRound?: number
   maxRounds?: number
   sessionStatus?: 'active' | 'completed' | 'archived'
-  onEndSession?: () => void
+  onEndSession?: (status: 'active' | 'completed') => void
 }
 
 export function ConsultingHeader({
@@ -83,22 +83,41 @@ export function ConsultingHeader({
           </div>
         </div>
         
-        {/* 右側: 終了ボタン - 丸い色付き背景で強調 */}
+        {/* 右側: 課題継続・完了ボタン */}
         {onEndSession && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={onEndSession}
-            className="group shrink-0 gap-2"
-          >
-            {/* 丸い色付き背景の×印 */}
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 transition-all group-hover:bg-red-500">
-              <X className="h-4 w-4 text-red-600 transition-all group-hover:rotate-90 group-hover:text-white" />
-            </div>
-            <span className="hidden text-muted-foreground transition-colors group-hover:text-red-600 sm:inline">
-              終了
-            </span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* 課題継続ボタン */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => onEndSession('active')}
+              className="group shrink-0 gap-2"
+              title="相談を一時中断します。後で再開できます。"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 transition-all group-hover:bg-blue-500">
+                <Pause className="h-4 w-4 text-blue-600 transition-all group-hover:text-white" />
+              </div>
+              <span className="hidden text-muted-foreground transition-colors group-hover:text-blue-600 sm:inline">
+                継続
+              </span>
+            </Button>
+            
+            {/* 課題完了ボタン */}
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => onEndSession('completed')}
+              className="group shrink-0 gap-2 bg-green-500/80 hover:bg-green-600"
+              title="課題が解決しました。相談を完了します。"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 transition-all group-hover:bg-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600 transition-all group-hover:text-green-800" />
+              </div>
+              <span className="hidden text-white sm:inline">
+                完了
+              </span>
+            </Button>
+          </div>
         )}
       </div>
 

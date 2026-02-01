@@ -91,25 +91,10 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
           </div>
         </div>
       ) : (
-        <div ref={scrollRef} className="relative z-10 h-full overflow-y-auto scroll-smooth pointer-events-auto">
-          {/* 最初のメッセージ（相談内容） - スクロール時に上部に固定（sticky） */}
-          {firstMessage && (
-            <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-sm shadow-sm">
-              <div className="px-4 py-3">
-                <div className="text-xs text-muted-foreground mb-1 font-medium">📋 相談内容</div>
-                <ChatMessage
-                  key={firstMessage.id}
-                  role={firstMessage.role}
-                  content={firstMessage.content}
-                  timestamp={firstMessage.created_at}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 残りのメッセージ */}
+        <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto scroll-smooth pointer-events-auto">
+          {/* 全てのメッセージを通常表示（固定なし） */}
           <div className="space-y-1 py-4">
-            {remainingMessages.map((message) => (
+            {messages.map((message) => (
               <ChatMessage
                 key={message.id}
                 role={message.role}
