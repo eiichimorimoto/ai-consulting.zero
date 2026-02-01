@@ -91,10 +91,10 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
           </div>
         </div>
       ) : (
-        <div className="relative z-10 flex h-full flex-col">
-          {/* 最初のメッセージ（相談内容） - スクロール時のみ上部に固定（sticky） */}
+        <div ref={scrollRef} className="relative z-10 h-full overflow-y-auto scroll-smooth pointer-events-auto">
+          {/* 最初のメッセージ（相談内容） - スクロール時に上部に固定（sticky） */}
           {firstMessage && (
-            <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-sm pointer-events-auto shadow-sm">
+            <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-sm shadow-sm">
               <div className="px-4 py-3">
                 <div className="text-xs text-muted-foreground mb-1 font-medium">📋 相談内容</div>
                 <ChatMessage
@@ -107,19 +107,17 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
             </div>
           )}
 
-          {/* スクロール可能: 残りのメッセージ */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth pointer-events-auto">
-            <div className="space-y-1 py-4">
-              {remainingMessages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  timestamp={message.created_at}
-                />
-              ))}
-              {isTyping && <TypingIndicator />}
-            </div>
+          {/* 残りのメッセージ */}
+          <div className="space-y-1 py-4">
+            {remainingMessages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                role={message.role}
+                content={message.content}
+                timestamp={message.created_at}
+              />
+            ))}
+            {isTyping && <TypingIndicator />}
           </div>
         </div>
       )}
