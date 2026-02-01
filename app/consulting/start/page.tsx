@@ -98,7 +98,21 @@ export default function ConsultingPage() {
   })
   
   // Dify Chatflow の conversation_id を管理
-  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    // 初期値: sessionStorageから復元
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('dify_conversation_id')
+    }
+    return null
+  })
+
+  // conversationId が変更されたら sessionStorage に保存
+  useEffect(() => {
+    if (conversationId) {
+      sessionStorage.setItem('dify_conversation_id', conversationId)
+      console.log('💾 Saved conversationId to sessionStorage:', conversationId)
+    }
+  }, [conversationId])
 
   // セッション一覧の取得
   useEffect(() => {
@@ -291,6 +305,11 @@ export default function ConsultingPage() {
     try {
       setIsLoading(true)
       
+      // 新規セッション開始時は conversationId をクリア
+      setConversationId(null)
+      sessionStorage.removeItem('dify_conversation_id')
+      console.log('🆕 Starting new session - cleared conversationId')
+      
       // 1. セッション作成（FormDataで添付ファイルも送信）
       const formData = new FormData()
       formData.append('category', pendingCategory)
@@ -319,7 +338,10 @@ export default function ConsultingPage() {
       const messageRes = await fetch(`/api/consulting/sessions/${newSession.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: issue }),
+        body: JSON.stringify({ 
+          message: issue,
+          conversationId: null  // 新規セッションなので null
+        }),
       })
 
       if (!messageRes.ok) {
@@ -333,6 +355,15 @@ export default function ConsultingPage() {
       setMessages(messageData.messages || [])
       setShowInitialModal(false)
       setPendingCategory(null)
+      
+      // Difyから返ってきた conversation_id を保存
+      console.log('Received conversation_id from new session:', messageData.conversation_id)
+      if (messageData.conversation_id) {
+        console.log('Saving conversation_id from new session:', messageData.conversation_id)
+        setConversationId(messageData.conversation_id)
+      } else {
+        console.log('No conversation_id in response from new session')
+      }
       
       // 添付ファイルは保持（相談継続中）
       
@@ -353,7 +384,7 @@ export default function ConsultingPage() {
     setInputMessage('')
     setIsTyping(true)
     
-    console.log('Sending message with conversationId:', conversationId)  // デバッグ
+    console.log('📤 Sending message with conversationId:', conversationId || 'null')
     
     // ユーザーメッセージを即座に表示
     const tempUserMessage: ConsultingMessage = {
@@ -377,19 +408,21 @@ export default function ConsultingPage() {
       
       if (res.ok) {
         const data = await res.json()
-        console.log('API Response:', data)  // デバッグ
+        console.log('📥 API Response:', {
+          has_conversation_id: !!data.conversation_id,
+          conversation_id: data.conversation_id || 'null'
+        })
         
         // メッセージ履歴を更新
         setMessages(data.messages || [])
         setCurrentSession(data.session)
         
         // Difyから返ってきた conversation_id を保存
-        console.log('Received conversation_id:', data.conversation_id)  // デバッグ
         if (data.conversation_id) {
-          console.log('Saving conversation_id:', data.conversation_id)  // デバッグ
+          console.log('💾 Saving conversation_id:', data.conversation_id)
           setConversationId(data.conversation_id)
         } else {
-          console.log('No conversation_id in response')  // デバッグ
+          console.warn('⚠️ No conversation_id in response - Dify may not be maintaining history')
         }
       }
     } catch (error) {
@@ -420,6 +453,10 @@ export default function ConsultingPage() {
     setInputMessage('')
     setCategory('general')
     setConversationId(null)  // Dify会話履歴もリセット
+    
+    // sessionStorage から conversationId を削除
+    sessionStorage.removeItem('dify_conversation_id')
+    console.log('🗑️ Cleared conversationId from sessionStorage')
     
     // 添付ファイルをクリア（相談終了のため）
     setAttachmentFiles([])
