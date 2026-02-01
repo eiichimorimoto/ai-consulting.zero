@@ -275,7 +275,7 @@ export async function POST(
       updated_at: new Date().toISOString()
     }
 
-    return NextResponse.json({ 
+    const responseData = { 
       session: updatedSession,
       messages: [userMessage, aiMessage],
       current_round: newRound,
@@ -285,7 +285,14 @@ export async function POST(
       message: isLimitReached 
         ? 'Maximum round limit reached. Session will be completed.'
         : 'Message sent successfully'
-    }, { status: 201 })
+    }
+    
+    console.log('POST /messages response:', JSON.stringify({
+      conversation_id: responseData.conversation_id,
+      has_conversation_id: !!responseData.conversation_id
+    }))
+    
+    return NextResponse.json(responseData, { status: 201 })
 
   } catch (error) {
     console.error('POST /api/consulting/sessions/[id]/messages error:', error)
