@@ -83,16 +83,21 @@ export function ConsultingHeader({
           </div>
         </div>
         
-        {/* 右側: 終了ボタン */}
+        {/* 右側: 終了ボタン - 丸い色付き背景で強調 */}
         {onEndSession && (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={onEndSession}
-            className="group shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+            className="group shrink-0 gap-2"
           >
-            <X className="mr-1 h-4 w-4 transition-transform group-hover:rotate-90" />
-            <span className="hidden sm:inline">終了</span>
+            {/* 丸い色付き背景の×印 */}
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 transition-all group-hover:bg-red-500">
+              <X className="h-4 w-4 text-red-600 transition-all group-hover:rotate-90 group-hover:text-white" />
+            </div>
+            <span className="hidden text-muted-foreground transition-colors group-hover:text-red-600 sm:inline">
+              終了
+            </span>
           </Button>
         )}
       </div>

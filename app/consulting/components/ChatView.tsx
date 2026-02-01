@@ -92,9 +92,9 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
         </div>
       ) : (
         <div className="relative z-10 flex h-full flex-col">
-          {/* 固定表示: 最初のメッセージ（相談内容） */}
+          {/* 固定表示: 最初のメッセージ（相談内容） - ヘッダーのようにスクロールしても固定 */}
           {firstMessage && (
-            <div className="flex-shrink-0 border-b bg-background/80 backdrop-blur-sm pointer-events-auto">
+            <div className="sticky top-0 z-20 flex-shrink-0 border-b bg-background/95 backdrop-blur-sm pointer-events-auto shadow-sm">
               <div className="px-4 py-3">
                 <div className="text-xs text-muted-foreground mb-1 font-medium">📋 相談内容</div>
                 <ChatMessage
