@@ -546,7 +546,7 @@ export default function ConsultingPage() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative h-screen overflow-hidden">
       {/* 初期課題入力モーダル */}
       <InitialIssueModal
         open={showInitialModal}
@@ -563,7 +563,7 @@ export default function ConsultingPage() {
         onRemoveFile={handleRemoveAttachment}
       />
 
-      <div className="flex h-screen w-full overflow-hidden">
+      <div className="flex h-full w-full overflow-hidden">
         {/* 左サイドバー */}
         <SimpleSidebar 
         sessions={sessions.map(s => ({
