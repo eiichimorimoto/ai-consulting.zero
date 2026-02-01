@@ -117,6 +117,14 @@ export async function PATCH(
       completed_at
     } = body
 
+    // ステータスのバリデーション
+    if (status !== undefined && !['active', 'completed', 'archived'].includes(status)) {
+      return NextResponse.json(
+        { error: 'Invalid status. Must be one of: active, completed, archived' },
+        { status: 400 }
+      )
+    }
+
     // 更新データ準備
     const updateData: any = {
       updated_at: new Date().toISOString()
@@ -134,6 +142,8 @@ export async function PATCH(
     if (status === 'completed' && !completed_at) {
       updateData.completed_at = new Date().toISOString()
     }
+    
+    console.log(`✅ Session ${sessionId} status updated to: ${status || 'unchanged'}`)
 
     // セッション更新
     const { data: session, error: updateError } = await supabase

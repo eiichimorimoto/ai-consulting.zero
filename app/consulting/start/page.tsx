@@ -482,20 +482,20 @@ export default function ConsultingPage() {
     }
   }
 
-  // セッション終了
-  const handleEndSession = async () => {
+  // セッション終了（課題継続 or 課題完了）
+  const handleEndSession = async (status: 'active' | 'completed') => {
     if (!currentSession) return
     
     try {
-      // ステータスをcompletedに更新
+      // ステータスを更新
       const res = await fetch(`/api/consulting/sessions/${currentSession.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' })
+        body: JSON.stringify({ status })
       })
       
       if (!res.ok) {
-        throw new Error(`Failed to end session: ${res.statusText}`)
+        throw new Error(`Failed to update session: ${res.statusText}`)
       }
       
       // API呼び出し成功後に状態をクリア
@@ -515,15 +515,18 @@ export default function ConsultingPage() {
       
       await fetchSessions()
       
+      // ステータスに応じたトースト通知
       toast({
-        title: '相談を終了しました',
-        description: 'お疲れ様でした。また次回もご利用ください。',
+        title: status === 'active' ? '相談を一時中断しました' : '相談を完了しました',
+        description: status === 'active' 
+          ? '左メニューから再開できます。' 
+          : 'お疲れ様でした。また次回もご利用ください。',
       })
     } catch (error) {
-      console.error('Failed to end session:', error)
+      console.error('Failed to update session:', error)
       toast({
         variant: 'destructive',
-        title: 'セッション終了に失敗しました',
+        title: 'ステータス更新に失敗しました',
         description: 'もう一度お試しいただくか、ページをリロードしてください。',
       })
     }
