@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LineChart, IndustryChart } from './DashboardCharts'
@@ -283,7 +283,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   }, [])
 
   // 個別データ取得関数
-  const fetchSectionData = async (sectionType: string, forceRefresh = false) => {
+  const fetchSectionData = async (sectionType: string, forceRefresh = false, signal?: AbortSignal) => {
     try {
       setRefreshing(prev => ({ ...prev, [sectionType]: true }))
       
@@ -319,7 +319,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         method: 'GET',
         headers: {
           'Cache-Control': forceRefresh ? 'no-cache' : 'default'
-        }
+        },
+        signal // AbortSignal を追加
       }, 120_000, 3) // タイムアウト120秒、最大3回リトライ（業界予測等の重いClaude API処理対応）
 
       if (!response.ok) {
@@ -368,7 +369,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
       const diffMinutes = Math.floor((now.getTime() - updatedTime.getTime()) / (1000 * 60))
       const timeText = diffMinutes < 1 ? 'たった今' : diffMinutes < 60 ? `${diffMinutes}分前` : `${Math.floor(diffMinutes / 60)}時間前`
       setLastUpdated(prev => ({ ...prev, [sectionType]: timeText }))
-    } catch (error) {
+    } catch (error: any) {
+      // AbortError の場合はログを出力せずに終了
+      if (error.name === 'AbortError') {
+        console.log(`✋ Request aborted for ${sectionType}`)
+        return
+      }
+      
       console.error(`Failed to fetch ${sectionType}:`, error)
       // SWOT分析のエラーを記録
       if (sectionType === 'swot-analysis') {
@@ -421,7 +428,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   }
 
   // データをキャッシュに保存（localInfoも含む）
-  const saveToCache = () => {
+  const saveToCache = useCallback(() => {
     try {
       const data = {
         marketData,
@@ -437,14 +444,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     } catch (e) {
       console.error('Failed to save cache:', e)
     }
-  }
+  }, [marketData, localInfo, industryTrends, swotAnalysis, worldNews, industryForecast, lastUpdated, SESSION_KEY])
 
   // データ変更時にキャッシュを更新（localInfoも含む）
   useEffect(() => {
     if (marketData || localInfo || industryTrends || swotAnalysis || worldNews || industryForecast) {
       saveToCache()
     }
-  }, [marketData, industryTrends, swotAnalysis, worldNews, industryForecast])
+  }, [marketData, localInfo, industryTrends, swotAnalysis, worldNews, industryForecast, saveToCache])
 
   // 相談履歴の件数を取得
   useEffect(() => {
@@ -464,6 +471,10 @@ export default function DashboardClient({ profile, company, subscription }: Dash
 
   // 初回データ取得（ログイン後の初回セッションのみ全データ取得）
   useEffect(() => {
+    // AbortController を作成
+    const abortController = new AbortController()
+    const { signal } = abortController
+    
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
@@ -481,16 +492,16 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         // セッションで初回かどうかをチェック
         const isFirstLoad = !sessionStorage.getItem(SESSION_INITIALIZED_KEY)
         
-        // 全データを取得する関数
+        // 全データを取得する関数（AbortSignal を渡す）
         const fetchAllData = async (forceRefresh = false) => {
           console.log('全データを取得中...')
           await Promise.all([
-            fetchSectionData('market', forceRefresh),
-            fetchSectionData('local-info', forceRefresh), // キャッシュ活用: 初回のみ取得、更新ボタンで再取得可能
-            fetchSectionData('industry-trends', forceRefresh),
-            fetchSectionData('swot-analysis', forceRefresh),
-            fetchSectionData('world-news', forceRefresh),
-            fetchSectionData('industry-forecast', forceRefresh),
+            fetchSectionData('market', forceRefresh, signal),
+            fetchSectionData('local-info', forceRefresh, signal),
+            fetchSectionData('industry-trends', forceRefresh, signal),
+            fetchSectionData('swot-analysis', forceRefresh, signal),
+            fetchSectionData('world-news', forceRefresh, signal),
+            fetchSectionData('industry-forecast', forceRefresh, signal),
           ])
         }
         
@@ -511,7 +522,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
           }
           // キャッシュがある場合は何もしない（手動更新のみ）
         }
-      } catch (error) {
+      } catch (error: any) {
+        // AbortError の場合は無視
+        if (error.name === 'AbortError') {
+          console.log('✋ Dashboard data fetch was aborted')
+          return
+        }
         console.error('Dashboard data fetch error:', error)
       } finally {
         setLoading(false)
@@ -519,6 +535,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
 
     fetchDashboardData()
+    
+    // クリーンアップ関数: ページ遷移時にリクエストを中断
+    return () => {
+      console.log('🧹 Cleaning up dashboard data fetch')
+      abortController.abort()
+    }
   }, [profile?.id])
 
   // 画面がアクティブになったときの処理
