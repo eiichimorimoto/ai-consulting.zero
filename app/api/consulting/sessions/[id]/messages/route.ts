@@ -137,31 +137,50 @@ export async function POST(
     }
 
     // 現在のメッセージ数を取得（message_order計算のため）
-    const { count: messageCount } = await supabase
+    const { data: existingMessages, count: messageCount } = await supabase
       .from('consulting_messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact' })
       .eq('session_id', sessionId)
+      .order('message_order', { ascending: true })
 
     const nextMessageOrder = (messageCount || 0) + 1
 
     // 1. ユーザーメッセージ保存
-    const { data: userMessage, error: userMessageError } = await supabase
-      .from('consulting_messages')
-      .insert({
-        session_id: sessionId,
-        role: 'user',
-        content: message,
-        message_order: nextMessageOrder
-      })
-      .select()
-      .single()
+    // 初回メッセージ（message_order=1）が既に存在し、かつ内容が同じ場合はスキップ
+    let userMessage
+    const firstMessage = existingMessages?.[0]
+    const isInitialMessageDuplicate = 
+      firstMessage && 
+      firstMessage.role === 'user' && 
+      firstMessage.content === message &&
+      messageCount === 1
 
-    if (userMessageError) {
-      console.error('User message save error:', userMessageError)
-      return NextResponse.json(
-        { error: userMessageError.message },
-        { status: 500 }
-      )
+    if (isInitialMessageDuplicate) {
+      // 既存の初回メッセージを使用（重複保存を防ぐ）
+      userMessage = firstMessage
+      console.log('Initial message already exists, skipping duplicate save')
+    } else {
+      // 新しいメッセージを保存
+      const { data: newMessage, error: userMessageError } = await supabase
+        .from('consulting_messages')
+        .insert({
+          session_id: sessionId,
+          role: 'user',
+          content: message,
+          message_order: nextMessageOrder
+        })
+        .select()
+        .single()
+
+      if (userMessageError) {
+        console.error('User message save error:', userMessageError)
+        return NextResponse.json(
+          { error: userMessageError.message },
+          { status: 500 }
+        )
+      }
+      
+      userMessage = newMessage
     }
 
     // 2. Dify呼び出し
@@ -202,13 +221,16 @@ export async function POST(
     }
 
     // 3. AIレスポンス保存
+    // AI応答のmessage_orderは、重複チェック結果に応じて調整
+    const aiMessageOrder = isInitialMessageDuplicate ? 2 : nextMessageOrder + 1
+    
     const { data: aiMessage, error: aiMessageError } = await supabase
       .from('consulting_messages')
       .insert({
         session_id: sessionId,
         role: 'assistant',
         content: aiResponse,
-        message_order: nextMessageOrder + 1,
+        message_order: aiMessageOrder,
         tokens_used: tokensUsed,
         processing_time_ms: processingTime
       })
@@ -224,7 +246,8 @@ export async function POST(
     }
 
     // 4. セッションのcurrent_roundを更新
-    const newRound = Math.floor((nextMessageOrder + 1) / 2)
+    // 重複チェックの結果に応じてround数を調整
+    const newRound = isInitialMessageDuplicate ? 1 : Math.floor((nextMessageOrder + 1) / 2)
     
     const { error: updateError } = await supabase
       .from('consulting_sessions')
