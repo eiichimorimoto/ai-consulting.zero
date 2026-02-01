@@ -182,6 +182,7 @@ export function SimpleSidebar({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-8 pl-8 text-[13px]"
+                disabled={currentSessionStatus === 'active'}
               />
             </div>
           )}
