@@ -201,14 +201,14 @@ export function SimpleSidebar({
                 <SelectTrigger className="h-8 text-[13px]">
                   <SelectValue placeholder="フィルター" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">
+                <SelectContent className="bg-white dark:bg-slate-900 border-border shadow-lg">
+                  <SelectItem value="active" className="text-[13px] font-medium text-foreground cursor-pointer hover:bg-accent">
                     相談中 ({activeCount})
                   </SelectItem>
-                  <SelectItem value="completed">
+                  <SelectItem value="completed" className="text-[13px] font-medium text-foreground cursor-pointer hover:bg-accent">
                     完了 ({completedCount})
                   </SelectItem>
-                  <SelectItem value="all">
+                  <SelectItem value="all" className="text-[13px] font-medium text-foreground cursor-pointer hover:bg-accent">
                     すべて ({sessions.length})
                   </SelectItem>
                 </SelectContent>
