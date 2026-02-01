@@ -32,9 +32,9 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
   const remainingMessages = messages.length > 1 ? messages.slice(1) : []
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden">
+    <div className="relative flex h-full flex-col">
       {/* AI背景（グラデーション + ドットパターン + AI相談画像） */}
-      <div className="pointer-events-none absolute inset-0 opacity-35 z-0">
+      <div className="pointer-events-none absolute inset-0 opacity-35 z-0 overflow-hidden">
         {/* AI相談画像（背景全体に薄く表示） */}
         <div 
           className="absolute inset-0"
