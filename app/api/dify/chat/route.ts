@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     // 実際のDify Chatflow API呼び出し
     try {
       const requestBody: any = {
+        inputs: {},  // Chatflow APIでは inputs が必須
         query: message,
         user: userId,
         response_mode: 'blocking'
