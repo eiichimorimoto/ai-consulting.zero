@@ -5,6 +5,10 @@
 ### 重要原則
 **Git履歴の最終確定版（GOになった実装）を必ず確認してから修正する**
 
+### 最新の確定版（2026-02-01）
+- ConsultingHeader: `sticky top-0`（メインコンテンツエリア内で固定）
+- 相談履歴: 15件ずつ表示、「もっと見る」ボタンで追加表示
+
 ### 確定したレイアウト構造
 
 #### page.tsx（メインコンテナ）
@@ -86,6 +90,60 @@
 
 ---
 
+## ConsultingHeaderの正しい固定方法
+
+### ✅ 正解: sticky top-0（メインコンテンツエリア内）
+```tsx
+// ConsultingHeader.tsx
+<div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur ...">
+```
+
+**理由**:
+- 左サイドバーの右側（メインコンテンツエリア内）で固定される
+- スクロールしてもheaderが常に表示される
+- レイアウトが崩れない
+
+### ❌ 間違い: fixed top-0 left-0 right-0
+```tsx
+// 間違い
+<div className="fixed top-0 left-0 right-0 z-50 ...">
+```
+
+**問題**:
+- 左サイドバーの下に隠れる
+- headerが見えなくなる
+
+---
+
+## 相談履歴の表示制限
+
+### ✅ 正解: displayLimitで管理 + 「もっと見る」ボタン
+```tsx
+const [displayLimit, setDisplayLimit] = useState(15)
+
+// 表示
+{filteredSessions.slice(0, displayLimit).map(...)}
+
+// もっと見るボタン
+{filteredSessions.length > displayLimit && (
+  <Button onClick={() => setDisplayLimit(prev => prev + 15)}>
+    もっと見る（残り{filteredSessions.length - displayLimit}件）
+  </Button>
+)}
+```
+
+### ❌ 間違い: .slice(0, 15)で固定
+```tsx
+// 間違い
+{filteredSessions.slice(0, 15).map(...)}
+```
+
+**問題**:
+- 15件以降が見れない
+- ユーザビリティが低い
+
+---
+
 ## よくある間違い
 
 ### ❌ 間違い1: ChatView自体を`flex-1`にする
@@ -133,7 +191,8 @@ git show [コミットハッシュ]:app/consulting/components/ChatView.tsx
 
 ## 参考コミット
 
-- `161915c`: チャットスクロール修正（最終確定版）
+- `287bbaf`: ConsultingHeader正しく固定 & 相談履歴「もっと見る」機能追加（最新版）
+- `161915c`: チャットスクロール修正
 - `db2bfbf`: 相談画面UI改善
 
 **重要**: 修正前に必ずこれらのコミットを確認すること
