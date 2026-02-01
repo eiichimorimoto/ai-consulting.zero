@@ -1,7 +1,7 @@
 /**
  * Dify Chat API
  * 
- * Difyワークフローにメッセージ送信＋コンテキスト付与
+ * Dify Chatflowにメッセージ送信（会話履歴自動管理）
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -9,12 +9,12 @@ import { NextRequest, NextResponse } from 'next/server'
 /**
  * POST /api/dify/chat
  * 
- * Difyにメッセージ送信（コンテキスト準備含む）
+ * Difyにメッセージ送信（Chatflow API）
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sessionId, message, userId } = body
+    const { sessionId, message, userId, conversationId } = body
 
     // バリデーション
     if (!message || !userId) {
@@ -26,13 +26,12 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now()
 
-    // Difyワークフロー呼び出し
-    // 注: Context APIはDifyワークフロー内のHTTP Requestノードで呼び出されます
-    // 注: 実際のDifyワークフローURLは環境変数で設定
-    const difyWorkflowUrl = process.env.DIFY_WORKFLOW_URL
+    // Dify Chatflow 呼び出し
+    const difyChatflowUrl = process.env.DIFY_CHATFLOW_URL
+    const difyApiKey = process.env.DIFY_CHATFLOW_API_KEY
 
-    if (!difyWorkflowUrl) {
-      console.warn('DIFY_WORKFLOW_URL not set, using mock response')
+    if (!difyChatflowUrl || !difyApiKey) {
+      console.warn('DIFY_CHATFLOW_URL or DIFY_CHATFLOW_API_KEY not set, using mock response')
       
       // モックレスポンス（開発・テスト用）
       const mockResponse = generateMockResponse(message, { profile: { name: 'お客様' }, company: { name: 'お客様の会社' } })
@@ -46,38 +45,40 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 実際のDify API呼び出し
+    // 実際のDify Chatflow API呼び出し
     try {
-      const difyResponse = await fetch(difyWorkflowUrl, {
+      const requestBody: any = {
+        query: message,
+        user: userId,
+        response_mode: 'blocking'
+      }
+
+      // 会話履歴管理: conversation_idがあれば送信
+      if (conversationId) {
+        requestBody.conversation_id = conversationId
+      }
+
+      console.log('Dify Chatflow Request:', {
+        url: difyChatflowUrl,
+        body: requestBody
+      })
+
+      const difyResponse = await fetch(difyChatflowUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.DIFY_WORKFLOW_API_KEY}`,
+          'Authorization': `Bearer ${difyApiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          inputs: {
-            user_id: userId,
-            query: message,
-            session_id: sessionId || ''
-          },
-          response_mode: 'blocking',
-          user: userId
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!difyResponse.ok) {
-        // エラーレスポンスの詳細を取得
         const errorText = await difyResponse.text()
-        console.error('Dify API Error Details:', {
+        console.error('Dify Chatflow API Error:', {
           status: difyResponse.status,
           statusText: difyResponse.statusText,
           body: errorText,
-          requestUrl: difyWorkflowUrl,
-          requestBody: JSON.stringify({
-            inputs: { user_id: userId, query: message, session_id: sessionId || '' },
-            response_mode: 'blocking',
-            user: userId
-          }, null, 2)
+          requestUrl: difyChatflowUrl
         })
         throw new Error(`Dify API error: ${difyResponse.status} ${difyResponse.statusText} - ${errorText}`)
       }
@@ -86,23 +87,16 @@ export async function POST(request: NextRequest) {
       const processingTime = Date.now() - startTime
 
       // デバッグ: Difyレスポンス全体をログ出力
-      console.log('Dify API Response:', JSON.stringify(difyData, null, 2))
+      console.log('Dify Chatflow Response:', JSON.stringify(difyData, null, 2))
 
-      // Difyレスポンスの形式に応じて調整
-      const aiResponse = difyData.data?.outputs?.text
-        || difyData.data?.outputs?.response 
-        || difyData.answer 
-        || difyData.data?.answer
-        || difyData.outputs?.text
-        || difyData.outputs?.response
-        || JSON.stringify(difyData)  // 最終手段：全体を文字列化
-
-      const tokensUsed = difyData.metadata?.usage?.total_tokens 
-        || difyData.usage?.total_tokens 
-        || 0
+      // Chatflow APIのレスポンス形式
+      const aiResponse = difyData.answer || difyData.data?.answer || JSON.stringify(difyData)
+      const newConversationId = difyData.conversation_id
+      const tokensUsed = difyData.metadata?.usage?.total_tokens || 0
 
       return NextResponse.json({
         response: aiResponse,
+        conversation_id: newConversationId,  // 会話履歴管理用
         tokens_used: tokensUsed,
         processing_time: processingTime,
         is_mock: false
@@ -189,15 +183,16 @@ function generateFallbackResponse(message: string, context: any): string {
  * GET method for health check
  */
 export async function GET() {
-  const difyWorkflowUrl = process.env.DIFY_WORKFLOW_URL
-  const difyApiKey = process.env.DIFY_WORKFLOW_API_KEY
+  const difyChatflowUrl = process.env.DIFY_CHATFLOW_URL
+  const difyApiKey = process.env.DIFY_CHATFLOW_API_KEY
 
   return NextResponse.json({
     status: 'ok',
-    endpoint: 'Dify Chat API',
-    version: '1.0.0',
-    dify_workflow_configured: !!difyWorkflowUrl,
+    endpoint: 'Dify Chatflow API',
+    version: '2.0.0',
+    dify_chatflow_configured: !!difyChatflowUrl,
     dify_api_key_configured: !!difyApiKey,
-    mode: difyWorkflowUrl ? 'production' : 'mock'
+    mode: difyChatflowUrl && difyApiKey ? 'chatflow' : 'mock',
+    conversation_history: 'automatic'
   })
 }
