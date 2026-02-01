@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { FileText, Download, Eye, X, Upload, AlertCircle, Paperclip } from 'lucide-react'
+import { FileText, Download, Eye, X, Upload, AlertCircle, Paperclip, TrendingUp, FileCheck } from 'lucide-react'
 
 interface ContextPanelProps {
   digitalScore?: number | null
@@ -196,9 +196,9 @@ export function ContextPanel({
       {/* 業界見通し - 1番目 */}
       <Card className="overflow-hidden border-none bg-gradient-to-br from-indigo-500/10 via-blue-500/10 to-purple-500/10">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <CardTitle className="flex items-center gap-2 text-base font-bold">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
-              📊
+              <TrendingUp className="h-4 w-4 text-indigo-600" />
             </div>
             <span>業界見通し</span>
           </CardTitle>
@@ -286,9 +286,9 @@ export function ContextPanel({
       {/* 添付ファイル - 2番目 */}
       <Card className="bg-white">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <CardTitle className="flex items-center gap-2 text-base font-bold">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">
-              📎
+              <Paperclip className="h-4 w-4 text-orange-600" />
             </div>
             <span>添付ファイル一覧</span>
             <Badge variant="outline" className="ml-auto">
@@ -432,9 +432,9 @@ export function ContextPanel({
       {/* AI提案書 - 3番目（そのまま） */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <CardTitle className="flex items-center gap-2 text-base font-bold">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20">
-              📄
+              <FileCheck className="h-4 w-4 text-primary" />
             </div>
             <span>AI提案書</span>
           </CardTitle>
