@@ -470,6 +470,13 @@ export default function ConsultingPage() {
       }
     } catch (error) {
       console.error('Failed to send message:', error)
+      toast({
+        variant: 'destructive',
+        title: 'メッセージ送信に失敗しました',
+        description: 'もう一度お試しください。',
+      })
+      // エラー時は一時表示メッセージを削除
+      setMessages(prev => prev.filter(m => !m.id.startsWith('temp-')))
     } finally {
       setIsTyping(false)
     }
@@ -481,31 +488,45 @@ export default function ConsultingPage() {
     
     try {
       // ステータスをcompletedに更新
-      await fetch(`/api/consulting/sessions/${currentSession.id}`, {
+      const res = await fetch(`/api/consulting/sessions/${currentSession.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'completed' })
       })
+      
+      if (!res.ok) {
+        throw new Error(`Failed to end session: ${res.statusText}`)
+      }
+      
+      // API呼び出し成功後に状態をクリア
+      setCurrentSession(null)
+      setMessages([])
+      setInputMessage('')
+      setCategory('general')
+      setConversationId(null)  // Dify会話履歴もリセット
+      
+      // sessionStorage から conversationId を削除
+      sessionStorage.removeItem('dify_conversation_id')
+      console.log('🗑️ Cleared conversationId from sessionStorage')
+      
+      // 添付ファイルをクリア（相談終了のため）
+      setAttachmentFiles([])
+      setContextData(prev => ({ ...prev, attachments: [] }))
+      
+      await fetchSessions()
+      
+      toast({
+        title: '相談を終了しました',
+        description: 'お疲れ様でした。また次回もご利用ください。',
+      })
     } catch (error) {
-      console.error('Failed to update session status:', error)
+      console.error('Failed to end session:', error)
+      toast({
+        variant: 'destructive',
+        title: 'セッション終了に失敗しました',
+        description: 'もう一度お試しいただくか、ページをリロードしてください。',
+      })
     }
-    
-    // 状態をクリア
-    setCurrentSession(null)
-    setMessages([])
-    setInputMessage('')
-    setCategory('general')
-    setConversationId(null)  // Dify会話履歴もリセット
-    
-    // sessionStorage から conversationId を削除
-    sessionStorage.removeItem('dify_conversation_id')
-    console.log('🗑️ Cleared conversationId from sessionStorage')
-    
-    // 添付ファイルをクリア（相談終了のため）
-    setAttachmentFiles([])
-    setContextData(prev => ({ ...prev, attachments: [] }))
-    
-    await fetchSessions()
   }
 
   // カテゴリーラベル取得
