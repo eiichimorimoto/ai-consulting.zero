@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api'
 
 interface InfrastructureItem {
@@ -108,8 +108,8 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     return icon
   }
 
-  // 会社マーカーアイコン（青い特別なピン）
-  const getCompanyIcon = () => {
+  // 会社マーカーアイコン（青い特別なピン）- メモ化
+  const companyIcon = useMemo(() => {
     const icon: any = {
       path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
       fillColor: '#0ea5e9',
@@ -125,10 +125,10 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
     }
     
     return icon
-  }
+  }, [isLoaded]) // isLoadedが変わったときのみ再生成
 
-  // インフラマーカーの位置（会社の周辺にランダム配置）
-  const getInfraPosition = (index: number) => {
+  // インフラマーカーの位置（会社の周辺にランダム配置）- メモ化
+  const infraPositions = useMemo(() => {
     const offsets = [
       { lat: 0.005, lng: 0.005 },   // 北東
       { lat: 0.005, lng: -0.005 },  // 北西
@@ -136,12 +136,14 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
       { lat: -0.005, lng: -0.005 }, // 南西
       { lat: 0, lng: 0.007 },       // 東
     ]
-    const offset = offsets[index % offsets.length]
-    return {
-      lat: center.lat + offset.lat,
-      lng: center.lng + offset.lng,
-    }
-  }
+    return infrastructure.slice(0, 5).map((_, index) => {
+      const offset = offsets[index % offsets.length]
+      return {
+        lat: center.lat + offset.lat,
+        lng: center.lng + offset.lng,
+      }
+    })
+  }, [center.lat, center.lng, infrastructure])
 
   const mapContainerStyle = {
     width: '100%',
@@ -235,7 +237,7 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           {/* 会社位置マーカー */}
           <Marker
             position={center}
-            icon={getCompanyIcon()}
+            icon={companyIcon}
             title={`📍 ${companyName || '自社'}の位置`}
             onClick={() => setSelectedMarker(-1)}
           />
@@ -258,12 +260,11 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
 
           {/* インフラマーカー */}
           {infrastructure.slice(0, 5).map((item, index) => {
-            const position = getInfraPosition(index)
             const circleNumbers = ['①', '②', '③', '④', '⑤']
             return (
               <Marker
-                key={index}
-                position={position}
+                key={`infra-${index}-${item.title}`}
+                position={infraPositions[index]}
                 icon={getMarkerIcon(item.status)}
                 label={{
                   text: circleNumbers[index],
@@ -278,9 +279,9 @@ export default function InfrastructureMap({ infrastructure, prefecture, city, ad
           })}
 
           {/* インフラ情報ウィンドウ */}
-          {selectedMarker !== null && selectedMarker >= 0 && infrastructure[selectedMarker] && (
+          {selectedMarker !== null && selectedMarker >= 0 && infrastructure[selectedMarker] && infraPositions[selectedMarker] && (
             <InfoWindow
-              position={getInfraPosition(selectedMarker)}
+              position={infraPositions[selectedMarker]}
               onCloseClick={() => setSelectedMarker(null)}
             >
               <div style={{ padding: '4px', maxWidth: '200px' }}>
