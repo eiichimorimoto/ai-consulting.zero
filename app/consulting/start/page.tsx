@@ -599,7 +599,7 @@ export default function ConsultingPage() {
         )}
 
         {/* メインコンテンツ */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className={`flex flex-1 overflow-hidden ${currentSession ? 'pt-16' : ''}`}>
           {/* PC: チャットエリア / モバイル: タブ切替 */}
           <div className={`flex flex-1 flex-col overflow-hidden ${mobileTab !== 'chat' ? 'hidden lg:flex' : 'flex'}`}>
             <ChatView messages={messages} isTyping={isTyping} />
