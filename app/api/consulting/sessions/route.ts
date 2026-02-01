@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
         role: 'user',
         content: initialMessage,
         attachments: attachments.length > 0 ? attachments : null,
+        message_order: 1
       })
     
     if (messageError) {
