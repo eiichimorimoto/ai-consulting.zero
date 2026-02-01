@@ -27,6 +27,10 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
     }
   }, [messages, isTyping])
 
+  // 最初のメッセージ（相談内容）と残りのメッセージを分離
+  const firstMessage = messages.length > 0 ? messages[0] : null
+  const remainingMessages = messages.length > 1 ? messages.slice(1) : []
+
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       {/* AI背景（グラデーション + ドットパターン + AI相談画像） */}
@@ -73,34 +77,52 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
       </div>
 
       {/* チャットコンテンツ */}
-      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto scroll-smooth">
-        {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center pointer-events-auto">{/* 中身省略 - 変更なし */}
-            <div className="text-center text-muted-foreground">
-              <p className="mb-2 text-lg font-medium">AI経営相談へようこそ</p>
-              <p className="text-sm flex items-center justify-center gap-2">
-                左メニューの
-                <PlusCircle className="h-4 w-4 text-primary" />
-                新規相談、
-                <MessageSquare className="h-4 w-4 text-primary" />
-                相談履歴から選択して、開始してください。
-              </p>
+      {messages.length === 0 ? (
+        <div className="relative z-10 flex h-full items-center justify-center pointer-events-auto">
+          <div className="text-center text-muted-foreground">
+            <p className="mb-2 text-lg font-medium">AI経営相談へようこそ</p>
+            <p className="text-sm flex items-center justify-center gap-2">
+              左メニューの
+              <PlusCircle className="h-4 w-4 text-primary" />
+              新規相談、
+              <MessageSquare className="h-4 w-4 text-primary" />
+              相談履歴から選択して、開始してください。
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="relative z-10 flex h-full flex-col">
+          {/* 固定表示: 最初のメッセージ（相談内容） */}
+          {firstMessage && (
+            <div className="flex-shrink-0 border-b bg-background/80 backdrop-blur-sm pointer-events-auto">
+              <div className="px-4 py-3">
+                <div className="text-xs text-muted-foreground mb-1 font-medium">📋 相談内容</div>
+                <ChatMessage
+                  key={firstMessage.id}
+                  role={firstMessage.role}
+                  content={firstMessage.content}
+                  timestamp={firstMessage.created_at}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* スクロール可能: 残りのメッセージ */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth pointer-events-auto">
+            <div className="space-y-1 py-4">
+              {remainingMessages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  timestamp={message.created_at}
+                />
+              ))}
+              {isTyping && <TypingIndicator />}
             </div>
           </div>
-        ) : (
-          <div className="space-y-1 py-4 pointer-events-auto">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                timestamp={message.created_at}
-              />
-            ))}
-            {isTyping && <TypingIndicator />}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
