@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LineChart, IndustryChart } from './DashboardCharts'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
 import InfrastructureMap from './InfrastructureMap'
 import { MessageSquare } from 'lucide-react'
@@ -231,6 +231,17 @@ interface IndustryForecast {
 
 export default function DashboardClient({ profile, company, subscription }: DashboardClientProps) {
   const router = useRouter()
+  // 新規挨拶: 会社情報（complete-profile）を経てダッシュボードに来た人だけ ?new=1 で判定
+  const searchParams = useSearchParams()
+  const hasNewParam = searchParams.get('new') === '1'
+  const [showNewGreeting, setShowNewGreeting] = useState(hasNewParam)
+  useEffect(() => {
+    if (hasNewParam) {
+      setShowNewGreeting(true)
+      router.replace('/dashboard')
+    }
+  }, [hasNewParam, router])
+
   const [currentTime, setCurrentTime] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [marketData, setMarketData] = useState<MarketData | null>(null)
@@ -670,13 +681,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <Link href="/" className="logo">
-              <Image
-                src="/info-data/AI-LOGO007.png"
-                alt="SolveWise"
-                width={32}
-                height={32}
-                className="w-8 h-8"
-              />
+              <img src="/logo.png" alt="SolveWise" width={32} height={32} className="w-8 h-8 object-contain flex-shrink-0" />
               <span className="logo-text">SolveWise</span>
             </Link>
           </div>
@@ -784,7 +789,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   background: 'transparent',
                   color: '#f59e0b',
                   border: '1px solid rgba(245, 158, 11, 0.4)',
-                  borderRadius: '6px',
+                  borderRadius: '3px',
                   fontSize: '11px',
                   fontWeight: '500',
                   cursor: 'pointer',
@@ -941,13 +946,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     fontWeight: '600',
                     marginBottom: '4px',
                     letterSpacing: '0.5px'
-                  }}>おかえりなさい</p>
+                  }}>{showNewGreeting ? 'はじめまして！' : 'おかえりなさい'}</p>
                   <h1 style={{ 
                     fontSize: '18px', 
                     fontWeight: '700', 
                     color: '#1e293b',
                     margin: '0 0 8px 0'
-                  }}>{profile.name}さん、今日もよろしくお願いします</h1>
+                  }}>{profile.name}さん、{showNewGreeting ? '今日からよろしくお願いします' : '今日もよろしくお願いします'}</h1>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <div style={{
                       display: 'flex',
@@ -955,7 +960,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       gap: '6px',
                       padding: '4px 10px',
                       background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                      borderRadius: '16px',
+                      borderRadius: '2px',
                       fontSize: '11px',
                       fontWeight: '600',
                       color: 'white'
@@ -995,7 +1000,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       background: 'rgba(100, 116, 139, 0.1)',
                       color: '#475569',
                       border: '1px solid rgba(100, 116, 139, 0.2)',
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       fontSize: '11px',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -1028,7 +1033,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       fontSize: '11px',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -1305,7 +1310,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               background: 'var(--accent)', 
                               color: 'white', 
                               border: 'none', 
-                              borderRadius: '4px',
+                              borderRadius: '2px',
                               cursor: 'pointer'
                             }}
                           >
@@ -1319,7 +1324,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             <div key={c.key || idx} style={{ 
                               padding: '12px', 
                               background: 'var(--bg-main)', 
-                              borderRadius: '8px',
+                              borderRadius: '2px',
                               border: '1px solid var(--border)'
                             }}>
                               <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
@@ -1352,7 +1357,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             <div key={idx} style={{ 
                               padding: '12px', 
                               background: 'var(--bg-main)', 
-                              borderRadius: '8px',
+                              borderRadius: '2px',
                               border: '1px solid var(--border)',
                               opacity: 0.7
                             }}>
@@ -1504,7 +1509,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   {/* メイン時給表示 + 説明 */}
                   <div style={{ 
                     background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', 
-                    borderRadius: '10px', 
+                    borderRadius: '2px', 
                     padding: '12px',
                     color: 'white',
                     marginBottom: '10px'
@@ -1520,7 +1525,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <span style={{ 
                         fontSize: '11px', 
                         padding: '2px 6px', 
-                        borderRadius: '4px',
+                        borderRadius: '2px',
                         background: (localInfo?.laborCosts?.change || 2.5) >= 0 ? 'rgba(255,255,255,0.2)' : 'rgba(239,68,68,0.3)',
                         marginLeft: 'auto'
                       }}>
@@ -1540,7 +1545,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       alignItems: 'center',
                       padding: '6px 8px',
                       background: 'var(--bg-main)',
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       marginBottom: '6px'
                     }}>
                       <span style={{ fontWeight: 600 }}>{company?.prefecture || '愛知県'}最低賃金</span>
@@ -1553,7 +1558,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <div style={{ 
                       background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', 
                       padding: '8px', 
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       border: '1px solid #86efac',
                       marginBottom: '6px'
                     }}>
@@ -1561,13 +1566,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         💰 {company?.prefecture || '愛知県'}・{company?.industry || '製造業'}の平均給与
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '2px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>月給</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#166534' }}>
                             {(localInfo?.laborCosts as any)?.monthly?.toLocaleString() || (localInfo?.laborCosts as any)?.comparison?.industryMonthly?.toLocaleString() || '28.5'}万円
                           </div>
                         </div>
-                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '2px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>年収</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#166534' }}>
                             {(localInfo?.laborCosts as any)?.yearly?.toLocaleString() || (localInfo?.laborCosts as any)?.comparison?.industryYearly?.toLocaleString() || '420'}万円
@@ -1582,20 +1587,20 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     <div style={{ 
                       background: '#f0f9ff', 
                       padding: '8px', 
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       border: '1px solid #bae6fd'
                     }}>
                       <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '6px', fontSize: '11px' }}>
                         📊 {company?.industry || '製造業'}の時給相場（パート）
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '2px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>下限</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#0369a1' }}>
                             {localInfo?.laborCosts?.comparison?.industryHourlyRange?.min?.toLocaleString() || '1,100'}円
                           </div>
                         </div>
-                        <div style={{ background: 'white', padding: '6px', borderRadius: '4px', textAlign: 'center' }}>
+                        <div style={{ background: 'white', padding: '6px', borderRadius: '2px', textAlign: 'center' }}>
                           <div style={{ fontSize: '9px', color: '#666' }}>上限</div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: '#0369a1' }}>
                             {localInfo?.laborCosts?.comparison?.industryHourlyRange?.max?.toLocaleString() || '1,600'}円
@@ -1623,7 +1628,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   <div style={{ 
                     background: 'var(--bg-main)',
                     padding: '8px',
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     marginBottom: '10px'
                   }}>
                     {/* 月ナビゲーション */}
@@ -1693,7 +1698,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               fontSize: '10px', 
                               textAlign: 'center',
                               padding: '2px',
-                              borderRadius: '4px',
+                              borderRadius: '2px',
                               background: isToday ? '#3b82f6' : hasEvent ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
                               color: isToday ? 'white' : hasEvent ? '#10b981' : 'var(--text-main)',
                               fontWeight: isToday || hasEvent ? '600' : '400'
@@ -1719,7 +1724,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             background: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'][idx] || '#64748b',
                             color: 'white',
                             padding: '2px 6px',
-                            borderRadius: '4px',
+                            borderRadius: '2px',
                             fontSize: '9px',
                             fontWeight: '600',
                             whiteSpace: 'nowrap'
@@ -1732,23 +1737,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     ) : (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                          <span style={{ background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>1/22-24</span>
+                          <span style={{ background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', fontWeight: '600' }}>1/22-24</span>
                           <span>ものづくりワールド名古屋</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                          <span style={{ background: '#3b82f6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>1/30</span>
+                          <span style={{ background: '#3b82f6', color: 'white', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', fontWeight: '600' }}>1/30</span>
                           <span>中部DXセミナー</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                          <span style={{ background: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>2/5-6</span>
+                          <span style={{ background: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', fontWeight: '600' }}>2/5-6</span>
                           <span>{company?.prefecture || '愛知県'}中小企業展</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                          <span style={{ background: '#8b5cf6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>2/15</span>
+                          <span style={{ background: '#8b5cf6', color: 'white', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', fontWeight: '600' }}>2/15</span>
                           <span>製造業DX推進フォーラム</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0' }}>
-                          <span style={{ background: '#ec4899', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '600' }}>2/20</span>
+                          <span style={{ background: '#ec4899', color: 'white', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', fontWeight: '600' }}>2/20</span>
                           <span>中部地区商談会</span>
                         </div>
                       </>
@@ -1775,7 +1780,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     companyName={company?.name}
                   />
                   {/* 詳細リスト（タイトルのみ・3件） */}
-                  <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '8px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '10px', background: 'var(--bg-main)', padding: '8px', borderRadius: '3px' }}>
                     {localInfo?.infrastructure && localInfo.infrastructure.length > 0 ? (
                       localInfo.infrastructure.slice(0, 3).map((item, idx) => {
                         const circleNumbers = ['①', '②', '③']
@@ -1832,7 +1837,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   {/* 当日の天気（大きく表示） */}
                   <div style={{ 
                     background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-                    borderRadius: '10px',
+                    borderRadius: '2px',
                     padding: '12px',
                     color: 'white',
                     marginBottom: '10px'
@@ -1859,7 +1864,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         marginTop: '8px', 
                         padding: '6px 8px', 
                         background: 'rgba(255,255,255,0.2)', 
-                        borderRadius: '6px',
+                        borderRadius: '3px',
                         fontSize: '11px',
                         display: 'flex',
                         alignItems: 'center',
@@ -1877,7 +1882,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     gap: '4px',
                     background: 'var(--bg-main)',
                     padding: '8px',
-                    borderRadius: '8px'
+                    borderRadius: '4px'
                   }}>
                     {localInfo?.weather?.week?.slice(0, 5).map((day, idx) => (
                       <div key={idx} style={{ textAlign: 'center' }}>
@@ -1908,7 +1913,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       gap: '4px',
                       background: 'var(--bg-main)',
                       padding: '8px',
-                      borderRadius: '8px'
+                      borderRadius: '4px'
                     }}>
                       {(localInfo?.weather?.hourly && localInfo.weather.hourly.length > 0 
                         ? localInfo.weather.hourly.slice(0, 6)
@@ -1925,7 +1930,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           textAlign: 'center',
                           padding: '4px',
                           background: idx === 0 ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
-                          borderRadius: '6px'
+                          borderRadius: '3px'
                         }}>
                           <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginBottom: '2px' }}>{h.hour}</div>
                           <div style={{ fontSize: '14px', marginBottom: '2px' }}>{h.icon}</div>
@@ -1959,7 +1964,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               : alert.severity === 'warning'
                               ? 'rgba(245, 158, 11, 0.15)'
                               : 'rgba(59, 130, 246, 0.15)',
-                            borderRadius: '6px',
+                            borderRadius: '3px',
                             borderLeft: `3px solid ${
                               alert.severity === 'critical' 
                                 ? '#dc2626' 
@@ -1994,7 +1999,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               : alert.severity === 'severe'
                               ? 'rgba(245, 158, 11, 0.15)'
                               : 'rgba(59, 130, 246, 0.15)',
-                            borderRadius: '6px',
+                            borderRadius: '3px',
                             borderLeft: `3px solid ${
                               alert.severity === 'extreme' 
                                 ? '#ef4444' 
@@ -2025,7 +2030,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <div style={{ 
                         padding: '10px 12px', 
                         background: 'rgba(16, 185, 129, 0.1)',
-                        borderRadius: '6px',
+                        borderRadius: '3px',
                         borderLeft: '3px solid #10b981',
                         display: 'flex',
                         alignItems: 'center',
@@ -2083,7 +2088,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <details>
                         <summary>検索結果ログ</summary>
                         {localInfo._debug.laborCosts.searchLogs?.map((log: any, i: number) => (
-                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px' }}>
+                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '2px' }}>
                             <p style={{ fontWeight: '600', fontSize: '12px' }}>クエリ: {log.query}</p>
                             <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                               結果数: {log.resultCount || 0} / 検証済み: {log.verifiedCount || log.results?.length || 0}
@@ -2119,7 +2124,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <details>
                         <summary>検索結果</summary>
                         {localInfo._debug.events.allResults?.map((r: any, i: number) => (
-                          <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px', fontSize: '12px' }}>
+                          <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '2px', fontSize: '12px' }}>
                             <p><strong>{r.title || 'タイトルなし'}</strong></p>
                             <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
                             <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--primary)' }}>
@@ -2142,7 +2147,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <details>
                         <summary>検索結果ログ</summary>
                         {localInfo._debug.infrastructure.searchLogs?.map((log: any, i: number) => (
-                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px' }}>
+                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '2px' }}>
                             <p style={{ fontWeight: '600', fontSize: '12px' }}>クエリ: {log.query}</p>
                             <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                               結果数: {log.resultCount || 0} / 検証済み: {log.verifiedCount || log.results?.length || 0}
@@ -2175,7 +2180,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <details>
                         <summary>検索結果ログ</summary>
                         {localInfo._debug.traffic.searchLogs?.map((log: any, i: number) => (
-                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px' }}>
+                          <div key={i} style={{ marginBottom: '12px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '2px' }}>
                             <p style={{ fontWeight: '600', fontSize: '12px' }}>クエリ: {log.query}</p>
                             <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                               結果数: {log.resultCount || 0} / 検証済み: {log.verifiedCount || log.results?.length || 0}
@@ -2207,7 +2212,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <details>
                         <summary>検索結果</summary>
                         {localInfo._debug.weather.searchResults?.map((r: any, i: number) => (
-                          <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '4px', fontSize: '12px' }}>
+                          <div key={i} style={{ marginBottom: '8px', padding: '8px', background: 'var(--bg-sidebar)', borderRadius: '2px', fontSize: '12px' }}>
                             <p><strong>{r.title || 'タイトルなし'}</strong></p>
                             <p style={{ color: 'var(--text-secondary)' }}>{r.description || '説明なし'}</p>
                             <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--primary)' }}>
@@ -2308,7 +2313,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           padding: '10px 12px',
                           marginBottom: '6px',
                           background: 'var(--bg-main)',
-                          borderRadius: '8px',
+                          borderRadius: '2px',
                           gap: '10px',
                           border: '1px solid var(--border)'
                         }}>
@@ -2346,7 +2351,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               <span style={{ 
                                 fontSize: '9px', 
                                 padding: '2px 6px', 
-                                borderRadius: '4px',
+                                borderRadius: '2px',
                                 background: trend.direction === 'up' ? 'rgba(16,185,129,0.15)' : trend.direction === 'down' ? 'rgba(239,68,68,0.15)' : 'rgba(148,163,184,0.15)',
                                 color: trend.direction === 'up' ? '#10b981' : trend.direction === 'down' ? '#ef4444' : '#64748b',
                                 fontWeight: '600',
@@ -2419,7 +2424,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               padding: '10px 12px',
                               marginBottom: '8px',
                               background: 'var(--bg-main)',
-                              borderRadius: '8px',
+                              borderRadius: '2px',
                               gap: '12px',
                               border: '1px solid var(--border)'
                             }}>
@@ -2456,7 +2461,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   <span style={{ 
                                     fontSize: '10px', 
                                     padding: '2px 6px', 
-                                    borderRadius: '4px',
+                                    borderRadius: '2px',
                                     background: ind.confidence === 'high' ? 'rgba(16,185,129,0.2)' : ind.confidence === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.2)',
                                     color: ind.confidence === 'high' ? 'var(--success)' : ind.confidence === 'medium' ? 'var(--warning)' : 'var(--text-secondary)',
                                     fontWeight: '500'
@@ -2526,7 +2531,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           padding: '10px 12px',
                           marginBottom: '8px',
                           background: 'var(--bg-main)',
-                          borderRadius: '8px',
+                          borderRadius: '2px',
                           gap: '12px',
                           border: '1px solid var(--border)'
                         }}>
@@ -2657,7 +2662,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             padding: '12px',
                             background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
-                            borderRadius: '8px',
+                            borderRadius: '2px',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                             zIndex: 1000,
                             fontSize: '13px',
@@ -2708,7 +2713,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         gap: '0',
                         position: 'relative',
                         background: '#fff',
-                        borderRadius: '12px',
+                        borderRadius: '2px',
                         overflow: 'hidden',
                         border: '2px solid #e2e8f0'
                       }}>
@@ -2808,7 +2813,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <div key={i} style={{ 
                                   padding: '8px 10px',
                                   background: '#d1fae5',
-                                  borderRadius: '4px',
+                                  borderRadius: '2px',
                                   fontSize: '10px',
                                   color: '#065f46',
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
@@ -2857,7 +2862,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <div key={i} style={{ 
                                   padding: '8px 10px',
                                   background: '#fecaca',
-                                  borderRadius: '4px',
+                                  borderRadius: '2px',
                                   fontSize: '10px',
                                   color: '#991b1b',
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
@@ -2906,7 +2911,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <div key={i} style={{ 
                                   padding: '8px 10px',
                                   background: '#bfdbfe',
-                                  borderRadius: '4px',
+                                  borderRadius: '2px',
                                   fontSize: '10px',
                                   color: '#1e40af',
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
@@ -2955,7 +2960,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <div key={i} style={{ 
                                   padding: '8px 10px',
                                   background: '#fde68a',
-                                  borderRadius: '4px',
+                                  borderRadius: '2px',
                                   fontSize: '10px',
                                   color: '#92400e',
                                   boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
@@ -2991,7 +2996,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
                         {/* 想定競合企業分析 */}
                         {swotAnalysis.competitors && swotAnalysis.competitors.length > 0 && (
-                          <div style={{ padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
+                          <div style={{ padding: '12px', background: 'var(--bg-main)', borderRadius: '4px' }}>
                             <h5 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
                               🏢 想定競合企業
                             </h5>
@@ -3003,7 +3008,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <div key={i} style={{ 
                                   padding: '10px 12px', 
                                   background: 'var(--bg-card)', 
-                                  borderRadius: '6px',
+                                  borderRadius: '3px',
                                   border: '1px solid var(--border)',
                                   fontSize: '11px'
                                 }}>
@@ -3015,7 +3020,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       padding: '2px 6px', 
                                       background: 'rgba(99,102,241,0.1)', 
                                       color: '#6366f1',
-                                      borderRadius: '4px'
+                                      borderRadius: '2px'
                                     }}>想定</span>
                                   </div>
                                   <div style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>強み: {c.strength}</div>
@@ -3030,7 +3035,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         
                         {/* SNS・口コミ評判 */}
                         {swotAnalysis.reputation && (
-                          <div style={{ padding: '12px', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <div style={{ padding: '12px', background: 'var(--bg-main)', borderRadius: '2px', border: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                               <div style={{
                                 width: '36px',
@@ -3049,7 +3054,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               </div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                              <div style={{ padding: '8px', background: 'rgba(16,185,129,0.08)', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.15)' }}>
+                              <div style={{ padding: '8px', background: 'rgba(16,185,129,0.08)', borderRadius: '3px', border: '1px solid rgba(16,185,129,0.15)' }}>
                                 <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <span style={{ fontSize: '12px' }}>↑</span> 良い評判
                                 </div>
@@ -3062,7 +3067,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   )
                                 })}
                               </div>
-                              <div style={{ padding: '8px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.15)' }}>
+                              <div style={{ padding: '8px', background: 'rgba(239,68,68,0.08)', borderRadius: '3px', border: '1px solid rgba(239,68,68,0.15)' }}>
                                 <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <span style={{ fontSize: '12px' }}>↓</span> 改善点
                                 </div>
@@ -3076,7 +3081,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 })}
                               </div>
                               {/* 出典一覧 */}
-                              <div style={{ padding: '8px', background: 'rgba(100,116,139,0.05)', borderRadius: '6px', borderTop: '2px solid rgba(100,116,139,0.2)', marginTop: '4px' }}>
+                              <div style={{ padding: '8px', background: 'rgba(100,116,139,0.05)', borderRadius: '3px', borderTop: '2px solid rgba(100,116,139,0.2)', marginTop: '4px' }}>
                                 <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', marginBottom: '6px' }}>
                                   【出典】
                                 </div>
@@ -3115,7 +3120,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       padding: '24px',
                       textAlign: 'center',
                       background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
-                      borderRadius: '12px',
+                      borderRadius: '2px',
                       border: '1px solid #fecaca'
                     }}>
                       <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
@@ -3146,7 +3151,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           background: '#dc2626',
                           color: 'white',
                           border: 'none',
-                          borderRadius: '6px',
+                          borderRadius: '3px',
                           fontSize: '13px',
                           fontWeight: '500',
                           cursor: 'pointer',
@@ -3202,7 +3207,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               >
                 <div style={{
                   background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
-                  borderRadius: '16px',
+                  borderRadius: '2px',
                   padding: '0',
                   boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)',
                   position: 'relative',
@@ -3244,7 +3249,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         width: '40px',
                         height: '40px',
                         background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                        borderRadius: '10px',
+                        borderRadius: '2px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -3271,7 +3276,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '8px',
+                        borderRadius: '2px',
                         fontSize: '11px',
                         fontWeight: '600',
                         cursor: 'pointer',
@@ -3309,7 +3314,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {/* 業界見通しゲージ */}
                       <div style={{
                         background: 'rgba(99, 102, 241, 0.04)',
-                        borderRadius: '12px',
+                        borderRadius: '2px',
                         padding: '16px',
                         border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
@@ -3364,7 +3369,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {/* リスクレベル */}
                       <div style={{
                         background: 'rgba(99, 102, 241, 0.04)',
-                        borderRadius: '12px',
+                        borderRadius: '2px',
                         padding: '16px',
                         border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
@@ -3386,7 +3391,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   <div key={level} style={{
                                     flex: 1,
                                     height: '8px',
-                                    borderRadius: '4px',
+                                    borderRadius: '2px',
                                     background: level <= riskLevel
                                       ? level <= 2 ? '#10b981' : level <= 3 ? '#f59e0b' : '#ef4444'
                                       : 'rgba(99, 102, 241, 0.1)'
@@ -3422,7 +3427,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {/* 成長機会 */}
                       <div style={{
                         background: 'rgba(99, 102, 241, 0.04)',
-                        borderRadius: '12px',
+                        borderRadius: '2px',
                         padding: '16px',
                         border: '1px solid rgba(99, 102, 241, 0.08)'
                       }}>
@@ -3460,7 +3465,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     {industryForecast.indicators && industryForecast.indicators.length > 0 && (
                       <div style={{
                         background: 'rgba(99, 102, 241, 0.04)',
-                        borderRadius: '12px',
+                        borderRadius: '2px',
                         padding: '16px 20px',
                         marginBottom: '20px',
                         border: '1px solid rgba(99, 102, 241, 0.08)',
@@ -3487,7 +3492,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           {industryForecast.indicators.slice(0, 5).map((ind: ForecastIndicator, idx: number) => (
                             <div key={idx} style={{
                               background: 'rgba(99, 102, 241, 0.06)',
-                              borderRadius: '8px',
+                              borderRadius: '2px',
                               padding: '14px 10px',
                               textAlign: 'center'
                             }}>
@@ -3531,7 +3536,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     {industryForecast.recommendation && (
                       <div style={{
                         background: 'linear-gradient(145deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0.02))',
-                        borderRadius: '16px',
+                        borderRadius: '2px',
                         padding: '20px 24px',
                         border: '1px solid rgba(99, 102, 241, 0.12)',
                         marginBottom: '16px'
@@ -3547,7 +3552,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             <div style={{
                               width: '36px',
                               height: '36px',
-                              borderRadius: '10px',
+                              borderRadius: '2px',
                               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                               display: 'flex',
                               alignItems: 'center',
@@ -3572,7 +3577,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             alignItems: 'center',
                             gap: '6px',
                             padding: '5px 12px',
-                            borderRadius: '20px',
+                            borderRadius: '2px',
                             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(249, 115, 22, 0.08))',
                             border: '1px solid rgba(245, 158, 11, 0.25)'
                           }}>
@@ -3676,7 +3681,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 gap: '0',
                                 padding: '16px',
                                 background: cfg.bg,
-                                borderRadius: '12px',
+                                borderRadius: '2px',
                                 border: `1px solid ${cfg.border}`,
                                 transition: 'all 0.25s ease'
                               }}>
@@ -3685,7 +3690,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                   <div style={{
                                     width: '36px',
                                     height: '36px',
-                                    borderRadius: '10px',
+                                    borderRadius: '2px',
                                     background: cfg.iconBg,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -3705,7 +3710,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       {idx === 0 && (
                                         <span style={{
                                           padding: '2px 7px',
-                                          borderRadius: '4px',
+                                          borderRadius: '2px',
                                           background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))',
                                           border: '1px solid rgba(239, 68, 68, 0.25)',
                                           fontSize: '9px',
@@ -3715,7 +3720,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       )}
                                       <span style={{
                                         padding: '2px 7px',
-                                        borderRadius: '4px',
+                                        borderRadius: '2px',
                                         background: effortCfg.support.includes('外部') ? 'rgba(245, 158, 11, 0.12)' : 'rgba(34, 197, 94, 0.12)',
                                         border: `1px solid ${effortCfg.support.includes('外部') ? 'rgba(245, 158, 11, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
                                         fontSize: '9px',
@@ -3739,7 +3744,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                     padding: '10px 14px',
                                     marginBottom: '12px',
                                     background: 'rgba(248, 250, 252, 0.6)',
-                                    borderRadius: '8px',
+                                    borderRadius: '2px',
                                     borderLeft: `3px solid ${cfg.accent}`
                                   }}>
                                     <p style={{
@@ -3754,7 +3759,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 {/* 下段: 四半期ガントチャート */}
                                 <div style={{
                                   background: 'rgba(248, 250, 252, 0.9)',
-                                  borderRadius: '10px',
+                                  borderRadius: '2px',
                                   padding: '12px 14px',
                                   border: '1px solid rgba(148, 163, 184, 0.12)'
                                 }}>
@@ -3791,7 +3796,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       display: 'flex',
                                       height: '28px',
                                       background: 'rgba(226, 232, 240, 0.5)',
-                                      borderRadius: '6px',
+                                      borderRadius: '3px',
                                       overflow: 'hidden',
                                       position: 'relative'
                                     }}>
@@ -3815,7 +3820,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                         top: '4px',
                                         bottom: '4px',
                                         background: `linear-gradient(90deg, ${cfg.barColor}, ${cfg.barColor}dd)`,
-                                        borderRadius: '4px',
+                                        borderRadius: '2px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -3853,7 +3858,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             style={{
                               padding: '10px 14px',
                               background: 'rgba(255, 255, 255, 0.45)',
-                              borderRadius: '10px',
+                              borderRadius: '2px',
                               border: '1px solid rgba(99, 102, 241, 0.15)',
                               display: 'flex',
                               alignItems: 'center',
@@ -3886,14 +3891,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               height: '50%',
                               background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%)',
                               pointerEvents: 'none',
-                              borderRadius: '10px 10px 0 0'
+                              borderRadius: '4px 4px 0 0'
                             }} />
 
                             {/* AIアイコン */}
                             <div style={{
                               width: '26px',
                               height: '26px',
-                              borderRadius: '6px',
+                              borderRadius: '3px',
                               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                               display: 'flex',
                               alignItems: 'center',
@@ -3939,7 +3944,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {industryForecast.shortTerm?.prediction && (
                         <div style={{
                           background: 'rgba(99, 102, 241, 0.04)',
-                          borderRadius: '10px',
+                          borderRadius: '2px',
                           padding: '14px',
                           border: '1px solid rgba(99, 102, 241, 0.08)'
                         }}>
@@ -3971,7 +3976,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                       {industryForecast.midTerm?.prediction && (
                         <div style={{
                           background: 'rgba(99, 102, 241, 0.04)',
-                          borderRadius: '10px',
+                          borderRadius: '2px',
                           padding: '14px',
                           border: '1px solid rgba(99, 102, 241, 0.08)'
                         }}>

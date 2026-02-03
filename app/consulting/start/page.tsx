@@ -377,9 +377,130 @@ const createInitialSessions = (): SessionData[] => [
   },
 ];
 
+/** API相談セッション1件の型 */
+type ApiSession = {
+  id: string;
+  title: string;
+  status: string | null;
+  current_round: number | null;
+  max_rounds: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  completed_at: string | null;
+};
+
+/** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
+function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
+  const sorted = [...apiSessions].sort((a, b) => {
+    const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    return tb - ta;
+  });
+  const maxRounds = 5;
+  return sorted.map((api, index) => {
+    const currentRound = api.current_round ?? 0;
+    const maxR = api.max_rounds ?? maxRounds;
+    const progress = maxR > 0 ? Math.round((currentRound / maxR) * 100) : 0;
+    const statusMap: Record<string, SessionStatus> = {
+      active: "active",
+      completed: "completed",
+      archived: "paused",
+      paused: "paused",
+      cancelled: "cancelled",
+    };
+    const status = statusMap[api.status ?? "active"] ?? "active";
+    const lastUpdated = api.updated_at ? new Date(api.updated_at) : new Date();
+    const createdAt = api.created_at ? new Date(api.created_at) : new Date();
+    const completedAt = api.completed_at ? new Date(api.completed_at) : undefined;
+    const steps: ConsultingStep[] = [
+      { id: 1, title: "課題のヒアリング", icon: <MessageSquare className="w-5 h-5" />, status: currentRound >= 1 ? "completed" : currentRound === 0 ? "active" : "pending" },
+      { id: 2, title: "現状分析", icon: <BarChart3 className="w-5 h-5" />, status: currentRound >= 2 ? "completed" : currentRound === 1 ? "active" : "pending" },
+      { id: 3, title: "解決策の提案", icon: <Lightbulb className="w-5 h-5" />, status: currentRound >= 3 ? "completed" : currentRound === 2 ? "active" : "pending" },
+      { id: 4, title: "実行計画の策定", icon: <Target className="w-5 h-5" />, status: currentRound >= 4 ? "completed" : currentRound === 3 ? "active" : "pending" },
+      { id: 5, title: "レポート作成", icon: <FileText className="w-5 h-5" />, status: currentRound >= 5 ? "completed" : currentRound === 4 ? "active" : "pending" },
+    ];
+    return {
+      id: api.id,
+      name: api.title || "相談",
+      progress,
+      currentStepId: Math.min(currentRound + 1, maxRounds),
+      lastUpdated,
+      createdAt,
+      isPinned: false,
+      isOpen: index < MAX_OPEN_TABS,
+      status,
+      messages: [],
+      kpis: [
+        { label: "月間売上", value: "---", change: "---", trend: "neutral" as const },
+        { label: "顧客数", value: "---", change: "---", trend: "neutral" as const },
+        { label: "平均単価", value: "---", change: "---", trend: "neutral" as const },
+        { label: "リピート率", value: "---", change: "---", trend: "neutral" as const },
+      ],
+      steps,
+      completedAt,
+    };
+  });
+}
+
+/** 新規登録者用: ラベル1つ・進捗0%・左全て初期状態の1セッションのみ */
+function createInitialSessionForNewUser(): SessionData {
+  const now = new Date();
+  return {
+    id: "new-session",
+    name: "新規相談",
+    progress: 0,
+    currentStepId: 1,
+    lastUpdated: now,
+    createdAt: now,
+    isPinned: false,
+    isOpen: true,
+    status: "active",
+    messages: [
+      {
+        id: 1,
+        type: "ai",
+        content: "こんにちは！AIコンサルティングアシスタントです。まず、貴社の現状についてお聞かせください。現在直面している主な課題は何ですか？",
+        timestamp: now,
+        interactive: {
+          type: "category-buttons",
+          data: [
+            { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
+            { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
+            { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
+            { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
+            { label: "DX推進", icon: "Cpu", color: "bg-indigo-500", bgLight: "bg-indigo-50 border-indigo-200" },
+            { label: "セキュリティ強化", icon: "Shield", color: "bg-amber-500", bgLight: "bg-amber-50 border-amber-200" },
+            { label: "クラウド移行", icon: "Cloud", color: "bg-cyan-500", bgLight: "bg-cyan-50 border-cyan-200" },
+            { label: "業務自動化", icon: "Zap", color: "bg-yellow-500", bgLight: "bg-yellow-50 border-yellow-200" },
+            { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
+          ]
+        }
+      },
+    ],
+    kpis: [
+      { label: "月間売上", value: "---", change: "---", trend: "neutral" },
+      { label: "顧客数", value: "---", change: "---", trend: "neutral" },
+      { label: "平均単価", value: "---", change: "---", trend: "neutral" },
+      { label: "リピート率", value: "---", change: "---", trend: "neutral" },
+    ],
+    steps: [
+      { id: 1, title: "課題のヒアリング", icon: <MessageSquare className="w-5 h-5" />, status: "active" },
+      { id: 2, title: "現状分析", icon: <BarChart3 className="w-5 h-5" />, status: "pending" },
+      { id: 3, title: "解決策の提案", icon: <Lightbulb className="w-5 h-5" />, status: "pending" },
+      { id: 4, title: "実行計画の策定", icon: <Target className="w-5 h-5" />, status: "pending" },
+      { id: 5, title: "レポート作成", icon: <FileText className="w-5 h-5" />, status: "pending" },
+    ],
+  };
+}
+
+/** ダッシュボードからStartに来た時の選択: 未選択 / 新規 / 既存 */
+type UserChoice = null | "new" | "existing";
+
 export default function ConsultingStartPage() {
-  const [allSessions, setAllSessions] = useState<SessionData[]>(() => createInitialSessions());
-  const [activeSessionId, setActiveSessionId] = useState<string>("session-1");
+  const [userChoice, setUserChoice] = useState<UserChoice>(null);
+  const [allSessions, setAllSessions] = useState<SessionData[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>("");
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
@@ -404,9 +525,79 @@ export default function ConsultingStartPage() {
   }, [voiceError]);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isExistingLoading, setIsExistingLoading] = useState(false);
   const [stepToNavigate, setStepToNavigate] = useState<number | null>(null);
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [endSessionStatus, setEndSessionStatus] = useState<SessionStatus>("paused");
+
+  const handleChoiceNew = () => {
+    setUserChoice("new");
+    const initial = createInitialSessionForNewUser();
+    setAllSessions([initial]);
+    setActiveSessionId(initial.id);
+  };
+
+  const handleChoiceExisting = async () => {
+    setUserChoice("existing");
+    setIsExistingLoading(true);
+    try {
+      const res = await fetch("/api/consulting/sessions");
+      const data = await res.json().catch(() => ({}));
+      const sessions: ApiSession[] = data.sessions || [];
+      if (sessions.length === 0) {
+        toast.info("相談履歴がありません。新規で開始します。");
+        const initial = createInitialSessionForNewUser();
+        setAllSessions([initial]);
+        setActiveSessionId(initial.id);
+      } else {
+        const mapped = mapApiSessionsToSessionData(sessions);
+        setAllSessions(mapped);
+        setActiveSessionId(mapped[0]?.id ?? "new-session");
+        setIsHistoryOpen(true);
+      }
+    } catch {
+      toast.error("履歴の取得に失敗しました");
+      setUserChoice(null);
+    }
+    setIsExistingLoading(false);
+  };
+
+  // 初回: ラベルは出さない。sessionsLoaded のみ立てて選択UIを表示（APIは既存選択時に取得）
+  useEffect(() => {
+    setSessionsLoaded(true);
+  }, []);
+
+  // 既存セッション（API由来）を選択したときにメッセージを取得
+  const currentSession = useMemo(
+    () => allSessions.find((s) => s.id === activeSessionId) || allSessions[0],
+    [allSessions, activeSessionId]
+  );
+  useEffect(() => {
+    if (!currentSession || currentSession.id === "new-session" || currentSession.messages.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`);
+        if (cancelled || !res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const list: { role: string; content: string; message_order?: number; created_at?: string }[] = data.messages || [];
+        const messages: Message[] = list.map((m, i) => ({
+          id: i + 1,
+          type: m.role === "user" ? "user" : "ai",
+          content: m.content,
+          timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+        }));
+        setAllSessions((prev) =>
+          prev.map((s) =>
+            s.id === currentSession.id ? { ...s, messages } : s
+          )
+        );
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentSession?.id, currentSession?.messages.length]);
 
   // Get sessions to display in tabs (open + recent paused sessions, max 5)
   const displaySessions = useMemo(() => {
@@ -427,11 +618,6 @@ export default function ConsultingStartPage() {
   const openSessions = useMemo(
     () => allSessions.filter((s) => s.isOpen),
     [allSessions]
-  );
-
-  const currentSession = useMemo(
-    () => allSessions.find((s) => s.id === activeSessionId) || allSessions[0],
-    [allSessions, activeSessionId]
   );
 
   const handleSessionChange = (sessionId: string) => {
@@ -809,14 +995,63 @@ export default function ConsultingStartPage() {
     setIsEndingSession(true);
   };
 
-  const confirmEndSession = () => {
+  const confirmEndSession = async () => {
     const now = new Date();
+    const sessionToEnd = allSessions.find(s => s.id === activeSessionId);
+    if (!sessionToEnd) {
+      setIsEndingSession(false);
+      return;
+    }
+
+    const apiStatus = endSessionStatus === "completed" ? "completed" : "archived";
+
+    try {
+      if (sessionToEnd.id === "new-session") {
+        const formData = new FormData();
+        formData.set("title", sessionToEnd.name);
+        formData.set("category", "general");
+        const firstUserMsg = sessionToEnd.messages.find(m => m.type === "user")?.content ?? "";
+        formData.set("initial_message", firstUserMsg || "新規相談を開始");
+        const res = await fetch("/api/consulting/sessions", { method: "POST", body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          const savedId = data.session?.id;
+          if (savedId) {
+            const patchRes = await fetch(`/api/consulting/sessions/${savedId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                status: apiStatus,
+                ...(endSessionStatus === "completed" ? { completed_at: now.toISOString() } : {}),
+              }),
+            });
+            if (!patchRes.ok) {
+              toast.error("ステータスの更新に失敗しました");
+            }
+          }
+        }
+      } else {
+        const patchRes = await fetch(`/api/consulting/sessions/${sessionToEnd.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: apiStatus,
+            ...(endSessionStatus === "completed" ? { completed_at: now.toISOString() } : {}),
+          }),
+        });
+        if (!patchRes.ok) {
+          toast.error("ステータスの更新に失敗しました");
+        }
+      }
+    } catch {
+      toast.error("保存に失敗しました");
+    }
+
     const updates: Partial<SessionData> = {
       isOpen: false,
       lastUpdated: now,
       status: endSessionStatus,
     };
-
     if (endSessionStatus === "completed") {
       updates.progress = 100;
       updates.completedAt = now;
@@ -825,9 +1060,7 @@ export default function ConsultingStartPage() {
     }
 
     setAllSessions(allSessions.map(s =>
-      s.id === activeSessionId
-        ? { ...s, ...updates }
-        : s
+      s.id === activeSessionId ? { ...s, ...updates } : s
     ));
 
     const remainingOpen = openSessions.filter(s => s.id !== activeSessionId);
@@ -838,14 +1071,7 @@ export default function ConsultingStartPage() {
     }
 
     setIsEndingSession(false);
-
-    const statusMessages = {
-      paused: "会話を一時中断しました",
-      completed: "会話を完了しました",
-      cancelled: "会話を中止しました",
-      active: ""
-    };
-    toast.success(statusMessages[endSessionStatus]);
+    toast.success("今日の会話はすべて記憶しました");
   };
 
   const tabSessions: Session[] = displaySessions.map(s => ({
@@ -869,6 +1095,65 @@ export default function ConsultingStartPage() {
     completedAt: s.completedAt,
   }));
 
+  if (!sessionsLoaded) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
+        <p className="text-sm text-gray-500">読み込み中...</p>
+      </div>
+    );
+  }
+
+  // 初回: ラベルは出さず、新規/既存ボタンのみ（左blockの上・幅w-80内・背景付き・やや大きく）
+  if (userChoice === null) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
+        <div className="flex flex-shrink-0 w-full" style={{ maxWidth: "20rem" }}>
+          <div className="flex gap-3 p-4 w-full">
+            <button
+              type="button"
+              onClick={handleChoiceNew}
+              disabled={isExistingLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-4 px-5 rounded-lg font-semibold text-white bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md hover:shadow-lg transition-all text-base min-h-[52px]"
+            >
+              <span>新規</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleChoiceExisting}
+              disabled={isExistingLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-4 px-5 rounded-lg font-semibold text-white bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md hover:shadow-lg transition-all text-base min-h-[52px] disabled:opacity-50"
+            >
+              {isExistingLoading ? (
+                <span className="text-sm">読込中...</span>
+              ) : (
+                <span>既存</span>
+              )}
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+          新規か既存を選んでください
+        </div>
+      </div>
+    );
+  }
+
+  if (userChoice === "existing" && isExistingLoading) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
+        <p className="text-sm text-gray-500">相談履歴を読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (allSessions.length === 0) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
+        <p className="text-sm text-gray-500">読み込み中...</p>
+      </div>
+    );
+  }
+
   const iconMap: Record<string, React.ElementType> = {
     TrendingDown,
     DollarSign,
@@ -883,18 +1168,36 @@ export default function ConsultingStartPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
-      {/* 4rem = AppHeader (h-16) 分。添付画像準拠: 薄いグレー/オフホワイト基調 */}
-      {/* Session Tabs */}
-      <div className="flex-shrink-0">
-        <SessionTabs
-          sessions={tabSessions}
-          activeSessionId={activeSessionId}
-          onSessionChange={handleSessionChange}
-          onSessionClose={handleSessionClose}
-          onNewSession={handleNewSession}
-          onOpenHistory={() => setIsHistoryOpen(true)}
-          onRenameSession={handleRenameSession}
-        />
+      {/* ラベル行: 左block幅内に新規/既存を先頭、その右にタブ＋履歴 */}
+      <div className="flex flex-shrink-0 border-b border-gray-200 bg-white items-stretch">
+        <div className="w-80 flex-shrink-0 flex gap-2 p-2 items-center">
+          <button
+            type="button"
+            onClick={handleNewSession}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-md font-semibold text-white bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-sm text-sm min-h-[44px]"
+          >
+            <span>新規</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-md font-semibold text-white bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-sm text-sm min-h-[44px]"
+          >
+            <span>既存</span>
+          </button>
+        </div>
+        <div className="flex-1 min-w-0">
+          <SessionTabs
+            sessions={tabSessions}
+            activeSessionId={activeSessionId}
+            onSessionChange={handleSessionChange}
+            onSessionClose={handleSessionClose}
+            onNewSession={handleNewSession}
+            onOpenHistory={() => setIsHistoryOpen(true)}
+            onRenameSession={handleRenameSession}
+            noBorder
+          />
+        </div>
       </div>
 
       {/* Session History Panel */}
@@ -1094,45 +1397,22 @@ export default function ConsultingStartPage() {
           </div>
         </aside>
 
-        {/* Center - Chat Area（旧チャット表示と同じ: グラデーション + ドットパターン + サーキット） */}
-        <main className="relative flex-1 flex flex-col min-h-0 overflow-hidden bg-[#F8F9FA]">
-          {/* 旧チャットエリアと同じ背景レイヤー */}
-          <div className="pointer-events-none absolute inset-0 opacity-35 z-0">
+        {/* Center - Chat Area（Local/ダッシュボードと同じ背景: グラデーション + ドット + グロー） */}
+        <main className="relative flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)' }}>
+          <div className="pointer-events-none absolute inset-0 z-0">
             <div
               className="absolute inset-0"
               style={{
-                backgroundImage: 'url(/AI相談画像01.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                opacity: 0.22,
-                filter: 'blur(0.5px)',
+                backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(99, 102, 241, 0.06) 1px, transparent 0)',
+                backgroundSize: '20px 20px',
               }}
             />
             <div
-              className="absolute inset-0"
+              className="absolute -top-[30%] -right-[10%] w-[300px] h-[300px] rounded-full"
               style={{
-                background: 'radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
+                background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08), transparent 70%)',
               }}
             />
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(99, 102, 241, 0.2) 1px, transparent 1px)',
-                backgroundSize: '24px 24px',
-              }}
-            />
-            <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-              <defs>
-                <pattern id="circuit-chat-start" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
-                  <path d="M 0 100 L 50 100 L 50 50 L 100 50" stroke="rgba(99, 102, 241, 0.1)" strokeWidth="2" fill="none"/>
-                  <path d="M 100 150 L 150 150 L 150 100 L 200 100" stroke="rgba(139, 92, 246, 0.1)" strokeWidth="2" fill="none"/>
-                  <circle cx="50" cy="100" r="3" fill="rgba(99, 102, 241, 0.2)"/>
-                  <circle cx="150" cy="150" r="3" fill="rgba(139, 92, 246, 0.2)"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#circuit-chat-start)"/>
-            </svg>
           </div>
           <header className="relative z-10 border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -1418,6 +1698,7 @@ export default function ConsultingStartPage() {
           sessionName={currentSession.name}
           kpis={currentSession.kpis}
           onInsertToChat={(text) => setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
+          showDashboardPrompt={currentSession.name === "新規相談" && currentSession.progress === 0}
         />
       </div>
     </div>

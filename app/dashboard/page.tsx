@@ -24,19 +24,14 @@ export default async function DashboardPage() {
     redirect("/auth/complete-profile")
   }
 
-  // 会社情報を取得
-  const { data: company } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('id', profile.company_id)
-    .single()
+  // 会社情報とサブスクリプションを並列取得
+  const [companyResult, subscriptionResult] = await Promise.all([
+    supabase.from('companies').select('*').eq('id', profile.company_id).single(),
+    supabase.from('subscriptions').select('*').eq('user_id', data.user.id).maybeSingle(),
+  ])
 
-  // サブスクリプション情報を取得
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', data.user.id)
-    .maybeSingle()
+  const company = companyResult.data
+  const subscription = subscriptionResult.data
 
   return <DashboardClient profile={profile} company={company} subscription={subscription} />
 }

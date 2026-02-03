@@ -39,10 +39,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {/* ヘッダーはConditionalHeaderで表示 */}
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+        <div className="bg-white rounded shadow-xl p-8 border border-gray-200">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-sm bg-purple-100 flex items-center justify-center">
                 <Settings className="w-6 h-6 text-purple-600" />
               </div>
               <h1 className="text-3xl font-bold text-gray-900">設定</h1>

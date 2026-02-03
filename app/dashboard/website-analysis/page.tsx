@@ -287,7 +287,7 @@ export default function WebsiteAnalysisPage() {
         {/* ページタイトル */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-sm bg-blue-100 flex items-center justify-center">
               <Globe className="w-6 h-6 text-blue-600" />
             </div>
               <div>
@@ -303,7 +303,7 @@ export default function WebsiteAnalysisPage() {
 
           {/* Loading State */}
           {isLoading && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="bg-white rounded shadow-sm border border-gray-200 p-12 text-center">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
               <p className="text-lg font-medium text-gray-900">会社情報を取得中...</p>
             </div>
@@ -311,7 +311,7 @@ export default function WebsiteAnalysisPage() {
 
           {/* Error */}
           {error && !isLoading && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-4">
+            <div className="bg-red-50 border border-red-200 rounded p-6 flex items-start gap-4">
               <AlertTriangle className="w-6 h-6 text-red-600 mt-0.5" />
               <div>
                 <p className="font-medium text-red-800 text-lg">エラー</p>
@@ -319,7 +319,7 @@ export default function WebsiteAnalysisPage() {
                 {error.includes('設定画面') && (
                   <button
                     onClick={() => router.push('/dashboard/settings')}
-                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-sm hover:bg-red-700 transition-colors"
                   >
                     設定画面へ
                   </button>
@@ -330,7 +330,7 @@ export default function WebsiteAnalysisPage() {
 
           {/* Ready to Analyze - ボタン表示（結果がない時） */}
           {!isLoading && !error && !result && !isAnalyzing && companyUrl && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+            <div className="bg-white rounded shadow-sm border border-gray-200 p-8 text-center">
               <Globe className="w-16 h-16 text-blue-600 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-gray-900 mb-2">Webサイト分析の準備ができました</h2>
               <p className="text-gray-600 mb-6">
@@ -339,7 +339,7 @@ export default function WebsiteAnalysisPage() {
               </p>
               <button
                 onClick={runAnalysis}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-sm hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
               >
                 <Play className="w-4 h-4" />
                 Webサイト分析を開始
@@ -349,7 +349,7 @@ export default function WebsiteAnalysisPage() {
 
           {/* Analyzing State */}
           {isAnalyzing && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="bg-white rounded shadow-sm border border-gray-200 p-8">
               <div className="max-w-2xl mx-auto">
                 <div className="text-center mb-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">Webサイトを分析中...</h3>
@@ -415,7 +415,7 @@ export default function WebsiteAnalysisPage() {
                 <button
                   onClick={runAnalysis}
                   disabled={isAnalyzing}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
                   再分析
@@ -423,7 +423,7 @@ export default function WebsiteAnalysisPage() {
               </div>
 
               {/* Overall Score */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-gray-900">診断結果</h2>
                   <div className="flex items-center gap-4">
@@ -455,31 +455,31 @@ export default function WebsiteAnalysisPage() {
 
               {/* Detailed Metrics */}
               {result.metrics && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">詳細メトリクス</h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-gray-50 rounded-sm">
                       <Smartphone className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.mobileScore)}`} />
                       <div className={`text-2xl font-bold ${getScoreColor(result.metrics.mobileScore)}`}>
                         {result.metrics.mobileScore}
                       </div>
                       <div className="text-sm text-gray-600">モバイル</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-gray-50 rounded-sm">
                       <Zap className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.desktopScore)}`} />
                       <div className={`text-2xl font-bold ${getScoreColor(result.metrics.desktopScore)}`}>
                         {result.metrics.desktopScore}
                       </div>
                       <div className="text-sm text-gray-600">デスクトップ</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-gray-50 rounded-sm">
                       <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.seoScore)}`} />
                       <div className={`text-2xl font-bold ${getScoreColor(result.metrics.seoScore)}`}>
                         {result.metrics.seoScore}
                       </div>
                       <div className="text-sm text-gray-600">SEO</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-gray-50 rounded-sm">
                       <CheckCircle className={`w-8 h-8 mx-auto mb-2 ${getScoreColor(result.metrics.accessibilityScore)}`} />
                       <div className={`text-2xl font-bold ${getScoreColor(result.metrics.accessibilityScore)}`}>
                         {result.metrics.accessibilityScore}
@@ -491,35 +491,35 @@ export default function WebsiteAnalysisPage() {
                   {/* Core Web Vitals */}
                   <h3 className="text-md font-semibold text-gray-800 mb-3">Core Web Vitals</h3>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                    <div className="p-3 border border-gray-200 rounded-lg">
+                    <div className="p-3 border border-gray-200 rounded-sm">
                       <div className="text-xs text-gray-600 mb-1">FCP (初回描画)</div>
                       <div className={`text-lg font-bold ${result.metrics.fcp <= 1800 ? 'text-green-500' : result.metrics.fcp <= 3000 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {(result.metrics.fcp / 1000).toFixed(2)}秒
                       </div>
                       <div className="text-xs text-gray-500">目標: 1.8秒以下</div>
                     </div>
-                    <div className="p-3 border border-gray-200 rounded-lg">
+                    <div className="p-3 border border-gray-200 rounded-sm">
                       <div className="text-xs text-gray-600 mb-1">LCP (最大描画)</div>
                       <div className={`text-lg font-bold ${result.metrics.lcp <= 2500 ? 'text-green-500' : result.metrics.lcp <= 4000 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {(result.metrics.lcp / 1000).toFixed(2)}秒
                       </div>
                       <div className="text-xs text-gray-500">目標: 2.5秒以下</div>
                     </div>
-                    <div className="p-3 border border-gray-200 rounded-lg">
+                    <div className="p-3 border border-gray-200 rounded-sm">
                       <div className="text-xs text-gray-600 mb-1">CLS (シフト)</div>
                       <div className={`text-lg font-bold ${parseFloat(result.metrics.cls) <= 0.1 ? 'text-green-500' : parseFloat(result.metrics.cls) <= 0.25 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {result.metrics.cls}
                       </div>
                       <div className="text-xs text-gray-500">目標: 0.1以下</div>
                     </div>
-                    <div className="p-3 border border-gray-200 rounded-lg">
+                    <div className="p-3 border border-gray-200 rounded-sm">
                       <div className="text-xs text-gray-600 mb-1">TTFB (応答時間)</div>
                       <div className={`text-lg font-bold ${(result.metrics.ttfb || 0) <= 800 ? 'text-green-500' : (result.metrics.ttfb || 0) <= 1800 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {((result.metrics.ttfb || 0) / 1000).toFixed(2)}秒
                       </div>
                       <div className="text-xs text-gray-500">目標: 0.8秒以下</div>
                     </div>
-                    <div className="p-3 border border-gray-200 rounded-lg">
+                    <div className="p-3 border border-gray-200 rounded-sm">
                       <div className="text-xs text-gray-600 mb-1">TBT (ブロック)</div>
                       <div className={`text-lg font-bold ${(result.metrics.tbt || 0) <= 200 ? 'text-green-500' : (result.metrics.tbt || 0) <= 600 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {result.metrics.tbt || 0}ms
@@ -530,11 +530,11 @@ export default function WebsiteAnalysisPage() {
 
                   {/* SSL & Mobile Friendly */}
                   <div className="flex gap-4">
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${result.metrics.hasSSL ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-sm ${result.metrics.hasSSL ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       <Shield className="w-4 h-4" />
                       SSL: {result.metrics.hasSSL ? '対応済み' : '未対応'}
                     </div>
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${result.metrics.isMobileFriendly ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-sm ${result.metrics.isMobileFriendly ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       <Smartphone className="w-4 h-4" />
                       モバイル対応: {result.metrics.isMobileFriendly ? '良好' : '要改善'}
                     </div>
@@ -544,13 +544,13 @@ export default function WebsiteAnalysisPage() {
 
               {/* Issues */}
               {result.topIssues && result.topIssues.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">検出された課題</h2>
                   <div className="space-y-4">
                     {result.topIssues.map((issue, index) => (
                       <div 
                         key={index}
-                        className={`p-4 rounded-lg border ${getSeverityColor(issue.severity)}`}
+                        className={`p-4 rounded-sm border ${getSeverityColor(issue.severity)}`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="mt-0.5">
@@ -581,7 +581,7 @@ export default function WebsiteAnalysisPage() {
               )}
 
               {/* Actions */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded p-6 text-white">
                 <h2 className="text-lg font-bold mb-2">改善のご提案</h2>
                 <p className="text-blue-100 mb-4">
                   検出された課題を解決することで、ユーザー体験の向上と検索順位の改善が期待できます。
@@ -589,7 +589,7 @@ export default function WebsiteAnalysisPage() {
                 </p>
                 <button
                   onClick={handleConsultAboutReport}
-                  className="px-6 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
+                  className="px-6 py-2 bg-white text-blue-600 font-semibold rounded-sm hover:bg-blue-50 transition-colors"
                 >
                   改善について相談する
                 </button>

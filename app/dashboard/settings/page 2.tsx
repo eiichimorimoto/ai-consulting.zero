@@ -52,13 +52,7 @@ export default async function SettingsPage() {
                 <ArrowLeft className="h-6 w-6 text-gray-600" />
               </Link>
               <Link href="/dashboard" className="flex items-center gap-3">
-                <Image
-                  src="/info-data/AI-LOGO001.png"
-                  alt="SolveWise"
-                  width={120}
-                  height={40}
-                  className="h-10 w-auto object-contain"
-                />
+                <img src="/logo.png" alt="SolveWise" width={120} height={40} className="h-10 w-auto object-contain" />
               </Link>
             </div>
             <div className="flex items-center gap-4">

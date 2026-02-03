@@ -56,18 +56,7 @@ export default function CompleteProfilePage() {
     const raw = (fullAddress || "").replace(/[〒]/g, "").trim()
     if (!raw) return { prefecture: "", city: "", street: "" }
 
-    // 1) 郵便番号APIから確定できる都道府県/市区町村がある場合は、それを優先して"残り"を作る
-    if (prefecture && city && raw.startsWith(`${prefecture}${city}`)) {
-      return { prefecture, city, street: raw.slice(`${prefecture}${city}`.length).trim() }
-    }
-    if (prefecture && raw.startsWith(prefecture)) {
-      const rest = raw.slice(prefecture.length)
-      if (city && rest.startsWith(city)) {
-        return { prefecture, city, street: rest.slice(city.length).trim() }
-      }
-    }
-
-    // 2) フォールバック: 住所文字列だけから推定（推測ではなく"単純分割"）
+    // 1) 住所文字列の先頭から都道府県・市区町村を解析（住所が正のときはこれを優先）
     const mPref = raw.match(/^(.*?[都道府県])/)
     const parsedPref = mPref?.[1] || ""
     const afterPref = parsedPref ? raw.slice(parsedPref.length) : raw
@@ -76,9 +65,27 @@ export default function CompleteProfilePage() {
       afterPref.match(/^(.+?(?:市|区|町|村))/)
     const parsedCity = mCity?.[1] || ""
     const afterCity = parsedCity ? afterPref.slice(parsedCity.length) : afterPref
+
+    // 2) 住所文字列の先頭と一致する解析結果があればそれを採用（町名番地以下に都道府県名が含まれる場合の誤分解を防ぐ）
+    const useParsedPref = parsedPref && raw.startsWith(parsedPref)
+    const useParsedCity = parsedCity && afterPref.startsWith(parsedCity)
+    const finalPref = useParsedPref ? parsedPref : (prefecture || parsedPref)
+    const finalCity = useParsedCity ? parsedCity : (city || parsedCity)
+
+    // 3) 既存の prefecture/city と住所文字列の先頭が一致する場合は「残り」だけ返す
+    if (finalPref && finalCity && raw.startsWith(`${finalPref}${finalCity}`)) {
+      return { prefecture: finalPref, city: finalCity, street: raw.slice(`${finalPref}${finalCity}`.length).trim() }
+    }
+    if (finalPref && raw.startsWith(finalPref)) {
+      const rest = raw.slice(finalPref.length)
+      if (finalCity && rest.startsWith(finalCity)) {
+        return { prefecture: finalPref, city: finalCity, street: rest.slice(finalCity.length).trim() }
+      }
+    }
+
     return {
-      prefecture: prefecture || parsedPref,
-      city: city || parsedCity,
+      prefecture: finalPref,
+      city: finalCity,
       street: afterCity.trim(),
     }
   }
@@ -1328,8 +1335,8 @@ export default function CompleteProfilePage() {
     }
   }
 
-  // 都道府県コードから都道府県名を取得
-  const getPrefectureName = (code: string): string => {
+  // 都道府県コードから都道府県名を取得（APIのprefcodeは数値または文字列で返る場合があるため正規化）
+  const getPrefectureName = (code: string | number): string => {
     const prefectureMap: Record<string, string> = {
       '01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城県', '05': '秋田県',
       '06': '山形県', '07': '福島県', '08': '茨城県', '09': '栃木県', '10': '群馬県',
@@ -1342,7 +1349,8 @@ export default function CompleteProfilePage() {
       '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
       '46': '鹿児島県', '47': '沖縄県'
     }
-    return prefectureMap[code] || code
+    const key = String(code).replace(/\D/g, '').padStart(2, '0')
+    return prefectureMap[key] || (typeof code === 'string' ? code : '')
   }
 
   const fetchCompanyIntel = async () => {
@@ -1643,13 +1651,15 @@ export default function CompleteProfilePage() {
       }
       
       let companyId = profile?.company_id
+      let didInsertNewCompany = false
       console.log('📝 現在の会社ID:', companyId)
       const retrievedInfoPayload = companyIntel
         ? companyIntel
         : (companyData.retrievedInfo ? { summary: companyData.retrievedInfo } : null)
       
       if (!companyId) {
-        // 会社を作成
+        // 会社を新規作成（このときだけダッシュボードで「新規」挨拶を出す）
+        didInsertNewCompany = true
         console.log('📝 新しい会社を作成します:', companyData.name)
         
         // DB保存直前に住所を正規化（県・市・町名番地を適切に分割）
@@ -1831,9 +1841,9 @@ export default function CompleteProfilePage() {
         }
       }
       
-      // ダッシュボードにリダイレクト
+      // ダッシュボードにリダイレクト（会社を新規作成したときだけ ?new=1 で「はじめまして！」を出す）
       console.log('✅ 登録完了！ダッシュボードにリダイレクトします')
-      router.push('/dashboard')
+      router.push(didInsertNewCompany ? '/dashboard?new=1' : '/dashboard')
     } catch (error) {
       console.error('Company save error:', error)
       
@@ -2606,7 +2616,16 @@ export default function CompleteProfilePage() {
                   <Input
                     id="address"
                     value={companyData.address}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
+                    onChange={(e) => {
+                        const value = e.target.value
+                        setCompanyData(prev => {
+                          const next = { ...prev, address: value }
+                          const split = splitJapaneseAddressForCompanyForm(value, prev.prefecture, prev.city)
+                          if (split.prefecture && split.prefecture !== prev.prefecture) next.prefecture = split.prefecture
+                          if (split.city && split.city !== prev.city) next.city = split.city
+                          return next
+                        })
+                      }}
                     placeholder="名駅1-1-1 JPタワー名古屋25階"
                   />
                 </div>

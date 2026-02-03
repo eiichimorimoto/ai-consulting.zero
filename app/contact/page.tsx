@@ -1,5 +1,4 @@
 import Link from "next/link"
-import Image from "next/image"
 import { Mail, Send, Home } from "lucide-react"
 
 export default function ContactPage() {
@@ -9,13 +8,7 @@ export default function ContactPage() {
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Link href="/" className="flex items-center gap-3 text-gray-900 hover:opacity-80 transition-opacity">
-            <Image
-              src="/info-data/AI-LOGO001.png"
-              alt="SolveWise Logo"
-              width={40}
-              height={40}
-              className="object-contain"
-            />
+            <img src="/logo.png" alt="SolveWise Logo" width={40} height={40} className="object-contain" />
             <span className="font-light text-xl tracking-wide">SolveWise</span>
           </Link>
         </div>

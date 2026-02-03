@@ -16,6 +16,9 @@
   --text-secondary: #64748B;
   --text-light: #94A3B8;
   --border: #E2E8F0;
+  /* 枠の角丸を控えめに（Start的） */
+  --dashboard-radius: 4px;
+  --dashboard-radius-sm: 2px;
 }
 
 .dashboard {
@@ -65,7 +68,7 @@
   width: 32px;
   height: 32px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,7 +108,7 @@
   color: var(--sidebar-text);
   text-decoration: none;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 2px;
@@ -137,7 +140,7 @@
   color: white;
   font-size: 10px;
   padding: 2px 6px;
-  border-radius: 10px;
+  border-radius: var(--dashboard-radius);
   font-weight: 600;
 }
 
@@ -151,7 +154,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -243,7 +246,7 @@
 .header-btn {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   border: 1px solid var(--border);
   background: white;
   display: flex;
@@ -301,7 +304,7 @@
 
 .welcome-card {
   background: linear-gradient(135deg, var(--primary) 0%, #4338CA 100%);
-  border-radius: 14px;
+  border-radius: var(--dashboard-radius);
   padding: 24px 28px;
   color: white;
   display: flex;
@@ -344,7 +347,7 @@
   gap: 6px;
   background: rgba(255,255,255,0.15);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   font-size: 12px;
 }
 
@@ -358,7 +361,7 @@
   color: var(--primary);
   border: none;
   padding: 14px 24px;
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -378,7 +381,7 @@
   width: 20px;
   height: 20px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -423,7 +426,7 @@
 .refresh-btn {
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   padding: 4px 8px;
   cursor: pointer;
   display: flex;
@@ -447,7 +450,7 @@
 .refresh-btn-small {
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--dashboard-radius-sm);
   padding: 4px;
   cursor: pointer;
   display: flex;
@@ -494,7 +497,7 @@
 
 .market-card {
   background: var(--bg-card);
-  border-radius: 10px;
+  border-radius: var(--dashboard-radius);
   padding: 14px;
   border: 1px solid var(--border);
   transition: all 0.2s;
@@ -523,7 +526,7 @@
 .market-change {
   font-size: 9px;
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: var(--dashboard-radius-sm);
   font-weight: 600;
 }
 
@@ -558,7 +561,7 @@
   background: var(--text-primary);
   color: white;
   padding: 5px 8px;
-  border-radius: 5px;
+  border-radius: var(--dashboard-radius-sm);
   font-size: 10px;
   pointer-events: none;
   opacity: 0;
@@ -588,7 +591,7 @@
 
 .ai-card {
   background: linear-gradient(135deg, var(--primary) 0%, #4338CA 100%);
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   padding: 20px;
   color: white;
   display: flex;
@@ -613,7 +616,7 @@
   width: 48px;
   height: 48px;
   background: rgba(255,255,255,0.2);
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -624,7 +627,7 @@
   position: absolute;
   inset: -4px;
   border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 16px;
+  border-radius: var(--dashboard-radius);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -638,7 +641,7 @@
   display: flex;
   align-items: center;
   background: linear-gradient(to right, var(--bg-sidebar), var(--card-bg));
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   overflow: hidden;
   margin: 16px 0;
   border: 1px solid var(--border-color);
@@ -777,7 +780,7 @@
   padding: 10px 24px;
   background: linear-gradient(135deg, var(--card-bg), var(--bg-main));
   border: 1px solid var(--border-color);
-  border-radius: 24px;
+  border-radius: var(--dashboard-radius);
   margin: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -812,7 +815,7 @@
   color: var(--primary);
   border: none;
   padding: 10px 18px;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
@@ -828,7 +831,7 @@
 
 .history-card {
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   padding: 20px;
   border: 1px solid var(--border);
   display: flex;
@@ -852,7 +855,7 @@
   width: 48px;
   height: 48px;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1));
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -906,7 +909,7 @@
   color: white;
   border: none;
   padding: 10px 18px;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
@@ -929,7 +932,7 @@
 
 .local-card {
   background: var(--bg-card);
-  border-radius: 10px;
+  border-radius: var(--dashboard-radius);
   padding: 14px;
   border: 1px solid var(--border);
   transition: all 0.2s;
@@ -951,7 +954,7 @@
 .local-icon {
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -995,7 +998,7 @@
 .local-change {
   font-size: 9px;
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: var(--dashboard-radius-sm);
   font-weight: 600;
   margin-left: 6px;
 }
@@ -1067,7 +1070,7 @@
 
 .company-profile {
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   padding: 16px 20px;
   border: 1px solid var(--border);
   display: flex;
@@ -1079,7 +1082,7 @@
   width: 44px;
   height: 44px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 10px;
+  border-radius: var(--dashboard-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1134,7 +1137,7 @@
 
 .analysis-card {
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   padding: 16px;
   border: 1px solid var(--border);
   min-width: 0;
@@ -1160,7 +1163,7 @@
 .badge {
   font-size: 9px;
   padding: 3px 7px;
-  border-radius: 4px;
+  border-radius: var(--dashboard-radius-sm);
   font-weight: 600;
 }
 
@@ -1209,7 +1212,7 @@
 
 .swot-item {
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   font-size: 10px;
 }
 
@@ -1247,7 +1250,7 @@
   gap: 8px;
   padding: 8px;
   background: var(--bg-main);
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -1259,7 +1262,7 @@
 .news-tag {
   font-size: 8px;
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: var(--dashboard-radius-sm);
   font-weight: 600;
   white-space: nowrap;
   height: fit-content;
@@ -1298,13 +1301,13 @@
   gap: 10px;
   padding: 8px 10px;
   background: var(--bg-main);
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
 }
 
 .forecast-icon {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1503,7 +1506,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--dashboard-radius-sm);
   transition: all 0.2s;
 }
 
@@ -1532,7 +1535,7 @@
   display: flex;
   gap: 12px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1558,7 +1561,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--dashboard-radius);
   background: var(--bg-sidebar);
 }
 
@@ -1618,7 +1621,7 @@
   border: 1px solid var(--primary);
   color: var(--primary);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--dashboard-radius-sm);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -1642,7 +1645,7 @@
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1666,7 +1669,7 @@
 .debug-btn {
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--dashboard-radius-sm);
   padding: 4px 8px;
   cursor: pointer;
   display: flex;
@@ -1691,7 +1694,7 @@
   max-width: 800px;
   max-height: 90vh;
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--dashboard-radius);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   z-index: 300;
   display: flex;
@@ -1706,7 +1709,7 @@
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-sidebar);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--dashboard-radius) var(--dashboard-radius) 0 0;
 }
 
 .debug-panel-header h3 {
@@ -1728,7 +1731,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--dashboard-radius-sm);
   transition: all 0.2s;
 }
 

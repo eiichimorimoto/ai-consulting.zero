@@ -22,8 +22,13 @@ const notoSansJP = Noto_Sans_JP({ subsets: ['latin'], weight: ['400', '500', '60
 export default function LandingPage() {
   return (
     <LazyMotion features={domAnimation}>
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Hero Section - ClaudeDesign1220デザイン */}
+    <div
+      className="min-h-screen"
+      style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 70%, #1e293b 100%)',
+      }}
+    >
+      {/* Hero Section - LPトップ: 濃い青紫グラデーション + ネットワークパターン */}
       <LandingHero />
 
       {/* Features Section - 未来を変える主な機能 */}

@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation'
 import { Footer } from './footer'
-import Image from 'next/image'
 import Link from 'next/link'
 
 // アプリ部分用のフッター（ロゴ + コピーライト）
@@ -13,13 +12,7 @@ function AppFooter() {
         <div className="flex items-center justify-between">
           {/* ロゴ */}
           <Link href="/dashboard" className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
-            <Image
-              src="/info-data/AI-LOGO007.png"
-              alt="SolveWise"
-              width={24}
-              height={24}
-              className="h-6 w-auto"
-            />
+            <img src="/logo.png" alt="SolveWise" width={24} height={24} className="h-6 w-auto object-contain" />
             <span className="text-sm font-medium text-gray-600">SolveWise</span>
           </Link>
           

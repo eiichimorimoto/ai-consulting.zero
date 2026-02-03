@@ -32,11 +32,12 @@ export default function LandingHeroBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const NUM_PARTICLES = 80;
+    const NUM_PARTICLES = 120;
     const colors = [
       "rgba(6, 182, 212, ",   // シアン
       "rgba(124, 58, 237, ",  // パープル
       "rgba(34, 211, 238, ",  // ライトシアン
+      "rgba(255, 255, 255, ", // 白（星のように）
     ];
 
     // キャンバスリサイズ
@@ -96,15 +97,15 @@ export default function LandingHeroBackground() {
       p.y += (p.baseY - p.y) * 0.01;
     };
 
-    // パーティクル描画
+    // パーティクル描画（LPトップの光る点として視認性を上げる）
     const drawParticle = (p: Particle) => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = p.color + "0.8)";
+      ctx.fillStyle = p.color + "0.95)";
       ctx.fill();
     };
 
-    // 接続線描画
+    // 接続線描画（ネットワーク状の線を明確に）
     const connectParticles = () => {
       const particles = particlesRef.current;
       for (let a = 0; a < particles.length; a++) {
@@ -113,10 +114,10 @@ export default function LandingHeroBackground() {
           const dy = particles[a].y - particles[b].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 120) {
-            const opacity = (1 - distance / 120) * 0.3;
-            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`;
-            ctx.lineWidth = 1;
+          if (distance < 140) {
+            const opacity = (1 - distance / 140) * 0.5;
+            ctx.strokeStyle = `rgba(148, 163, 255, ${opacity})`;
+            ctx.lineWidth = 1.2;
             ctx.beginPath();
             ctx.moveTo(particles[a].x, particles[a].y);
             ctx.lineTo(particles[b].x, particles[b].y);

@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Home } from 'lucide-react'
 
 export default function AuthHeader() {
@@ -10,13 +9,7 @@ export default function AuthHeader() {
       <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/info-data/AI-LOGO007.png"
-              alt="SolveWise"
-              width={40}
-              height={40}
-              className="h-10 w-auto"
-            />
+            <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
             <div>
               <span className="text-lg font-bold text-gray-900">
                 SolveWise

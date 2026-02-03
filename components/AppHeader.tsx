@@ -77,13 +77,7 @@ export default function AppHeader() {
             
             {/* ロゴ（クリックでダッシュボードへ） */}
             <Link href="/dashboard" className="flex items-center gap-3">
-              <Image
-                src="/info-data/AI-LOGO007.png"
-                alt="SolveWise"
-                width={40}
-                height={40}
-                className="h-10 w-auto"
-              />
+              <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
               <div>
                 <span className="text-lg font-bold text-gray-900">
                   SolveWise

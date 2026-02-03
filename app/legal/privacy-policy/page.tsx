@@ -8,11 +8,7 @@ export default function PrivacyPolicyPage() {
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href="/" className="flex items-center gap-3 text-white hover:opacity-80 transition-opacity">
-            <img 
-              src="/info-data/AI-LOGO001.png" 
-              alt="SolveWise" 
-              className="h-10 w-auto"
-            />
+            <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
             <span className="font-semibold text-sm">SolveWise</span>
           </Link>
         </div>

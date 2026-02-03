@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null)
   const router = useRouter()
 
   const supabaseReady = isSupabaseConfigured()
@@ -32,6 +33,7 @@ export default function LoginPage() {
 
     setIsLoading(true)
     setError(null)
+    setLoadingMessage(null)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -39,7 +41,10 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
-      
+
+      setError(null)
+      setLoadingMessage("ログインしました。リダイレクト中...")
+
       // プロファイルが完成しているかチェック
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -169,12 +174,13 @@ export default function LoginPage() {
                     />
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
+                  {loadingMessage && <p className="text-sm text-green-600">{loadingMessage}</p>}
                   <Button
                     type="submit"
                     className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
                     disabled={isLoading || !supabaseReady}
                   >
-                    {isLoading ? "ログイン中..." : "ログイン"}
+                    {isLoading ? (loadingMessage || "ログイン中...") : "ログイン"}
                   </Button>
                 </div>
                 <div className="mt-6 text-center text-sm text-gray-600">

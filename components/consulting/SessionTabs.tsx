@@ -30,6 +30,8 @@ type SessionTabsProps = {
   onNewSession: () => void;
   onOpenHistory: () => void;
   onRenameSession: (sessionId: string, newName: string) => void;
+  /** 親で枠を描く場合に true（二重枠を防ぐ） */
+  noBorder?: boolean;
 };
 
 export default function SessionTabs({
@@ -40,6 +42,7 @@ export default function SessionTabs({
   onNewSession,
   onOpenHistory,
   onRenameSession,
+  noBorder,
 }: SessionTabsProps) {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -71,7 +74,7 @@ export default function SessionTabs({
   };
 
   return (
-    <div className="border-b border-gray-200 bg-white">
+    <div className={noBorder ? "bg-white" : "border-b border-gray-200 bg-white"}>
       <div className="flex items-center gap-1 px-4 pt-2">
         {sessions.map((session) => (
           <button

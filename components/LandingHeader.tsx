@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function LandingHeader() {
   const [isLightMode, setIsLightMode] = useState(false);
@@ -45,13 +44,8 @@ export default function LandingHeader() {
     >
       {/* ロゴ */}
       <Link href="/" className="flex items-center gap-3 no-underline">
-        <Image
-          src="/info-data/AI-LOGO007.png"
-          alt="SolveWise"
-          width={40}
-          height={40}
-          className="h-10 w-auto"
-        />
+        {/* ネイティブimgでVercel静的配信を確実に */}
+        <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
         <div>
           <div
             className={`font-bold text-lg transition-colors duration-300 ${

@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
 import { RIGHT_PANEL } from "@/lib/consulting-ui-tokens";
-import { TrendingUp, Lightbulb, FileText, Upload, Search, BarChart3 } from "lucide-react";
+import { TrendingUp, Lightbulb, FileText, Upload, Search, BarChart3, LayoutDashboard } from "lucide-react";
 import { FilesTab } from "./FilesTab";
 import { BudgetTab } from "./BudgetTab";
 import { SearchTab } from "./SearchTab";
@@ -22,9 +23,11 @@ interface TabbedContextPanelProps {
   sessionName: string;
   kpis: KPI[];
   onInsertToChat?: (text: string) => void;
+  /** 新規登録者時: インサイトはダッシュボードから表示を促す */
+  showDashboardPrompt?: boolean;
 }
 
-export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToChat }: TabbedContextPanelProps) {
+export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToChat, showDashboardPrompt }: TabbedContextPanelProps) {
   const [activeTab, setActiveTab] = useState("insights");
 
   return (
@@ -62,16 +65,31 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
         <TabsContent value="insights" className="flex-1 overflow-y-auto m-0 bg-white">
           <div className="p-6">
             <h3 className="text-sm font-bold text-gray-900 mb-1">インサイト</h3>
-            <p className="text-xs text-gray-600 mb-4">
-              {currentStep === 1 && "情報収集フェーズ"}
-              {currentStep === 2 && "現状分析フェーズ"}
-              {currentStep === 3 && "解決策検討フェーズ"}
-              {currentStep === 4 && "実行計画策定フェーズ"}
-              {currentStep === 5 && "レポート作成フェーズ"}
-            </p>
+            {showDashboardPrompt ? (
+              <div className="space-y-4 mt-4">
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  相談を始める前に、ダッシュボードで貴社の経営状況を確認してください。登録済みの会社情報や業界見通しを踏まえて、より的確なアドバイスをご提供します。
+                </p>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-medium text-gray-900"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-green-600" />
+                  ダッシュボードを開く
+                </Link>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-gray-600 mb-4">
+                  {currentStep === 1 && "情報収集フェーズ"}
+                  {currentStep === 2 && "現状分析フェーズ"}
+                  {currentStep === 3 && "解決策検討フェーズ"}
+                  {currentStep === 4 && "実行計画策定フェーズ"}
+                  {currentStep === 5 && "レポート作成フェーズ"}
+                </p>
 
-            {/* STEP 1: 課題のヒアリング */}
-            {currentStep === 1 && (
+                {/* STEP 1: 課題のヒアリング */}
+                {currentStep === 1 && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
@@ -323,6 +341,8 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
                   </div>
                 </div>
               </div>
+            )}
+              </>
             )}
           </div>
         </TabsContent>
