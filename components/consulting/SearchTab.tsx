@@ -83,7 +83,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       onInsertToChat(insertText);
       toast.success("検索結果をチャットに挿入しました");
     } else {
-      toast.error("チャットへの挿入機能が利用できません");
+      toast.error("挿入できません", { description: "チャットへの挿入機能が利用できません。" });
     }
   };
 
@@ -107,7 +107,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
           size="sm"
           onClick={handleSearch}
           disabled={isSearching || !query.trim()}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs"
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs bg-green-600 hover:bg-green-700 text-white border-0"
         >
           {isSearching ? "検索中..." : "検索"}
         </Button>

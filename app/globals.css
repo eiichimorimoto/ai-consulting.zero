@@ -36,6 +36,25 @@ html {
   background: #94a3b8;
 }
 
+/* Sonner: 通知を右からスライドイン表示 */
+@keyframes sonner-slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+[data-sonner-toast] {
+  animation: sonner-slide-in-right 0.3s ease-out;
+}
+.sonner-toaster-right [data-sonner-toaster] {
+  --width: 380px;
+  max-width: min(var(--width), calc(100vw - 24px));
+}
+
 /* Gradient text */
 .gradient-text {
   background: var(--gradient-primary);

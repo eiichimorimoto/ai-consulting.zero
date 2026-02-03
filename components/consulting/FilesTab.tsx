@@ -122,7 +122,7 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated }: FilesTabPr
         toast.success(`${file.name} をアップロードしました`);
       } catch (error) {
         console.error('File upload error:', error);
-        toast.error(`${file.name} のアップロードに失敗しました`);
+        toast.error("アップロード失敗", { description: `${file.name} のアップロードに失敗しました。` });
       }
     }
 
@@ -135,7 +135,7 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated }: FilesTabPr
 
   const handleGenerateBudget = () => {
     if (!selectedFileForBudget || !selectedFileForBudget.budgetData) {
-      toast.error('ファイルデータが見つかりません');
+      toast.error("予算を生成できません", { description: "ファイルデータが見つかりません。" });
       return;
     }
 
@@ -156,7 +156,7 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated }: FilesTabPr
       setShowGrowthRateDialog(false);
     } catch (error) {
       console.error('Budget generation error:', error);
-      toast.error('予算の生成に失敗しました');
+      toast.error("予算の生成に失敗", { description: "予算の生成に失敗しました。もう一度お試しください。" });
     }
   };
 

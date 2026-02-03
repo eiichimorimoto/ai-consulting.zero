@@ -1,13 +1,13 @@
 'use client';
 
 /* Structured Dialogue Design - Session Tabs
- * Browser-like tab interface for managing multiple consulting sessions
- * Typography: IBM Plex Sans (headings), Inter (body)
+ * 添付画像準拠: アクティブは下に太線（黒塗りしない）、進捗バー見える、ステータスアイコン常時表示
  */
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TAB, BUTTON, STATUS_ICON } from "@/lib/consulting-ui-tokens";
 import { X, Plus, FolderOpen, Pause, CheckCircle2, XCircle } from "lucide-react";
 import { useState } from "react";
 
@@ -18,6 +18,8 @@ export type Session = {
   lastUpdated: Date;
   isActive: boolean;
   status?: "active" | "paused" | "completed" | "cancelled";
+  /** カテゴリー色（左ボーダー用クラス）例: border-l-4 border-l-red-500 */
+  categoryAccent?: string;
 };
 
 type SessionTabsProps = {
@@ -59,42 +61,40 @@ export default function SessionTabs({
     setEditingSessionId(null);
   };
 
+  const getTabClasses = (session: Session) => {
+    const isActive = session.id === activeSessionId;
+    if (isActive) return TAB.active;
+    if (session.status === "paused") return TAB.inactivePaused;
+    if (session.status === "completed") return TAB.inactiveCompleted;
+    if (session.status === "cancelled") return TAB.inactiveCancelled;
+    return TAB.inactive;
+  };
+
   return (
-    <div className="border-b border-border bg-card">
+    <div className="border-b border-gray-200 bg-white">
       <div className="flex items-center gap-1 px-4 pt-2">
         {sessions.map((session) => (
           <button
             key={session.id}
             onClick={() => onSessionChange(session.id)}
-            className={`
-              group relative flex items-center gap-2 px-4 py-2.5 rounded-t-lg
-              transition-all duration-200 min-w-[180px] max-w-[220px]
-              ${
-                session.id === activeSessionId
-                  ? "bg-background text-foreground shadow-sm"
-                  : session.status === "paused"
-                  ? "bg-yellow-500/10 text-muted-foreground hover:bg-yellow-500/20 border border-yellow-500/20"
-                  : session.status === "completed"
-                  ? "bg-green-500/10 text-muted-foreground hover:bg-green-500/20 border border-green-500/20"
-                  : session.status === "cancelled"
-                  ? "bg-gray-500/10 text-muted-foreground hover:bg-gray-500/20 border border-gray-500/20"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
-              }
-            `}
+            className={`group relative flex items-center gap-2 px-4 py-2.5 transition-all duration-200 min-w-[180px] max-w-[220px] ${getTabClasses(session)}`}
           >
-            {/* Active tab indicator */}
-            {session.id === activeSessionId && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            {/* カテゴリー色: 左端のアクセント（指定時のみ） */}
+            {session.categoryAccent && (
+              <span className={`absolute left-0 top-0 bottom-0 w-1 rounded-l ${session.categoryAccent}`} aria-hidden />
             )}
-
             {/* Tab content */}
-            <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-center gap-1.5">
-                {/* Status icon with tooltip */}
+            <div className="flex-1 min-w-0 text-left relative z-0">
+              <div className="flex items-center gap-2">
+                {/* ステータスアイコン: 常に表示（完了/中断/中止が分かる） */}
+                {/* 相談の種類: 一時中断・完了・中止の3種類でアイコン＋ラベル */}
                 {session.status === "paused" && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Pause className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />
+                      <span className="flex-shrink-0 flex items-center gap-1">
+                        <Pause className={`w-4 h-4 ${STATUS_ICON.paused}`} />
+                        <span className="text-xs font-medium text-amber-700">一時中断</span>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
                       <p className="text-xs">一時中断: 後で続きをやる予定</p>
@@ -104,7 +104,10 @@ export default function SessionTabs({
                 {session.status === "completed" && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                      <span className="flex-shrink-0 flex items-center gap-1">
+                        <CheckCircle2 className={`w-4 h-4 ${STATUS_ICON.completed}`} />
+                        <span className="text-xs font-medium text-green-700">完了</span>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
                       <p className="text-xs">完了: 課題が解決しました</p>
@@ -114,12 +117,18 @@ export default function SessionTabs({
                 {session.status === "cancelled" && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <XCircle className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                      <span className="flex-shrink-0 flex items-center gap-1">
+                        <XCircle className={`w-4 h-4 ${STATUS_ICON.cancelled}`} />
+                        <span className="text-xs font-medium text-gray-600">中止</span>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
                       <p className="text-xs">中止: この課題は不要になりました</p>
                     </TooltipContent>
                   </Tooltip>
+                )}
+                {session.status === "active" && session.id !== activeSessionId && (
+                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500" aria-hidden title="進行中" />
                 )}
                 {editingSessionId === session.id ? (
                   <input
@@ -128,15 +137,12 @@ export default function SessionTabs({
                     onChange={(e) => setEditingName(e.target.value)}
                     onBlur={() => handleSaveName(session.id)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSaveName(session.id);
-                      } else if (e.key === "Escape") {
-                        handleCancelEdit();
-                      }
+                      if (e.key === "Enter") handleSaveName(session.id);
+                      else if (e.key === "Escape") handleCancelEdit();
                     }}
                     onClick={(e) => e.stopPropagation()}
                     autoFocus
-                    className="text-sm font-semibold bg-background border border-primary rounded px-1 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="text-sm font-semibold bg-white border border-gray-300 rounded px-1 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-900"
                   />
                 ) : (
                   <span
@@ -147,9 +153,14 @@ export default function SessionTabs({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <Progress value={session.progress} className="h-1 w-12" />
-                <span className="text-xs font-mono text-muted-foreground">{session.progress}%</span>
+              {/* 進捗バー: 必ず見える高さ・緑 */}
+              <div className="flex items-center gap-2 mt-1.5">
+                <Progress
+                  value={session.progress}
+                  className={`${TAB.progressTrack} flex-1 min-w-0`}
+                  indicatorClassName={TAB.progressIndicator}
+                />
+                <span className="text-xs font-mono text-gray-600 flex-shrink-0">{session.progress}%</span>
               </div>
             </div>
 
@@ -159,33 +170,30 @@ export default function SessionTabs({
                 e.stopPropagation();
                 onSessionClose(session.id);
               }}
-              className={`
-                flex-shrink-0 p-1 rounded hover:bg-destructive/10 transition-colors cursor-pointer
-                ${session.id === activeSessionId ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"}
-              `}
+              className="flex-shrink-0 p-1 rounded hover:bg-red-100 transition-colors cursor-pointer opacity-70 hover:opacity-100"
             >
-              <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+              <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
             </div>
           </button>
         ))}
 
-        {/* New session button */}
+        {/* 新規: 見やすいボタン */}
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onNewSession}
-          className="flex items-center gap-1.5 px-3 py-2.5 h-auto text-muted-foreground hover:text-foreground"
+          className={`flex items-center gap-1.5 px-3 py-2.5 h-auto ${BUTTON.tabAction}`}
         >
           <Plus className="w-4 h-4" />
           <span className="text-sm">新規</span>
         </Button>
 
-        {/* History button */}
+        {/* 履歴: タブで開くボタンとして見えるように */}
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onOpenHistory}
-          className="flex items-center gap-1.5 px-3 py-2.5 h-auto text-muted-foreground hover:text-foreground"
+          className={`flex items-center gap-1.5 px-3 py-2.5 h-auto ${BUTTON.tabAction}`}
         >
           <FolderOpen className="w-4 h-4" />
           <span className="text-sm">履歴</span>

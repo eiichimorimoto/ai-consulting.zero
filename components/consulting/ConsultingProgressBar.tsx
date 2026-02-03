@@ -13,15 +13,15 @@ export function ConsultingProgressBar({ currentStep, totalSteps }: ConsultingPro
   const isComplete = currentStep === totalSteps;
 
   return (
-    <div className="space-y-3 p-4 bg-gradient-to-r from-teal-50 to-blue-50 dark:from-teal-950 dark:to-blue-950 rounded-lg border border-teal-200 dark:border-teal-800">
+    <div className="space-y-3 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-teal-700 dark:text-teal-300">
+          <span className="text-sm font-semibold text-slate-400">
             コンサルティング進捗
           </span>
-          {isComplete && <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />}
+          {isComplete && <Trophy className="w-4 h-4 text-yellow-400 animate-bounce" />}
         </div>
-        <span className="text-lg font-bold text-teal-700 dark:text-teal-300">
+        <span className="text-lg font-bold text-slate-400">
           {Math.round(progress)}%
         </span>
       </div>
@@ -29,17 +29,18 @@ export function ConsultingProgressBar({ currentStep, totalSteps }: ConsultingPro
       <div className="relative">
         <Progress
           value={progress}
-          className="h-3 bg-white dark:bg-gray-800"
+          className="h-3 bg-slate-200 dark:bg-slate-700"
+          indicatorClassName="bg-green-500"
         />
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 drop-shadow-sm">
+          <span className="text-[10px] font-semibold text-slate-400 drop-shadow-sm">
             {currentStep}/{totalSteps} STEP
           </span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-teal-600 dark:text-teal-400">
+      <div className="flex items-center justify-between text-xs text-slate-400">
+        <span>
           {isComplete ? (
             <span className="flex items-center gap-1 font-semibold">
               <Trophy className="w-3 h-3" />
@@ -50,7 +51,7 @@ export function ConsultingProgressBar({ currentStep, totalSteps }: ConsultingPro
           )}
         </span>
         {!isComplete && (
-          <span className="text-gray-500 dark:text-gray-400">
+          <span>
             もう少しです！
           </span>
         )}

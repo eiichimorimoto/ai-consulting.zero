@@ -27,13 +27,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowRight, BarChart3, CheckCircle2, FileText, Lightbulb, MessageSquare, Send, Target, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, X, Paperclip, Mic, MicOff } from "lucide-react";
 import { useState, useMemo, useRef, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { celebrateStepCompletion } from "@/lib/utils/confetti";
+import { STEP_STATUS, CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 
 type ConsultingStep = {
   id: number;
@@ -59,6 +60,7 @@ type CategoryData = {
   label: string;
   icon: string;
   color: string;
+  bgLight?: string; // カード背景用の薄い色（ラベル色に合わせる）
 };
 
 type KPI = {
@@ -88,6 +90,19 @@ type SessionData = {
 
 const MAX_OPEN_TABS = 5;
 
+/** セッション名（ラベル）→ タブ左端のカテゴリー色（bg-* クラス） */
+const CATEGORY_ACCENT_MAP: Record<string, string> = {
+  "売上の伸び悩み": "bg-red-500",
+  "コスト削減": "bg-green-500",
+  "新規事業立ち上げ": "bg-blue-500",
+  "組織改革": "bg-purple-500",
+  "その他": "bg-gray-500",
+  "DX推進": "bg-indigo-500",
+  "セキュリティ強化": "bg-amber-500",
+  "クラウド移行": "bg-cyan-500",
+  "業務自動化": "bg-yellow-500",
+};
+
 // Sample session data - includes both open and closed sessions
 const createInitialSessions = (): SessionData[] => [
   {
@@ -109,11 +124,11 @@ const createInitialSessions = (): SessionData[] => [
         interactive: {
           type: "category-buttons",
           data: [
-            { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500" },
-            { label: "コスト削減", icon: "DollarSign", color: "bg-green-500" },
-            { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500" },
-            { label: "組織改革", icon: "Users", color: "bg-purple-500" },
-            { label: "その他", icon: "Edit3", color: "bg-gray-500" }
+            { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
+            { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
+            { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
+            { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
+            { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
           ]
         }
       },
@@ -384,7 +399,7 @@ export default function ConsultingStartPage() {
   // Show voice error as toast
   useEffect(() => {
     if (voiceError) {
-      toast.error(voiceError);
+      toast.error("音声エラー", { description: voiceError });
     }
   }, [voiceError]);
 
@@ -454,7 +469,7 @@ export default function ConsultingStartPage() {
     }
 
     if (openSessions.length === 1) {
-      toast.error("最後のタブは閉じられません");
+      toast.error("タブを閉じられません", { description: "最後の1つは閉じられません。" });
       return;
     }
 
@@ -484,7 +499,7 @@ export default function ConsultingStartPage() {
 
   const handleNewSession = () => {
     if (openSessions.length >= MAX_OPEN_TABS) {
-      toast.error(`タブは最大${MAX_OPEN_TABS}個までです。既存のタブを閉じてください。`);
+      toast.error("タブ数の上限", { description: `タブは${MAX_OPEN_TABS}個までです。いずれかを閉じてから新規を開いてください。` });
       return;
     }
 
@@ -509,15 +524,15 @@ export default function ConsultingStartPage() {
           interactive: {
             type: "category-buttons",
             data: [
-              { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500" },
-              { label: "コスト削減", icon: "DollarSign", color: "bg-green-500" },
-              { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500" },
-              { label: "組織改革", icon: "Users", color: "bg-purple-500" },
-              { label: "DX推進", icon: "Cpu", color: "bg-indigo-500" },
-              { label: "セキュリティ強化", icon: "Shield", color: "bg-amber-500" },
-              { label: "クラウド移行", icon: "Cloud", color: "bg-cyan-500" },
-              { label: "業務自動化", icon: "Zap", color: "bg-yellow-500" },
-              { label: "その他", icon: "Edit3", color: "bg-gray-500" }
+              { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
+              { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
+              { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
+              { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
+              { label: "DX推進", icon: "Cpu", color: "bg-indigo-500", bgLight: "bg-indigo-50 border-indigo-200" },
+              { label: "セキュリティ強化", icon: "Shield", color: "bg-amber-500", bgLight: "bg-amber-50 border-amber-200" },
+              { label: "クラウド移行", icon: "Cloud", color: "bg-cyan-500", bgLight: "bg-cyan-50 border-cyan-200" },
+              { label: "業務自動化", icon: "Zap", color: "bg-yellow-500", bgLight: "bg-yellow-50 border-yellow-200" },
+              { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
             ]
           }
         },
@@ -577,7 +592,7 @@ export default function ConsultingStartPage() {
     }
 
     if (openSessions.length >= MAX_OPEN_TABS) {
-      toast.error(`タブは最大${MAX_OPEN_TABS}個までです。既存のタブを閉じてください。`);
+      toast.error("タブ数の上限", { description: `タブは${MAX_OPEN_TABS}個までです。いずれかを閉じてから開いてください。` });
       return;
     }
 
@@ -596,7 +611,7 @@ export default function ConsultingStartPage() {
 
   const handleDeleteSession = (sessionId: string) => {
     if (allSessions.length === 1) {
-      toast.error("最後のセッションは削除できません");
+      toast.error("削除できません", { description: "最後の1件は削除できません。" });
       return;
     }
 
@@ -760,7 +775,7 @@ export default function ConsultingStartPage() {
     } else if (step.status === "active") {
       return;
     } else {
-      toast.info("このステップはまだ完了していません");
+      toast.info("ステップ未完了", { description: "このステップはまだ完了していません。" });
     }
   };
 
@@ -840,6 +855,7 @@ export default function ConsultingStartPage() {
     lastUpdated: s.lastUpdated,
     isActive: s.id === activeSessionId,
     status: s.status,
+    categoryAccent: CATEGORY_ACCENT_MAP[s.name],
   }));
 
   const historyItems: SessionHistoryItem[] = allSessions.map(s => ({
@@ -866,7 +882,8 @@ export default function ConsultingStartPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
+      {/* 4rem = AppHeader (h-16) 分。添付画像準拠: 薄いグレー/オフホワイト基調 */}
       {/* Session Tabs */}
       <div className="flex-shrink-0">
         <SessionTabs
@@ -892,33 +909,42 @@ export default function ConsultingStartPage() {
         onRenameSession={handleRenameSession}
       />
 
-      {/* Step Navigation Confirmation Dialog */}
+      {/* Step Navigation Confirmation Dialog（背景・文字・ボタンを明示して見やすく） */}
       <AlertDialog open={stepToNavigate !== null} onOpenChange={() => setStepToNavigate(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 shadow-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>ステップに戻りますか？</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-gray-900 dark:text-slate-100 text-lg font-semibold">
+              ステップに戻りますか？
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
               STEP {stepToNavigate} に戻ると、現在の進捗が変更されます。よろしいですか？
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmStepNavigation}>戻る</AlertDialogAction>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmStepNavigation}
+              className="bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
+            >
+              戻る
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* End Session Confirmation Dialog */}
+      {/* End Session Confirmation Dialog（背景・文字を明示して透明化を防止） */}
       <AlertDialog open={isEndingSession} onOpenChange={setIsEndingSession}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="max-w-md bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 shadow-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>会話を終了しますか？</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-gray-900 dark:text-slate-100">会話を終了しますか？</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-slate-300">
               この会話をどのように終了しますか？
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4 space-y-3">
-            <label className="flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:bg-accent" htmlFor="status-paused">
+            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50/50 dark:bg-slate-800/50" htmlFor="status-paused">
               <input
                 type="radio"
                 id="status-paused"
@@ -929,11 +955,11 @@ export default function ConsultingStartPage() {
                 className="mt-1"
               />
               <div className="flex-1">
-                <div className="font-semibold text-sm">一時中断</div>
-                <div className="text-xs text-muted-foreground mt-1">後で続きをやる予定です</div>
+                <div className="font-semibold text-sm text-gray-900 dark:text-slate-100">一時中断</div>
+                <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">後で続きをやる予定です</div>
               </div>
             </label>
-            <label className="flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:bg-accent" htmlFor="status-completed">
+            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50/50 dark:bg-slate-800/50" htmlFor="status-completed">
               <input
                 type="radio"
                 id="status-completed"
@@ -944,11 +970,11 @@ export default function ConsultingStartPage() {
                 className="mt-1"
               />
               <div className="flex-1">
-                <div className="font-semibold text-sm">完了</div>
-                <div className="text-xs text-muted-foreground mt-1">課題が解決しました</div>
+                <div className="font-semibold text-sm text-gray-900 dark:text-slate-100">完了</div>
+                <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">課題が解決しました</div>
               </div>
             </label>
-            <label className="flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:bg-accent" htmlFor="status-cancelled">
+            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50/50 dark:bg-slate-800/50" htmlFor="status-cancelled">
               <input
                 type="radio"
                 id="status-cancelled"
@@ -959,14 +985,14 @@ export default function ConsultingStartPage() {
                 className="mt-1"
               />
               <div className="flex-1">
-                <div className="font-semibold text-sm">中止</div>
-                <div className="text-xs text-muted-foreground mt-1">この課題は不要になりました</div>
+                <div className="font-semibold text-sm text-gray-900 dark:text-slate-100">中止</div>
+                <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">この課題は不要になりました</div>
               </div>
             </label>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmEndSession}>
+            <AlertDialogCancel className="text-gray-700 dark:text-slate-300">キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmEndSession} className="bg-red-600 hover:bg-red-700 text-white">
               終了する
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -975,14 +1001,14 @@ export default function ConsultingStartPage() {
 
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left Sidebar - Steps Navigation */}
-        <aside className="w-80 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
-          <div className="p-6 border-b border-sidebar-border">
-            <h1 className="text-xl font-bold text-sidebar-foreground">{currentSession.name}</h1>
-            <p className="text-sm text-sidebar-foreground/70 mt-1">構造化された対話体験</p>
+        {/* Left Sidebar - Steps Navigation（画像準拠: ダークブルー/チャコール） */}
+        <aside className="w-80 bg-slate-800 text-slate-100 border-r border-slate-700 flex flex-col min-h-0">
+          <div className="p-6 border-b border-slate-700 flex-shrink-0">
+            <h1 className="text-xl font-bold text-slate-100">{currentSession.name}</h1>
+            <p className="text-sm text-slate-400 mt-1">構造化された対話体験</p>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 flex-shrink-0">
             <ConsultingProgressBar
               currentStep={currentSession.currentStepId}
               totalSteps={currentSession.steps.length}
@@ -1001,33 +1027,33 @@ export default function ConsultingStartPage() {
                         onClick={() => handleStepClick(step.id)}
                         disabled={!isClickable && step.status !== "active"}
                         className={`w-full flex items-start gap-3 p-4 rounded-lg text-left transition-all ${step.status === "active"
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                            ? "bg-slate-100 border border-slate-200 shadow-sm"
                             : step.status === "completed"
-                              ? "bg-sidebar-accent/50 text-sidebar-foreground/80 hover:bg-sidebar-accent/70 cursor-pointer"
-                              : "text-sidebar-foreground/50 cursor-not-allowed"
+                              ? "bg-slate-100/90 border border-slate-200 hover:bg-slate-200 cursor-pointer"
+                              : "bg-slate-100/50 border border-slate-200 cursor-not-allowed opacity-75"
                           }`}
                       >
-                        <div className={`mt-0.5 ${step.status === "completed" ? "text-primary" : ""}`}>
+                        <div className={`mt-0.5 flex-shrink-0 ${step.status === "completed" ? STEP_STATUS.completedIcon : STEP_STATUS.pendingIcon}`}>
                           {step.status === "completed" ? <CheckCircle2 className="w-5 h-5" /> : step.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-sidebar-foreground/50">STEP {index + 1}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono text-gray-900 font-medium">STEP {index + 1}</span>
                             {step.status === "active" && (
-                              <Badge variant="default" className="text-xs px-2 py-0">進行中</Badge>
+                              <span className={STEP_STATUS.activeBadge}>進行中</span>
                             )}
                             {step.status === "completed" && (
-                              <Badge variant="secondary" className="text-xs px-2 py-0">完了</Badge>
+                              <span className={STEP_STATUS.completedBadge}>完了</span>
                             )}
                           </div>
-                          <p className="font-semibold text-sm mt-1">{step.title}</p>
+                          <p className="font-semibold text-sm mt-1 text-gray-900">{step.title}</p>
 
                           {step.summary && step.summary.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {step.summary.slice(0, 3).map((item, idx) => (
                                 <div key={idx} className="flex items-start gap-1.5">
-                                  <div className="w-1 h-1 rounded-full bg-sidebar-foreground/40 mt-1.5 flex-shrink-0" />
-                                  <p className="text-xs text-sidebar-foreground/60 leading-relaxed">{item}</p>
+                                  <div className="w-1 h-1 rounded-full bg-gray-500 mt-1.5 flex-shrink-0" />
+                                  <p className="text-xs text-gray-600 leading-relaxed">{item}</p>
                                 </div>
                               ))}
                             </div>
@@ -1046,19 +1072,19 @@ export default function ConsultingStartPage() {
             </nav>
           </div>
 
-          <div className="p-4 border-t border-sidebar-border space-y-2 flex-shrink-0">
+          <div className="p-4 border-t border-slate-700 space-y-2 flex-shrink-0">
             <Button
               variant="outline"
-              className="w-full"
+              className={`w-full ${BUTTON.leftPanel}`}
               size="sm"
-              onClick={() => toast.info("レポートエクスポート機能は準備中です")}
+              onClick={() => toast.info("準備中", { description: "レポートエクスポート機能は準備中です。" })}
             >
               <FileText className="w-4 h-4 mr-2" />
               レポートをエクスポート
             </Button>
             <Button
               variant="destructive"
-              className="w-full"
+              className={`w-full ${BUTTON.danger}`}
               size="sm"
               onClick={handleEndSession}
             >
@@ -1068,24 +1094,62 @@ export default function ConsultingStartPage() {
           </div>
         </aside>
 
-        {/* Center - Chat Area */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <header className="border-b border-border bg-card px-6 py-4">
+        {/* Center - Chat Area（旧チャット表示と同じ: グラデーション + ドットパターン + サーキット） */}
+        <main className="relative flex-1 flex flex-col min-h-0 overflow-hidden bg-[#F8F9FA]">
+          {/* 旧チャットエリアと同じ背景レイヤー */}
+          <div className="pointer-events-none absolute inset-0 opacity-35 z-0">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: 'url(/AI相談画像01.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                opacity: 0.22,
+                filter: 'blur(0.5px)',
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: 'radial-gradient(circle, rgba(99, 102, 241, 0.2) 1px, transparent 1px)',
+                backgroundSize: '24px 24px',
+              }}
+            />
+            <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+              <defs>
+                <pattern id="circuit-chat-start" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+                  <path d="M 0 100 L 50 100 L 50 50 L 100 50" stroke="rgba(99, 102, 241, 0.1)" strokeWidth="2" fill="none"/>
+                  <path d="M 100 150 L 150 150 L 150 100 L 200 100" stroke="rgba(139, 92, 246, 0.1)" strokeWidth="2" fill="none"/>
+                  <circle cx="50" cy="100" r="3" fill="rgba(99, 102, 241, 0.2)"/>
+                  <circle cx="150" cy="150" r="3" fill="rgba(139, 92, 246, 0.2)"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#circuit-chat-start)"/>
+            </svg>
+          </div>
+          <header className="relative z-10 border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-foreground">
+                <h2 className="text-lg font-bold text-gray-900">
                   {currentSession.steps.find(s => s.status === "active")?.title || "課題のヒアリング"}
                 </h2>
-                <p className="text-sm text-muted-foreground">貴社の現状を詳しく分析しています</p>
+                <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
               </div>
-              <Badge variant="secondary" className="text-xs">
-                <div className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse" />
+              <Badge variant="secondary" className="text-xs flex items-center gap-2 bg-white border border-gray-200 text-gray-700">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
                 AI応答中
               </Badge>
             </div>
           </header>
 
-          <ScrollArea className="flex-1 h-0 max-h-full p-6">
+          <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6">
             <div ref={chatScrollRef} className="max-w-3xl mx-auto space-y-6">
               {currentSession.messages.map((message) => (
                 <div
@@ -1101,8 +1165,8 @@ export default function ConsultingStartPage() {
                   <div className={`max-w-[80%] ${message.type === "user" ? "order-2" : "order-1"}`}>
                     <div
                       className={`rounded-lg p-4 ${message.type === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card text-card-foreground border border-border shadow-sm"
+                          ? CHAT.userBubble
+                          : CHAT.aiBubble
                         }`}
                     >
                       <p className="text-sm leading-relaxed">{message.content}</p>
@@ -1116,12 +1180,12 @@ export default function ConsultingStartPage() {
                               <button
                                 key={idx}
                                 onClick={() => handleQuickReply(category.label, true)}
-                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border hover:border-primary bg-card hover:bg-accent transition-all group"
+                                className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all group ${category.bgLight ?? "bg-card border-border hover:bg-accent"} hover:opacity-90`}
                               >
                                 <div className={`${category.color} text-white p-2 rounded-full group-hover:scale-110 transition-transform`}>
                                   {IconComponent && <IconComponent className="w-4 h-4" />}
                                 </div>
-                                <span className="text-xs font-medium text-center leading-tight">{category.label}</span>
+                                <span className="text-xs font-medium text-center leading-tight text-gray-900">{category.label}</span>
                               </button>
                             );
                           })}
@@ -1206,7 +1270,7 @@ export default function ConsultingStartPage() {
                               <label className="text-xs text-muted-foreground mb-1 block">目標月間売上</label>
                               <Input placeholder="例: 18,000,000" className="text-sm" />
                             </div>
-                            <Button size="sm" className="w-full mt-2">
+                            <Button size="sm" className={`w-full mt-2 ${BUTTON.primary}`}>
                               送信
                               <Send className="w-3 h-3 ml-2" />
                             </Button>
@@ -1227,9 +1291,9 @@ export default function ConsultingStartPage() {
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
 
-          <footer className="flex-shrink-0 border-t border-border bg-card p-4">
+          <footer className="relative z-10 flex-shrink-0 border-t border-gray-200 bg-white p-4">
             <div className="max-w-3xl mx-auto">
               {attachedFiles.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
@@ -1301,12 +1365,12 @@ export default function ConsultingStartPage() {
                 >
                   <Paperclip className="w-4 h-4" />
                 </Button>
-                <Input
+                <Textarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                   placeholder={isListening ? "音声入力中..." : "メッセージを入力..."}
-                  className="flex-1"
+                  className="flex-1 min-h-[80px] max-h-[200px] py-3 px-3 text-base resize-y !bg-slate-50 dark:!bg-slate-100 border-gray-200"
+                  rows={3}
                   disabled={isListening}
                 />
                 <VoiceSettingsDialog
@@ -1326,7 +1390,7 @@ export default function ConsultingStartPage() {
                           resetTranscript();
                           setInputValue('');
                           startListening();
-                          toast.info('音声入力を開始しました');
+                          toast.info('音声入力開始', { description: '音声入力を開始しました。' });
                         }
                       }}
                       size="icon"
@@ -1340,7 +1404,7 @@ export default function ConsultingStartPage() {
                     <p>{isListening ? '音声入力を停止' : '音声入力を開始'}</p>
                   </TooltipContent>
                 </Tooltip>
-                <Button onClick={handleSendMessage} size="icon" disabled={isListening}>
+                <Button onClick={handleSendMessage} size="icon" disabled={isListening} className={BUTTON.primary}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>

@@ -6,6 +6,7 @@ import ConditionalHeader from "@/components/ConditionalHeader"
 import ConditionalFooter from "@/components/ConditionalFooter"
 import FloatingDiagnosis from "@/components/FloatingDiagnosis"
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -70,6 +71,7 @@ export default function RootLayout({
         <ConditionalFooter />
         <FloatingDiagnosis />
         <Toaster />
+        <SonnerToaster position="top-right" expand richColors closeButton className="sonner-toaster-right" />
       </body>
     </html>
   )
