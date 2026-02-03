@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { Bot, User, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { format } from 'date-fns'
@@ -30,7 +30,7 @@ function formatContentWithBoldHeadings(content: string) {
     
     // 【】で囲まれた部分を太字化
     const boldPattern = /【([^】]+)】/g
-    const parts: (string | JSX.Element)[] = []
+    const parts: (string | ReactNode)[] = []
     let lastIndex = 0
     let match
     
