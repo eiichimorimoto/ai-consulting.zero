@@ -497,10 +497,10 @@ function createInitialSessionForNewUser(): SessionData {
 type UserChoice = null | "new" | "existing";
 
 export default function ConsultingStartPage() {
-  const [userChoice, setUserChoice] = useState<UserChoice>(null);
-  const [allSessions, setAllSessions] = useState<SessionData[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>("");
-  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [userChoice, setUserChoice] = useState<UserChoice>("new");
+  const [allSessions, setAllSessions] = useState<SessionData[]>(() => [createInitialSessionForNewUser()]);
+  const [activeSessionId, setActiveSessionId] = useState<string>("new-session");
+  const [sessionsLoaded, setSessionsLoaded] = useState(true);
   const [inputValue, setInputValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
@@ -561,11 +561,6 @@ export default function ConsultingStartPage() {
     }
     setIsExistingLoading(false);
   };
-
-  // 初回: ラベルは出さない。sessionsLoaded のみ立てて選択UIを表示（APIは既存選択時に取得）
-  useEffect(() => {
-    setSessionsLoaded(true);
-  }, []);
 
   // 既存セッション（API由来）を選択したときにメッセージを取得
   const currentSession = useMemo(
@@ -1101,57 +1096,6 @@ export default function ConsultingStartPage() {
     completedAt: s.completedAt,
   }));
 
-  if (!sessionsLoaded) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
-        <p className="text-sm text-gray-500">読み込み中...</p>
-      </div>
-    );
-  }
-
-  // 初回: ラベルは出さず、新規/既存ボタンのみ（左blockの上・幅w-80内・背景付き・やや大きく）
-  if (userChoice === null) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
-        <div className="flex flex-shrink-0 w-full" style={{ maxWidth: "20rem" }}>
-          <div className="flex gap-3 p-4 w-full">
-            <button
-              type="button"
-              onClick={handleChoiceNew}
-              disabled={isExistingLoading}
-              className="flex-1 flex items-center justify-center gap-2 py-4 px-5 rounded-lg font-semibold text-white bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md hover:shadow-lg transition-all text-base min-h-[52px]"
-            >
-              <span>新規</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleChoiceExisting}
-              disabled={isExistingLoading}
-              className="flex-1 flex items-center justify-center gap-2 py-4 px-5 rounded-lg font-semibold text-white bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md hover:shadow-lg transition-all text-base min-h-[52px] disabled:opacity-50"
-            >
-              {isExistingLoading ? (
-                <span className="text-sm">読込中...</span>
-              ) : (
-                <span>既存</span>
-              )}
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
-          新規か既存を選んでください
-        </div>
-      </div>
-    );
-  }
-
-  if (userChoice === "existing" && isExistingLoading) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
-        <p className="text-sm text-gray-500">相談履歴を読み込み中...</p>
-      </div>
-    );
-  }
-
   if (allSessions.length === 0 || !currentSession) {
     return (
       <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
@@ -1174,22 +1118,23 @@ export default function ConsultingStartPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
-      {/* ラベル行: 左block幅内に新規/既存を先頭、その右にタブ＋履歴 */}
-      <div className="flex flex-shrink-0 border-b border-gray-200 bg-white items-stretch">
+      {/* ラベル行: 左block幅内に新規/既存（ガラス風）、その右にタブ＋履歴 */}
+      <div className="flex flex-shrink-0 border-b border-gray-200 bg-white/80 backdrop-blur-sm items-stretch">
         <div className="w-80 flex-shrink-0 flex gap-2 p-2 items-center">
           <button
             type="button"
             onClick={handleNewSession}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-md font-semibold text-white bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-sm text-sm min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-emerald-700 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
           >
             <span>新規</span>
           </button>
           <button
             type="button"
-            onClick={() => setIsHistoryOpen(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-md font-semibold text-white bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-sm text-sm min-h-[44px]"
+            onClick={() => (userChoice === "existing" ? setIsHistoryOpen(true) : handleChoiceExisting())}
+            disabled={isExistingLoading}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-indigo-700 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <span>既存</span>
+            {isExistingLoading ? <span className="text-sm">読込中...</span> : <span>既存</span>}
           </button>
         </div>
         <div className="flex-1 min-w-0">
