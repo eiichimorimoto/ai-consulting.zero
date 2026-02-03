@@ -144,9 +144,21 @@ export default function SessionHistoryPanel({
             return (
               <>
                 <div className="flex-shrink-0 mt-0.5" aria-hidden>
-                  {status === "paused" && <Pause className={`w-4 h-4 ${STATUS_ICON.paused}`} title="一時中断" />}
-                  {status === "completed" && <CheckCircle2 className={`w-4 h-4 ${STATUS_ICON.completed}`} title="完了" />}
-                  {status === "cancelled" && <XCircle className={`w-4 h-4 ${STATUS_ICON.cancelled}`} title="中止" />}
+                  {status === "paused" && (
+                    <span title="一時中断">
+                      <Pause className={`w-4 h-4 ${STATUS_ICON.paused}`} />
+                    </span>
+                  )}
+                  {status === "completed" && (
+                    <span title="完了">
+                      <CheckCircle2 className={`w-4 h-4 ${STATUS_ICON.completed}`} />
+                    </span>
+                  )}
+                  {status === "cancelled" && (
+                    <span title="中止">
+                      <XCircle className={`w-4 h-4 ${STATUS_ICON.cancelled}`} />
+                    </span>
+                  )}
                   {status === "active" && <span className="w-2.5 h-2.5 rounded-full bg-green-500 block" title="進行中" />}
                 </div>
                 <div className="flex-1 min-w-0">
