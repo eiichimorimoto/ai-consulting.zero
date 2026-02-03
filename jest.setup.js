@@ -1,4 +1,5 @@
 // Jest setup for API route testing (Node environment)
+import '@testing-library/jest-dom';
 
 // Mock環境変数（テスト用）
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'

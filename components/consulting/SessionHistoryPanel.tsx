@@ -134,10 +134,10 @@ export default function SessionHistoryPanel({
 
     return (
       <div
-        className={`group p-4 rounded-lg transition-all cursor-pointer ${cardBorder}`}
+        className={`group p-4 rounded-lg transition-all cursor-pointer break-words min-w-0 overflow-visible ${cardBorder}`}
         onDoubleClick={() => onOpenSession(session.id)}
       >
-        <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-start justify-between gap-2 mb-2 min-w-0">
           {/* ステータス: 常に表示（active / paused / completed / cancelled、未設定時は進行中として表示） */}
           {(() => {
             const status = session.status ?? "active";
@@ -190,7 +190,7 @@ export default function SessionHistoryPanel({
                       />
                     ) : (
                       <h4
-                        className="text-sm font-semibold truncate cursor-text text-gray-900"
+                        className="text-sm font-semibold break-words cursor-text text-gray-900"
                         onDoubleClick={(e) => {
                           e.stopPropagation();
                           setEditingSessionId(session.id);
@@ -332,7 +332,7 @@ export default function SessionHistoryPanel({
 
       {/* Panel（添付画像に合わせた色：白基調・緑アクセント・グレー） */}
       <div
-        className="fixed top-0 right-0 bottom-0 w-[400px] z-50 flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-200 shadow-xl bg-white"
+        className="fixed top-0 right-0 bottom-0 w-[300px] z-50 flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-200 shadow-xl bg-white"
         role="dialog"
         aria-labelledby="session-history-title"
       >
@@ -406,9 +406,9 @@ export default function SessionHistoryPanel({
           </div>
         </div>
 
-        {/* Content（白背景） */}
+        {/* Content（白背景・枠内で折り返して全文表示） */}
         <ScrollArea className="flex-1 min-h-0">
-          <div className="p-6 bg-white min-h-full">
+          <div className="p-6 bg-white min-h-full min-w-0 break-words">
             {filteredSessions.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-sm text-gray-600 dark:text-slate-400">該当する相談が見つかりませんでした</p>

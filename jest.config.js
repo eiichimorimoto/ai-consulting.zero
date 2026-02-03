@@ -9,7 +9,7 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const config = {
   coverageProvider: 'v8',
-  // Use 'node' for API routes, 'jsdom' for React components
+  // Use 'node' for API routes, 'jsdom' for React components (set per-file via docblock)
   testEnvironment: 'node',
   // Add more setup options before each test is run
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

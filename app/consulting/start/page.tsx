@@ -497,9 +497,9 @@ function createInitialSessionForNewUser(): SessionData {
 type UserChoice = null | "new" | "existing";
 
 export default function ConsultingStartPage() {
-  const [userChoice, setUserChoice] = useState<UserChoice>("new");
-  const [allSessions, setAllSessions] = useState<SessionData[]>(() => [createInitialSessionForNewUser()]);
-  const [activeSessionId, setActiveSessionId] = useState<string>("new-session");
+  const [userChoice, setUserChoice] = useState<UserChoice>(null);
+  const [allSessions, setAllSessions] = useState<SessionData[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [sessionsLoaded, setSessionsLoaded] = useState(true);
   const [inputValue, setInputValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -594,9 +594,9 @@ export default function ConsultingStartPage() {
     return () => { cancelled = true; };
   }, [currentSession?.id, currentSession?.messages?.length]);
 
-  // Get sessions to display in tabs (open + recent paused sessions, max 5)
+  // Get sessions to display in tabs (open + recent paused, max 5). 完了はラベルに表示しない
   const displaySessions = useMemo(() => {
-    const open = allSessions.filter((s) => s.isOpen);
+    const open = allSessions.filter((s) => s.isOpen && s.status !== "completed");
 
     if (open.length < MAX_OPEN_TABS) {
       const paused = allSessions
@@ -872,8 +872,9 @@ export default function ConsultingStartPage() {
   };
 
   useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    const el = chatScrollRef.current;
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, [currentSession?.messages]);
 
@@ -1096,7 +1097,7 @@ export default function ConsultingStartPage() {
     completedAt: s.completedAt,
   }));
 
-  if (allSessions.length === 0 || !currentSession) {
+  if (userChoice !== null && (allSessions.length === 0 || !currentSession)) {
     return (
       <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
         <p className="text-sm text-gray-500">読み込み中...</p>
@@ -1118,37 +1119,39 @@ export default function ConsultingStartPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
-      {/* ラベル行: 左block幅内に新規/既存（ガラス風）、その右にタブ＋履歴 */}
+      {/* ラベル行: userChoice===null はラベル表示なし（新規/既存のみ）。それ以外はタブ（既存時は直近4つ）＋履歴 */}
       <div className="flex flex-shrink-0 border-b border-gray-200 bg-white/80 backdrop-blur-sm items-stretch">
         <div className="w-80 flex-shrink-0 flex gap-2 p-2 items-center">
           <button
             type="button"
-            onClick={handleNewSession}
+            onClick={userChoice === null ? handleChoiceNew : handleNewSession}
             className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-emerald-700 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
           >
             <span>新規</span>
           </button>
           <button
             type="button"
-            onClick={() => (userChoice === "existing" ? setIsHistoryOpen(true) : handleChoiceExisting())}
+            onClick={userChoice === null ? handleChoiceExisting : () => (userChoice === "existing" ? setIsHistoryOpen(true) : handleChoiceExisting())}
             disabled={isExistingLoading}
             className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-indigo-700 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isExistingLoading ? <span className="text-sm">読込中...</span> : <span>既存</span>}
           </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <SessionTabs
-            sessions={tabSessions}
-            activeSessionId={activeSessionId}
-            onSessionChange={handleSessionChange}
-            onSessionClose={handleSessionClose}
-            onNewSession={handleNewSession}
-            onOpenHistory={() => setIsHistoryOpen(true)}
-            onRenameSession={handleRenameSession}
-            noBorder
-          />
-        </div>
+        {userChoice !== null && (
+          <div className="flex-1 min-w-0">
+            <SessionTabs
+              sessions={userChoice === "existing" ? tabSessions.slice(0, 4) : tabSessions}
+              activeSessionId={activeSessionId}
+              onSessionChange={handleSessionChange}
+              onSessionClose={handleSessionClose}
+              onNewSession={handleNewSession}
+              onOpenHistory={() => setIsHistoryOpen(true)}
+              onRenameSession={handleRenameSession}
+              noBorder
+            />
+          </div>
+        )}
       </div>
 
       {/* Session History Panel */}
@@ -1348,7 +1351,7 @@ export default function ConsultingStartPage() {
           </div>
         </aside>
 
-        {/* Center - Chat Area（Local/ダッシュボードと同じ背景: グラデーション + ドット + グロー） */}
+        {/* Center - Chat Area。userChoice===null は真っ新（ラベルなし・メッセージなし）。両サイドblockはそのまま */}
         <main className="relative flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)' }}>
           <div className="pointer-events-none absolute inset-0 z-0">
             <div
@@ -1365,6 +1368,10 @@ export default function ConsultingStartPage() {
               }}
             />
           </div>
+          {userChoice === null ? (
+            <div className="relative z-10 flex-1 min-h-0" aria-hidden />
+          ) : (
+            <>
           <header className="relative z-10 border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -1641,6 +1648,8 @@ export default function ConsultingStartPage() {
               </div>
             </div>
           </footer>
+            </>
+          )}
         </main>
 
         {/* Right Sidebar - Dynamic Context Panel */}
