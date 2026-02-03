@@ -597,7 +597,7 @@ export default function ConsultingStartPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [currentSession?.id, currentSession?.messages.length]);
+  }, [currentSession?.id, currentSession?.messages?.length]);
 
   // Get sessions to display in tabs (open + recent paused sessions, max 5)
   const displaySessions = useMemo(() => {
