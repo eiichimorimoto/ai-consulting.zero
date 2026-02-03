@@ -14,7 +14,7 @@ export function Header() {
       <div className="w-full" style={{ paddingLeft: '19px', paddingRight: '19px' }}>
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
+            <img src={`/logo.png?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? '1'}`} alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
             <div>
               <span className="text-lg font-bold text-gray-900">
                 SolveWise

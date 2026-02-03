@@ -35,7 +35,7 @@ export function ChatView({ messages, isTyping = false }: ChatViewProps) {
         <div 
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/AI相談画像01.png)',
+            backgroundImage: 'url(/consulting-bg.png)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',

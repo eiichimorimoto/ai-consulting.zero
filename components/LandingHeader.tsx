@@ -42,10 +42,9 @@ export default function LandingHeader() {
         }
       `}
     >
-      {/* ロゴ */}
+      {/* ロゴ（キャッシュバスティングでVercel反映を確実に） */}
       <Link href="/" className="flex items-center gap-3 no-underline">
-        {/* ネイティブimgでVercel静的配信を確実に */}
-        <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
+        <img src={`/logo.png?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? '1'}`} alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
         <div>
           <div
             className={`font-bold text-lg transition-colors duration-300 ${

@@ -9,10 +9,10 @@ export default function LandingHero() {
         background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #1e293b 100%)',
       }}
     >
-      {/* 背景画像（ごく薄く） */}
+      {/* 背景画像（ごく薄く・ASCII名でVercel確実配信） */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-[0.07]"
-        style={{ backgroundImage: 'url(/LP画像002.jpg)' }}
+        style={{ backgroundImage: 'url(/lp-bg.jpg)' }}
       />
       {/* ネットワーク・星パターン（点と線） */}
       <LandingHeroBackground />
