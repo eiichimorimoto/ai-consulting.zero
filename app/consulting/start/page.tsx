@@ -573,7 +573,7 @@ export default function ConsultingStartPage() {
     [allSessions, activeSessionId]
   );
   useEffect(() => {
-    if (!currentSession || currentSession.id === "new-session" || currentSession.messages.length > 0) return;
+    if (!currentSession || currentSession.id === "new-session" || (currentSession?.messages?.length ?? 0) > 0) return;
     let cancelled = false;
     (async () => {
       try {
@@ -822,6 +822,7 @@ export default function ConsultingStartPage() {
   };
 
   const handleSendMessage = async () => {
+    if (!currentSession) return;
     if (!inputValue.trim() && attachedFiles.length === 0) return;
 
     let messageContent = inputValue;
@@ -831,8 +832,9 @@ export default function ConsultingStartPage() {
       messageContent += attachedFiles.length > 0 ? `\n\n添付ファイル: ${fileNames}` : "";
     }
 
+    const msgLen = currentSession?.messages?.length ?? 0;
     const newMessage: Message = {
-      id: currentSession.messages.length + 1,
+      id: msgLen + 1,
       type: "user",
       content: messageContent,
       timestamp: new Date(),
@@ -840,7 +842,7 @@ export default function ConsultingStartPage() {
 
     setAllSessions(allSessions.map(s =>
       s.id === activeSessionId
-        ? { ...s, messages: [...s.messages, newMessage], lastUpdated: new Date() }
+        ? { ...s, messages: [...(s.messages ?? []), newMessage], lastUpdated: new Date() }
         : s
     ));
     setInputValue("");
@@ -850,7 +852,7 @@ export default function ConsultingStartPage() {
     // Simulate AI response
     setTimeout(() => {
       const aiResponse: Message = {
-        id: currentSession.messages.length + 2,
+        id: msgLen + 2,
         type: "ai",
         content: "ご入力ありがとうございます。内容を分析しています。詳しい情報があれば、より具体的な提案が可能です。",
         timestamp: new Date(),
@@ -858,7 +860,7 @@ export default function ConsultingStartPage() {
 
       setAllSessions(prevSessions => prevSessions.map(s =>
         s.id === activeSessionId
-          ? { ...s, messages: [...s.messages, aiResponse], lastUpdated: new Date() }
+          ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
           : s
       ));
     }, 1000);
@@ -878,11 +880,13 @@ export default function ConsultingStartPage() {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [currentSession.messages]);
+  }, [currentSession?.messages]);
 
   const handleQuickReply = (reply: string, isCategory: boolean = false) => {
+    if (!currentSession) return;
+    const msgLen = currentSession?.messages?.length ?? 0;
     const newMessage: Message = {
-      id: currentSession.messages.length + 1,
+      id: msgLen + 1,
       type: "user",
       content: reply,
       timestamp: new Date(),
@@ -893,7 +897,7 @@ export default function ConsultingStartPage() {
         ? {
           ...s,
           name: s.name === "新規相談" ? reply : s.name,
-          messages: [...s.messages, newMessage],
+          messages: [...(s.messages ?? []), newMessage],
           lastUpdated: new Date()
         }
         : s
@@ -914,7 +918,7 @@ export default function ConsultingStartPage() {
 
         const subcategories = subcategoryMap[reply] || [];
         const aiResponse: Message = {
-          id: currentSession.messages.length + 2,
+          id: msgLen + 2,
           type: "ai",
           content: `「${reply}」についてですね。さらに詳しくお聞かせください。具体的にはどのような課題でしょうか？`,
           timestamp: new Date(),
@@ -927,14 +931,14 @@ export default function ConsultingStartPage() {
 
         setAllSessions(prevSessions => prevSessions.map(s =>
           s.id === activeSessionId
-            ? { ...s, messages: [...s.messages, aiResponse], lastUpdated: new Date() }
+            ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
             : s
         ));
       }, 800);
     } else if (reply === "その他") {
       setTimeout(() => {
         const aiResponse: Message = {
-          id: currentSession.messages.length + 2,
+          id: msgLen + 2,
           type: "ai",
           content: "承知しました。どのような課題でしょうか？自由に入力してください。",
           timestamp: new Date(),
@@ -945,7 +949,7 @@ export default function ConsultingStartPage() {
 
         setAllSessions(prevSessions => prevSessions.map(s =>
           s.id === activeSessionId
-            ? { ...s, messages: [...s.messages, aiResponse], lastUpdated: new Date() }
+            ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
             : s
         ));
       }, 800);
@@ -953,7 +957,8 @@ export default function ConsultingStartPage() {
   };
 
   const handleStepClick = (stepId: number) => {
-    const step = currentSession.steps.find(s => s.id === stepId);
+    if (!currentSession) return;
+    const step = currentSession?.steps?.find(s => s.id === stepId);
     if (!step) return;
 
     if (step.status === "completed") {
@@ -981,7 +986,8 @@ export default function ConsultingStartPage() {
   const previousCompletedStepsRef = useRef(0);
 
   useEffect(() => {
-    const completedSteps = currentSession.steps.filter(s => s.status === 'completed').length;
+    const steps = currentSession?.steps ?? [];
+    const completedSteps = steps.filter(s => s.status === 'completed').length;
 
     if (completedSteps > previousCompletedStepsRef.current && previousCompletedStepsRef.current > 0) {
       celebrateStepCompletion();
@@ -989,7 +995,7 @@ export default function ConsultingStartPage() {
     }
 
     previousCompletedStepsRef.current = completedSteps;
-  }, [currentSession.steps]);
+  }, [currentSession?.steps]);
 
   const handleEndSession = () => {
     setIsEndingSession(true);
@@ -1010,7 +1016,7 @@ export default function ConsultingStartPage() {
         const formData = new FormData();
         formData.set("title", sessionToEnd.name);
         formData.set("category", "general");
-        const firstUserMsg = sessionToEnd.messages.find(m => m.type === "user")?.content ?? "";
+        const firstUserMsg = sessionToEnd.messages?.find(m => m.type === "user")?.content ?? "";
         formData.set("initial_message", firstUserMsg || "新規相談を開始");
         const res = await fetch("/api/consulting/sessions", { method: "POST", body: formData });
         if (res.ok) {
@@ -1146,7 +1152,7 @@ export default function ConsultingStartPage() {
     );
   }
 
-  if (allSessions.length === 0) {
+  if (allSessions.length === 0 || !currentSession) {
     return (
       <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
         <p className="text-sm text-gray-500">読み込み中...</p>
@@ -1307,20 +1313,20 @@ export default function ConsultingStartPage() {
         {/* Left Sidebar - Steps Navigation（画像準拠: ダークブルー/チャコール） */}
         <aside className="w-80 bg-slate-800 text-slate-100 border-r border-slate-700 flex flex-col min-h-0">
           <div className="p-6 border-b border-slate-700 flex-shrink-0">
-            <h1 className="text-xl font-bold text-slate-100">{currentSession.name}</h1>
+            <h1 className="text-xl font-bold text-slate-100">{currentSession?.name ?? "相談"}</h1>
             <p className="text-sm text-slate-400 mt-1">構造化された対話体験</p>
           </div>
 
           <div className="p-6 space-y-4 flex-shrink-0">
             <ConsultingProgressBar
-              currentStep={currentSession.currentStepId}
-              totalSteps={currentSession.steps.length}
+              currentStep={currentSession?.currentStepId ?? 1}
+              totalSteps={currentSession?.steps?.length ?? 0}
             />
           </div>
 
           <div className="flex-1 overflow-y-auto px-6">
             <nav className="space-y-2 pb-6">
-              {currentSession.steps.map((step, index) => {
+              {(currentSession?.steps ?? []).map((step, index) => {
                 const isClickable = step.status === "completed";
 
                 return (
@@ -1418,7 +1424,7 @@ export default function ConsultingStartPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">
-                  {currentSession.steps.find(s => s.status === "active")?.title || "課題のヒアリング"}
+                  {currentSession?.steps?.find(s => s.status === "active")?.title || "課題のヒアリング"}
                 </h2>
                 <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
               </div>
@@ -1431,7 +1437,7 @@ export default function ConsultingStartPage() {
 
           <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6">
             <div ref={chatScrollRef} className="max-w-3xl mx-auto space-y-6">
-              {currentSession.messages.map((message) => (
+              {(currentSession?.messages ?? []).map((message) => (
                 <div
                   key={message.id}
                   className={`flex gap-3 ${message.type === "user" ? "justify-end" : "justify-start"}`}
@@ -1694,11 +1700,11 @@ export default function ConsultingStartPage() {
 
         {/* Right Sidebar - Dynamic Context Panel */}
         <TabbedContextPanel
-          currentStep={currentSession.currentStepId}
-          sessionName={currentSession.name}
-          kpis={currentSession.kpis}
+          currentStep={currentSession?.currentStepId ?? 1}
+          sessionName={currentSession?.name ?? "相談"}
+          kpis={currentSession?.kpis ?? []}
           onInsertToChat={(text) => setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
-          showDashboardPrompt={currentSession.name === "新規相談" && currentSession.progress === 0}
+          showDashboardPrompt={(currentSession?.name === "新規相談") && (currentSession?.progress === 0)}
         />
       </div>
     </div>
