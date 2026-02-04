@@ -33,9 +33,10 @@ interface BudgetDataItem {
 interface FilesTabProps {
   onBudgetDataImported?: (data: BudgetDataItem[]) => void;
   onBudgetGenerated?: (data: BudgetDataItem[]) => void;
+  attachedFiles?: File[];
 }
 
-export function FilesTab({ onBudgetDataImported, onBudgetGenerated }: FilesTabProps) {
+export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFiles = [] }: FilesTabProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -206,13 +207,41 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated }: FilesTabPr
       {/* Uploaded Files List */}
       <div className="mt-6">
         <h4 className="text-xs font-semibold text-muted-foreground mb-3">
-          アップロード済みファイル ({files.length})
+          アップロード済みファイル ({files.length + attachedFiles.length})
         </h4>
 
-        {files.length === 0 ? (
+        {files.length === 0 && attachedFiles.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">ファイルがありません</p>
         ) : (
           <div className="space-y-2">
+            {/* チャットエリアから添付されたファイル */}
+            {attachedFiles.map((file, index) => (
+              <Card key={`attached-${index}`} className="border-border/50 bg-blue-50/50">
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <FileText className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(file.size)} • チャットから添付
+                      </p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => {/* TODO: Preview */}}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {/* FilesTabから直接アップロードされたファイル */}
             {files.map(file => (
               <Card key={file.id} className="border-border/50">
                 <CardContent className="p-3">

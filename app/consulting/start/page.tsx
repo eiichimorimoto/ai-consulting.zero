@@ -466,6 +466,7 @@ export default function ConsultingStartPage() {
             kpis={session.currentSession?.kpis ?? []}
             onInsertToChat={(text) => message.setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
             showDashboardPrompt={(session.currentSession?.name === "新規相談") && (session.currentSession?.progress === 0)}
+            attachedFiles={file.attachedFiles}
           />
         </aside>
       </div>

@@ -25,9 +25,10 @@ interface TabbedContextPanelProps {
   onInsertToChat?: (text: string) => void;
   /** 新規登録者時: インサイトはダッシュボードから表示を促す */
   showDashboardPrompt?: boolean;
+  attachedFiles?: File[];
 }
 
-export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToChat, showDashboardPrompt }: TabbedContextPanelProps) {
+export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToChat, showDashboardPrompt, attachedFiles = [] }: TabbedContextPanelProps) {
   const [activeTab, setActiveTab] = useState("insights");
 
   return (
@@ -355,6 +356,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
         {/* Files Tab */}
         <TabsContent value="files" className="flex-1 overflow-y-auto m-0 bg-white">
           <FilesTab
+            attachedFiles={attachedFiles}
             onBudgetDataImported={(data) => {
               console.log('Budget data imported:', data);
             }}
