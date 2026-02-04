@@ -217,37 +217,42 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
   };
 
   return (
-    <div className="p-6">
-      <h3 className="text-sm font-bold text-foreground mb-1">検索</h3>
-      <p className="text-xs text-muted-foreground mb-4">Web検索で情報を調べる</p>
+    <div className="flex flex-col h-full">
+      <div className="p-6 pb-4 flex-shrink-0">
+        <h3 className="text-sm font-bold text-foreground mb-1">検索</h3>
+        <p className="text-xs text-muted-foreground mb-4">Web検索で情報を調べる</p>
 
-      {/* Search Bar */}
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="キーワードを入力..."
-          className="w-full pl-10 pr-20 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-        />
-        <Button
-          size="sm"
-          onClick={handleSearch}
-          disabled={isSearching || !query.trim()}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white border-0"
-        >
-          {isSearching ? (
-            <>
-              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-              検索中...
-            </>
-          ) : (
-            "検索"
-          )}
-        </Button>
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="キーワードを入力..."
+            className="w-full pl-10 pr-20 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+          />
+          <Button
+            size="sm"
+            onClick={handleSearch}
+            disabled={isSearching || !query.trim()}
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white border-0"
+          >
+            {isSearching ? (
+              <>
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                検索中...
+              </>
+            ) : (
+              "検索"
+            )}
+          </Button>
+        </div>
       </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6"
 
       {/* Error Display */}
       {error && (
@@ -329,10 +334,10 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
                     href={result.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline flex items-center gap-1 flex-shrink-0 ml-2"
+                    className="text-blue-600 hover:text-blue-700 flex-shrink-0 ml-2"
+                    title="別タブで開く"
                   >
-                    別タブで開く
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-4 h-4" />
                   </a>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -413,13 +418,14 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
         </Card>
       )}
 
-      {/* Empty State */}
-      {results.length === 0 && !isSearching && !summary && query === "" && searchHistory.length === 0 && (
-        <div className="text-center py-12">
-          <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">検索結果がここに表示されます</p>
-        </div>
-      )}
+        {/* Empty State */}
+        {results.length === 0 && !isSearching && !summary && query === "" && searchHistory.length === 0 && (
+          <div className="text-center py-12">
+            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">検索結果がここに表示されます</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
