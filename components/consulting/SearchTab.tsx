@@ -26,6 +26,8 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [searchSource, setSearchSource] = useState<'google' | 'brave' | null>(null);
+  const [fallbackInfo, setFallbackInfo] = useState<string | null>(null);
 
   // 検索履歴をlocalStorageから読み込み
   useEffect(() => {
@@ -102,6 +104,14 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       
       if (result.success && result.results) {
         setResults(result.results);
+        setSearchSource(result.source || 'brave');
+        
+        // フォールバック情報があれば保存
+        if (result.fallback) {
+          setFallbackInfo(result.fallback.reason);
+        } else {
+          setFallbackInfo(null);
+        }
         
         // 検索履歴に追加
         if (!searchHistory.includes(query)) {
@@ -110,7 +120,16 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
           localStorage.setItem('searchHistory', JSON.stringify(newHistory));
         }
         
-        toast.success(`${result.results.length}件の検索結果が見つかりました`);
+        // 検索ソースに応じたトーストメッセージ
+        const sourceText = result.source === 'google' ? 'Google' : 'Brave Search';
+        toast.success(`${sourceText}で${result.results.length}件の検索結果が見つかりました`);
+        
+        // フォールバック通知
+        if (result.fallback) {
+          toast.info(`${result.fallback.reason}のため、${sourceText}を使用しました`, {
+            duration: 5000
+          });
+        }
       } else {
         throw new Error(result.error || '検索に失敗しました');
       }
@@ -284,9 +303,21 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       {/* Search Results */}
       {results.length > 0 && !summary && (
         <div className="space-y-3 mb-6">
-          <h4 className="text-xs font-semibold text-muted-foreground">
-            検索結果 ({results.length}件)
-          </h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold text-muted-foreground">
+              検索結果 ({results.length}件)
+            </h4>
+            {searchSource && (
+              <span className="text-xs text-muted-foreground">
+                {searchSource === 'google' ? '🔍 Google' : '🦁 Brave Search'}
+              </span>
+            )}
+          </div>
+          {fallbackInfo && (
+            <div className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+              ℹ️ {fallbackInfo}
+            </div>
+          )}
           {results.map((result, idx) => (
             <Card key={idx} className="border-border/50">
               <CardContent className="p-4">
