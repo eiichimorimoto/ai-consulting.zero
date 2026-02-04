@@ -47,6 +47,9 @@ import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { celebrateStepCompletion } from "@/lib/utils/confetti";
 import { STEP_STATUS, CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
+import { useConsultingSession } from "@/hooks/useConsultingSession";
+import { useMessageHandlers } from "@/hooks/useMessageHandlers";
+import { useFileAttachment } from "@/hooks/useFileAttachment";
 
 /** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
 function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
@@ -146,25 +149,46 @@ function createInitialSessionForNewUser(): SessionData {
 type UserChoice = null | "new" | "existing";
 
 export default function ConsultingStartPage() {
-  const [userChoice, setUserChoice] = useState<UserChoice>(null);
-  const [allSessions, setAllSessions] = useState<SessionData[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>("");
-  const [sessionsLoaded, setSessionsLoaded] = useState(true);
-  const [inputValue, setInputValue] = useState("");
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  // カスタムhook: セッション管理
+  const session = useConsultingSession({
+    onInputValueChange: (value) => {
+      // inputValueの変更通知用（messageハンドラーと連携）
+    },
+    createInitialSessionForNewUser,
+    mapApiSessionsToSessionData,
+  });
+
+  // カスタムhook: ファイル添付
+  const file = useFileAttachment();
+
+  // Voice input（resetTranscriptが必要なため先に初期化）
+  const { isListening, transcript, startListening, stopListening, resetTranscript, error: voiceError, enableAICorrection, setEnableAICorrection } = useVoiceInput();
+
+  // カスタムhook: メッセージ処理
+  const message = useMessageHandlers({
+    currentSession: session.currentSession,
+    activeSessionId: session.activeSessionId,
+    allSessions: session.allSessions,
+    setAllSessions: session.setAllSessions,
+    attachedFiles: file.attachedFiles,
+    clearFiles: file.clearFiles,
+    resetTranscript,
+  });
+
+  // session.handleSessionChange に inputValue クリアを連携
+  const handleSessionChangeWithClear = (sessionId: string) => {
+    session.handleSessionChange(sessionId);
+    message.setInputValue("");
+  };
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Voice input
-  const { isListening, transcript, startListening, stopListening, resetTranscript, error: voiceError, enableAICorrection, setEnableAICorrection } = useVoiceInput();
 
   // Update input value when transcript changes
   useEffect(() => {
     if (transcript) {
-      setInputValue(transcript);
+      message.setInputValue(transcript);
     }
-  }, [transcript]);
+  }, [transcript, message]);
 
   // Show voice error as toast
   useEffect(() => {
@@ -173,548 +197,25 @@ export default function ConsultingStartPage() {
     }
   }, [voiceError]);
 
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isExistingLoading, setIsExistingLoading] = useState(false);
-  const [stepToNavigate, setStepToNavigate] = useState<number | null>(null);
-  const [isEndingSession, setIsEndingSession] = useState(false);
-  const [endSessionStatus, setEndSessionStatus] = useState<SessionStatus>("paused");
-
-  const handleChoiceNew = () => {
-    setUserChoice("new");
-    const initial = createInitialSessionForNewUser();
-    setAllSessions([initial]);
-    setActiveSessionId(initial.id);
-  };
-
-  const handleChoiceExisting = async () => {
-    setUserChoice("existing");
-    setIsExistingLoading(true);
-    try {
-      const res = await fetch("/api/consulting/sessions");
-      const data = await res.json().catch(() => ({}));
-      const sessions: ApiSession[] = data.sessions || [];
-      if (sessions.length === 0) {
-        toast.info("相談履歴がありません。新規で開始します。");
-        const initial = createInitialSessionForNewUser();
-        setAllSessions([initial]);
-        setActiveSessionId(initial.id);
-      } else {
-        const mapped = mapApiSessionsToSessionData(sessions);
-        setAllSessions(mapped);
-        setActiveSessionId(mapped[0]?.id ?? "new-session");
-        setIsHistoryOpen(true);
-      }
-    } catch {
-      toast.error("履歴の取得に失敗しました");
-      setUserChoice(null);
-    }
-    setIsExistingLoading(false);
-  };
-
-  // 既存セッション（API由来）を選択したときにメッセージを取得
-  const currentSession = useMemo(
-    () => allSessions.find((s) => s.id === activeSessionId) || allSessions[0],
-    [allSessions, activeSessionId]
-  );
-  useEffect(() => {
-    if (!currentSession || currentSession.id === "new-session" || (currentSession?.messages?.length ?? 0) > 0) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`);
-        if (cancelled || !res.ok) return;
-        const data = await res.json().catch(() => ({}));
-        const list: { role: string; content: string; message_order?: number; created_at?: string }[] = data.messages || [];
-        const messages: Message[] = list.map((m, i) => ({
-          id: i + 1,
-          type: m.role === "user" ? "user" : "ai",
-          content: m.content,
-          timestamp: m.created_at ? new Date(m.created_at) : new Date(),
-        }));
-        setAllSessions((prev) =>
-          prev.map((s) =>
-            s.id === currentSession.id ? { ...s, messages } : s
-          )
-        );
-      } catch {
-        // ignore
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [currentSession?.id, currentSession?.messages?.length]);
-
-  // Get sessions to display in tabs (open + recent paused, max 5). 完了はラベルに表示しない
-  const displaySessions = useMemo(() => {
-    const open = allSessions.filter((s) => s.isOpen && s.status !== "completed");
-
-    if (open.length < MAX_OPEN_TABS) {
-      const paused = allSessions
-        .filter((s) => !s.isOpen && s.status === "paused")
-        .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime())
-        .slice(0, MAX_OPEN_TABS - open.length);
-
-      return [...open, ...paused];
-    }
-
-    return open;
-  }, [allSessions]);
-
-  const openSessions = useMemo(
-    () => allSessions.filter((s) => s.isOpen),
-    [allSessions]
-  );
-
-  const handleSessionChange = (sessionId: string) => {
-    const session = allSessions.find(s => s.id === sessionId);
-
-    if (session && !session.isOpen) {
-      setAllSessions(allSessions.map(s =>
-        s.id === sessionId
-          ? { ...s, isOpen: true, status: "active", lastUpdated: new Date() }
-          : s
-      ));
-    }
-
-    setActiveSessionId(sessionId);
-    setInputValue("");
-  };
-
-  const handleSessionClose = (sessionId: string) => {
-    const session = allSessions.find(s => s.id === sessionId);
-
-    if (session && session.status === "paused") {
-      setAllSessions(allSessions.map(s =>
-        s.id === sessionId ? { ...s, isOpen: false } : s
-      ));
-
-      if (sessionId === activeSessionId) {
-        const remaining = displaySessions.filter(s => s.id !== sessionId);
-        if (remaining.length > 0) {
-          setActiveSessionId(remaining[0].id);
-        } else {
-          handleNewSession();
-        }
-      }
-      return;
-    }
-
-    if (openSessions.length === 1) {
-      toast.error("タブを閉じられません", { description: "最後の1つは閉じられません。" });
-      return;
-    }
-
-    const sessionIndex = openSessions.findIndex((s) => s.id === sessionId);
-
-    setAllSessions(allSessions.map(s =>
-      s.id === sessionId ? { ...s, isOpen: false } : s
-    ));
-
-    if (sessionId === activeSessionId) {
-      const newActiveIndex = Math.max(0, sessionIndex - 1);
-      const remainingOpen = openSessions.filter(s => s.id !== sessionId);
-      setActiveSessionId(remainingOpen[newActiveIndex].id);
-    }
-  };
-
-  const handleRenameSession = (sessionId: string, newName: string) => {
-    setAllSessions((prevSessions) =>
-      prevSessions.map((session) =>
-        session.id === sessionId
-          ? { ...session, name: newName, lastUpdated: new Date() }
-          : session
-      )
-    );
-    toast.success("セッション名を変更しました");
-  };
-
-  const handleNewSession = () => {
-    if (openSessions.length >= MAX_OPEN_TABS) {
-      toast.error("タブ数の上限", { description: `タブは${MAX_OPEN_TABS}個までです。いずれかを閉じてから新規を開いてください。` });
-      return;
-    }
-
-    const newSessionId = `session-${Date.now()}`;
-    const now = new Date();
-    const newSession: SessionData = {
-      id: newSessionId,
-      name: "新規相談",
-      progress: 0,
-      currentStepId: 1,
-      lastUpdated: now,
-      createdAt: now,
-      isPinned: false,
-      isOpen: true,
-      status: "active",
-      messages: [
-        {
-          id: 1,
-          type: "ai",
-          content: "こんにちは！AIコンサルティングアシスタントです。まず、貴社の現状についてお聞かせください。現在直面している主な課題は何ですか？",
-          timestamp: now,
-          interactive: {
-            type: "category-buttons",
-            data: CONSULTING_CATEGORIES
-          }
-        },
-      ],
-      kpis: [
-        { label: "月間売上", value: "---", change: "---", trend: "neutral" },
-        { label: "顧客数", value: "---", change: "---", trend: "neutral" },
-        { label: "平均単価", value: "---", change: "---", trend: "neutral" },
-        { label: "リピート率", value: "---", change: "---", trend: "neutral" },
-      ],
-      steps: [
-        {
-          id: 1,
-          title: "課題のヒアリング",
-          icon: <MessageSquare className="w-5 h-5" />,
-          status: "active",
-        },
-        {
-          id: 2,
-          title: "現状分析",
-          icon: <BarChart3 className="w-5 h-5" />,
-          status: "pending",
-        },
-        {
-          id: 3,
-          title: "解決策の提案",
-          icon: <Lightbulb className="w-5 h-5" />,
-          status: "pending",
-        },
-        {
-          id: 4,
-          title: "実行計画の策定",
-          icon: <Target className="w-5 h-5" />,
-          status: "pending",
-        },
-        {
-          id: 5,
-          title: "レポート作成",
-          icon: <FileText className="w-5 h-5" />,
-          status: "pending",
-        },
-      ],
-    };
-
-    setAllSessions([...allSessions, newSession]);
-    setActiveSessionId(newSessionId);
-  };
-
-  const handleOpenSession = (sessionId: string) => {
-    const session = allSessions.find(s => s.id === sessionId);
-    if (!session) return;
-
-    if (session.isOpen) {
-      setActiveSessionId(sessionId);
-      setIsHistoryOpen(false);
-      return;
-    }
-
-    if (openSessions.length >= MAX_OPEN_TABS) {
-      toast.error("タブ数の上限", { description: `タブは${MAX_OPEN_TABS}個までです。いずれかを閉じてから開いてください。` });
-      return;
-    }
-
-    setAllSessions(allSessions.map(s =>
-      s.id === sessionId ? { ...s, isOpen: true, lastUpdated: new Date() } : s
-    ));
-    setActiveSessionId(sessionId);
-    setIsHistoryOpen(false);
-  };
-
-  const handleTogglePin = (sessionId: string) => {
-    setAllSessions(allSessions.map(s =>
-      s.id === sessionId ? { ...s, isPinned: !s.isPinned } : s
-    ));
-  };
-
-  const handleDeleteSession = (sessionId: string) => {
-    if (allSessions.length === 1) {
-      toast.error("削除できません", { description: "最後の1件は削除できません。" });
-      return;
-    }
-
-    setAllSessions(allSessions.filter(s => s.id !== sessionId));
-
-    if (sessionId === activeSessionId) {
-      const remaining = allSessions.filter(s => s.id !== sessionId && s.isOpen);
-      if (remaining.length > 0) {
-        setActiveSessionId(remaining[0].id);
-      } else {
-        const allRemaining = allSessions.filter(s => s.id !== sessionId);
-        if (allRemaining.length > 0) {
-          setActiveSessionId(allRemaining[0].id);
-          setAllSessions(allSessions.map(s =>
-            s.id === allRemaining[0].id ? { ...s, isOpen: true } : s
-          ).filter(s => s.id !== sessionId));
-        }
-      }
-    }
-
-    toast.success("セッションを削除しました");
-  };
-
-  const handleSendMessage = async () => {
-    if (!currentSession) return;
-    if (!inputValue.trim() && attachedFiles.length === 0) return;
-
-    let messageContent = inputValue;
-
-    if (attachedFiles.length > 0) {
-      const fileNames = attachedFiles.map(f => f.name).join(", ");
-      messageContent += attachedFiles.length > 0 ? `\n\n添付ファイル: ${fileNames}` : "";
-    }
-
-    const msgLen = currentSession?.messages?.length ?? 0;
-    const newMessage: Message = {
-      id: msgLen + 1,
-      type: "user",
-      content: messageContent,
-      timestamp: new Date(),
-    };
-
-    setAllSessions(allSessions.map(s =>
-      s.id === activeSessionId
-        ? { ...s, messages: [...(s.messages ?? []), newMessage], lastUpdated: new Date() }
-        : s
-    ));
-    setInputValue("");
-    setAttachedFiles([]);
-    resetTranscript();
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: msgLen + 2,
-        type: "ai",
-        content: "ご入力ありがとうございます。内容を分析しています。詳しい情報があれば、より具体的な提案が可能です。",
-        timestamp: new Date(),
-      };
-
-      setAllSessions(prevSessions => prevSessions.map(s =>
-        s.id === activeSessionId
-          ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
-          : s
-      ));
-    }, 1000);
-  };
-
-  const handleFileAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setAttachedFiles(prev => [...prev, ...files]);
-    toast.success(`${files.length}個のファイルを添付しました`);
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
+  // Auto-scroll when messages change
   useEffect(() => {
     const el = chatScrollRef.current;
     if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [currentSession?.messages]);
+  }, [session.currentSession?.messages]);
 
-  const handleQuickReply = (reply: string, isCategory: boolean = false) => {
-    if (!currentSession) return;
-    const msgLen = currentSession?.messages?.length ?? 0;
-    const newMessage: Message = {
-      id: msgLen + 1,
-      type: "user",
-      content: reply,
-      timestamp: new Date(),
-    };
-
-    setAllSessions(allSessions.map(s =>
-      s.id === activeSessionId
-        ? {
-          ...s,
-          name: s.name === "新規相談" ? reply : s.name,
-          messages: [...(s.messages ?? []), newMessage],
-          lastUpdated: new Date()
-        }
-        : s
-    ));
-
-    if (isCategory && reply !== "その他") {
-      setTimeout(() => {
-        const subcategories = SUBCATEGORY_MAP[reply] || [];
-        const aiResponse: Message = {
-          id: msgLen + 2,
-          type: "ai",
-          content: `「${reply}」についてですね。さらに詳しくお聞かせください。具体的にはどのような課題でしょうか？`,
-          timestamp: new Date(),
-          interactive: {
-            type: "subcategory-buttons",
-            data: subcategories,
-            selectedCategory: reply
-          }
-        };
-
-        setAllSessions(prevSessions => prevSessions.map(s =>
-          s.id === activeSessionId
-            ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
-            : s
-        ));
-      }, 800);
-    } else if (reply === "その他") {
-      setTimeout(() => {
-        const aiResponse: Message = {
-          id: msgLen + 2,
-          type: "ai",
-          content: "承知しました。どのような課題でしょうか？自由に入力してください。",
-          timestamp: new Date(),
-          interactive: {
-            type: "custom-input"
-          }
-        };
-
-        setAllSessions(prevSessions => prevSessions.map(s =>
-          s.id === activeSessionId
-            ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
-            : s
-        ));
-      }, 800);
-    }
-  };
-
-  const handleStepClick = (stepId: number) => {
-    if (!currentSession) return;
-    const step = currentSession?.steps?.find(s => s.id === stepId);
-    if (!step) return;
-
-    if (step.status === "completed") {
-      setStepToNavigate(stepId);
-    } else if (step.status === "active") {
-      return;
-    } else {
-      toast.info("ステップ未完了", { description: "このステップはまだ完了していません。" });
-    }
-  };
-
-  const confirmStepNavigation = () => {
-    if (stepToNavigate === null) return;
-
-    setAllSessions(allSessions.map(s =>
-      s.id === activeSessionId
-        ? { ...s, currentStepId: stepToNavigate, lastUpdated: new Date() }
-        : s
-    ));
-
-    toast.success(`STEP ${stepToNavigate} に戻りました`);
-    setStepToNavigate(null);
-  };
-
-  const previousCompletedStepsRef = useRef(0);
-
-  useEffect(() => {
-    const steps = currentSession?.steps ?? [];
-    const completedSteps = steps.filter(s => s.status === 'completed').length;
-
-    if (completedSteps > previousCompletedStepsRef.current && previousCompletedStepsRef.current > 0) {
-      celebrateStepCompletion();
-      toast.success('ステップ完了！おめでとうございます！');
-    }
-
-    previousCompletedStepsRef.current = completedSteps;
-  }, [currentSession?.steps]);
-
-  const handleEndSession = () => {
-    setIsEndingSession(true);
-  };
-
-  const confirmEndSession = async () => {
-    const now = new Date();
-    const sessionToEnd = allSessions.find(s => s.id === activeSessionId);
-    if (!sessionToEnd) {
-      setIsEndingSession(false);
-      return;
-    }
-
-    const apiStatus = endSessionStatus === "completed" ? "completed" : "archived";
-
-    try {
-      if (sessionToEnd.id === "new-session") {
-        const formData = new FormData();
-        formData.set("title", sessionToEnd.name);
-        formData.set("category", "general");
-        const firstUserMsg = sessionToEnd.messages?.find(m => m.type === "user")?.content ?? "";
-        formData.set("initial_message", firstUserMsg || "新規相談を開始");
-        const res = await fetch("/api/consulting/sessions", { method: "POST", body: formData });
-        if (res.ok) {
-          const data = await res.json();
-          const savedId = data.session?.id;
-          if (savedId) {
-            const patchRes = await fetch(`/api/consulting/sessions/${savedId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                status: apiStatus,
-                ...(endSessionStatus === "completed" ? { completed_at: now.toISOString() } : {}),
-              }),
-            });
-            if (!patchRes.ok) {
-              toast.error("ステータスの更新に失敗しました");
-            }
-          }
-        }
-      } else {
-        const patchRes = await fetch(`/api/consulting/sessions/${sessionToEnd.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: apiStatus,
-            ...(endSessionStatus === "completed" ? { completed_at: now.toISOString() } : {}),
-          }),
-        });
-        if (!patchRes.ok) {
-          toast.error("ステータスの更新に失敗しました");
-        }
-      }
-    } catch {
-      toast.error("保存に失敗しました");
-    }
-
-    const updates: Partial<SessionData> = {
-      isOpen: false,
-      lastUpdated: now,
-      status: endSessionStatus,
-    };
-    if (endSessionStatus === "completed") {
-      updates.progress = 100;
-      updates.completedAt = now;
-    } else if (endSessionStatus === "cancelled") {
-      updates.completedAt = now;
-    }
-
-    setAllSessions(allSessions.map(s =>
-      s.id === activeSessionId ? { ...s, ...updates } : s
-    ));
-
-    const remainingOpen = openSessions.filter(s => s.id !== activeSessionId);
-    if (remainingOpen.length > 0) {
-      setActiveSessionId(remainingOpen[0].id);
-    } else {
-      handleNewSession();
-    }
-
-    setIsEndingSession(false);
-    toast.success("今日の会話はすべて記憶しました");
-  };
-
-  const tabSessions: Session[] = displaySessions.map(s => ({
+  const tabSessions: Session[] = session.displaySessions.map(s => ({
     id: s.id,
     name: s.name,
     progress: s.progress,
     lastUpdated: s.lastUpdated,
-    isActive: s.id === activeSessionId,
+    isActive: s.id === session.activeSessionId,
     status: s.status,
     categoryAccent: CATEGORY_ACCENT_MAP[s.name],
   }));
 
-  const historyItems: SessionHistoryItem[] = allSessions.map(s => ({
+  const historyItems: SessionHistoryItem[] = session.allSessions.map(s => ({
     id: s.id,
     name: s.name,
     progress: s.progress,
@@ -725,7 +226,7 @@ export default function ConsultingStartPage() {
     completedAt: s.completedAt,
   }));
 
-  if (userChoice !== null && (allSessions.length === 0 || !currentSession)) {
+  if (session.userChoice !== null && (session.allSessions.length === 0 || !session.currentSession)) {
     return (
       <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center bg-[#F8F9FA]">
         <p className="text-sm text-gray-500">読み込み中...</p>
@@ -752,30 +253,30 @@ export default function ConsultingStartPage() {
         <div className="w-80 flex-shrink-0 flex gap-2 p-2 items-center">
           <button
             type="button"
-            onClick={userChoice === null ? handleChoiceNew : handleNewSession}
+            onClick={session.userChoice === null ? session.handleChoiceNew : session.handleNewSession}
             className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-emerald-700 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
           >
             <span>新規</span>
           </button>
           <button
             type="button"
-            onClick={userChoice === null ? handleChoiceExisting : () => (userChoice === "existing" ? setIsHistoryOpen(true) : handleChoiceExisting())}
-            disabled={isExistingLoading}
+            onClick={session.userChoice === null ? session.handleChoiceExisting : () => (session.userChoice === "existing" ? session.setIsHistoryOpen(true) : session.handleChoiceExisting())}
+            disabled={session.isExistingLoading}
             className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-indigo-700 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isExistingLoading ? <span className="text-sm">読込中...</span> : <span>既存</span>}
+            {session.isExistingLoading ? <span className="text-sm">読込中...</span> : <span>既存</span>}
           </button>
         </div>
-        {userChoice !== null && (
+        {session.userChoice !== null && (
           <div className="flex-1 min-w-0">
             <SessionTabs
-              sessions={userChoice === "existing" ? tabSessions.slice(0, 4) : tabSessions}
-              activeSessionId={activeSessionId}
-              onSessionChange={handleSessionChange}
-              onSessionClose={handleSessionClose}
-              onNewSession={handleNewSession}
-              onOpenHistory={() => setIsHistoryOpen(true)}
-              onRenameSession={handleRenameSession}
+              sessions={session.userChoice === "existing" ? tabSessions.slice(0, 4) : tabSessions}
+              activeSessionId={session.activeSessionId}
+              onSessionChange={handleSessionChangeWithClear}
+              onSessionClose={session.handleSessionClose}
+              onNewSession={session.handleNewSession}
+              onOpenHistory={() => session.setIsHistoryOpen(true)}
+              onRenameSession={session.handleRenameSession}
               noBorder
             />
           </div>
@@ -784,25 +285,25 @@ export default function ConsultingStartPage() {
 
       {/* Session History Panel */}
       <SessionHistoryPanel
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
+        isOpen={session.isHistoryOpen}
+        onClose={() => session.setIsHistoryOpen(false)}
         sessions={historyItems}
-        openSessionIds={openSessions.map(s => s.id)}
-        onOpenSession={handleOpenSession}
-        onTogglePin={handleTogglePin}
-        onDeleteSession={handleDeleteSession}
-        onRenameSession={handleRenameSession}
+        openSessionIds={session.openSessions.map(s => s.id)}
+        onOpenSession={session.handleOpenSession}
+        onTogglePin={session.handleTogglePin}
+        onDeleteSession={session.handleDeleteSession}
+        onRenameSession={session.handleRenameSession}
       />
 
       {/* Step Navigation Confirmation Dialog（背景・文字・ボタンを明示して見やすく） */}
-      <AlertDialog open={stepToNavigate !== null} onOpenChange={() => setStepToNavigate(null)}>
+      <AlertDialog open={session.stepToNavigate !== null} onOpenChange={() => session.setStepToNavigate(null)}>
         <AlertDialogContent className="max-w-md bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900 dark:text-slate-100 text-lg font-semibold">
               ステップに戻りますか？
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
-              STEP {stepToNavigate} に戻ると、現在の進捗が変更されます。よろしいですか？
+              STEP {session.stepToNavigate} に戻ると、現在の進捗が変更されます。よろしいですか？
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-2">
@@ -810,7 +311,7 @@ export default function ConsultingStartPage() {
               キャンセル
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmStepNavigation}
+              onClick={session.confirmStepNavigation}
               className="bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
             >
               戻る
@@ -820,7 +321,7 @@ export default function ConsultingStartPage() {
       </AlertDialog>
 
       {/* End Session Confirmation Dialog（背景・文字を明示して透明化を防止） */}
-      <AlertDialog open={isEndingSession} onOpenChange={setIsEndingSession}>
+      <AlertDialog open={session.isEndingSession} onOpenChange={session.setIsEndingSession}>
         <AlertDialogContent className="max-w-md bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900 dark:text-slate-100">会話を終了しますか？</AlertDialogTitle>
@@ -835,8 +336,8 @@ export default function ConsultingStartPage() {
                 id="status-paused"
                 name="session-status"
                 value="paused"
-                checked={endSessionStatus === "paused"}
-                onChange={(e) => setEndSessionStatus(e.target.value as SessionStatus)}
+                checked={session.endSessionStatus === "paused"}
+                onChange={(e) => session.setEndSessionStatus(e.target.value as SessionStatus)}
                 className="mt-1"
               />
               <div className="flex-1">
@@ -850,8 +351,8 @@ export default function ConsultingStartPage() {
                 id="status-completed"
                 name="session-status"
                 value="completed"
-                checked={endSessionStatus === "completed"}
-                onChange={(e) => setEndSessionStatus(e.target.value as SessionStatus)}
+                checked={session.endSessionStatus === "completed"}
+                onChange={(e) => session.setEndSessionStatus(e.target.value as SessionStatus)}
                 className="mt-1"
               />
               <div className="flex-1">
@@ -865,8 +366,8 @@ export default function ConsultingStartPage() {
                 id="status-cancelled"
                 name="session-status"
                 value="cancelled"
-                checked={endSessionStatus === "cancelled"}
-                onChange={(e) => setEndSessionStatus(e.target.value as SessionStatus)}
+                checked={session.endSessionStatus === "cancelled"}
+                onChange={(e) => session.setEndSessionStatus(e.target.value as SessionStatus)}
                 className="mt-1"
               />
               <div className="flex-1">
@@ -877,7 +378,7 @@ export default function ConsultingStartPage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel className="text-gray-700 dark:text-slate-300">キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmEndSession} className="bg-red-600 hover:bg-red-700 text-white">
+            <AlertDialogAction onClick={session.confirmEndSession} className="bg-red-600 hover:bg-red-700 text-white">
               終了する
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -889,27 +390,27 @@ export default function ConsultingStartPage() {
         {/* Left Sidebar - Steps Navigation（画像準拠: ダークブルー/チャコール） */}
         <aside className="w-80 bg-slate-800 text-slate-100 border-r border-slate-700 flex flex-col min-h-0">
           <div className="p-6 border-b border-slate-700 flex-shrink-0">
-            <h1 className="text-xl font-bold text-slate-100">{currentSession?.name ?? "相談"}</h1>
+            <h1 className="text-xl font-bold text-slate-100">{session.currentSession?.name ?? "相談"}</h1>
             <p className="text-sm text-slate-400 mt-1">構造化された対話体験</p>
           </div>
 
           <div className="p-6 space-y-4 flex-shrink-0">
             <ConsultingProgressBar
-              currentStep={currentSession?.currentStepId ?? 1}
-              totalSteps={currentSession?.steps?.length ?? 0}
+              currentStep={session.currentSession?.currentStepId ?? 1}
+              totalSteps={session.currentSession?.steps?.length ?? 0}
             />
           </div>
 
           <div className="flex-1 overflow-y-auto px-6">
             <nav className="space-y-2 pb-6">
-              {(currentSession?.steps ?? []).map((step, index) => {
+              {(session.currentSession?.steps ?? []).map((step, index) => {
                 const isClickable = step.status === "completed";
 
                 return (
                   <Tooltip key={step.id}>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => handleStepClick(step.id)}
+                        onClick={() => session.handleStepClick(step.id)}
                         disabled={!isClickable && step.status !== "active"}
                         className={`w-full flex items-start gap-3 p-4 rounded-lg text-left transition-all ${step.status === "active"
                             ? "bg-slate-100 border border-slate-200 shadow-sm"
@@ -971,7 +472,7 @@ export default function ConsultingStartPage() {
               variant="destructive"
               className={`w-full ${BUTTON.danger}`}
               size="sm"
-              onClick={handleEndSession}
+              onClick={session.handleEndSession}
             >
               <X className="w-4 h-4 mr-2" />
               会話を終了
@@ -996,7 +497,7 @@ export default function ConsultingStartPage() {
               }}
             />
           </div>
-          {userChoice === null ? (
+          {session.userChoice === null ? (
             <div className="relative z-10 flex-1 min-h-0" aria-hidden />
           ) : (
             <>
@@ -1004,7 +505,7 @@ export default function ConsultingStartPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">
-                  {currentSession?.steps?.find(s => s.status === "active")?.title || "課題のヒアリング"}
+                  {session.currentSession?.steps?.find(s => s.status === "active")?.title || "課題のヒアリング"}
                 </h2>
                 <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
               </div>
@@ -1017,7 +518,7 @@ export default function ConsultingStartPage() {
 
           <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6">
             <div ref={chatScrollRef} className="max-w-3xl mx-auto space-y-6">
-              {(currentSession?.messages ?? []).map((message) => (
+              {(session.currentSession?.messages ?? []).map((message) => (
                 <div
                   key={message.id}
                   className={`flex gap-3 ${message.type === "user" ? "justify-end" : "justify-start"}`}
@@ -1045,7 +546,7 @@ export default function ConsultingStartPage() {
                             return (
                               <button
                                 key={idx}
-                                onClick={() => handleQuickReply(category.label, true)}
+                                onClick={() => message.handleQuickReply(category.label, true)}
                                 className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all group ${category.bgLight ?? "bg-card border-border hover:bg-accent"} hover:opacity-90`}
                               >
                                 <div className={`${category.color} text-white p-2 rounded-full group-hover:scale-110 transition-transform`}>
@@ -1065,7 +566,7 @@ export default function ConsultingStartPage() {
                               key={idx}
                               variant="outline"
                               size="sm"
-                              onClick={() => handleQuickReply(subcategory)}
+                              onClick={() => message.handleQuickReply(subcategory)}
                               className="w-full justify-start text-xs"
                             >
                               <ArrowRight className="w-3 h-3 mr-2" />
@@ -1111,7 +612,7 @@ export default function ConsultingStartPage() {
                               key={idx}
                               variant="outline"
                               size="sm"
-                              onClick={() => handleQuickReply(option)}
+                              onClick={() => message.handleQuickReply(option)}
                               className="text-xs"
                             >
                               {option}
@@ -1161,9 +662,9 @@ export default function ConsultingStartPage() {
 
           <footer className="relative z-10 flex-shrink-0 border-t border-gray-200 bg-white p-4">
             <div className="max-w-3xl mx-auto">
-              {attachedFiles.length > 0 && (
+              {file.attachedFiles.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
-                  {attachedFiles.map((file, index) => (
+                  {file.attachedFiles.map((file, index) => (
                     <div
                       key={index}
                       className="flex items-center gap-2 bg-accent text-accent-foreground px-3 py-1.5 rounded-md text-sm"
@@ -1171,7 +672,7 @@ export default function ConsultingStartPage() {
                       <FileText className="w-3 h-3" />
                       <span className="text-xs truncate max-w-[150px]">{file.name}</span>
                       <button
-                        onClick={() => handleRemoveFile(index)}
+                        onClick={() => file.handleRemoveFile(index)}
                         className="hover:text-destructive transition-colors"
                       >
                         <X className="w-3 h-3" />
@@ -1216,14 +717,14 @@ export default function ConsultingStartPage() {
 
               <div className="flex gap-2">
                 <input
-                  ref={fileInputRef}
+                  ref={file.fileInputRef}
                   type="file"
                   multiple
-                  onChange={handleFileAttach}
+                  onChange={file.handleFileAttach}
                   className="hidden"
                 />
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => file.fileInputRef.current?.click()}
                   size="icon"
                   variant="outline"
                   type="button"
@@ -1232,8 +733,8 @@ export default function ConsultingStartPage() {
                   <Paperclip className="w-4 h-4" />
                 </Button>
                 <Textarea
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  value={message.inputValue}
+                  onChange={(e) => message.setInputValue(e.target.value)}
                   placeholder={isListening ? "音声入力中..." : "メッセージを入力..."}
                   className="flex-1 min-h-[80px] max-h-[200px] py-3 px-3 text-base resize-y !bg-slate-50 dark:!bg-slate-100 border-gray-200"
                   rows={3}
@@ -1270,7 +771,7 @@ export default function ConsultingStartPage() {
                     <p>{isListening ? '音声入力を停止' : '音声入力を開始'}</p>
                   </TooltipContent>
                 </Tooltip>
-                <Button onClick={handleSendMessage} size="icon" disabled={isListening} className={BUTTON.primary}>
+                <Button onClick={message.handleSendMessage} size="icon" disabled={isListening} className={BUTTON.primary}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
@@ -1282,11 +783,11 @@ export default function ConsultingStartPage() {
 
         {/* Right Sidebar - Dynamic Context Panel */}
         <TabbedContextPanel
-          currentStep={currentSession?.currentStepId ?? 1}
-          sessionName={currentSession?.name ?? "相談"}
-          kpis={currentSession?.kpis ?? []}
-          onInsertToChat={(text) => setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
-          showDashboardPrompt={(currentSession?.name === "新規相談") && (currentSession?.progress === 0)}
+          currentStep={session.currentSession?.currentStepId ?? 1}
+          sessionName={session.currentSession?.name ?? "相談"}
+          kpis={session.currentSession?.kpis ?? []}
+          onInsertToChat={(text) => message.setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
+          showDashboardPrompt={(session.currentSession?.name === "新規相談") && (session.currentSession?.progress === 0)}
         />
       </div>
     </div>
