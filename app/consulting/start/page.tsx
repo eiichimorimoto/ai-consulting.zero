@@ -258,7 +258,13 @@ export default function ConsultingStartPage() {
             {session.isExistingLoading ? <span className="text-sm">読込中...</span> : <span>既存</span>}
           </button>
         </div>
-        {session.userChoice !== null && (
+        {session.userChoice === null ? (
+          <div className="flex-1 flex items-center justify-center px-6">
+            <p className="text-sm text-gray-600 font-medium">
+              新規課題を始めるか、既存課題を選択してください
+            </p>
+          </div>
+        ) : (
           <div className="flex-1 min-w-0">
             <SessionTabs
               sessions={session.userChoice === "existing" ? tabSessions.slice(0, 4) : tabSessions}
