@@ -407,8 +407,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
               </Button>
               <Button
                 onClick={handleSummarize}
-                variant="outline"
-                className="flex-1 border-blue-400 text-blue-700 hover:bg-blue-100 hover:text-blue-900"
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1" />
                 再生成
