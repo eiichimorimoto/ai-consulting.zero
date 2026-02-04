@@ -1,7 +1,10 @@
 /**
- * Web検索API（ハイブリッド版）
+ * Web検索API（Brave Search版）
  * 
- * Google Custom Search APIを優先し、エラー時にBrave Search APIにフォールバック
+ * Brave Search APIを使用してWeb検索を実行
+ * 
+ * 注: Google Custom Search APIは設定が複雑なため、
+ * 当面はBrave Search APIのみを使用します。
  * 
  * @endpoint POST /api/consulting/search
  * @param {string} query - 検索クエリ
@@ -9,7 +12,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { hybridWebSearch } from '@/lib/hybrid-search'
+// import { hybridWebSearch } from '@/lib/hybrid-search' // Google検索を無効化
+import { braveWebSearch } from '@/lib/brave-search'
 
 export interface SearchResult {
   url: string
@@ -44,16 +48,15 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 2. ハイブリッド検索実行（Google優先、エラー時にBraveフォールバック）
-    const { results, source, fallback } = await hybridWebSearch(query, 3)
+    // 2. Brave Search実行
+    const results = await braveWebSearch(query, 3)
     
     if (results.length === 0) {
       return NextResponse.json({
         success: true,
         results: [],
         message: '検索結果が見つかりませんでした',
-        source,
-        fallback
+        source: 'brave'
       })
     }
     
@@ -64,12 +67,11 @@ export async function POST(request: NextRequest) {
       description: r.description
     }))
     
-    // 4. 結果返却（ソース情報も含む）
+    // 4. 結果返却
     return NextResponse.json({
       success: true,
       results: formattedResults,
-      source, // 'google' または 'brave'
-      fallback // フォールバック情報（存在する場合）
+      source: 'brave' // Brave Searchのみ使用
     })
     
   } catch (error) {

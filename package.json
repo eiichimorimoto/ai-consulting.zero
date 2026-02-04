@@ -18,6 +18,7 @@
     "@ai-sdk/anthropic": "^2.0.56",
     "@anthropic-ai/sdk": "^0.36.1",
     "@google-cloud/vision": "^5.3.4",
+    "@google/generative-ai": "^0.21.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",

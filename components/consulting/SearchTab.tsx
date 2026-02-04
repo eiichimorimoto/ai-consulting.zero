@@ -312,17 +312,10 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
             <h4 className="text-xs font-semibold text-muted-foreground">
               検索結果 ({results.length}件)
             </h4>
-            {searchSource && (
-              <span className="text-xs text-muted-foreground">
-                {searchSource === 'google' ? '🔍 Google' : '🦁 Brave Search'}
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground">
+              🦁 Brave Search
+            </span>
           </div>
-          {fallbackInfo && (
-            <div className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-              ℹ️ {fallbackInfo}
-            </div>
-          )}
           {results.map((result, idx) => (
             <Card key={idx} className="border-border/50">
               <CardContent className="p-4">
