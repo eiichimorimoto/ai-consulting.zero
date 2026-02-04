@@ -135,7 +135,7 @@ export default function SessionHistoryPanel({
     return (
       <div
         className={`group p-4 rounded-lg transition-all cursor-pointer break-words min-w-0 overflow-visible ${cardBorder}`}
-        onDoubleClick={() => onOpenSession(session.id)}
+        onClick={() => onOpenSession(session.id)}
       >
         <div className="flex items-start justify-between gap-2 mb-2 min-w-0">
           {/* ステータス: 常に表示（active / paused / completed / cancelled、未設定時は進行中として表示） */}
@@ -269,18 +269,7 @@ export default function SessionHistoryPanel({
           </div>
         </div>
 
-        <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-7 text-xs bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenSession(session.id);
-            }}
-          >
-            タブで開く
-          </Button>
+        <div className="flex justify-end mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             size="sm"
             variant="ghost"
