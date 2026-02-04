@@ -55,7 +55,7 @@ export default function SessionDialogs({
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={onConfirmStepNavigation}
-              className="bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
+              className="bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"
             >
               戻る
             </AlertDialogAction>

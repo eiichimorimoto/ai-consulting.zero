@@ -109,7 +109,7 @@ export default function SessionTabs({
                     <TooltipTrigger asChild>
                       <span className="flex-shrink-0 flex items-center gap-1">
                         <CheckCircle2 className={`w-4 h-4 ${STATUS_ICON.completed}`} />
-                        <span className="text-xs font-medium text-green-700">完了</span>
+                        <span className="text-xs font-medium text-blue-700">完了</span>
                       </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -131,7 +131,7 @@ export default function SessionTabs({
                   </Tooltip>
                 )}
                 {session.status === "active" && session.id !== activeSessionId && (
-                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500" aria-hidden title="進行中" />
+                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500" aria-hidden title="進行中" />
                 )}
                 {editingSessionId === session.id ? (
                   <input

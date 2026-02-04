@@ -30,7 +30,7 @@ export function ConsultingProgressBar({ currentStep, totalSteps }: ConsultingPro
         <Progress
           value={progress}
           className="h-3 bg-slate-200 dark:bg-slate-700"
-          indicatorClassName="bg-green-500"
+          indicatorClassName="bg-blue-500"
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-[10px] font-semibold text-slate-400 drop-shadow-sm">

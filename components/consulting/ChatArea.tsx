@@ -42,7 +42,7 @@ export default function ChatArea({
             <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
           </div>
           <Badge variant="secondary" className="text-xs flex items-center gap-2 bg-white border border-gray-200 text-gray-700">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
+            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
             AI応答中
           </Badge>
         </div>

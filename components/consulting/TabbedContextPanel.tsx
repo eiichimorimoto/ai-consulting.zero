@@ -37,25 +37,25 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
         <TabsList className="grid grid-cols-4 w-full rounded-none border-b border-gray-200 bg-transparent p-0">
           <TabsTrigger
             value="insights"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-100/80"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
           >
             <Lightbulb className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger
             value="budget"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-100/80"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
           >
             <BarChart3 className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger
             value="files"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-100/80"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
           >
             <Upload className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger
             value="search"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-100/80"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
           >
             <Search className="w-4 h-4" />
           </TabsTrigger>
@@ -74,7 +74,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
                   href="/dashboard"
                   className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-medium text-gray-900"
                 >
-                  <LayoutDashboard className="w-4 h-4 text-green-600" />
+                  <LayoutDashboard className="w-4 h-4 text-blue-600" />
                   ダッシュボードを開く
                 </Link>
               </div>
@@ -93,7 +93,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <Lightbulb className="w-4 h-4 text-green-600" />
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
                     この課題について
                   </h4>
                   <Card className={RIGHT_PANEL.highlightBlock}>
@@ -111,13 +111,13 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <FileText className="w-4 h-4 text-green-600" />
+                    <FileText className="w-4 h-4 text-blue-600" />
                     次に必要な情報
                   </h4>
                   <div className="space-y-2">
                     {["現在の売上規模", "目標とする売上", "主要な収益源"].map((item, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
                         <span className="text-gray-600">{item}</span>
                       </div>
                     ))}
@@ -126,7 +126,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <FileText className="w-4 h-4 text-green-600" />
+                    <FileText className="w-4 h-4 text-blue-600" />
                     関連資料
                   </h4>
                   <div className="space-y-2">
@@ -149,7 +149,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
                     収集済み情報
                   </h4>
                   <div className="space-y-3">
@@ -181,7 +181,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <Lightbulb className="w-4 h-4 text-green-600" />
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
                     初期インサイト
                   </h4>
                   <Card className={RIGHT_PANEL.accentBlock}>
@@ -197,13 +197,13 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <FileText className="w-4 h-4 text-green-600" />
+                    <FileText className="w-4 h-4 text-blue-600" />
                     推奨される次のステップ
                   </h4>
                   <div className="space-y-2">
                     {["顧客セグメント別の売上分析", "競合との価格比較", "販売チャネルの効率分析"].map((item, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
                         <span className="text-gray-600">{item}</span>
                       </div>
                     ))}
@@ -217,7 +217,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <Lightbulb className="w-4 h-4 text-green-600" />
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
                     提案中の施策
                   </h4>
                   <div className="space-y-3">
@@ -238,7 +238,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
                     期待される効果
                   </h4>
                   <Card className={RIGHT_PANEL.accentBlock}>
@@ -246,7 +246,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
                       <div className="space-y-2 text-xs">
                         <div className="flex justify-between">
                           <span className="text-gray-600">合計期待効果</span>
-                          <span className="font-semibold text-green-700">+¥3.5M/月</span>
+                          <span className="font-semibold text-blue-700">+¥3.5M/月</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">目標達成率</span>
@@ -283,7 +283,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
                     現在のKPI
                   </h4>
                   <div className="space-y-3">
@@ -310,7 +310,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <Lightbulb className="w-4 h-4 text-green-600" />
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
                     重要なインサイト
                   </h4>
                   <Card className={RIGHT_PANEL.accentBlock}>
@@ -325,7 +325,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
 
                 <div>
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-900">
-                    <FileText className="w-4 h-4 text-green-600" />
+                    <FileText className="w-4 h-4 text-blue-600" />
                     関連資料
                   </h4>
                   <div className="space-y-2">

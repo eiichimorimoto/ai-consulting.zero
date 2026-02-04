@@ -159,7 +159,7 @@ export default function SessionHistoryPanel({
                       <XCircle className={`w-4 h-4 ${STATUS_ICON.cancelled}`} />
                     </span>
                   )}
-                  {status === "active" && <span className="w-2.5 h-2.5 rounded-full bg-green-500 block" title="進行中" />}
+                  {status === "active" && <span className="w-2.5 h-2.5 rounded-full bg-blue-500 block" title="進行中" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -206,8 +206,8 @@ export default function SessionHistoryPanel({
                       </span>
                     )}
                     {status === "active" && (
-                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-[#e6faed] text-[#0a6e2e]">
-                        <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" aria-hidden />
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" aria-hidden />
                         進行中
                       </span>
                     )}
@@ -218,7 +218,7 @@ export default function SessionHistoryPanel({
                       </span>
                     )}
                     {status === "completed" && (
-                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-[#e6faed] text-[#0a6e2e]">
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700">
                         <CheckCircle2 className="w-3 h-3" />
                         完了
                       </span>

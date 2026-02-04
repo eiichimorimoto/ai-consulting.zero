@@ -245,7 +245,7 @@ export default function ConsultingStartPage() {
           <button
             type="button"
             onClick={session.userChoice === null ? session.handleChoiceNew : session.handleNewSession}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-emerald-700 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-blue-700 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
           >
             <span>新規</span>
           </button>
