@@ -8,6 +8,18 @@
  * Typography: IBM Plex Sans (headings), Inter (body)
  */
 
+import type { 
+  SessionData, 
+  Message, 
+  ConsultingStep, 
+  KPI, 
+  SessionStatus, 
+  CategoryData, 
+  ApiSession 
+} from "@/types/consulting";
+import { MAX_OPEN_TABS, CATEGORY_ACCENT_MAP, SUBCATEGORY_MAP } from "@/lib/consulting/constants";
+import { CONSULTING_CATEGORIES } from "@/lib/consulting/category-data";
+import { createInitialSessions } from "@/lib/consulting/sample-data";
 import SessionHistoryPanel, { SessionHistoryItem } from "@/components/consulting/SessionHistoryPanel";
 import SessionTabs, { Session } from "@/components/consulting/SessionTabs";
 import { TabbedContextPanel } from "@/components/consulting/TabbedContextPanel";
@@ -35,359 +47,6 @@ import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { celebrateStepCompletion } from "@/lib/utils/confetti";
 import { STEP_STATUS, CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
-
-type ConsultingStep = {
-  id: number;
-  title: string;
-  icon: ReactNode;
-  status: "completed" | "active" | "pending";
-  summary?: string[];
-};
-
-type Message = {
-  id: number;
-  type: "ai" | "user";
-  content: string;
-  timestamp: Date;
-  interactive?: {
-    type: "buttons" | "form" | "chart" | "category-buttons" | "subcategory-buttons" | "custom-input";
-    data?: CategoryData[] | string[];
-    selectedCategory?: string;
-  };
-};
-
-type CategoryData = {
-  label: string;
-  icon: string;
-  color: string;
-  bgLight?: string; // カード背景用の薄い色（ラベル色に合わせる）
-};
-
-type KPI = {
-  label: string;
-  value: string;
-  change: string;
-  trend: "up" | "down" | "neutral";
-};
-
-type SessionStatus = "active" | "paused" | "completed" | "cancelled";
-
-type SessionData = {
-  id: string;
-  name: string;
-  progress: number;
-  currentStepId: number;
-  messages: Message[];
-  kpis: KPI[];
-  steps: ConsultingStep[];
-  lastUpdated: Date;
-  createdAt: Date;
-  isPinned: boolean;
-  isOpen: boolean;
-  status: SessionStatus;
-  completedAt?: Date;
-};
-
-const MAX_OPEN_TABS = 5;
-
-/** セッション名（ラベル）→ タブ左端のカテゴリー色（bg-* クラス） */
-const CATEGORY_ACCENT_MAP: Record<string, string> = {
-  "売上の伸び悩み": "bg-red-500",
-  "コスト削減": "bg-green-500",
-  "新規事業立ち上げ": "bg-blue-500",
-  "組織改革": "bg-purple-500",
-  "その他": "bg-gray-500",
-  "DX推進": "bg-indigo-500",
-  "セキュリティ強化": "bg-amber-500",
-  "クラウド移行": "bg-cyan-500",
-  "業務自動化": "bg-yellow-500",
-};
-
-// Sample session data - includes both open and closed sessions
-const createInitialSessions = (): SessionData[] => [
-  {
-    id: "session-1",
-    name: "売上の伸び悩み",
-    progress: 40,
-    currentStepId: 2,
-    lastUpdated: new Date(Date.now() - 7200000),
-    createdAt: new Date(Date.now() - 86400000 * 3),
-    isPinned: true,
-    isOpen: true,
-    status: "active",
-    messages: [
-      {
-        id: 1,
-        type: "ai",
-        content: "こんにちは！AIコンサルティングアシスタントです。まず、貴社の現状についてお聞かせください。現在直面している主な課題は何ですか？",
-        timestamp: new Date(Date.now() - 120000),
-        interactive: {
-          type: "category-buttons",
-          data: [
-            { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
-            { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
-            { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
-            { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
-            { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
-          ]
-        }
-      },
-      {
-        id: 2,
-        type: "user",
-        content: "売上の伸び悩み",
-        timestamp: new Date(Date.now() - 90000),
-      },
-      {
-        id: 3,
-        type: "ai",
-        content: "承知しました。売上の伸び悩みについて詳しく分析していきましょう。現在の月間売上はどのくらいですか？また、目標とする売上はいくらでしょうか？",
-        timestamp: new Date(Date.now() - 60000),
-        interactive: {
-          type: "form",
-        }
-      },
-    ],
-    kpis: [
-      { label: "月間売上", value: "¥12.5M", change: "-8%", trend: "down" },
-      { label: "顧客数", value: "1,234", change: "+3%", trend: "up" },
-      { label: "平均単価", value: "¥10,125", change: "-11%", trend: "down" },
-      { label: "リピート率", value: "42%", change: "+5%", trend: "up" },
-    ],
-    steps: [
-      {
-        id: 1,
-        title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
-        status: "completed",
-        summary: ["売上の伸び悩み", "新規顧客獲得が低調", "単価の低下"]
-      },
-      {
-        id: 2,
-        title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
-        status: "active",
-        summary: ["月間売上: ¥12.5M", "平均単価: ¥10,125", "リピート率: 42%"]
-      },
-      {
-        id: 3,
-        title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
-        status: "pending",
-      },
-      {
-        id: 4,
-        title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
-        status: "pending",
-      },
-      {
-        id: 5,
-        title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
-        status: "pending",
-      },
-    ],
-  },
-  {
-    id: "session-2",
-    name: "コスト削減",
-    progress: 80,
-    currentStepId: 4,
-    lastUpdated: new Date(Date.now() - 86400000),
-    createdAt: new Date(Date.now() - 86400000 * 7),
-    isPinned: false,
-    isOpen: true,
-    status: "active",
-    messages: [
-      {
-        id: 1,
-        type: "ai",
-        content: "コスト削減についてのご相談ですね。まず、現在の主要なコスト項目を教えていただけますか？",
-        timestamp: new Date(Date.now() - 86400000),
-      },
-      {
-        id: 2,
-        type: "user",
-        content: "人件費と設備維持費が大きいです",
-        timestamp: new Date(Date.now() - 86300000),
-      },
-      {
-        id: 3,
-        type: "ai",
-        content: "承知しました。人件費と設備維持費について詳しく分析していきましょう。現在の削減目標はどのくらいですか？",
-        timestamp: new Date(Date.now() - 86200000),
-      },
-    ],
-    kpis: [
-      { label: "月間コスト", value: "¥8.2M", change: "-12%", trend: "down" },
-      { label: "人件費率", value: "45%", change: "-5%", trend: "down" },
-      { label: "設備費率", value: "28%", change: "-3%", trend: "down" },
-      { label: "削減目標達成率", value: "78%", change: "+15%", trend: "up" },
-    ],
-    steps: [
-      {
-        id: 1,
-        title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
-        status: "completed",
-        summary: ["コスト削減", "人件費の最適化", "設備維持費の削減"]
-      },
-      {
-        id: 2,
-        title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
-        status: "completed",
-        summary: ["月間コスト: ¥8.2M", "人件費率: 45%", "設備費率: 28%"]
-      },
-      {
-        id: 3,
-        title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
-        status: "completed",
-        summary: ["業務自動化", "シフト最適化", "設備統合"]
-      },
-      {
-        id: 4,
-        title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
-        status: "active",
-      },
-      {
-        id: 5,
-        title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
-        status: "pending",
-      },
-    ],
-  },
-  {
-    id: "session-3",
-    name: "新規事業立ち上げ",
-    progress: 60,
-    currentStepId: 3,
-    lastUpdated: new Date(Date.now() - 86400000 * 5),
-    createdAt: new Date(Date.now() - 86400000 * 14),
-    isPinned: false,
-    isOpen: false,
-    status: "paused",
-    messages: [
-      {
-        id: 1,
-        type: "ai",
-        content: "新規事業立ち上げについてのご相談ですね。どのような事業を考えていますか？",
-        timestamp: new Date(Date.now() - 86400000 * 5),
-      },
-    ],
-    kpis: [
-      { label: "初期投資額", value: "¥50M", change: "---", trend: "neutral" },
-      { label: "予想ROI", value: "15%", change: "---", trend: "neutral" },
-      { label: "市場規模", value: "¥500M", change: "---", trend: "neutral" },
-      { label: "競合数", value: "8社", change: "---", trend: "neutral" },
-    ],
-    steps: [
-      {
-        id: 1,
-        title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
-        status: "completed",
-      },
-      {
-        id: 2,
-        title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
-        status: "completed",
-      },
-      {
-        id: 3,
-        title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
-        status: "active",
-      },
-      {
-        id: 4,
-        title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
-        status: "pending",
-      },
-      {
-        id: 5,
-        title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
-        status: "pending",
-      },
-    ],
-  },
-  {
-    id: "session-4",
-    name: "組織改革",
-    progress: 30,
-    currentStepId: 2,
-    lastUpdated: new Date(Date.now() - 86400000 * 10),
-    createdAt: new Date(Date.now() - 86400000 * 20),
-    isPinned: false,
-    isOpen: false,
-    status: "paused",
-    messages: [
-      {
-        id: 1,
-        type: "ai",
-        content: "組織改革についてのご相談ですね。現在の組織の課題は何ですか？",
-        timestamp: new Date(Date.now() - 86400000 * 10),
-      },
-    ],
-    kpis: [
-      { label: "従業員満足度", value: "65%", change: "-5%", trend: "down" },
-      { label: "離職率", value: "12%", change: "+3%", trend: "down" },
-      { label: "生産性指数", value: "78", change: "-2%", trend: "down" },
-      { label: "部門間連携", value: "60%", change: "+0%", trend: "neutral" },
-    ],
-    steps: [
-      {
-        id: 1,
-        title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
-        status: "completed",
-      },
-      {
-        id: 2,
-        title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
-        status: "active",
-      },
-      {
-        id: 3,
-        title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
-        status: "pending",
-      },
-      {
-        id: 4,
-        title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
-        status: "pending",
-      },
-      {
-        id: 5,
-        title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
-        status: "pending",
-      },
-    ],
-  },
-];
-
-/** API相談セッション1件の型 */
-type ApiSession = {
-  id: string;
-  title: string;
-  status: string | null;
-  current_round: number | null;
-  max_rounds: number | null;
-  created_at: string | null;
-  updated_at: string | null;
-  completed_at: string | null;
-};
 
 /** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
 function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
@@ -463,17 +122,7 @@ function createInitialSessionForNewUser(): SessionData {
         timestamp: now,
         interactive: {
           type: "category-buttons",
-          data: [
-            { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
-            { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
-            { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
-            { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
-            { label: "DX推進", icon: "Cpu", color: "bg-indigo-500", bgLight: "bg-indigo-50 border-indigo-200" },
-            { label: "セキュリティ強化", icon: "Shield", color: "bg-amber-500", bgLight: "bg-amber-50 border-amber-200" },
-            { label: "クラウド移行", icon: "Cloud", color: "bg-cyan-500", bgLight: "bg-cyan-50 border-cyan-200" },
-            { label: "業務自動化", icon: "Zap", color: "bg-yellow-500", bgLight: "bg-yellow-50 border-yellow-200" },
-            { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
-          ]
+          data: CONSULTING_CATEGORIES
         }
       },
     ],
@@ -704,17 +353,7 @@ export default function ConsultingStartPage() {
           timestamp: now,
           interactive: {
             type: "category-buttons",
-            data: [
-              { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
-              { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
-              { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
-              { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
-              { label: "DX推進", icon: "Cpu", color: "bg-indigo-500", bgLight: "bg-indigo-50 border-indigo-200" },
-              { label: "セキュリティ強化", icon: "Shield", color: "bg-amber-500", bgLight: "bg-amber-50 border-amber-200" },
-              { label: "クラウド移行", icon: "Cloud", color: "bg-cyan-500", bgLight: "bg-cyan-50 border-cyan-200" },
-              { label: "業務自動化", icon: "Zap", color: "bg-yellow-500", bgLight: "bg-yellow-50 border-yellow-200" },
-              { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
-            ]
+            data: CONSULTING_CATEGORIES
           }
         },
       ],
@@ -901,18 +540,7 @@ export default function ConsultingStartPage() {
 
     if (isCategory && reply !== "その他") {
       setTimeout(() => {
-        const subcategoryMap: Record<string, string[]> = {
-          "売上の伸び悩み": ["新規顧客獲得が低調", "既存顧客の離脱", "単価の低下", "市場シェアの減少"],
-          "コスト削減": ["人件費の最適化", "設備維持費の削減", "在庫管理の改善", "業務効率化"],
-          "新規事業立ち上げ": ["市場調査・分析", "事業計画の策定", "資金調達", "チーム編成"],
-          "組織改革": ["組織構造の見直し", "人事評価制度の改善", "コミュニケーション活性化", "企業文化の変革"],
-          "DX推進": ["デジタル戦略の策定", "レガシーシステムの刷新", "データ活用基盤の構築", "AI/MLの導入"],
-          "セキュリティ強化": ["サイバー攻撃対策", "情報漏洩防止", "コンプライアンス対応", "ゼロトラスト導入"],
-          "クラウド移行": ["クラウド戦略の立案", "オンプレからの移行", "コスト最適化", "マルチクラウド対応"],
-          "業務自動化": ["RPA導入", "ワークフロー最適化", "API連携基盤", "ノーコードツール活用"]
-        };
-
-        const subcategories = subcategoryMap[reply] || [];
+        const subcategories = SUBCATEGORY_MAP[reply] || [];
         const aiResponse: Message = {
           id: msgLen + 2,
           type: "ai",
