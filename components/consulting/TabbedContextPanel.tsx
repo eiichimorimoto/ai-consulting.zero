@@ -39,24 +39,28 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
           <TabsTrigger
             value="insights"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
+            title="インサイト - 課題に関する情報や推奨事項"
           >
             <Lightbulb className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger
             value="budget"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
+            title="予算 - 予算情報の管理と分析"
           >
             <BarChart3 className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger
             value="files"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
+            title="ファイル - 添付ファイルの管理"
           >
             <Upload className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger
             value="search"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-gray-100/80"
+            title="検索 - Web検索で情報を調べる"
           >
             <Search className="w-4 h-4" />
           </TabsTrigger>
