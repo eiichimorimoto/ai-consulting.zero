@@ -372,26 +372,26 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       {summary && (
         <Card className="border-blue-200 bg-blue-50 mb-6">
           <CardContent className="p-4">
-            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-900">
               <Sparkles className="w-4 h-4 text-blue-600" />
               要約結果
             </h4>
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-blue-700 mb-3">
               検索キーワード「{query}」
             </p>
-            <div className="text-sm whitespace-pre-line mb-4 leading-relaxed">
+            <div className="text-sm whitespace-pre-line mb-4 leading-relaxed text-blue-900">
               {summary}
             </div>
             
             <div className="mb-4">
-              <p className="text-xs font-semibold mb-2">参考URL:</p>
+              <p className="text-xs font-semibold mb-2 text-blue-900">参考URL:</p>
               {sources.map((url, i) => (
                 <a
                   key={i}
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline block mb-1"
+                  className="text-xs text-blue-700 hover:text-blue-900 hover:underline block mb-1 break-all"
                 >
                   {i + 1}. {url}
                 </a>
@@ -401,17 +401,17 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
             <div className="flex gap-2">
               <Button
                 onClick={handleInsertSummaryToChat}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 💬 チャットに挿入
               </Button>
               <Button
                 onClick={handleSummarize}
                 variant="outline"
-                className="flex-1 border-blue-300 hover:bg-blue-100"
+                className="flex-1 border-blue-400 text-blue-700 hover:bg-blue-100 hover:text-blue-900"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                要約を再生成
+                再生成
               </Button>
             </div>
           </CardContent>
