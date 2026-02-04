@@ -350,7 +350,7 @@ export default function SessionHistoryPanel({
             />
           </div>
 
-          {/* Filters（アクティブ＝濃い緑・白文字、非アクティブ＝薄いグレー・濃いグレー文字） */}
+          {/* Filters（アクティブ＝濃い青・白文字、非アクティブ＝薄いグレー・濃いグレー文字） */}
           <div className="space-y-2 mt-3">
             <div className="flex gap-2 flex-wrap">
               {[
@@ -364,7 +364,7 @@ export default function SessionHistoryPanel({
                   onClick={() => setFilterPeriod(filter.value as "all" | "today" | "week" | "month")}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
                     filterPeriod === filter.value
-                      ? "bg-[#2ecc71] text-white border-[#2ecc71]"
+                      ? "bg-blue-600 text-white border-blue-600"
                       : "bg-[#f2f2f2] text-gray-700 border-gray-200 hover:bg-gray-200"
                   }`}
                 >
@@ -384,7 +384,7 @@ export default function SessionHistoryPanel({
                   onClick={() => setStatusFilter(filter.value as "all" | "paused" | "completed" | "cancelled")}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
                     statusFilter === filter.value
-                      ? "bg-[#2ecc71] text-white border-[#2ecc71]"
+                      ? "bg-blue-600 text-white border-blue-600"
                       : "bg-[#f2f2f2] text-gray-700 border-gray-200 hover:bg-gray-200"
                   }`}
                 >
