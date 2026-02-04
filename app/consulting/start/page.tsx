@@ -447,13 +447,27 @@ export default function ConsultingStartPage() {
         </main>
 
         {/* Right Sidebar - Dynamic Context Panel */}
-        <TabbedContextPanel
-          currentStep={session.currentSession?.currentStepId ?? 1}
-          sessionName={session.currentSession?.name ?? "相談"}
-          kpis={session.currentSession?.kpis ?? []}
-          onInsertToChat={(text) => message.setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
-          showDashboardPrompt={(session.currentSession?.name === "新規相談") && (session.currentSession?.progress === 0)}
-        />
+        <aside className="relative">
+          {session.userChoice === null && (
+            <div className="absolute inset-0 bg-gray-100/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  コンテキストパネル
+                </p>
+                <p className="text-xs text-gray-500">
+                  新規または既存を選択すると<br />利用可能になります
+                </p>
+              </div>
+            </div>
+          )}
+          <TabbedContextPanel
+            currentStep={session.currentSession?.currentStepId ?? 1}
+            sessionName={session.currentSession?.name ?? "相談"}
+            kpis={session.currentSession?.kpis ?? []}
+            onInsertToChat={(text) => message.setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
+            showDashboardPrompt={(session.currentSession?.name === "新規相談") && (session.currentSession?.progress === 0)}
+          />
+        </aside>
       </div>
     </div>
   );
