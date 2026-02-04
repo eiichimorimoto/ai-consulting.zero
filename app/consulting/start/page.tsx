@@ -245,7 +245,7 @@ export default function ConsultingStartPage() {
           <button
             type="button"
             onClick={session.userChoice === null ? session.handleChoiceNew : session.handleNewSession}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-blue-700 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-blue-800 bg-blue-100 hover:bg-blue-200 border border-blue-300 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200"
           >
             <span>新規</span>
           </button>
@@ -253,7 +253,7 @@ export default function ConsultingStartPage() {
             type="button"
             onClick={session.userChoice === null ? session.handleChoiceExisting : () => (session.userChoice === "existing" ? session.setIsHistoryOpen(true) : session.handleChoiceExisting())}
             disabled={session.isExistingLoading}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-indigo-700 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 shadow-sm hover:shadow text-sm min-h-[44px] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {session.isExistingLoading ? <span className="text-sm">読込中...</span> : <span>既存</span>}
           </button>
