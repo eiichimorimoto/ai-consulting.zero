@@ -136,8 +136,9 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
         setActiveSessionId(initial.id);
       } else {
         const mapped = mapApiSessionsToSessionData(sessions);
-        setAllSessions(mapped);
-        setActiveSessionId(mapped[0]?.id ?? "new-session");
+        const closedSessions = mapped.map(s => ({ ...s, isOpen: false }));
+        setAllSessions(closedSessions);
+        setActiveSessionId(closedSessions[0]?.id ?? "new-session");
         setIsHistoryOpen(true);
       }
     } catch {

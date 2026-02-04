@@ -200,6 +200,11 @@ export default function SessionHistoryPanel({
                         {session.name}
                       </h4>
                     )}
+                    {isOpenSession && (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 border border-blue-300">
+                        タブ表示中
+                      </span>
+                    )}
                     {status === "active" && (
                       <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-[#e6faed] text-[#0a6e2e]">
                         <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" aria-hidden />
