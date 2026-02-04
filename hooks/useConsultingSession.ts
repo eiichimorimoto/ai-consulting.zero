@@ -51,7 +51,7 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
   );
 
   const displaySessions = useMemo(() => {
-    const open = allSessions.filter((s) => s.isOpen && s.status !== "completed");
+    const open = allSessions.filter((s) => s.isOpen);
 
     if (open.length < MAX_OPEN_TABS) {
       const paused = allSessions
