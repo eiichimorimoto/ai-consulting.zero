@@ -136,7 +136,7 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
         setActiveSessionId(initial.id);
       } else {
         const mapped = mapApiSessionsToSessionData(sessions);
-        const closedSessions = mapped.map(s => ({ ...s, isOpen: false }));
+        const closedSessions = mapped.map((s, index) => ({ ...s, isOpen: index === 0 }));
         setAllSessions(closedSessions);
         setActiveSessionId(closedSessions[0]?.id ?? "new-session");
         setIsHistoryOpen(true);
