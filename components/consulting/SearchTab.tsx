@@ -252,9 +252,9 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6"
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
 
-      {/* Error Display */}
+        {/* Error Display */}
       {error && (
         <Card className="border-red-200 bg-red-50 mb-6">
           <CardContent className="p-4">
