@@ -259,9 +259,9 @@ export default function ConsultingStartPage() {
           </button>
         </div>
         {session.userChoice === null ? (
-          <div className="flex-1 flex items-center justify-center px-6">
+          <div className="flex-1 flex items-center justify-start px-4">
             <p className="text-sm text-gray-600 font-medium">
-              新規課題を始めるか、既存課題を選択してください
+              ← 新規課題を始めるか、既存課題を選択してください
             </p>
           </div>
         ) : (
