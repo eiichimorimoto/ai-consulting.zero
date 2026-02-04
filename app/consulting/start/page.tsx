@@ -307,10 +307,10 @@ export default function ConsultingStartPage() {
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left Sidebar - Steps Navigation（画像準拠: ダークブルー/チャコール） */}
-        <aside className="w-80 bg-slate-800 text-slate-100 border-r border-slate-700 flex flex-col min-h-0">
-          <div className="p-6 border-b border-slate-700 flex-shrink-0">
-            <h1 className="text-xl font-bold text-slate-100">{session.currentSession?.name ?? "相談"}</h1>
-            <p className="text-sm text-slate-400 mt-1">構造化された対話体験</p>
+        <aside className="w-80 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white border-r border-white/10 flex flex-col min-h-0">
+          <div className="p-6 border-b border-white/10 flex-shrink-0">
+            <h1 className="text-xl font-bold text-white">{session.currentSession?.name ?? "相談"}</h1>
+            <p className="text-sm text-white/90 mt-1">構造化された対話体験</p>
           </div>
 
           <div className="p-6 space-y-4 flex-shrink-0">
@@ -377,7 +377,7 @@ export default function ConsultingStartPage() {
             </nav>
           </div>
 
-          <div className="p-4 border-t border-slate-700 space-y-2 flex-shrink-0">
+          <div className="p-4 border-t border-white/10 space-y-2 flex-shrink-0">
             <Button
               variant="outline"
               className={`w-full ${BUTTON.leftPanel}`}
