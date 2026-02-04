@@ -50,6 +50,9 @@ import { STEP_STATUS, CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { useConsultingSession } from "@/hooks/useConsultingSession";
 import { useMessageHandlers } from "@/hooks/useMessageHandlers";
 import { useFileAttachment } from "@/hooks/useFileAttachment";
+import ChatArea from "@/components/consulting/ChatArea";
+import SessionDialogs from "@/components/consulting/SessionDialogs";
+import MessageInputArea from "@/components/consulting/MessageInputArea";
 
 /** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
 function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
@@ -234,18 +237,6 @@ export default function ConsultingStartPage() {
     );
   }
 
-  const iconMap: Record<string, React.ElementType> = {
-    TrendingDown,
-    DollarSign,
-    Rocket,
-    Users,
-    Edit3,
-    Cpu,
-    Shield,
-    Cloud,
-    Zap
-  };
-
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#F8F9FA]">
       {/* ラベル行: userChoice===null はラベル表示なし（新規/既存のみ）。それ以外はタブ（既存時は直近4つ）＋履歴 */}
@@ -295,95 +286,17 @@ export default function ConsultingStartPage() {
         onRenameSession={session.handleRenameSession}
       />
 
-      {/* Step Navigation Confirmation Dialog（背景・文字・ボタンを明示して見やすく） */}
-      <AlertDialog open={session.stepToNavigate !== null} onOpenChange={() => session.setStepToNavigate(null)}>
-        <AlertDialogContent className="max-w-md bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 shadow-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-slate-100 text-lg font-semibold">
-              ステップに戻りますか？
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
-              STEP {session.stepToNavigate} に戻ると、現在の進捗が変更されます。よろしいですか？
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2">
-            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
-              キャンセル
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={session.confirmStepNavigation}
-              className="bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
-            >
-              戻る
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* End Session Confirmation Dialog（背景・文字を明示して透明化を防止） */}
-      <AlertDialog open={session.isEndingSession} onOpenChange={session.setIsEndingSession}>
-        <AlertDialogContent className="max-w-md bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 shadow-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-slate-100">会話を終了しますか？</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-slate-300">
-              この会話をどのように終了しますか？
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4 space-y-3">
-            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50/50 dark:bg-slate-800/50" htmlFor="status-paused">
-              <input
-                type="radio"
-                id="status-paused"
-                name="session-status"
-                value="paused"
-                checked={session.endSessionStatus === "paused"}
-                onChange={(e) => session.setEndSessionStatus(e.target.value as SessionStatus)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-semibold text-sm text-gray-900 dark:text-slate-100">一時中断</div>
-                <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">後で続きをやる予定です</div>
-              </div>
-            </label>
-            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50/50 dark:bg-slate-800/50" htmlFor="status-completed">
-              <input
-                type="radio"
-                id="status-completed"
-                name="session-status"
-                value="completed"
-                checked={session.endSessionStatus === "completed"}
-                onChange={(e) => session.setEndSessionStatus(e.target.value as SessionStatus)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-semibold text-sm text-gray-900 dark:text-slate-100">完了</div>
-                <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">課題が解決しました</div>
-              </div>
-            </label>
-            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50/50 dark:bg-slate-800/50" htmlFor="status-cancelled">
-              <input
-                type="radio"
-                id="status-cancelled"
-                name="session-status"
-                value="cancelled"
-                checked={session.endSessionStatus === "cancelled"}
-                onChange={(e) => session.setEndSessionStatus(e.target.value as SessionStatus)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-semibold text-sm text-gray-900 dark:text-slate-100">中止</div>
-                <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">この課題は不要になりました</div>
-              </div>
-            </label>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="text-gray-700 dark:text-slate-300">キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={session.confirmEndSession} className="bg-red-600 hover:bg-red-700 text-white">
-              終了する
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Session Dialogs */}
+      <SessionDialogs
+        stepToNavigate={session.stepToNavigate}
+        onCancelStepNavigation={() => session.setStepToNavigate(null)}
+        onConfirmStepNavigation={session.confirmStepNavigation}
+        isEndingSession={session.isEndingSession}
+        endSessionStatus={session.endSessionStatus}
+        onSetIsEndingSession={session.setIsEndingSession}
+        onSetEndSessionStatus={session.setEndSessionStatus}
+        onConfirmEndSession={session.confirmEndSession}
+      />
 
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -501,282 +414,28 @@ export default function ConsultingStartPage() {
             <div className="relative z-10 flex-1 min-h-0" aria-hidden />
           ) : (
             <>
-          <header className="relative z-10 border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {session.currentSession?.steps?.find(s => s.status === "active")?.title || "課題のヒアリング"}
-                </h2>
-                <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
-              </div>
-              <Badge variant="secondary" className="text-xs flex items-center gap-2 bg-white border border-gray-200 text-gray-700">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
-                AI応答中
-              </Badge>
-            </div>
-          </header>
+          <ChatArea
+            currentSession={session.currentSession}
+            chatScrollRef={chatScrollRef}
+            onQuickReply={message.handleQuickReply}
+          />
 
-          <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6">
-            <div ref={chatScrollRef} className="max-w-3xl mx-auto space-y-6">
-              {(session.currentSession?.messages ?? []).map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${message.type === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  {message.type === "ai" && (
-                    <div className="w-10 h-10 rounded-full bg-teal-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                      <span className="text-white font-bold">AI</span>
-                    </div>
-                  )}
-
-                  <div className={`max-w-[80%] ${message.type === "user" ? "order-2" : "order-1"}`}>
-                    <div
-                      className={`rounded-lg p-4 ${message.type === "user"
-                          ? CHAT.userBubble
-                          : CHAT.aiBubble
-                        }`}
-                    >
-                      <p className="text-sm leading-relaxed">{message.content}</p>
-
-                      {message.interactive?.type === "category-buttons" && (
-                        <div className="mt-4 grid grid-cols-3 gap-2">
-                          {(message.interactive.data as CategoryData[]).map((category, idx) => {
-                            const IconComponent = iconMap[category.icon];
-
-                            return (
-                              <button
-                                key={idx}
-                                onClick={() => message.handleQuickReply(category.label, true)}
-                                className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all group ${category.bgLight ?? "bg-card border-border hover:bg-accent"} hover:opacity-90`}
-                              >
-                                <div className={`${category.color} text-white p-2 rounded-full group-hover:scale-110 transition-transform`}>
-                                  {IconComponent && <IconComponent className="w-4 h-4" />}
-                                </div>
-                                <span className="text-xs font-medium text-center leading-tight text-gray-900">{category.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {message.interactive?.type === "subcategory-buttons" && (
-                        <div className="mt-4 space-y-2">
-                          {(message.interactive.data as string[]).map((subcategory, idx) => (
-                            <Button
-                              key={idx}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => message.handleQuickReply(subcategory)}
-                              className="w-full justify-start text-xs"
-                            >
-                              <ArrowRight className="w-3 h-3 mr-2" />
-                              {subcategory}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-
-                      {message.interactive?.type === "custom-input" && (
-                        <div className="mt-4">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="課題を入力してください..."
-                              className="flex-1 text-sm"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                                  handleQuickReply(e.currentTarget.value);
-                                  e.currentTarget.value = "";
-                                }
-                              }}
-                            />
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                if (input?.value.trim()) {
-                                  handleQuickReply(input.value);
-                                  input.value = "";
-                                }
-                              }}
-                            >
-                              <Send className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {message.interactive?.type === "buttons" && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {(message.interactive.data as string[]).map((option, idx) => (
-                            <Button
-                              key={idx}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => message.handleQuickReply(option)}
-                              className="text-xs"
-                            >
-                              {option}
-                              <ArrowRight className="w-3 h-3 ml-1" />
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-
-                      {message.interactive?.type === "form" && (
-                        <Card className="mt-4 border-border/50">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">売上情報の入力</CardTitle>
-                            <CardDescription className="text-xs">現状と目標を教えてください</CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">現在の月間売上</label>
-                              <Input placeholder="例: 12,500,000" className="text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">目標月間売上</label>
-                              <Input placeholder="例: 18,000,000" className="text-sm" />
-                            </div>
-                            <Button size="sm" className={`w-full mt-2 ${BUTTON.primary}`}>
-                              送信
-                              <Send className="w-3 h-3 ml-2" />
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1 px-2">
-                      {message.timestamp.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
-
-                  {message.type === "user" && (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white font-semibold text-sm">
-                      U
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <footer className="relative z-10 flex-shrink-0 border-t border-gray-200 bg-white p-4">
-            <div className="max-w-3xl mx-auto">
-              {file.attachedFiles.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-2">
-                  {file.attachedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 bg-accent text-accent-foreground px-3 py-1.5 rounded-md text-sm"
-                    >
-                      <FileText className="w-3 h-3" />
-                      <span className="text-xs truncate max-w-[150px]">{file.name}</span>
-                      <button
-                        onClick={() => file.handleRemoveFile(index)}
-                        className="hover:text-destructive transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isListening && (
-                <div className="mb-2 flex items-center gap-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-sm font-medium text-red-700 dark:text-red-300">録音中...</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-red-500 rounded-full animate-pulse"
-                        style={{
-                          height: `${Math.random() * 16 + 8}px`,
-                          animationDelay: `${i * 0.1}s`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <Button
-                    onClick={() => {
-                      stopListening();
-                      if (transcript) {
-                        toast.success('音声入力を停止しました');
-                      }
-                    }}
-                    size="sm"
-                    variant="destructive"
-                  >
-                    停止
-                  </Button>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <input
-                  ref={file.fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={file.handleFileAttach}
-                  className="hidden"
-                />
-                <Button
-                  onClick={() => file.fileInputRef.current?.click()}
-                  size="icon"
-                  variant="outline"
-                  type="button"
-                  disabled={isListening}
-                >
-                  <Paperclip className="w-4 h-4" />
-                </Button>
-                <Textarea
-                  value={message.inputValue}
-                  onChange={(e) => message.setInputValue(e.target.value)}
-                  placeholder={isListening ? "音声入力中..." : "メッセージを入力..."}
-                  className="flex-1 min-h-[80px] max-h-[200px] py-3 px-3 text-base resize-y !bg-slate-50 dark:!bg-slate-100 border-gray-200"
-                  rows={3}
-                  disabled={isListening}
-                />
-                <VoiceSettingsDialog
-                  enableAICorrection={enableAICorrection}
-                  onToggleAICorrection={setEnableAICorrection}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => {
-                        if (isListening) {
-                          stopListening();
-                          if (transcript) {
-                            toast.success('音声入力を停止しました');
-                          }
-                        } else {
-                          resetTranscript();
-                          setInputValue('');
-                          startListening();
-                          toast.info('音声入力開始', { description: '音声入力を開始しました。' });
-                        }
-                      }}
-                      size="icon"
-                      variant={isListening ? "destructive" : "outline"}
-                      type="button"
-                    >
-                      {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isListening ? '音声入力を停止' : '音声入力を開始'}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Button onClick={message.handleSendMessage} size="icon" disabled={isListening} className={BUTTON.primary}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </footer>
+          <MessageInputArea
+            inputValue={message.inputValue}
+            setInputValue={message.setInputValue}
+            attachedFiles={file.attachedFiles}
+            fileInputRef={file.fileInputRef}
+            onFileAttach={file.handleFileAttach}
+            onRemoveFile={file.handleRemoveFile}
+            isListening={isListening}
+            transcript={transcript}
+            startListening={startListening}
+            stopListening={stopListening}
+            resetTranscript={resetTranscript}
+            enableAICorrection={enableAICorrection}
+            setEnableAICorrection={setEnableAICorrection}
+            onSendMessage={message.handleSendMessage}
+          />
             </>
           )}
         </main>
