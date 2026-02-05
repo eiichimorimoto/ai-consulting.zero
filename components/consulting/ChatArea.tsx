@@ -7,6 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap } from "lucide-react";
 import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
+import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export interface ChatAreaProps {
   currentSession: SessionData | null;
@@ -31,6 +34,35 @@ export default function ChatArea({
   chatScrollRef, 
   onQuickReply 
 }: ChatAreaProps) {
+  const [profile, setProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
+  const supabase = createClient();
+
+  // プロフィール情報を取得
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('name, avatar_url')
+          .eq('user_id', user.id)
+          .single();
+        if (data) {
+          setProfile(data);
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // ユーザーイニシャルを取得（AppHeaderと同じロジック）
+  const getUserInitials = () => {
+    if (!profile?.name) return 'U';
+    const cleanName = profile.name.replace(/\s+/g, '');
+    return cleanName.length >= 2 ? cleanName.slice(0, 2) : cleanName.slice(0, 1);
+  };
+
   return (
     <>
       <header className="relative z-10 border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
@@ -183,8 +215,20 @@ export default function ChatArea({
               </div>
 
               {message.type === "user" && (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white font-semibold text-sm">
-                  U
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt={profile.name || 'User'}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-semibold text-sm">
+                      {getUserInitials()}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
