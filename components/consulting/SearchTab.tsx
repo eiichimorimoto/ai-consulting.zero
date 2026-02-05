@@ -217,7 +217,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       <div className="p-6 pb-4 flex-shrink-0">
         <h3 className="text-sm font-bold text-foreground mb-1">検索</h3>
         <p className="text-xs text-muted-foreground mb-4">Web検索で情報を調べる</p>
@@ -391,7 +391,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
               ))}
             </div>
             
-            <div className="flex gap-2 pr-2">
+            <div className="flex gap-2 pr-4">
               <Button
                 onClick={handleInsertSummaryToChat}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
