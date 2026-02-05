@@ -447,7 +447,7 @@ export default function ConsultingStartPage() {
         </main>
 
         {/* Right Sidebar - Dynamic Context Panel */}
-        <aside className="relative">
+        <aside className="relative flex-1 flex flex-col min-h-0">
           {session.userChoice === null && (
             <div className="absolute inset-0 bg-gray-100/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
               <div className="text-center">

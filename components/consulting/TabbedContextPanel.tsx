@@ -32,7 +32,7 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
   const [activeTab, setActiveTab] = useState("insights");
 
   return (
-    <aside className={`w-80 border-l flex flex-col ${RIGHT_PANEL.base}`}>
+    <aside className={`w-80 border-l flex flex-col h-full ${RIGHT_PANEL.base}`}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         {/* Tab Headers（添付画像: アクティブは緑下線） */}
         <TabsList className="grid grid-cols-4 w-full rounded-none border-b border-gray-200 bg-transparent p-0">
