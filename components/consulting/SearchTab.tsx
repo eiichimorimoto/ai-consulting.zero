@@ -391,7 +391,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
               ))}
             </div>
             
-            <div className="flex gap-2 px-2">
+            <div className="flex gap-2">
               <Button
                 onClick={handleInsertSummaryToChat}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
