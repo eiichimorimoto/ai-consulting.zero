@@ -1,7 +1,7 @@
 /**
  * 検索結果要約API
  * 
- * Google Gemini 1.5 Flashを使用して検索結果を箇条書き形式で要約
+ * OpenAI GPT-4を使用して検索結果を箇条書き形式で要約
  * 
  * @endpoint POST /api/consulting/search/summarize
  * @param {string} query - 検索クエリ
@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import OpenAI from 'openai'
 
 interface SearchResult {
   url: string
@@ -39,18 +39,17 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 2. Gemini API設定
-    const apiKey = process.env.GEMINI_API_KEY
+    // 2. OpenAI API設定
+    const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
-      console.error('GEMINI_API_KEY not configured')
+      console.error('OPENAI_API_KEY not configured')
       return NextResponse.json(
-        { success: false, error: 'Gemini API設定エラー' },
+        { success: false, error: 'OpenAI API設定エラー' },
         { status: 500 }
       )
     }
     
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const openai = new OpenAI({ apiKey })
     
     // 3. プロンプト構築
     const searchResultsText = results
@@ -85,22 +84,24 @@ ${searchResultsText}
 
 注意: 参考URLは含めないでください（別途処理します）`
     
-    // 4. Gemini API呼び出し
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: `あなたは情報要約の専門家です。検索結果を簡潔な箇条書きで要約します。\n\n${prompt}`
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 500,
-      }
+    // 4. OpenAI API呼び出し
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4-turbo-preview',
+      messages: [
+        {
+          role: 'system',
+          content: 'あなたは情報要約の専門家です。検索結果を簡潔な箇条書きで要約します。'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
     })
     
-    const response = await result.response
-    const summary = response.text() || ''
+    const summary = completion.choices[0]?.message?.content || ''
     
     if (!summary) {
       throw new Error('要約生成に失敗しました')
@@ -121,7 +122,7 @@ ${searchResultsText}
     
     const errorMessage = error instanceof Error ? error.message : '不明なエラー'
     
-    // Gemini APIのエラーハンドリング
+    // OpenAI APIのエラーハンドリング
     if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
       return NextResponse.json(
         { 
@@ -133,7 +134,7 @@ ${searchResultsText}
       )
     }
     
-    if (errorMessage.includes('quota') || errorMessage.includes('rate_limit') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+    if (errorMessage.includes('rate_limit')) {
       return NextResponse.json(
         { 
           success: false, 
