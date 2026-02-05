@@ -12,6 +12,13 @@ import type { SessionData, Message, SessionStatus, ApiSession } from "@/types/co
 import { MAX_OPEN_TABS } from "@/lib/consulting/constants";
 import { CONSULTING_CATEGORIES } from "@/lib/consulting/category-data";
 import { celebrateStepCompletion } from "@/lib/utils/confetti";
+import {
+  saveConsultingState,
+  loadConsultingState,
+  saveConversationId,
+  loadConversationId,
+  type ConsultingState
+} from "@/lib/utils/session-storage";
 
 /** ダッシュボードからStartに来た時の選択: 未選択 / 新規 / 既存 */
 export type UserChoice = null | "new" | "existing";
@@ -44,6 +51,9 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [endSessionStatus, setEndSessionStatus] = useState<SessionStatus>("paused");
 
+  // 前回の状態を保持（無限ループ防止）
+  const prevStateRef = useRef<ConsultingState | null>(null);
+
   // 算出値
   const currentSession = useMemo(
     () => allSessions.find((s) => s.id === activeSessionId) || allSessions[0],
@@ -69,6 +79,16 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
     () => allSessions.filter((s) => s.isOpen),
     [allSessions]
   );
+
+  // 初回読み込み時にsessionStorageから状態を復元
+  useEffect(() => {
+    const saved = loadConsultingState();
+    if (saved) {
+      setUserChoice(saved.userChoice);
+      setActiveSessionId(saved.activeSessionId);
+      // openSessionIdsの復元は、allSessionsが読み込まれた後に処理
+    }
+  }, []); // 空配列（初回のみ）
 
   // 既存セッション（API由来）を選択したときにメッセージを取得
   useEffect(() => {
@@ -97,6 +117,41 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
     })();
     return () => { cancelled = true; };
   }, [currentSession?.id, currentSession?.messages?.length]);
+
+  // 状態変更時にsessionStorageに保存（無限ループ防止）
+  useEffect(() => {
+    if (userChoice === null) return; // 初期状態は保存しない
+    
+    const currentState: ConsultingState = {
+      userChoice,
+      activeSessionId,
+      openSessionIds: openSessions.map(s => s.id),
+      lastActivity: Date.now(),
+    };
+    
+    // 前回と比較（変更があった場合のみ保存）
+    if (
+      prevStateRef.current?.userChoice !== currentState.userChoice ||
+      prevStateRef.current?.activeSessionId !== currentState.activeSessionId ||
+      JSON.stringify(prevStateRef.current?.openSessionIds) !== JSON.stringify(currentState.openSessionIds)
+    ) {
+      saveConsultingState(currentState);
+      prevStateRef.current = currentState;
+    }
+  }, [userChoice, activeSessionId, openSessions]);
+
+  // conversation_idをsessionStorageにキャッシュ（無限ループ防止）
+  useEffect(() => {
+    allSessions.forEach(session => {
+      if (session.conversationId) {
+        // 前回と同じならスキップ
+        const cached = loadConversationId(session.id);
+        if (cached !== session.conversationId) {
+          saveConversationId(session.id, session.conversationId);
+        }
+      }
+    });
+  }, [allSessions.map(s => `${s.id}:${s.conversationId || 'null'}`).join(',')]); // 文字列化して安定化
 
   // ステップ完了の祝福
   const previousCompletedStepsRef = useRef(0);

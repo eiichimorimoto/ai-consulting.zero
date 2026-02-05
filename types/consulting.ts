@@ -76,6 +76,7 @@ export type SessionData = {
   isOpen: boolean;
   status: SessionStatus;
   completedAt?: Date;
+  conversationId?: string; // Dify会話ID
 };
 
 /**
@@ -90,4 +91,5 @@ export type ApiSession = {
   created_at: string | null;
   updated_at: string | null;
   completed_at: string | null;
+  conversation_id: string | null; // Dify会話ID
 };

@@ -7,8 +7,10 @@
  */
 
 import { useState } from "react";
+import { toast } from "sonner";
 import type { SessionData, Message } from "@/types/consulting";
 import { SUBCATEGORY_MAP } from "@/lib/consulting/constants";
+import { loadConversationId, saveConversationId } from "@/lib/utils/session-storage";
 
 type UseMessageHandlersProps = {
   currentSession: SessionData | undefined;
@@ -52,7 +54,7 @@ export function useMessageHandlers({
 
   /**
    * メッセージ送信ハンドラー
-   * ユーザーメッセージを送信し、AI応答をシミュレート
+   * ユーザーメッセージを送信し、Dify経由でAI応答を取得
    */
   const handleSendMessage = async () => {
     if (!currentSession) return;
@@ -60,43 +62,92 @@ export function useMessageHandlers({
 
     let messageContent = inputValue;
 
+    // 添付ファイルがあればファイル名を追記
     if (attachedFiles.length > 0) {
       const fileNames = attachedFiles.map(f => f.name).join(", ");
-      messageContent += attachedFiles.length > 0 ? `\n\n添付ファイル: ${fileNames}` : "";
+      messageContent += `\n\n添付ファイル: ${fileNames}`;
     }
 
     const msgLen = currentSession?.messages?.length ?? 0;
-    const newMessage: Message = {
+    const tempUserMessage: Message = {
       id: msgLen + 1,
       type: "user",
       content: messageContent,
       timestamp: new Date(),
     };
 
+    // 楽観的UI更新（即座に表示）
     setAllSessions(allSessions.map(s =>
       s.id === activeSessionId
-        ? { ...s, messages: [...(s.messages ?? []), newMessage], lastUpdated: new Date() }
+        ? { ...s, messages: [...(s.messages ?? []), tempUserMessage], lastUpdated: new Date() }
         : s
     ));
+    
+    const originalInput = inputValue;
     setInputValue("");
     clearFiles();
     resetTranscript();
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: msgLen + 2,
-        type: "ai",
-        content: "ご入力ありがとうございます。内容を分析しています。詳しい情報があれば、より具体的な提案が可能です。",
-        timestamp: new Date(),
-      };
+    try {
+      // sessionStorageからconversation_id取得（高速）
+      let conversationId = loadConversationId(currentSession.id);
+      
+      // なければReact Stateから
+      if (!conversationId && currentSession.conversationId) {
+        conversationId = currentSession.conversationId;
+      }
 
-      setAllSessions(prevSessions => prevSessions.map(s =>
+      // API呼び出し
+      const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: messageContent,
+          conversationId  // Difyに渡す
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      
+      // conversation_idをsessionStorageにキャッシュ
+      if (data.conversation_id) {
+        saveConversationId(currentSession.id, data.conversation_id);
+      }
+      
+      // React State更新（サーバーの応答で上書き）
+      setAllSessions(allSessions.map(s =>
         s.id === activeSessionId
-          ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
+          ? { 
+              ...s, 
+              messages: data.messages || s.messages,
+              conversationId: data.conversation_id,
+              lastUpdated: new Date()
+            }
           : s
       ));
-    }, 1000);
+
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      
+      // エラー時は楽観的更新をロールバック
+      setAllSessions(allSessions.map(s =>
+        s.id === activeSessionId
+          ? { ...s, messages: s.messages.filter(m => m.id !== tempUserMessage.id) }
+          : s
+      ));
+      
+      // 入力内容を復元
+      setInputValue(originalInput);
+      
+      // エラー通知
+      toast.error('メッセージ送信に失敗しました', {
+        description: 'もう一度お試しください。'
+      });
+    }
   };
 
   /**

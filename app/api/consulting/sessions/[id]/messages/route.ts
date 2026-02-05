@@ -259,12 +259,19 @@ export async function POST(
     // 重複チェックの結果に応じてround数を調整
     const newRound = isInitialMessageDuplicate ? 1 : Math.floor((nextMessageOrder + 1) / 2)
     
+    // conversation_idがあれば保存（Difyの会話履歴を維持）
+    const updateData: any = {
+      current_round: newRound,
+      updated_at: new Date().toISOString()
+    }
+    
+    if (newConversationId) {
+      updateData.conversation_id = newConversationId
+    }
+    
     const { error: updateError } = await supabase
       .from('consulting_sessions')
-      .update({ 
-        current_round: newRound,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', sessionId)
 
     if (updateError) {

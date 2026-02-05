@@ -394,7 +394,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
             <div className="flex gap-2 pr-2">
               <Button
                 onClick={handleInsertSummaryToChat}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-2"
               >
                 💬 チャットに挿入
               </Button>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { clearConsultingState } from '@/lib/utils/session-storage'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,10 @@ export default function LogoutButton() {
 
   const handleLogout = async () => {
     try {
+      // 1. sessionStorageをクリア（Supabaseログアウト前に実施）
+      clearConsultingState()
+      
+      // 2. Supabaseログアウト
       const supabase = createClient()
       if (!supabase) {
         console.error('Supabaseが設定されていません')
@@ -33,7 +38,7 @@ export default function LogoutButton() {
         console.error('ログアウトエラー:', error)
       }
       
-      // ログアウト後、ホームページにリダイレクト
+      // 3. ログアウト後、ホームページにリダイレクト
       router.push('/')
       router.refresh()
     } catch (error) {

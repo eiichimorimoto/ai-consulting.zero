@@ -126,6 +126,7 @@ export interface Database {
           max_rounds: number | null
           current_round: number | null
           completed_at: string | null
+          conversation_id: string | null
         }
         Insert: {
           id?: string
@@ -145,6 +146,7 @@ export interface Database {
           max_rounds?: number | null
           current_round?: number | null
           completed_at?: string | null
+          conversation_id?: string | null
         }
         Update: {
           id?: string
@@ -164,6 +166,7 @@ export interface Database {
           max_rounds?: number | null
           current_round?: number | null
           completed_at?: string | null
+          conversation_id?: string | null
         }
       }
       consulting_messages: {

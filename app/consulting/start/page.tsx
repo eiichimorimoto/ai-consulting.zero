@@ -103,6 +103,7 @@ function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
       ],
       steps,
       completedAt,
+      conversationId: api.conversation_id || undefined,
     };
   });
 }
