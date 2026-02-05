@@ -174,6 +174,7 @@ export default function ConsultingStartPage() {
     activeSessionId: session.activeSessionId,
     allSessions: session.allSessions,
     setAllSessions: session.setAllSessions,
+    setActiveSessionId: session.setActiveSessionId,
     attachedFiles: file.attachedFiles,
     clearFiles: file.clearFiles,
     resetTranscript,

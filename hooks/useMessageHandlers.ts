@@ -10,13 +10,19 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { SessionData, Message } from "@/types/consulting";
 import { SUBCATEGORY_MAP } from "@/lib/consulting/constants";
-import { loadConversationId, saveConversationId } from "@/lib/utils/session-storage";
+import { 
+  loadConversationId, 
+  saveConversationId,
+  loadConsultingState,
+  saveConsultingState
+} from "@/lib/utils/session-storage";
 
 type UseMessageHandlersProps = {
   currentSession: SessionData | undefined;
   activeSessionId: string;
   allSessions: SessionData[];
   setAllSessions: React.Dispatch<React.SetStateAction<SessionData[]>>;
+  setActiveSessionId: React.Dispatch<React.SetStateAction<string>>;
   attachedFiles: File[];
   clearFiles: () => void;
   resetTranscript: () => void;
@@ -46,6 +52,7 @@ export function useMessageHandlers({
   activeSessionId,
   allSessions,
   setAllSessions,
+  setActiveSessionId,
   attachedFiles,
   clearFiles,
   resetTranscript,
