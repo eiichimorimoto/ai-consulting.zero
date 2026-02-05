@@ -307,7 +307,7 @@ export default function ConsultingStartPage() {
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left Sidebar - Steps Navigation（画像準拠: ダークブルー/チャコール） */}
-        <aside className="w-80 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white border-r border-white/10 flex flex-col min-h-0">
+        <aside className="w-80 flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white border-r border-white/10 flex flex-col min-h-0">
           <div className="p-6 border-b border-white/10 flex-shrink-0">
             <h1 className="text-xl font-bold text-white">{session.currentSession?.name ?? "相談"}</h1>
             <p className="text-sm text-white/90 mt-1">構造化された対話体験</p>
@@ -447,7 +447,7 @@ export default function ConsultingStartPage() {
         </main>
 
         {/* Right Sidebar - Dynamic Context Panel */}
-        <aside className="relative flex-1 flex flex-col min-h-0">
+        <aside className="relative flex-shrink-0 h-full">
           {session.userChoice === null && (
             <div className="absolute inset-0 bg-gray-100/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
               <div className="text-center">
