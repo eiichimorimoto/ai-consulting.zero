@@ -80,7 +80,7 @@ export default function ChatArea({
         </div>
       </header>
 
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6">
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
         <div ref={chatScrollRef} className="max-w-3xl mx-auto space-y-6">
           {(currentSession?.messages ?? []).map((message) => (
             <div
