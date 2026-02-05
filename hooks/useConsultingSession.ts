@@ -274,12 +274,13 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
       return;
     }
 
+    // 一時IDを生成（カテゴリ選択時にSupabaseの実IDに置き換え）
+    const tempId = `temp-session-${Date.now()}`;
     const newSession = createInitialSessionForNewUser();
-    const newSessionId = `session-${Date.now()}`;
-    const updatedSession = { ...newSession, id: newSessionId };
+    const updatedSession = { ...newSession, id: tempId };
 
     setAllSessions([...allSessions, updatedSession]);
-    setActiveSessionId(newSessionId);
+    setActiveSessionId(tempId);
   };
 
   const handleOpenSession = (sessionId: string) => {

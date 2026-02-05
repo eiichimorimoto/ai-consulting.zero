@@ -60,6 +60,14 @@ export function useMessageHandlers({
     if (!currentSession) return;
     if (!inputValue.trim() && attachedFiles.length === 0) return;
 
+    // 一時IDの場合はエラー表示（カテゴリ選択が必要）
+    if (currentSession.id.startsWith('temp-session-')) {
+      toast.error('カテゴリを選択してください', {
+        description: '先にカテゴリボタンから課題を選択してください。'
+      });
+      return;
+    }
+
     let messageContent = inputValue;
 
     // 添付ファイルがあればファイル名を追記
@@ -157,7 +165,7 @@ export function useMessageHandlers({
    * @param reply - 選択された返信内容
    * @param isCategory - カテゴリ選択かどうか（サブカテゴリ表示トリガー）
    */
-  const handleQuickReply = (reply: string, isCategory: boolean = false) => {
+  const handleQuickReply = async (reply: string, isCategory: boolean = false) => {
     if (!currentSession) return;
     const msgLen = currentSession?.messages?.length ?? 0;
     const newMessage: Message = {
@@ -177,6 +185,66 @@ export function useMessageHandlers({
         }
         : s
     ));
+
+    // カテゴリ選択時、一時IDの場合はSupabaseセッション作成
+    if (isCategory && currentSession.id.startsWith('temp-session-')) {
+      try {
+        const formData = new FormData();
+        formData.append('category', reply);
+        formData.append('initial_message', reply);
+        formData.append('title', reply);
+
+        const res = await fetch('/api/consulting/sessions', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Session creation failed: ${res.status}`);
+        }
+
+        const data = await res.json();
+        
+        if (data.session?.id) {
+          const tempId = currentSession.id;
+          const realId = data.session.id;
+
+          // React State更新: 一時ID → 実ID
+          setAllSessions(prevSessions => 
+            prevSessions.map(s => 
+              s.id === tempId 
+                ? { 
+                    ...s, 
+                    id: realId,
+                    conversationId: data.session.conversation_id || undefined
+                  }
+                : s
+            )
+          );
+          setActiveSessionId(realId);
+
+          // sessionStorage更新
+          saveConversationId(realId, data.session.conversation_id || '');
+          const currentState = loadConsultingState();
+          if (currentState) {
+            saveConsultingState({
+              ...currentState,
+              activeSessionId: realId,
+              openSessionIds: currentState.openSessionIds.map(id => 
+                id === tempId ? realId : id
+              ),
+              lastActivity: Date.now()
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        toast.error('セッション作成に失敗しました', {
+          description: '一時的に保存されています。もう一度お試しください。'
+        });
+        // エラー時は一時IDのまま継続（サブカテゴリは表示）
+      }
+    }
 
     if (isCategory && reply !== "その他") {
       setTimeout(() => {
