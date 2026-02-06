@@ -11,7 +11,7 @@ import { SUBCATEGORY_MAP } from '@/lib/consulting/constants'
 /**
  * GET /api/consulting/sessions/[id]/messages
  * 
- * セッションのメッセージ履歴を取得
+ * セッションのメッセージ履歴を取得（ページネーション対応）
  */
 export async function GET(
   request: NextRequest,
@@ -31,6 +31,11 @@ export async function GET(
     }
 
     const { id: sessionId } = await params
+    const { searchParams } = new URL(request.url)
+    
+    // ページネーションパラメータ（デフォルト: 最新50件）
+    const limit = Math.min(Number(searchParams.get('limit')) || 50, 100) // 最大100件
+    const offset = Number(searchParams.get('offset')) || 0
 
     // セッション所有権確認
     const { data: session, error: sessionError } = await supabase
@@ -47,12 +52,27 @@ export async function GET(
       )
     }
 
-    // メッセージ取得
+    // 総メッセージ数取得
+    const { count, error: countError } = await supabase
+      .from('consulting_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('session_id', sessionId)
+
+    if (countError) {
+      console.error('Count error:', countError)
+      return NextResponse.json(
+        { error: countError.message },
+        { status: 500 }
+      )
+    }
+
+    // メッセージ取得（新しい順でrange指定）
     const { data: messages, error: messagesError } = await supabase
       .from('consulting_messages')
       .select('*')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false }) // 新しい順
+      .range(offset, offset + limit - 1)
 
     if (messagesError) {
       console.error('Messages fetch error:', messagesError)
@@ -62,10 +82,11 @@ export async function GET(
       )
     }
 
-    // Supabaseのrole → フロントエンドのtype にマッピング
-    const mappedMessages = (messages || []).map((msg, index) => {
+    // 表示用に古い順に並び替え & マッピング
+    const reversedMessages = (messages || []).reverse()
+    const mappedMessages = reversedMessages.map((msg, index) => {
       const baseMessage: any = {
-        id: index + 1,
+        id: offset + index + 1, // グローバルなID
         type: msg.role === 'assistant' ? 'ai' : 'user',
         content: msg.content,
         timestamp: new Date(msg.created_at),
@@ -79,13 +100,28 @@ export async function GET(
           selectedCategory: msg.analysis_type
         }
       }
+      
+      // 既存データ対応: 内容から推測してinteractiveを復元
+      if (msg.role === 'assistant' && !msg.analysis_type) {
+        const categoryMatch = msg.content.match(/「(.+?)」について/)
+        if (categoryMatch && SUBCATEGORY_MAP[categoryMatch[1]]) {
+          baseMessage.interactive = {
+            type: 'subcategory-buttons',
+            data: SUBCATEGORY_MAP[categoryMatch[1]],
+            selectedCategory: categoryMatch[1]
+          }
+        }
+      }
 
       return baseMessage
     })
 
     return NextResponse.json({ 
       messages: mappedMessages,
-      count: mappedMessages.length
+      total: count || 0,
+      hasMore: (count || 0) > offset + limit,
+      offset,
+      limit
     })
 
   } catch (error) {
@@ -355,6 +391,18 @@ export async function POST(
           type: 'subcategory-buttons',
           data: SUBCATEGORY_MAP[msg.analysis_type],
           selectedCategory: msg.analysis_type
+        }
+      }
+      
+      // 既存データ対応: 内容から推測してinteractiveを復元
+      if (msg.role === 'assistant' && !msg.analysis_type) {
+        const categoryMatch = msg.content.match(/「(.+?)」について/)
+        if (categoryMatch && SUBCATEGORY_MAP[categoryMatch[1]]) {
+          baseMessage.interactive = {
+            type: 'subcategory-buttons',
+            data: SUBCATEGORY_MAP[categoryMatch[1]],
+            selectedCategory: categoryMatch[1]
+          }
         }
       }
 

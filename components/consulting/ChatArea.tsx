@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap } from "lucide-react";
 import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { createClient } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 
 export interface ChatAreaProps {
@@ -16,6 +16,10 @@ export interface ChatAreaProps {
   chatScrollRef: React.RefObject<HTMLDivElement>;
   onQuickReply: (reply: string, isCategory?: boolean) => void;
   isLoading?: boolean;
+  hasMoreMessages?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
+  totalMessages?: number;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -34,10 +38,16 @@ export default function ChatArea({
   currentSession, 
   chatScrollRef, 
   onQuickReply,
-  isLoading = false
+  isLoading = false,
+  hasMoreMessages = false,
+  isLoadingMore = false,
+  onLoadMore,
+  totalMessages = 0
 }: ChatAreaProps) {
   const [profile, setProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const supabase = createClient();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [prevScrollHeight, setPrevScrollHeight] = useState(0);
 
   // プロフィール情報を取得
   useEffect(() => {
@@ -65,6 +75,24 @@ export default function ChatArea({
     return cleanName.length >= 2 ? cleanName.slice(0, 2) : cleanName.slice(0, 1);
   };
 
+  // メッセージ追加時のスクロール位置保持
+  useEffect(() => {
+    if (containerRef.current && prevScrollHeight > 0) {
+      const newScrollHeight = containerRef.current.scrollHeight;
+      const heightDiff = newScrollHeight - prevScrollHeight;
+      containerRef.current.scrollTop += heightDiff;
+      setPrevScrollHeight(0); // リセット
+    }
+  }, [currentSession?.messages.length, prevScrollHeight]);
+
+  // 「過去のメッセージを読み込む」ボタンをクリックしたとき
+  const handleLoadMore = () => {
+    if (containerRef.current) {
+      setPrevScrollHeight(containerRef.current.scrollHeight);
+    }
+    onLoadMore?.();
+  };
+
   return (
     <>
       <header className="relative z-10 border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
@@ -84,8 +112,39 @@ export default function ChatArea({
         </div>
       </header>
 
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
-        <div ref={chatScrollRef} className="max-w-3xl mx-auto space-y-6">
+      <div 
+        ref={containerRef}
+        className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100"
+      >
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* 過去のメッセージを読み込むボタン */}
+          {hasMoreMessages && (
+            <div className="flex justify-center py-4">
+              <Button
+                variant="outline"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="shadow-sm hover:shadow-md transition-shadow"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mr-2" />
+                    読み込み中...
+                  </>
+                ) : (
+                  <>
+                    📜 過去のメッセージを読み込む
+                    {totalMessages > 0 && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        （残り{totalMessages - (currentSession?.messages.length || 0)}件）
+                      </span>
+                    )}
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           {(currentSession?.messages ?? []).map((message) => (
             <div
               key={message.id}
@@ -240,6 +299,8 @@ export default function ChatArea({
               )}
             </div>
           ))}
+
+          <div ref={chatScrollRef} />
         </div>
       </div>
     </>

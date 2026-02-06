@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -48,6 +49,18 @@ export default function MessageInputArea({
   setEnableAICorrection,
   onSendMessage,
 }: MessageInputAreaProps) {
+  // IME入力中かどうかの状態管理
+  const [isComposing, setIsComposing] = useState(false);
+
+  // Enterキーで送信（IME確定時は送信しない）
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
+      e.preventDefault();
+      onSendMessage();
+    }
+    // Shift+Enterは改行（デフォルト動作）
+  };
+
   return (
     <footer className="relative z-10 flex-shrink-0 border-t border-gray-200 bg-white p-4">
       <div className="max-w-3xl mx-auto">
@@ -124,7 +137,10 @@ export default function MessageInputArea({
           <Textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={isListening ? "音声入力中..." : "メッセージを入力..."}
+            onCompositionStart={() => setIsComposing(true)}  // IME入力開始
+            onCompositionEnd={() => setIsComposing(false)}   // IME入力終了
+            onKeyDown={handleKeyDown}                        // Enterキーハンドラー
+            placeholder={isListening ? "音声入力中..." : "メッセージを入力... (Enter: 送信, Shift+Enter: 改行)"}
             className="flex-1 min-h-[80px] max-h-[200px] py-3 px-3 text-base resize-y !bg-slate-50 dark:!bg-slate-100 border-gray-200"
             rows={3}
             disabled={isListening}

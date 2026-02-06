@@ -181,6 +181,51 @@ export default function ConsultingStartPage() {
     resetTranscript,
   });
 
+  // ページネーション状態
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalMessages, setTotalMessages] = useState(0);
+
+  // 過去のメッセージを読み込む
+  const loadMoreMessages = async () => {
+    if (!session.activeSessionId || isLoadingMore || !hasMoreMessages) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const currentMessages = session.currentSession?.messages || [];
+      const nextOffset = currentMessages.length;
+
+      const res = await fetch(
+        `/api/consulting/sessions/${session.activeSessionId}/messages?limit=50&offset=${nextOffset}`
+      );
+
+      if (!res.ok) throw new Error('Failed to load more messages');
+
+      const data = await res.json();
+
+      // 既存メッセージの前に追加（古いメッセージを上に追加）
+      const updatedMessages = [...data.messages, ...currentMessages];
+
+      // セッション更新
+      session.setAllSessions(prev => prev.map(s =>
+        s.id === session.activeSessionId
+          ? { ...s, messages: updatedMessages }
+          : s
+      ));
+
+      setTotalMessages(data.total);
+      setHasMoreMessages(data.hasMore);
+
+      toast.success(`${data.messages.length}件の過去メッセージを読み込みました`);
+    } catch (error) {
+      console.error('Failed to load more messages:', error);
+      toast.error('メッセージの読み込みに失敗しました');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   // session.handleSessionChange に inputValue クリアを連携
   const handleSessionChangeWithClear = (sessionId: string) => {
     session.handleSessionChange(sessionId);
@@ -429,6 +474,10 @@ export default function ConsultingStartPage() {
             chatScrollRef={chatScrollRef}
             onQuickReply={message.handleQuickReply}
             isLoading={message.isLoading}
+            hasMoreMessages={hasMoreMessages}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMoreMessages}
+            totalMessages={totalMessages}
           />
 
           <MessageInputArea

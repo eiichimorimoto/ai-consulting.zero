@@ -1,10 +1,11 @@
 /**
  * Dify Chat API
  * 
- * Dify Chatflowにメッセージ送信（会話履歴自動管理）
+ * Dify Chatflowにメッセージ送信（会話履歴自動管理 + 会社情報連携）
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * POST /api/dify/chat
@@ -45,12 +46,82 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // 会社情報とプロフィールを取得
+    const supabase = await createClient()
+    let companyInfo: any = {}
+    let profileInfo: any = {}
+
+    try {
+      // プロフィールと会社情報をJOINで取得
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          companies (
+            id,
+            name,
+            industry,
+            capital,
+            employees_count,
+            fiscal_year_end,
+            website,
+            description
+          )
+        `)
+        .eq('user_id', userId)
+        .single()
+
+      if (!profileError && profile) {
+        profileInfo = {
+          name: profile.name,
+          email: profile.email,
+          position: profile.position,
+          department: profile.department
+        }
+
+        if (profile.companies) {
+          companyInfo = {
+            name: profile.companies.name,
+            industry: profile.companies.industry,
+            capital: profile.companies.capital,
+            employees_count: profile.companies.employees_count,
+            fiscal_year_end: profile.companies.fiscal_year_end,
+            website: profile.companies.website,
+            description: profile.companies.description
+          }
+        }
+
+        console.log('✅ Company & Profile info fetched:', {
+          company: companyInfo.name || 'なし',
+          user: profileInfo.name
+        })
+      } else {
+        console.warn('⚠️ Profile not found or error:', profileError?.message)
+      }
+    } catch (fetchError) {
+      console.error('❌ Failed to fetch company info:', fetchError)
+      // エラーが発生してもDify呼び出しは続行
+    }
+
     // 実際のDify Chatflow API呼び出し
     try {
       console.log('📥 /api/dify/chat - Received conversationId:', conversationId || 'null')
       
       const requestBody: any = {
-        inputs: {},  // Chatflow APIでは inputs が必須
+        inputs: {
+          // 会社情報をDifyに渡す
+          company_name: companyInfo.name || '',
+          industry: companyInfo.industry || '',
+          capital: companyInfo.capital || 0,
+          employees_count: companyInfo.employees_count || 0,
+          website: companyInfo.website || '',
+          company_description: companyInfo.description || '',
+          
+          // ユーザー情報
+          user_name: profileInfo.name || '',
+          user_position: profileInfo.position || '',
+          user_department: profileInfo.department || ''
+        },
         query: message,
         user: userId,
         response_mode: 'blocking'
@@ -66,7 +137,9 @@ export async function POST(request: NextRequest) {
 
       console.log('📤 Dify Chatflow Request:', {
         url: difyChatflowUrl,
-        has_conversation_id: !!requestBody.conversation_id
+        has_conversation_id: !!requestBody.conversation_id,
+        has_company_info: !!companyInfo.name,
+        company: companyInfo.name || 'なし'
       })
 
       const difyResponse = await fetch(difyChatflowUrl, {
