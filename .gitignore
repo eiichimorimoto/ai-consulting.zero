@@ -178,3 +178,9 @@ vite.config.ts.timestamp-*
 google-credentials.json.git/index.lock
 *.backup.*
 .next*/
+
+# Large media files
+info-data/
+.obsidian/
+public/**/*.mp4
+public/**/*.m4a
