@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
 
     try {
       // プロフィールと会社情報をJOINで取得
-      const { data: profile, error: profileError } = await supabase
+      // まず .single() なしで取得してデバッグ
+      const { data: profiles, error: profileError, count } = await supabase
         .from('profiles')
         .select(`
           *,
@@ -74,9 +75,19 @@ export async function POST(request: NextRequest) {
             website,
             business_description
           )
-        `)
+        `, { count: 'exact' })
         .eq('user_id', userId)
-        .single()
+
+      console.log('🔍 Profile query result:', {
+        userId,
+        count,
+        has_error: !!profileError,
+        error_message: profileError?.message,
+        profiles_length: profiles?.length || 0,
+        first_profile_has_company: profiles?.[0]?.companies ? true : false
+      })
+
+      const profile = profiles?.[0] // 最初の1件を使用
 
       if (!profileError && profile) {
         profileInfo = {
