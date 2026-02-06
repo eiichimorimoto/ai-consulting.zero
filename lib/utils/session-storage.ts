@@ -19,6 +19,8 @@ export type ConsultingState = {
   activeSessionId: string;
   openSessionIds: string[];
   lastActivity: number; // タイムスタンプ（24時間以上古い状態は破棄）
+  selectedCategory?: string; // 選択されたカテゴリ（「コスト削減」など）
+  selectedSubcategory?: string; // 選択されたサブカテゴリ
 };
 
 const STATE_KEY = 'consulting_state';

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap } from "lucide-react";
+import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, Loader2, User } from "lucide-react";
 import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useRef } from 'react';
@@ -104,10 +104,16 @@ export default function ChatArea({
             <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
           </div>
           {isLoading && (
-            <Badge variant="secondary" className="text-xs flex items-center gap-2 bg-white border border-gray-200 text-gray-700">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
-              AIが回答を生成中...
-            </Badge>
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500 opacity-20 blur-xl animate-pulse rounded-full" />
+              <Badge 
+                variant="secondary" 
+                className="relative text-base flex items-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-600 border-2 border-blue-400 text-white shadow-lg px-4 py-2 animate-pulse"
+              >
+                <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                <span className="font-bold">🤖 AIが考えています...</span>
+              </Badge>
+            </div>
           )}
         </div>
       </header>
@@ -150,13 +156,14 @@ export default function ChatArea({
               key={message.id}
               className={`flex gap-3 ${message.type === "user" ? "justify-end" : "justify-start"}`}
             >
+              {/* AIアイコン */}
               {message.type === "ai" && (
                 <div className="w-10 h-10 rounded-full bg-teal-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
                   <span className="text-white font-bold">AI</span>
                 </div>
               )}
 
-              <div className={`max-w-[80%] ${message.type === "user" ? "order-2" : "order-1"}`}>
+              <div className={`max-w-[80%] ${message.type === "user" ? "order-1" : "order-1"}`}>
                 <div
                   className={`rounded-lg p-4 ${message.type === "user"
                       ? CHAT.userBubble
@@ -299,6 +306,35 @@ export default function ChatArea({
               )}
             </div>
           ))}
+
+          {/* AIが考えている時の表示（チャット内） */}
+          {isLoading && (
+            <div className="flex gap-3 justify-start animate-fade-in">
+              <div className="w-10 h-10 rounded-full bg-teal-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                <span className="text-white font-bold">AI</span>
+              </div>
+              <div className="max-w-[80%]">
+                <div className="rounded-lg p-6 bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-300 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-teal-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-base font-bold text-teal-700 animate-pulse">
+                        🤖 AIが考えています...
+                      </p>
+                      <p className="text-xs text-teal-600 mt-1">
+                        貴社の情報を分析中
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-1">
+                    <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div ref={chatScrollRef} />
         </div>

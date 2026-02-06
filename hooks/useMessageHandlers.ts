@@ -116,13 +116,27 @@ export function useMessageHandlers({
         conversationId = currentSession.conversationId;
       }
 
+      // sessionStorageからカテゴリ情報取得
+      const currentState = loadConsultingState();
+      const categoryInfo = currentState ? {
+        selectedCategory: currentState.selectedCategory,
+        selectedSubcategory: currentState.selectedSubcategory
+      } : undefined;
+
+      console.log('📤 Sending message with context:', {
+        sessionId: currentSession.id,
+        conversationId,
+        categoryInfo
+      });
+
       // API呼び出し
       const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: messageContent,
-          conversationId  // Difyに渡す
+          conversationId,  // Difyに渡す
+          categoryInfo     // カテゴリ情報を追加
         }),
       });
 
@@ -305,6 +319,17 @@ export function useMessageHandlers({
               }),
             });
             console.log('✅ Category selection messages saved to Supabase');
+            
+            // sessionStorageにカテゴリ情報を保存
+            const currentState = loadConsultingState();
+            if (currentState) {
+              saveConsultingState({
+                ...currentState,
+                selectedCategory: reply,
+                lastActivity: Date.now()
+              });
+              console.log('✅ Category saved to sessionStorage:', reply);
+            }
           } catch (error) {
             console.error('Failed to save category selection messages:', error);
             // エラー時も楽観的更新は維持（UIには表示されている）
@@ -352,6 +377,18 @@ export function useMessageHandlers({
           }
         }
       }, 800);
+    } else {
+      // サブカテゴリ選択時、またはその他のクイック返信
+      // sessionStorageにサブカテゴリ情報を保存
+      const currentState = loadConsultingState();
+      if (currentState && currentState.selectedCategory) {
+        saveConsultingState({
+          ...currentState,
+          selectedSubcategory: reply,
+          lastActivity: Date.now()
+        });
+        console.log('✅ Subcategory saved to sessionStorage:', reply);
+      }
     }
   };
 

@@ -15,7 +15,14 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sessionId, message, userId, conversationId } = body
+    const { sessionId, message, userId, conversationId, categoryInfo } = body
+
+    console.log('📥 Dify API received:', {
+      sessionId,
+      userId,
+      conversationId,
+      categoryInfo
+    })
 
     // バリデーション
     if (!message || !userId) {
@@ -62,10 +69,10 @@ export async function POST(request: NextRequest) {
             name,
             industry,
             capital,
-            employees_count,
+            employee_count,
             fiscal_year_end,
             website,
-            description
+            business_description
           )
         `)
         .eq('user_id', userId)
@@ -84,10 +91,10 @@ export async function POST(request: NextRequest) {
             name: profile.companies.name,
             industry: profile.companies.industry,
             capital: profile.companies.capital,
-            employees_count: profile.companies.employees_count,
+            employee_count: profile.companies.employee_count,
             fiscal_year_end: profile.companies.fiscal_year_end,
             website: profile.companies.website,
-            description: profile.companies.description
+            business_description: profile.companies.business_description
           }
         }
 
@@ -112,15 +119,19 @@ export async function POST(request: NextRequest) {
           // 会社情報をDifyに渡す
           company_name: companyInfo.name || '',
           industry: companyInfo.industry || '',
-          capital: companyInfo.capital || 0,
-          employees_count: companyInfo.employees_count || 0,
+          capital: companyInfo.capital || '',
+          employee_count: companyInfo.employee_count || '',
           website: companyInfo.website || '',
-          company_description: companyInfo.description || '',
+          business_description: companyInfo.business_description || '',
           
           // ユーザー情報
           user_name: profileInfo.name || '',
           user_position: profileInfo.position || '',
-          user_department: profileInfo.department || ''
+          user_department: profileInfo.department || '',
+
+          // カテゴリ情報（課題の文脈）
+          selected_category: categoryInfo?.selectedCategory || '',
+          selected_subcategory: categoryInfo?.selectedSubcategory || ''
         },
         query: message,
         user: userId,

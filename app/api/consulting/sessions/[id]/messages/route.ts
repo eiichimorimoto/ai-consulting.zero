@@ -277,7 +277,8 @@ export async function POST(
             sessionId,
             message,
             userId: user.id,
-            conversationId  // Dify会話履歴用
+            conversationId,  // Dify会話履歴用
+            categoryInfo     // カテゴリ情報をDifyに渡す
           })
         })
 
