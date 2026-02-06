@@ -243,6 +243,7 @@ export function useMessageHandlers({
           if (currentState) {
             saveConsultingState({
               ...currentState,
+              userChoice: 'existing', // 'new' → 'existing' に変更
               activeSessionId: realId,
               openSessionIds: currentState.openSessionIds.map(id => 
                 id === tempId ? realId : id
@@ -296,7 +297,11 @@ export function useMessageHandlers({
               body: JSON.stringify({ 
                 message: reply,
                 skipDify: true,
-                aiResponse: aiResponseContent
+                aiResponse: aiResponseContent,
+                categoryInfo: { // カテゴリ情報を送信
+                  selectedCategory: reply,
+                  subcategories: subcategories
+                }
               }),
             });
             console.log('✅ Category selection messages saved to Supabase');

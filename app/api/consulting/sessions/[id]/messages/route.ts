@@ -6,6 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { SUBCATEGORY_MAP } from '@/lib/consulting/constants'
 
 /**
  * GET /api/consulting/sessions/[id]/messages
@@ -51,7 +52,7 @@ export async function GET(
       .from('consulting_messages')
       .select('*')
       .eq('session_id', sessionId)
-      .order('message_order', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (messagesError) {
       console.error('Messages fetch error:', messagesError)
@@ -61,9 +62,30 @@ export async function GET(
       )
     }
 
+    // Supabaseのrole → フロントエンドのtype にマッピング
+    const mappedMessages = (messages || []).map((msg, index) => {
+      const baseMessage: any = {
+        id: index + 1,
+        type: msg.role === 'assistant' ? 'ai' : 'user',
+        content: msg.content,
+        timestamp: new Date(msg.created_at),
+      }
+
+      // カテゴリ選択メッセージの場合、interactiveを復元
+      if (msg.role === 'assistant' && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
+        baseMessage.interactive = {
+          type: 'subcategory-buttons',
+          data: SUBCATEGORY_MAP[msg.analysis_type],
+          selectedCategory: msg.analysis_type
+        }
+      }
+
+      return baseMessage
+    })
+
     return NextResponse.json({ 
-      messages: messages || [],
-      count: messages?.length || 0
+      messages: mappedMessages,
+      count: mappedMessages.length
     })
 
   } catch (error) {
@@ -103,7 +125,7 @@ export async function POST(
 
     // リクエストボディ取得
     const body = await request.json()
-    const { message, conversationId, skipDify, aiResponse } = body
+    const { message, conversationId, skipDify, aiResponse, categoryInfo } = body
 
     console.log('📥 POST /messages - Received:', {
       sessionId,
@@ -111,7 +133,8 @@ export async function POST(
       has_conversationId: !!conversationId,
       conversationId: conversationId || 'null',
       skipDify: skipDify || false,
-      has_aiResponse: !!aiResponse
+      has_aiResponse: !!aiResponse,
+      has_categoryInfo: !!categoryInfo
     })
 
     // バリデーション
@@ -244,16 +267,24 @@ export async function POST(
     // AI応答のmessage_orderは、重複チェック結果に応じて調整
     const aiMessageOrder = isInitialMessageDuplicate ? 2 : nextMessageOrder + 1
     
+    // AIメッセージのinsertデータを構築
+    const aiMessageData: any = {
+      session_id: sessionId,
+      role: 'assistant',
+      content: aiResponseContent,
+      message_order: aiMessageOrder,
+      tokens_used: tokensUsed,
+      processing_time_ms: processingTime
+    }
+
+    // カテゴリ情報があればanalysis_typeに保存
+    if (categoryInfo?.selectedCategory) {
+      aiMessageData.analysis_type = categoryInfo.selectedCategory
+    }
+
     const { data: aiMessage, error: aiMessageError } = await supabase
       .from('consulting_messages')
-      .insert({
-        session_id: sessionId,
-        role: 'assistant',
-        content: aiResponseContent,
-        message_order: aiMessageOrder,
-        tokens_used: tokensUsed,
-        processing_time_ms: processingTime
-      })
+      .insert(aiMessageData)
       .select()
       .single()
 
@@ -309,9 +340,30 @@ export async function POST(
       index === self.findIndex(m => m.id === msg.id)
     )
 
+    // Supabaseのrole → フロントエンドのtype にマッピング
+    const mappedMessages = allMessages.map((msg, index) => {
+      const baseMessage: any = {
+        id: index + 1,
+        type: msg.role === 'assistant' ? 'ai' : 'user',
+        content: msg.content,
+        timestamp: new Date(msg.created_at),
+      }
+
+      // カテゴリ選択メッセージの場合、interactiveを復元
+      if (msg.role === 'assistant' && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
+        baseMessage.interactive = {
+          type: 'subcategory-buttons',
+          data: SUBCATEGORY_MAP[msg.analysis_type],
+          selectedCategory: msg.analysis_type
+        }
+      }
+
+      return baseMessage
+    })
+
     const responseData = { 
       session: updatedSession,
-      messages: allMessages,  // 全件を返す
+      messages: mappedMessages,  // マッピング済みの全件を返す
       current_round: newRound,
       max_rounds: session.max_rounds,
       is_limit_reached: isLimitReached,
@@ -325,7 +377,8 @@ export async function POST(
       has_conversation_id: !!responseData.conversation_id,
       conversation_id: responseData.conversation_id || 'null',
       message_count: responseData.messages.length,
-      round: newRound
+      round: newRound,
+      mapped_messages: responseData.messages.length
     })
     
     return NextResponse.json(responseData, { status: 201 })

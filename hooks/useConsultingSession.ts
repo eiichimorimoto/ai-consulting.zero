@@ -128,11 +128,52 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
           }
         }
       } else if (saved.userChoice === 'new') {
-        // 「新規」選択後は状態をリセット
-        // （メッセージ内容はsessionStorageに保存していないため、復元不可能）
-        if (!cancelled) {
-          setUserChoice(null);
-          clearConsultingState();
+        // 「新規」選択後の復元
+        // activeSessionIdが実ID（temp-session-以外）の場合は、既存セッションとして復元
+        if (saved.activeSessionId && !saved.activeSessionId.startsWith('temp-session-')) {
+          // 実IDに変換済み → 既存セッションとして復元
+          try {
+            const res = await fetch("/api/consulting/sessions");
+            if (cancelled) return;
+            
+            const data = await res.json().catch(() => ({}));
+            const sessions: ApiSession[] = data.sessions || [];
+            
+            if (cancelled) return;
+            
+            const targetSession = sessions.find(s => s.id === saved.activeSessionId);
+            if (targetSession) {
+              const mapped = mapApiSessionsToSessionData([targetSession]);
+              const restored = mapped.map(s => ({
+                ...s,
+                isOpen: true
+              }));
+              
+              if (!cancelled) {
+                setUserChoice('existing'); // 'new'から'existing'に変更
+                setActiveSessionId(saved.activeSessionId);
+                setAllSessions(restored);
+              }
+            } else {
+              // セッションが見つからない場合はリセット
+              if (!cancelled) {
+                setUserChoice(null);
+                clearConsultingState();
+              }
+            }
+          } catch (error) {
+            if (!cancelled) {
+              console.error('Failed to restore new session:', error);
+              setUserChoice(null);
+              clearConsultingState();
+            }
+          }
+        } else {
+          // temp-session-の場合は状態をリセット
+          if (!cancelled) {
+            setUserChoice(null);
+            clearConsultingState();
+          }
         }
       }
     };
