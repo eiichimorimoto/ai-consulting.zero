@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { SUBCATEGORY_MAP } from '@/lib/consulting/constants'
+import { CONSULTING_CATEGORIES } from '@/lib/consulting/category-data'
 
 /**
  * GET /api/consulting/sessions/[id]/messages
@@ -92,7 +93,15 @@ export async function GET(
         timestamp: new Date(msg.created_at),
       }
 
-      // カテゴリ選択メッセージの場合、interactiveを復元
+      // 初回メッセージ（カテゴリ選択ボタン）の復元
+      if (msg.role === 'assistant' && msg.content.includes('どのような課題をお抱えですか')) {
+        baseMessage.interactive = {
+          type: 'category-buttons',
+          data: CONSULTING_CATEGORIES
+        }
+      }
+
+      // サブカテゴリ選択メッセージの復元（analysis_typeベース）
       if (msg.role === 'assistant' && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
         baseMessage.interactive = {
           type: 'subcategory-buttons',
@@ -102,7 +111,7 @@ export async function GET(
       }
       
       // 既存データ対応: 内容から推測してinteractiveを復元
-      if (msg.role === 'assistant' && !msg.analysis_type) {
+      if (msg.role === 'assistant' && !msg.analysis_type && !baseMessage.interactive) {
         const categoryMatch = msg.content.match(/「(.+?)」について/)
         if (categoryMatch && SUBCATEGORY_MAP[categoryMatch[1]]) {
           baseMessage.interactive = {
