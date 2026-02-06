@@ -1,0 +1,106 @@
+# Gitleaks Configuration for ai-consulting-zero
+# このファイルはAPIキー、パスワード、トークンなどの機密情報の誤コミットを防ぎます
+
+title = "Gitleaks Config for AI Consulting Zero"
+
+[extend]
+# デフォルトルールを使用
+useDefault = true
+
+# 除外するパス
+[allowlist]
+paths = [
+  # 既に.gitignoreに含まれているファイル
+  '''\.env\.local$''',
+  '''\.env$''',
+  '''\.env\..*$''',
+  
+  # バックアップファイル
+  '''backups/''',
+  
+  # ビルド成果物
+  '''\.next/''',
+  '''node_modules/''',
+  '''dist/''',
+  '''build/''',
+  
+  # ログファイル
+  '''logs/''',
+  '''\.log$''',
+  
+  # テスト用のモックデータ（実際のシークレットではない）
+  '''__tests__/''',
+  '''__mocks__/''',
+  '''\.test\.ts$''',
+  '''\.spec\.ts$''',
+]
+
+# 除外する正規表現パターン
+regexes = [
+  # プレースホルダー（実際のキーではない）
+  '''your_.*_key_here''',
+  '''YOUR_.*_KEY''',
+  '''<YOUR_.*>''',
+  '''example\.com''',
+  '''test@test\.com''',
+  
+  # ドキュメント内のプレースホルダー
+  '''AIzaSyD\.\.\.''',
+  '''sk-proj-\.\.\.''',
+]
+
+# カスタム検出ルール（プロジェクト固有）
+[[rules]]
+id = "google-api-key"
+description = "Google API Key"
+regex = '''AIza[0-9A-Za-z_-]{35}'''
+tags = ["key", "Google", "API"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-proj-[0-9A-Za-z_-]{48,}'''
+tags = ["key", "OpenAI", "API"]
+
+[[rules]]
+id = "supabase-anon-key"
+description = "Supabase Anon Key"
+regex = '''eyJ[0-9A-Za-z_-]+\.eyJ[0-9A-Za-z_-]+\.[0-9A-Za-z_-]+'''
+tags = ["key", "Supabase", "JWT"]
+
+[[rules]]
+id = "supabase-service-key"
+description = "Supabase Service Role Key"
+regex = '''eyJ[0-9A-Za-z_-]{36,}\.eyJ[0-9A-Za-z_-]{36,}\.[0-9A-Za-z_-]{43,}'''
+tags = ["key", "Supabase", "Service"]
+
+[[rules]]
+id = "dify-api-key"
+description = "Dify API Key"
+regex = '''app-[0-9A-Za-z]{32,}'''
+tags = ["key", "Dify", "API"]
+
+# エントロピー検出（ランダム文字列）
+[[rules]]
+id = "high-entropy-string"
+description = "High Entropy String (Potential Secret)"
+regex = '''[0-9a-zA-Z_-]{32,}'''
+entropy = 4.5
+tags = ["entropy", "secret"]
+
+# 除外するコミット（既知の安全なコミット）
+# [allowlist.commits]
+# commits = ["abc123def456"]
+
+# 除外するキーワード（ファイル名やコンテンツに含まれる場合は無視）
+stopwords = [
+  "placeholder",
+  "example",
+  "sample",
+  "test",
+  "mock",
+  "dummy",
+  "fake",
+  "your_api_key_here",
+  "YOUR_API_KEY",
+]
