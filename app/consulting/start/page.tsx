@@ -111,8 +111,9 @@ function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
 /** 新規登録者用: ラベル1つ・進捗0%・左全て初期状態の1セッションのみ */
 function createInitialSessionForNewUser(): SessionData {
   const now = new Date();
+  const tempId = `temp-session-${Date.now()}`; // 一時ID生成
   return {
-    id: "new-session",
+    id: tempId, // ハードコードから一時IDへ
     name: "新規相談",
     progress: 0,
     currentStepId: 1,
@@ -193,7 +194,8 @@ export default function ConsultingStartPage() {
     if (transcript) {
       message.setInputValue(transcript);
     }
-  }, [transcript, message]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcript]); // message.setInputValueは安定しているため除外
 
   // Show voice error as toast
   useEffect(() => {
@@ -426,6 +428,7 @@ export default function ConsultingStartPage() {
             currentSession={session.currentSession}
             chatScrollRef={chatScrollRef}
             onQuickReply={message.handleQuickReply}
+            isLoading={message.isLoading}
           />
 
           <MessageInputArea

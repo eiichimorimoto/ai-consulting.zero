@@ -71,7 +71,20 @@ export async function POST(request: NextRequest) {
     // 認証チェック
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
+    // デバッグ用ログ
+    console.log('🔍 [POST /api/consulting/sessions] 認証チェック:', {
+      hasUser: !!user,
+      userId: user?.id,
+      authError: authError?.message,
+      hasAuthHeader: !!request.headers.get('authorization'),
+      cookies: request.cookies.getAll().map(c => c.name),
+    })
+    
     if (authError || !user) {
+      console.error('❌ [POST /api/consulting/sessions] 認証失敗:', {
+        authError: authError?.message,
+        hasUser: !!user,
+      })
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

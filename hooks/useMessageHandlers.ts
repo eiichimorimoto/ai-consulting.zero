@@ -58,6 +58,7 @@ export function useMessageHandlers({
   resetTranscript,
 }: UseMessageHandlersProps) {
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   /**
    * メッセージ送信ハンドラー
@@ -102,6 +103,9 @@ export function useMessageHandlers({
     setInputValue("");
     clearFiles();
     resetTranscript();
+
+    // ローディング開始
+    setIsLoading(true);
 
     try {
       // sessionStorageからconversation_id取得（高速）
@@ -162,6 +166,9 @@ export function useMessageHandlers({
       toast.error('メッセージ送信に失敗しました', {
         description: 'もう一度お試しください。'
       });
+    } finally {
+      // ローディング終了
+      setIsLoading(false);
     }
   };
 
@@ -254,12 +261,16 @@ export function useMessageHandlers({
     }
 
     if (isCategory && reply !== "その他") {
-      setTimeout(() => {
+      // カテゴリ選択時のメッセージをSupabaseに保存
+      setTimeout(async () => {
         const subcategories = SUBCATEGORY_MAP[reply] || [];
+        const aiResponseContent = `「${reply}」についてですね。さらに詳しくお聞かせください。具体的にはどのような課題でしょうか？`;
+        
+        // 楽観的UI更新（即座に表示）
         const aiResponse: Message = {
           id: msgLen + 2,
           type: "ai",
-          content: `「${reply}」についてですね。さらに詳しくお聞かせください。具体的にはどのような課題でしょうか？`,
+          content: aiResponseContent,
           timestamp: new Date(),
           interactive: {
             type: "subcategory-buttons",
@@ -268,18 +279,43 @@ export function useMessageHandlers({
           }
         };
 
-        setAllSessions(prevSessions => prevSessions.map(s =>
-          s.id === activeSessionId
+        // 一時ID → 実ID置き換えを考慮して、セッション名でマッチング
+        setAllSessions(prevSessions => prevSessions.map(s => {
+          const isTargetSession = s.name === reply || s.id === activeSessionId;
+          return isTargetSession
             ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
-            : s
-        ));
+            : s;
+        }));
+
+        // Supabaseに保存（一時IDではない場合のみ）
+        if (activeSessionId && !activeSessionId.startsWith('temp-session-')) {
+          try {
+            await fetch(`/api/consulting/sessions/${activeSessionId}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                message: reply,
+                skipDify: true,
+                aiResponse: aiResponseContent
+              }),
+            });
+            console.log('✅ Category selection messages saved to Supabase');
+          } catch (error) {
+            console.error('Failed to save category selection messages:', error);
+            // エラー時も楽観的更新は維持（UIには表示されている）
+          }
+        }
       }, 800);
     } else if (reply === "その他") {
-      setTimeout(() => {
+      // 「その他」選択時のメッセージをSupabaseに保存
+      setTimeout(async () => {
+        const aiResponseContent = "承知しました。どのような課題でしょうか？自由に入力してください。";
+        
+        // 楽観的UI更新（即座に表示）
         const aiResponse: Message = {
           id: msgLen + 2,
           type: "ai",
-          content: "承知しました。どのような課題でしょうか？自由に入力してください。",
+          content: aiResponseContent,
           timestamp: new Date(),
           interactive: {
             type: "custom-input"
@@ -291,6 +327,25 @@ export function useMessageHandlers({
             ? { ...s, messages: [...(s.messages ?? []), aiResponse], lastUpdated: new Date() }
             : s
         ));
+
+        // Supabaseに保存（一時IDではない場合のみ）
+        if (activeSessionId && !activeSessionId.startsWith('temp-session-')) {
+          try {
+            await fetch(`/api/consulting/sessions/${activeSessionId}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                message: reply,
+                skipDify: true,
+                aiResponse: aiResponseContent
+              }),
+            });
+            console.log('✅ "その他" selection messages saved to Supabase');
+          } catch (error) {
+            console.error('Failed to save "その他" selection messages:', error);
+            // エラー時も楽観的更新は維持（UIには表示されている）
+          }
+        }
       }, 800);
     }
   };
@@ -300,5 +355,6 @@ export function useMessageHandlers({
     setInputValue,
     handleSendMessage,
     handleQuickReply,
+    isLoading,
   };
 }

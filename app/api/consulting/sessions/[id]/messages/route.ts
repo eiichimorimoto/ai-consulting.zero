@@ -103,13 +103,15 @@ export async function POST(
 
     // リクエストボディ取得
     const body = await request.json()
-    const { message, conversationId } = body
+    const { message, conversationId, skipDify, aiResponse } = body
 
     console.log('📥 POST /messages - Received:', {
       sessionId,
       has_message: !!message,
       has_conversationId: !!conversationId,
-      conversationId: conversationId || 'null'
+      conversationId: conversationId || 'null',
+      skipDify: skipDify || false,
+      has_aiResponse: !!aiResponse
     })
 
     // バリデーション
@@ -190,44 +192,52 @@ export async function POST(
       userMessage = newMessage
     }
 
-    // 2. Dify呼び出し
+    // 2. Dify呼び出し（skipDify=trueの場合はスキップ）
     const difyStartTime = Date.now()
     
-    let aiResponse: string
+    let aiResponseContent: string
     let tokensUsed = 0
     let processingTime = 0
     let newConversationId: string | undefined
 
-    try {
-      // Dify Chat APIを呼び出し
-      const difyResponse = await fetch(`${request.nextUrl.origin}/api/dify/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sessionId,
-          message,
-          userId: user.id,
-          conversationId  // Dify会話履歴用
+    if (skipDify && aiResponse) {
+      // Difyをスキップして、リクエストボディのaiResponseを使用
+      aiResponseContent = aiResponse
+      processingTime = Date.now() - difyStartTime
+      console.log('📝 Dify skipped - using provided aiResponse')
+    } else {
+      // 通常のDify呼び出し
+      try {
+        // Dify Chat APIを呼び出し
+        const difyResponse = await fetch(`${request.nextUrl.origin}/api/dify/chat`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sessionId,
+            message,
+            userId: user.id,
+            conversationId  // Dify会話履歴用
+          })
         })
-      })
 
-      if (!difyResponse.ok) {
-        throw new Error(`Dify API error: ${difyResponse.statusText}`)
+        if (!difyResponse.ok) {
+          throw new Error(`Dify API error: ${difyResponse.statusText}`)
+        }
+
+        const difyData = await difyResponse.json()
+        aiResponseContent = difyData.response || 'AI応答の取得に失敗しました。'
+        tokensUsed = difyData.tokens_used || 0
+        processingTime = Date.now() - difyStartTime
+        newConversationId = difyData.conversation_id  // Difyから返ってきたconversation_id
+
+      } catch (difyError) {
+        console.error('Dify API call error:', difyError)
+        // Difyエラーの場合もフォールバックレスポンスを返す
+        aiResponseContent = 'AI処理中にエラーが発生しました。しばらく経ってから再度お試しください。'
+        processingTime = Date.now() - difyStartTime
       }
-
-      const difyData = await difyResponse.json()
-      aiResponse = difyData.response || 'AI応答の取得に失敗しました。'
-      tokensUsed = difyData.tokens_used || 0
-      processingTime = Date.now() - difyStartTime
-      newConversationId = difyData.conversation_id  // Difyから返ってきたconversation_id
-
-    } catch (difyError) {
-      console.error('Dify API call error:', difyError)
-      // Difyエラーの場合もフォールバックレスポンスを返す
-      aiResponse = 'AI処理中にエラーが発生しました。しばらく経ってから再度お試しください。'
-      processingTime = Date.now() - difyStartTime
     }
 
     // 3. AIレスポンス保存
@@ -239,7 +249,7 @@ export async function POST(
       .insert({
         session_id: sessionId,
         role: 'assistant',
-        content: aiResponse,
+        content: aiResponseContent,
         message_order: aiMessageOrder,
         tokens_used: tokensUsed,
         processing_time_ms: processingTime
@@ -289,9 +299,19 @@ export async function POST(
       updated_at: new Date().toISOString()
     }
 
+    // 全件のメッセージを作成（既存 + 新規2件）
+    const allMessages = [
+      ...(existingMessages || []),
+      userMessage,
+      aiMessage
+    ].filter((msg, index, self) => 
+      // 重複除去: 同じidのメッセージは最後のものだけを残す
+      index === self.findIndex(m => m.id === msg.id)
+    )
+
     const responseData = { 
       session: updatedSession,
-      messages: [userMessage, aiMessage],
+      messages: allMessages,  // 全件を返す
       current_round: newRound,
       max_rounds: session.max_rounds,
       is_limit_reached: isLimitReached,

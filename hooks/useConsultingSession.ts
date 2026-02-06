@@ -15,6 +15,7 @@ import { celebrateStepCompletion } from "@/lib/utils/confetti";
 import {
   saveConsultingState,
   loadConsultingState,
+  clearConsultingState,
   saveConversationId,
   loadConversationId,
   type ConsultingState
@@ -83,12 +84,66 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
   // 初回読み込み時にsessionStorageから状態を復元
   useEffect(() => {
     const saved = loadConsultingState();
-    if (saved) {
-      setUserChoice(saved.userChoice);
-      setActiveSessionId(saved.activeSessionId);
-      // openSessionIdsの復元は、allSessionsが読み込まれた後に処理
-    }
-  }, []); // 空配列（初回のみ）
+    if (!saved) return;
+    
+    let cancelled = false;
+    
+    const restoreState = async () => {
+      // 「既存」選択後の復元
+      if (saved.userChoice === 'existing' && saved.openSessionIds.length > 0) {
+        try {
+          const res = await fetch("/api/consulting/sessions");
+          if (cancelled) return;
+          
+          const data = await res.json().catch(() => ({}));
+          const sessions: ApiSession[] = data.sessions || [];
+          
+          if (cancelled) return;
+          
+          if (sessions.length > 0) {
+            // openSessionIdsから allSessions を再構築
+            const mapped = mapApiSessionsToSessionData(sessions);
+            const restored = mapped.map(s => ({
+              ...s,
+              isOpen: saved.openSessionIds.includes(s.id)
+            }));
+            
+            if (!cancelled) {
+              setUserChoice(saved.userChoice);
+              setActiveSessionId(saved.activeSessionId);
+              setAllSessions(restored);
+            }
+          } else {
+            // セッションが0件の場合、状態をリセット
+            if (!cancelled) {
+              setUserChoice(null);
+              clearConsultingState();
+            }
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error('Failed to restore sessions:', error);
+            setUserChoice(null);
+            clearConsultingState();
+          }
+        }
+      } else if (saved.userChoice === 'new') {
+        // 「新規」選択後は状態をリセット
+        // （メッセージ内容はsessionStorageに保存していないため、復元不可能）
+        if (!cancelled) {
+          setUserChoice(null);
+          clearConsultingState();
+        }
+      }
+    };
+    
+    restoreState();
+    
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 初回のみ実行
 
   // 既存セッション（API由来）を選択したときにメッセージを取得
   useEffect(() => {
@@ -274,13 +329,11 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
       return;
     }
 
-    // 一時IDを生成（カテゴリ選択時にSupabaseの実IDに置き換え）
-    const tempId = `temp-session-${Date.now()}`;
+    // createInitialSessionForNewUser()が一時IDを生成するのでそれを使用
     const newSession = createInitialSessionForNewUser();
-    const updatedSession = { ...newSession, id: tempId };
 
-    setAllSessions([...allSessions, updatedSession]);
-    setActiveSessionId(tempId);
+    setAllSessions([...allSessions, newSession]);
+    setActiveSessionId(newSession.id);
   };
 
   const handleOpenSession = (sessionId: string) => {

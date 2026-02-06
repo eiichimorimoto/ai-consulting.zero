@@ -15,6 +15,7 @@ export interface ChatAreaProps {
   currentSession: SessionData | null;
   chatScrollRef: React.RefObject<HTMLDivElement>;
   onQuickReply: (reply: string, isCategory?: boolean) => void;
+  isLoading?: boolean;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -32,7 +33,8 @@ const iconMap: Record<string, React.ElementType> = {
 export default function ChatArea({ 
   currentSession, 
   chatScrollRef, 
-  onQuickReply 
+  onQuickReply,
+  isLoading = false
 }: ChatAreaProps) {
   const [profile, setProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const supabase = createClient();
@@ -73,10 +75,12 @@ export default function ChatArea({
             </h2>
             <p className="text-sm text-gray-500">貴社の現状を詳しく分析しています</p>
           </div>
-          <Badge variant="secondary" className="text-xs flex items-center gap-2 bg-white border border-gray-200 text-gray-700">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
-            AI応答中
-          </Badge>
+          {isLoading && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-2 bg-white border border-gray-200 text-gray-700">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" aria-hidden />
+              AIが回答を生成中...
+            </Badge>
+          )}
         </div>
       </header>
 
@@ -210,7 +214,10 @@ export default function ChatArea({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 px-2">
-                  {message.timestamp.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+                  {message.timestamp instanceof Date 
+                    ? message.timestamp.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
+                    : new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
+                  }
                 </p>
               </div>
 
