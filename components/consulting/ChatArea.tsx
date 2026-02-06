@@ -10,6 +10,7 @@ import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
+import { formatAIMessage } from '@/lib/utils/message-formatter';
 
 export interface ChatAreaProps {
   currentSession: SessionData | null;
@@ -170,7 +171,13 @@ export default function ChatArea({
                       : CHAT.aiBubble
                     }`}
                 >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  {message.type === "ai" ? (
+                    <div className="text-sm leading-relaxed">
+                      {formatAIMessage(message.content)}
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                  )}
 
                   {message.interactive?.type === "category-buttons" && (
                     <div className="mt-4 grid grid-cols-3 gap-2">
