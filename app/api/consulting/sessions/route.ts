@@ -199,7 +199,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 初期メッセージ作成（添付ファイル情報を含む）
+    // 1. 初回AIメッセージを保存（カテゴリ選択ボタン）
+    const { error: initialAiMessageError } = await supabase
+      .from('consulting_messages')
+      .insert({
+        session_id: session.id,
+        role: 'assistant',
+        content: 'どのような課題をお抱えですか？貴社の状況に合わせて、最適なアドバイスを提供いたします。',
+        analysis_type: null, // 初回メッセージは analysis_type なし
+        message_order: 1
+      })
+    
+    if (initialAiMessageError) {
+      console.error('Initial AI message creation error:', initialAiMessageError)
+    } else {
+      console.log('✅ Initial AI message saved to Supabase')
+    }
+
+    // 2. ユーザーメッセージ作成（カテゴリ選択、添付ファイル情報を含む）
     const { error: messageError } = await supabase
       .from('consulting_messages')
       .insert({
@@ -207,7 +224,7 @@ export async function POST(request: NextRequest) {
         role: 'user',
         content: initialMessage,
         attachments: attachments.length > 0 ? attachments : null,
-        message_order: 1
+        message_order: 2  // 初回AIメッセージの次
       })
     
     if (messageError) {

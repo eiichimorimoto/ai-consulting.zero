@@ -85,7 +85,45 @@ export async function GET(
 
     // 表示用に古い順に並び替え & マッピング
     const reversedMessages = (messages || []).reverse()
-    const mappedMessages = reversedMessages.map((msg, index) => {
+    
+    // デバッグ: 最初のメッセージを確認
+    const hasInitialMessage = reversedMessages.length > 0 && 
+      reversedMessages[0].role === 'assistant' && 
+      reversedMessages[0].content.includes('どのような課題をお抱えですか')
+    
+    if (reversedMessages.length > 0 && offset === 0) {
+      const firstMsg = reversedMessages[0]
+      console.log('🔍 First message check:', {
+        role: firstMsg.role,
+        content_preview: firstMsg.content.substring(0, 100),
+        has_initial_phrase: firstMsg.content.includes('どのような課題をお抱えですか'),
+        analysis_type: firstMsg.analysis_type,
+        has_initial_message: hasInitialMessage
+      })
+    }
+    
+    // 既存セッション対応: 初回メッセージがない場合、動的に追加
+    let messagesWithInitial = reversedMessages
+    if (offset === 0 && !hasInitialMessage && reversedMessages.length > 0) {
+      console.log('⚠️ Initial message missing - adding dynamically')
+      messagesWithInitial = [
+        {
+          id: 'initial-message',
+          session_id: sessionId,
+          role: 'assistant' as const,
+          content: 'どのような課題をお抱えですか？貴社の状況に合わせて、最適なアドバイスを提供いたします。',
+          created_at: new Date(new Date(reversedMessages[0].created_at).getTime() - 1000).toISOString(), // 最初のメッセージの1秒前
+          message_order: 0,
+          analysis_type: null,
+          tokens_used: 0,
+          processing_time: 0,
+          attachments: null
+        },
+        ...reversedMessages
+      ]
+    }
+    
+    const mappedMessages = messagesWithInitial.map((msg, index) => {
       const baseMessage: any = {
         id: offset + index + 1, // グローバルなID
         type: msg.role === 'assistant' ? 'ai' : 'user',
@@ -95,6 +133,7 @@ export async function GET(
 
       // 初回メッセージ（カテゴリ選択ボタン）の復元
       if (msg.role === 'assistant' && msg.content.includes('どのような課題をお抱えですか')) {
+        console.log('✅ Category buttons restored for initial message')
         baseMessage.interactive = {
           type: 'category-buttons',
           data: CONSULTING_CATEGORIES
@@ -125,10 +164,22 @@ export async function GET(
       return baseMessage
     })
 
+    // デバッグ: レスポンスサマリー
+    const actualTotal = hasInitialMessage ? (count || 0) : (count || 0) + 1 // 動的追加分を考慮
+    console.log('📤 GET /messages Response:', {
+      sessionId,
+      total_messages: count,
+      actual_total: actualTotal,
+      returned_messages: mappedMessages.length,
+      has_interactive: mappedMessages.filter(m => m.interactive).length,
+      first_message_type: mappedMessages[0]?.interactive?.type || 'none',
+      dynamically_added_initial: !hasInitialMessage && offset === 0
+    })
+
     return NextResponse.json({ 
       messages: mappedMessages,
-      total: count || 0,
-      hasMore: (count || 0) > offset + limit,
+      total: actualTotal,
+      hasMore: actualTotal > offset + limit,
       offset,
       limit
     })
