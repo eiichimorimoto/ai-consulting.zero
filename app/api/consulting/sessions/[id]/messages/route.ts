@@ -86,33 +86,21 @@ export async function GET(
     // 表示用に古い順に並び替え & マッピング
     const reversedMessages = (messages || []).reverse()
     
-    // デバッグ: 最初のメッセージを確認
-    const hasInitialMessage = reversedMessages.length > 0 && 
-      reversedMessages[0].role === 'assistant' && 
-      reversedMessages[0].content.includes('どのような課題をお抱えですか')
-    
-    if (reversedMessages.length > 0 && offset === 0) {
-      const firstMsg = reversedMessages[0]
-      console.log('🔍 First message check:', {
-        role: firstMsg.role,
-        content_preview: firstMsg.content.substring(0, 100),
-        has_initial_phrase: firstMsg.content.includes('どのような課題をお抱えですか'),
-        analysis_type: firstMsg.analysis_type,
-        has_initial_message: hasInitialMessage
-      })
-    }
-    
-    // 既存セッション対応: 初回メッセージがない場合、動的に追加
+    // 初回メッセージを動的生成（offset=0の場合のみ）
     let messagesWithInitial = reversedMessages
-    if (offset === 0 && !hasInitialMessage && reversedMessages.length > 0) {
-      console.log('⚠️ Initial message missing - adding dynamically')
+    if (offset === 0) {
+      console.log('✅ Adding initial message dynamically (static master data)')
+      const initialMessageTimestamp = reversedMessages.length > 0
+        ? new Date(new Date(reversedMessages[0].created_at).getTime() - 1000).toISOString()
+        : new Date().toISOString()
+      
       messagesWithInitial = [
         {
-          id: 'initial-message',
+          id: 'system-initial-message', // 固定ID（静的データ）
           session_id: sessionId,
           role: 'assistant' as const,
           content: 'どのような課題をお抱えですか？貴社の状況に合わせて、最適なアドバイスを提供いたします。',
-          created_at: new Date(new Date(reversedMessages[0].created_at).getTime() - 1000).toISOString(), // 最初のメッセージの1秒前
+          created_at: initialMessageTimestamp,
           message_order: 0,
           analysis_type: null,
           tokens_used: 0,
@@ -165,15 +153,17 @@ export async function GET(
     })
 
     // デバッグ: レスポンスサマリー
-    const actualTotal = hasInitialMessage ? (count || 0) : (count || 0) + 1 // 動的追加分を考慮
+    // 初回メッセージ（静的データ）を+1カウント
+    // 注: 総メッセージ数はDB上のメッセージ数 + 1（初回メッセージ）
+    const actualTotal = (count || 0) + 1
     console.log('📤 GET /messages Response:', {
       sessionId,
-      total_messages: count,
-      actual_total: actualTotal,
+      db_messages: count,
+      actual_total: actualTotal, // +1 (初回メッセージ)
       returned_messages: mappedMessages.length,
       has_interactive: mappedMessages.filter(m => m.interactive).length,
       first_message_type: mappedMessages[0]?.interactive?.type || 'none',
-      dynamically_added_initial: !hasInitialMessage && offset === 0
+      initial_message_added: offset === 0
     })
 
     return NextResponse.json({ 
