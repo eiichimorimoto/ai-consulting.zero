@@ -5,10 +5,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
 import type { ReportSection, ChatData, TableData, ListData } from '@/lib/report/types';
+
+/** A4横のピクセル寸法（96dpi想定） */
+const PAPER_WIDTH_PX = 1122;
+const PAPER_HEIGHT_PX = 794;
 
 interface ReportPreviewProps {
   sections: ReportSection[];
@@ -28,7 +32,28 @@ export default function ReportPreview({
   onDownload,
 }: ReportPreviewProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [scale, setScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
   const totalPages = sections.length + 1; // 表紙 + セクション数
+
+  // プレビュー枠にA4横が収まるよう縮小率を計算
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const updateScale = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w <= 0 || h <= 0) return;
+      const scaleX = w / PAPER_WIDTH_PX;
+      const scaleY = h / PAPER_HEIGHT_PX;
+      const s = Math.min(scaleX, scaleY, 1);
+      setScale(s);
+    };
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
@@ -47,7 +72,10 @@ export default function ReportPreview({
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
         {/* ヘッダー */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="text-lg font-bold text-gray-900">📄 レポートプレビュー</h3>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">📄 レポートプレビュー</h3>
+            <p className="text-xs text-gray-500 mt-0.5">この内容でレポートをダウンロードできます（A4横）</p>
+          </div>
           <Button onClick={onClose} variant="ghost" size="icon">
             <X className="w-5 h-5" />
           </Button>
@@ -78,14 +106,33 @@ export default function ReportPreview({
           </Button>
         </div>
 
-        {/* プレビューエリア */}
-        <div className="flex-1 overflow-y-auto p-8 bg-gray-100">
-          <div className="bg-white shadow-lg mx-auto" style={{ width: '210mm', minHeight: '297mm', padding: '20mm' }}>
-            {currentPage === 0 ? (
-              <CoverPage sessionName={sessionName} companyName={companyName} userName={userName} />
-            ) : (
-              <SectionPage section={sections[currentPage - 1]} />
-            )}
+        {/* プレビューエリア（A4横を枠に収まるよう縮小表示） */}
+        <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-auto p-4 bg-gray-100 min-h-0">
+          <div
+            style={{
+              width: PAPER_WIDTH_PX * scale,
+              height: PAPER_HEIGHT_PX * scale,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+            className="flex-shrink-0 rounded shadow-lg"
+          >
+            <div
+              className="bg-white absolute left-0 top-0"
+              style={{
+                width: PAPER_WIDTH_PX,
+                minHeight: PAPER_HEIGHT_PX,
+                padding: '20mm',
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+              }}
+            >
+              {currentPage === 0 ? (
+                <CoverPage sessionName={sessionName} companyName={companyName} userName={userName} />
+              ) : (
+                <SectionPage section={sections[currentPage - 1]} />
+              )}
+            </div>
           </div>
         </div>
 
@@ -94,7 +141,7 @@ export default function ReportPreview({
           <Button onClick={onClose} variant="outline">
             閉じる
           </Button>
-          <Button onClick={onDownload} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
+          <Button onClick={onDownload} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
             <Download className="w-4 h-4 mr-2" />
             PDFをダウンロード
           </Button>
@@ -153,6 +200,7 @@ function SectionPage({ section }: { section: ReportSection }) {
         {section.type === 'table' && <TableSection section={section} />}
         {section.type === 'list' && <ListSection section={section} />}
         {section.type === 'text' && <TextSection section={section} />}
+        {section.type === 'html' && <HtmlSection section={section} />}
       </div>
     </div>
   );
@@ -245,5 +293,19 @@ function TextSection({ section }: { section: ReportSection }) {
     <div className="text-sm whitespace-pre-wrap">
       {content}
     </div>
+  );
+}
+
+/**
+ * レポート用HTMLセクション（Dify提示コンテンツ成型済み）
+ */
+function HtmlSection({ section }: { section: ReportSection }) {
+  const htmlContent = section.content as string;
+
+  return (
+    <div
+      className="report-body text-sm prose prose-sm max-w-none [&_.report-heading]:text-base [&_.report-heading]:font-bold [&_.report-para]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
+      dangerouslySetInnerHTML={{ __html: htmlContent }}
+    />
   );
 }

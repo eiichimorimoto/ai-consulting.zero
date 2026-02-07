@@ -490,8 +490,14 @@ export default function ConsultingStartPage() {
               onClick={() => setIsExportDialogOpen(true)}
               disabled={!session.currentSession || session.currentSession.messages.length === 0}
             >
-              <FileText className="w-4 h-4 mr-2" />
-              レポートをエクスポート
+              <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="flex-1 text-left">レポートをエクスポート</span>
+              {session.currentSession && session.currentSession.messages.length > 0 && (
+                <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {session.currentSession.messages.length}件
+                </span>
+              )}
             </Button>
             <Button
               variant="destructive"

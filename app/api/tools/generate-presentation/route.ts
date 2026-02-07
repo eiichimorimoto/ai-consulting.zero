@@ -1,33 +1,46 @@
 /**
  * PPT生成API Route
- * プロトタイプ: 固定テンプレートでPPTを生成
+ * レポートセクション指定時はその内容でPPT生成、未指定時は固定テンプレート
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generatePPT } from '@/lib/ppt/generator';
+import { generatePPT, generatePPTFromReport } from '@/lib/ppt/generator';
 
-export const runtime = 'nodejs'; // Node.jsランタイムを使用（pptxgenjs用）
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    // リクエストボディを取得（オプション）
     const body = await request.json().catch(() => ({}));
-    const { title, authorName } = body;
+    const { title, authorName, sections, metadata } = body;
 
-    console.log('📊 PPT生成開始:', { title, authorName });
+    // レポートセクションが渡された場合はエクスポート用PPTを生成
+    if (sections && Array.isArray(sections) && sections.length > 0 && metadata?.sessionName) {
+      console.log('📊 PPT生成開始（レポート）:', { sessionName: metadata.sessionName, sectionCount: sections.length });
 
-    // PPT生成
+      const result = await generatePPTFromReport({ sections, metadata });
+
+      console.log('✅ PPT生成完了:', { fileName: result.fileName });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          fileName: result.fileName,
+          base64: result.base64,
+          mimeType: result.mimeType,
+        },
+      });
+    }
+
+    // 従来: 固定テンプレート
+    console.log('📊 PPT生成開始（テンプレート）:', { title, authorName });
+
     const result = await generatePPT({
       title,
       authorName,
     });
 
-    console.log('✅ PPT生成完了:', {
-      fileName: result.fileName,
-      size: `${(result.base64.length / 1024).toFixed(2)} KB`,
-    });
+    console.log('✅ PPT生成完了:', { fileName: result.fileName });
 
-    // Base64データを返却
     return NextResponse.json({
       success: true,
       data: {

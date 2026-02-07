@@ -3,7 +3,6 @@
  */
 
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 import type { PDFGenerateOptions, PDFGenerateResult, ReportSection, ChatData, TableData, ListData } from './types';
 
 /**
@@ -25,7 +24,7 @@ function generateReportHTML(options: PDFGenerateOptions): string {
   <title>${metadata.title}</title>
   <style>
     @page {
-      size: A4;
+      size: A4 landscape;
       margin: 20mm;
     }
     
@@ -146,6 +145,14 @@ function generateReportHTML(options: PDFGenerateOptions): string {
       font-weight: bold;
     }
 
+    .report-section .report-body { font-size: 11pt; line-height: 1.7; color: #334155; }
+    .report-body .report-heading { color: #1e293b; margin: 20px 0 10px 0; font-size: 14pt; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+    .report-body .report-para { margin: 0 0 14px 0; }
+    .report-body .report-list { margin: 0 0 14px 0; padding-left: 24px; }
+    .report-body .report-list li { margin-bottom: 6px; }
+    .report-body ul { list-style-type: disc; }
+    .report-body ol { list-style-type: decimal; padding-left: 24px; }
+
     .footer {
       position: fixed;
       bottom: 10mm;
@@ -189,9 +196,25 @@ function generateSectionHTML(section: ReportSection): string {
       return generateListHTML(section);
     case 'text':
       return generateTextHTML(section);
+    case 'html':
+      return generateReportHTMLSection(section);
     default:
       return '';
   }
+}
+
+/**
+ * レポート用HTMLセクション（AI回答を成型済みHTMLで表示）
+ * content は既にHTMLのためエスケープしない
+ */
+function generateReportHTMLSection(section: ReportSection): string {
+  const htmlContent = section.content as string;
+  return `
+    <div class="section report-section">
+      <h2 class="section-title">${escapeHtml(section.title)}</h2>
+      <div class="report-body">${htmlContent}</div>
+    </div>
+  `;
 }
 
 /**
@@ -313,40 +336,45 @@ export async function generatePDFReport(options: PDFGenerateOptions): Promise<PD
 
     console.log('🚀 PDF生成: ブラウザ起動準備');
 
-    // 本番環境と開発環境で異なる設定を使用
     const isProduction = process.env.NODE_ENV === 'production';
-    
-    // Chromiumの実行パスを取得
-    const executablePath = isProduction
-      ? await chromium.executablePath()
-      : process.platform === 'win32'
-        ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-        : process.platform === 'darwin'
+
+    // 本番のみ @sparticuz/chromium を動的読み込み（開発環境での競合を防ぐ）
+    let executablePath: string;
+    let launchOptions: Parameters<typeof puppeteer.launch>[0];
+
+    if (isProduction) {
+      const chromium = await import('@sparticuz/chromium');
+      executablePath = await chromium.default.executablePath();
+      launchOptions = {
+        args: chromium.default.args,
+        defaultViewport: chromium.default.defaultViewport,
+        executablePath,
+        headless: true,
+      };
+    } else {
+      executablePath =
+        process.platform === 'darwin'
           ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-          : '/usr/bin/google-chrome';
+          : process.platform === 'win32'
+            ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+            : '/usr/bin/google-chrome';
+      launchOptions = {
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-software-rasterizer',
+        ],
+        executablePath,
+        headless: true,
+        defaultViewport: { width: 800, height: 600 },
+      };
+    }
 
-    console.log('📍 Chromium実行パス:', executablePath);
-
-    // ブラウザ起動オプション
-    const launchOptions = isProduction
-      ? {
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath,
-          headless: true,
-        }
-      : {
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-          ],
-          executablePath,
-          headless: true,
-        };
-
-    console.log('⚙️ 起動オプション:', JSON.stringify(launchOptions, null, 2));
+    console.log('📍 実行パス:', executablePath);
 
     // ブラウザ起動
     browser = await puppeteer.launch(launchOptions);
@@ -358,15 +386,19 @@ export async function generatePDFReport(options: PDFGenerateOptions): Promise<PD
     // HTMLを設定
     console.log('📝 HTMLコンテンツ設定中...');
     await page.setContent(html, {
-      waitUntil: 'domcontentloaded', // networkidle0 → domcontentloaded に変更（高速化）
-      timeout: 30000, // 30秒タイムアウト
+      waitUntil: 'load',
+      timeout: 30000,
     });
     console.log('✅ HTMLコンテンツ設定完了');
+
+    // レンダリング安定化のため短く待機
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // PDF生成
     console.log('🖨️ PDF生成中...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
+      landscape: true,
       printBackground: true,
       margin: {
         top: '20mm',

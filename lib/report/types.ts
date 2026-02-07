@@ -6,8 +6,9 @@ import { Message } from '@/types/consulting';
 
 /**
  * レポートセクションの種類
+ * - html: Dify提示コンテンツをレポート用に成型したHTML
  */
-export type SectionType = 'text' | 'table' | 'list' | 'chat';
+export type SectionType = 'text' | 'table' | 'list' | 'chat' | 'html';
 
 /**
  * レポートセクションID
@@ -48,9 +49,10 @@ export interface ChatData {
 
 /**
  * レポートセクション
+ * id は SectionId または Dify個別の場合は 'dify-{index}'
  */
 export interface ReportSection {
-  id: SectionId;
+  id: SectionId | string;
   type: SectionType;
   title: string;
   content: string | TableData | ListData | ChatData;
@@ -58,6 +60,18 @@ export interface ReportSection {
     createdAt?: string;
     source?: string;
   };
+}
+
+/**
+ * Difyが提示したコンテンツ1件（個別エクスポート単位）
+ */
+export interface DifyContentItem {
+  id: string;
+  type: 'analysis' | 'recommendation' | 'summary' | 'other';
+  title: string;
+  body: string;
+  sourceMessageIndex: number;
+  createdAt?: string;
 }
 
 /**

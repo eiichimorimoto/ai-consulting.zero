@@ -4,11 +4,23 @@
 
 import pptxgen from 'pptxgenjs';
 import { SlideContent, defaultTemplate, colors } from './templates';
+import type { ReportSection } from '@/lib/report/types';
 
 export interface GeneratePPTOptions {
   title?: string;
   template?: SlideContent[];
   authorName?: string;
+}
+
+export interface GeneratePPTFromReportOptions {
+  sections: ReportSection[];
+  metadata: {
+    title: string;
+    sessionName: string;
+    userName?: string;
+    companyName?: string;
+    createdAt: string;
+  };
 }
 
 /**
@@ -57,6 +69,82 @@ export async function generatePPT(options: GeneratePPTOptions = {}): Promise<{
   // ファイル名生成
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const fileName = `AI_Consulting_${timestamp}.pptx`;
+
+  return {
+    base64,
+    fileName,
+    mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  };
+}
+
+/** レポートセクションからスライド用の箇条書きテキストを抽出（最大15項目） */
+function sectionToBulletItems(section: ReportSection): string[] {
+  const max = 15;
+  switch (section.type) {
+    case 'list': {
+      const list = section.content as { items: string[] };
+      return (list.items || []).slice(0, max);
+    }
+    case 'text': {
+      const text = (section.content as string).trim();
+      return text.split(/\n+/).filter(Boolean).slice(0, max);
+    }
+    case 'html': {
+      const html = section.content as string;
+      const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      return plain.length > 0 ? [plain.slice(0, 500)] : [];
+    }
+    case 'table': {
+      const table = section.content as { headers: string[]; rows: string[][] };
+      const lines: string[] = [...(table.headers || [])];
+      (table.rows || []).forEach(row => lines.push(...row));
+      return lines.filter(Boolean).slice(0, max);
+    }
+    case 'chat': {
+      const chat = section.content as { messages: Array<{ role: string; content: string }> };
+      return (chat.messages || []).slice(0, max).map(m => `[${m.role}] ${(m.content || '').slice(0, 80)}…`);
+    }
+    default:
+      return [];
+  }
+}
+
+/**
+ * レポートセクションからPPTを生成（エクスポート用）
+ */
+export async function generatePPTFromReport(options: GeneratePPTFromReportOptions): Promise<{
+  base64: string;
+  fileName: string;
+  mimeType: string;
+}> {
+  const { sections, metadata } = options;
+  const pptx = new pptxgen();
+
+  pptx.author = metadata.userName || 'AI参謀';
+  pptx.company = metadata.companyName || '';
+  pptx.subject = metadata.title;
+  pptx.title = metadata.title;
+  pptx.layout = 'LAYOUT_16x9';
+
+  // 表紙
+  addTitleSlide(pptx, {
+    title: metadata.title,
+    subtitle: metadata.sessionName,
+  });
+
+  // 各セクションを1スライドずつ
+  for (const section of sections) {
+    const items = sectionToBulletItems(section);
+    addContentSlide(pptx, {
+      title: section.title,
+      items: items.length > 0 ? items : [(typeof section.content === 'string' ? section.content : '').slice(0, 200) || '（内容なし）'],
+    });
+  }
+
+  const buffer = await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer;
+  const base64 = Buffer.from(buffer).toString('base64');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const fileName = `AI_Consulting_${metadata.sessionName.replace(/[/\\?%*:|"]/g, '_')}_${timestamp}.pptx`;
 
   return {
     base64,
