@@ -229,6 +229,9 @@ interface IndustryForecast {
   recommendation: string
 }
 
+// タブの型定義（分析セクション用）
+type AnalysisTab = 'swot' | 'trends' | 'forecast' | 'news'
+
 export default function DashboardClient({ profile, company, subscription }: DashboardClientProps) {
   const router = useRouter()
   // 新規挨拶: 会社情報（complete-profile）を経てダッシュボードに来た人だけ ?new=1 で判定
@@ -262,6 +265,15 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const [debugPanelOpen, setDebugPanelOpen] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const weeks = getWeekLabels(8)
+  
+  // タブ関連のState（分析セクション遅延ロード用）
+  const [activeTab, setActiveTab] = useState<AnalysisTab>('swot')
+  const [tabsLoaded, setTabsLoaded] = useState<Record<AnalysisTab, boolean>>({
+    swot: false,
+    trends: false,
+    forecast: false,
+    news: false
+  })
 
   interface Notification {
     id: string
@@ -397,39 +409,97 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     }
   }
 
+  // タブ切り替え時のデータ取得（遅延ロード）
+  const handleTabChange = async (tab: AnalysisTab) => {
+    setActiveTab(tab)
+    
+    // 既にロード済みならスキップ
+    if (tabsLoaded[tab]) {
+      console.log(`✅ タブ "${tab}" は既にロード済み`)
+      return
+    }
+    
+    // タブに応じてセクションを取得
+    const sectionMap: Record<AnalysisTab, string[]> = {
+      swot: ['swot-analysis'],
+      trends: ['industry-trends'],
+      forecast: ['industry-forecast'],
+      news: ['world-news']
+    }
+    
+    const sections = sectionMap[tab]
+    console.log(`📊 タブ "${tab}" のデータを取得中...`, sections)
+    
+    try {
+      await Promise.all(
+        sections.map(section => fetchSectionData(section, false))
+      )
+      
+      // ロード完了フラグをセット
+      setTabsLoaded(prev => ({ ...prev, [tab]: true }))
+      console.log(`✅ タブ "${tab}" のデータ取得完了`)
+    } catch (error) {
+      console.error(`❌ タブ "${tab}" のデータ取得エラー:`, error)
+    }
+  }
+
   // セッションストレージのキー（v9: ログアウトまでキャッシュ保持、自動更新なし）
   const SESSION_KEY = `dashboard_data_v9_${profile?.id || 'guest'}`
   const SESSION_INITIALIZED_KEY = `dashboard_initialized_v9_${profile?.id || 'guest'}`
   const COMPANY_VERSION_KEY = `dashboard_company_version_v1_${profile?.id || 'guest'}`
   const COMPANY_VERSION = company?.updated_at || 'unknown'
 
-  // キャッシュからデータを復元（全データが揃っている場合のみ成功）
+  // キャッシュからデータを復元（軽量セクションが揃っている場合は成功、分析セクションは任意）
   const restoreFromCache = () => {
     try {
       const cached = sessionStorage.getItem(SESSION_KEY)
       if (cached) {
         const data = JSON.parse(cached)
-        // 全ての主要データが存在するかチェック（localInfoも含む）
-        const hasAllData = data.marketData && 
-                          data.localInfo &&
-                          data.industryTrends && 
-                          data.swotAnalysis && 
-                          data.worldNews && 
-                          data.industryForecast
+        // 軽量セクション（必須）が存在するかチェック
+        const hasLightData = data.marketData && data.localInfo
         
-        if (!hasAllData) {
-          console.log('キャッシュが不完全なため、全データを再取得します')
+        if (!hasLightData) {
+          console.log('⚠️ 軽量セクションのキャッシュが不完全なため、再取得します')
           return false
         }
         
+        // 軽量セクションを復元
         setMarketData(data.marketData)
         setLocalInfo(data.localInfo)
-        setIndustryTrends(data.industryTrends)
-        setSwotAnalysis(data.swotAnalysis)
-        setWorldNews(data.worldNews)
-        setIndustryForecast(data.industryForecast)
+        
+        // 分析セクション（任意）があれば復元し、tabsLoadedフラグも更新
+        const loadedTabs: Record<AnalysisTab, boolean> = {
+          swot: false,
+          trends: false,
+          forecast: false,
+          news: false
+        }
+        
+        if (data.industryTrends) {
+          setIndustryTrends(data.industryTrends)
+          loadedTabs.trends = true
+        }
+        if (data.swotAnalysis) {
+          setSwotAnalysis(data.swotAnalysis)
+          loadedTabs.swot = true
+        }
+        if (data.worldNews) {
+          setWorldNews(data.worldNews)
+          loadedTabs.news = true
+        }
+        if (data.industryForecast) {
+          setIndustryForecast(data.industryForecast)
+          loadedTabs.forecast = true
+        }
+        
+        setTabsLoaded(loadedTabs)
+        
         if (data.lastUpdated) setLastUpdated(data.lastUpdated)
-        console.log('✅ キャッシュからデータを復元しました（localInfo含む）')
+        
+        const loadedTabNames = Object.entries(loadedTabs)
+          .filter(([_, loaded]) => loaded)
+          .map(([tab, _]) => tab)
+        console.log(`✅ キャッシュからデータを復元しました（軽量セクション + タブ: [${loadedTabNames.join(', ')}]）`)
         return true
       }
     } catch (e) {
@@ -503,17 +573,20 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         // セッションで初回かどうかをチェック
         const isFirstLoad = !sessionStorage.getItem(SESSION_INITIALIZED_KEY)
         
-        // 全データを取得する関数（AbortSignal を渡す）
+        // 軽量セクションのみ取得する関数（AbortSignal を渡す）
+        // 重い分析セクション（SWOT、業界動向、業界予測、世界ニュース）はタブクリック時に遅延ロード
         const fetchAllData = async (forceRefresh = false) => {
-          console.log('全データを取得中...')
+          console.log('💡 軽量セクション（市場データ、地域情報）を取得中...')
           await Promise.all([
             fetchSectionData('market', forceRefresh, signal),
             fetchSectionData('local-info', forceRefresh, signal),
-            fetchSectionData('industry-trends', forceRefresh, signal),
-            fetchSectionData('swot-analysis', forceRefresh, signal),
-            fetchSectionData('world-news', forceRefresh, signal),
-            fetchSectionData('industry-forecast', forceRefresh, signal),
+            // 重い分析セクションは削除（タブクリック時に取得）
+            // fetchSectionData('industry-trends', forceRefresh, signal),
+            // fetchSectionData('swot-analysis', forceRefresh, signal),
+            // fetchSectionData('world-news', forceRefresh, signal),
+            // fetchSectionData('industry-forecast', forceRefresh, signal),
           ])
+          console.log('✅ 軽量セクションの取得完了')
         }
         
         if (isFirstLoad) {
@@ -736,20 +809,34 @@ export default function DashboardClient({ profile, company, subscription }: Dash
             </div>
             <div className="nav-section">
               <div className="nav-section-title">分析</div>
-              <a className="nav-item" onClick={() => scrollToSection('industry-trends-section')}>
-                <svg className="nav-icon" viewBox="0 0 24 24">
-                  <path d="M18 20V10M12 20V4M6 20v-6"/>
-                </svg>
-                業界動向
-              </a>
-              <a className="nav-item" onClick={() => scrollToSection('swot-analysis-section')}>
+              <a className="nav-item" onClick={() => handleTabChange('swot')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
                   <rect x="3" y="3" width="7" height="7"/>
                   <rect x="14" y="3" width="7" height="7"/>
                   <rect x="3" y="14" width="7" height="7"/>
                   <rect x="14" y="14" width="7" height="7"/>
                 </svg>
-                企業分析
+                企業分析（SWOT）
+              </a>
+              <a className="nav-item" onClick={() => handleTabChange('trends')}>
+                <svg className="nav-icon" viewBox="0 0 24 24">
+                  <path d="M18 20V10M12 20V4M6 20v-6"/>
+                </svg>
+                業界動向
+              </a>
+              <a className="nav-item" onClick={() => handleTabChange('forecast')}>
+                <svg className="nav-icon" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
+                業界予測
+              </a>
+              <a className="nav-item" onClick={() => handleTabChange('news')}>
+                <svg className="nav-icon" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                </svg>
+                世界情勢
               </a>
               <a className="nav-item" onClick={() => scrollToSection('recommendation-section')}>
                 <svg className="nav-icon" viewBox="0 0 24 24">
@@ -2272,9 +2359,129 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </button>
                 </div>
               </div>
-              {/* 中段: 業界動向 + 業界予測 + 世界情勢（3カラム） */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px', order: 2 }}>
-                <div id="industry-trends-section" className="analysis-card">
+              
+              {/* タブヘッダー */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '4px', 
+                borderBottom: '2px solid var(--border)', 
+                marginBottom: '20px',
+                order: 0.5
+              }}>
+                <button 
+                  onClick={() => handleTabChange('swot')}
+                  style={{
+                    padding: '12px 24px',
+                    background: activeTab === 'swot' ? 'var(--primary)' : 'transparent',
+                    color: activeTab === 'swot' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderBottom: activeTab === 'swot' ? '3px solid var(--primary)' : '3px solid transparent',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'swot' ? '700' : '500',
+                    fontSize: '13px',
+                    transition: 'all 0.2s ease',
+                    borderRadius: '4px 4px 0 0'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== 'swot') {
+                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== 'swot') {
+                      e.currentTarget.style.background = 'transparent'
+                    }
+                  }}
+                >
+                  📊 SWOT分析
+                </button>
+                <button 
+                  onClick={() => handleTabChange('trends')}
+                  style={{
+                    padding: '12px 24px',
+                    background: activeTab === 'trends' ? 'var(--primary)' : 'transparent',
+                    color: activeTab === 'trends' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderBottom: activeTab === 'trends' ? '3px solid var(--primary)' : '3px solid transparent',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'trends' ? '700' : '500',
+                    fontSize: '13px',
+                    transition: 'all 0.2s ease',
+                    borderRadius: '4px 4px 0 0'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== 'trends') {
+                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== 'trends') {
+                      e.currentTarget.style.background = 'transparent'
+                    }
+                  }}
+                >
+                  📈 業界動向
+                </button>
+                <button 
+                  onClick={() => handleTabChange('forecast')}
+                  style={{
+                    padding: '12px 24px',
+                    background: activeTab === 'forecast' ? 'var(--primary)' : 'transparent',
+                    color: activeTab === 'forecast' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderBottom: activeTab === 'forecast' ? '3px solid var(--primary)' : '3px solid transparent',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'forecast' ? '700' : '500',
+                    fontSize: '13px',
+                    transition: 'all 0.2s ease',
+                    borderRadius: '4px 4px 0 0'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== 'forecast') {
+                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== 'forecast') {
+                      e.currentTarget.style.background = 'transparent'
+                    }
+                  }}
+                >
+                  🔮 業界予測
+                </button>
+                <button 
+                  onClick={() => handleTabChange('news')}
+                  style={{
+                    padding: '12px 24px',
+                    background: activeTab === 'news' ? 'var(--primary)' : 'transparent',
+                    color: activeTab === 'news' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderBottom: activeTab === 'news' ? '3px solid var(--primary)' : '3px solid transparent',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'news' ? '700' : '500',
+                    fontSize: '13px',
+                    transition: 'all 0.2s ease',
+                    borderRadius: '4px 4px 0 0'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== 'news') {
+                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== 'news') {
+                      e.currentTarget.style.background = 'transparent'
+                    }
+                  }}
+                >
+                  🌍 世界情勢
+                </button>
+              </div>
+              
+              {/* 中段: 業界動向 + 業界予測 + 世界情勢（タブで切り替え） */}
+              <div style={{ marginBottom: '20px', order: 2 }}>
+                {/* 業界動向 */}
+                <div id="industry-trends-section" className="analysis-card" style={{ display: activeTab === 'trends' ? 'block' : 'none' }}>
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title">
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
@@ -2382,7 +2589,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   )}
                 </div>
                 {/* 業界予測（右側） */}
-                <div className="analysis-card">
+                <div className="analysis-card" style={{ display: activeTab === 'forecast' ? 'block' : 'none' }}>
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title" style={{ fontSize: '12px' }}>
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
@@ -2493,7 +2700,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   )}
                 </div>
                 {/* 世界情勢・業界影響（3列目） */}
-                <div id="world-news-section" className="analysis-card">
+                <div id="world-news-section" className="analysis-card" style={{ display: activeTab === 'news' ? 'block' : 'none' }}>
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title" style={{ fontSize: '12px' }}>
                       <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: 'var(--text-secondary)', fill: 'none', strokeWidth: 1.5 }}>
@@ -2604,7 +2811,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               </div>
 
               {/* 上段: SWOT分析（フル幅） */}
-              <div style={{ marginBottom: '20px', order: 1 }}>
+              <div style={{ marginBottom: '20px', order: 1, display: activeTab === 'swot' ? 'block' : 'none' }}>
                 <div id="swot-analysis-section" className="analysis-card" style={{ position: 'relative' }}>
                   <div className="analysis-card-header">
                     <h4 className="analysis-card-title" style={{ position: 'relative' }}>
