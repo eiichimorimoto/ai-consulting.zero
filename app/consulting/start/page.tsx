@@ -53,6 +53,7 @@ import { useFileAttachment } from "@/hooks/useFileAttachment";
 import ChatArea from "@/components/consulting/ChatArea";
 import SessionDialogs from "@/components/consulting/SessionDialogs";
 import MessageInputArea from "@/components/consulting/MessageInputArea";
+import TestPPTButton from "@/components/consulting/TestPPTButton";
 
 /** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
 function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
@@ -576,6 +577,9 @@ export default function ConsultingStartPage() {
           />
         </aside>
       </div>
+
+      {/* プロトタイプテスト用ボタン（開発環境のみ） */}
+      {process.env.NODE_ENV === 'development' && <TestPPTButton />}
     </div>
   );
 }
