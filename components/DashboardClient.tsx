@@ -799,13 +799,6 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 </svg>
                 地域情報
               </a>
-              <a className="nav-item" onClick={() => scrollToSection('world-news-section')}>
-                <svg className="nav-icon" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
-                </svg>
-                世界情勢
-              </a>
             </div>
             <div className="nav-section">
               <div className="nav-section-title">分析</div>
