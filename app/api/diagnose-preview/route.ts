@@ -3,6 +3,24 @@ import Anthropic from '@anthropic-ai/sdk';
 import { checkAIResult } from '@/lib/fact-checker';
 import { applyRateLimit } from "@/lib/rate-limit";
 
+// 簡易キャッシュ（メモリ内、5分間有効）
+const pageSpeedCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5分
+
+function getCachedPageSpeed(url: string): any | null {
+  const cached = pageSpeedCache.get(url);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log('✅ キャッシュからPageSpeedデータを取得:', url);
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedPageSpeed(url: string, data: any): void {
+  pageSpeedCache.set(url, { data, timestamp: Date.now() });
+  console.log('💾 PageSpeedデータをキャッシュに保存:', url);
+}
+
 // PageSpeed API レスポンス型定義
 interface LighthouseAudit {
   score: number | null;
@@ -35,6 +53,12 @@ interface ApiErrorResponse {
 
 // PageSpeed Insights APIを使用してサイトを分析
 async function analyzeWithPageSpeed(url: string) {
+  // キャッシュチェック
+  const cached = getCachedPageSpeed(url);
+  if (cached) {
+    return cached;
+  }
+
   const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
   
   // APIキーの詳細な確認
@@ -134,7 +158,14 @@ async function analyzeWithPageSpeed(url: string) {
         const errorDetail = errorJson?.error?.message || errorText.slice(0, 200);
         errorMessage = `PageSpeed APIリクエストが無効です（400 Bad Request）。URLが正しいか確認してください。エラー詳細: ${errorDetail}`;
       } else if (response.status === 429) {
-        errorMessage = `PageSpeed APIの利用制限に達しました（429 Too Many Requests）。しばらく時間をおいてから再度お試しください。`;
+        const errorDetail = errorJson?.error?.message || '';
+        console.error('🚫 PageSpeed API Rate Limit Exceeded:', {
+          status: 429,
+          url,
+          strategy,
+          errorDetail
+        });
+        errorMessage = `PageSpeed APIの利用制限に達しました。\n\nGoogle PageSpeed APIは1日あたり25,000リクエストの制限があります。\n\n対処法:\n1. 数分後に再度お試しください\n2. 異なる時間帯に再度アクセス\n3. 別のURLを分析する場合は少し時間をおいてください\n\n詳細: ${errorDetail}`;
       } else {
         // その他のエラー
         const errorDetail = errorJson?.error?.message || errorText.slice(0, 200);
@@ -146,6 +177,9 @@ async function analyzeWithPageSpeed(url: string) {
     
     results[strategy] = await response.json();
   }
+
+  // キャッシュに保存
+  setCachedPageSpeed(url, results);
 
   return results;
 }
@@ -441,6 +475,21 @@ ${metrics.failedAudits && metrics.failedAudits.length > 0
           code: 'ANTHROPIC_API_KEY_NOT_CONFIGURED'
         },
         { status: 503 }
+      );
+    }
+
+    // PageSpeed API レート制限エラーの特別な処理
+    if (err?.message?.includes('利用制限に達しました') || err?.message?.includes('429 Too Many Requests')) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          message: 'PageSpeed APIの利用制限に達しました',
+          details: 'Google PageSpeed APIは1日あたり25,000リクエストの制限があります。数分後に再度お試しください。',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: 300, // 5分後に再試行を推奨
+          suggestion: '別のURLを分析する場合は、少し時間をおいてからアクセスしてください。'
+        },
+        { status: 429 }
       );
     }
 
