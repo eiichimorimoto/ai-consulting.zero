@@ -58,17 +58,17 @@ export async function POST(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
+    console.log('🔧 Environment check:', {
+      has_supabase_url: !!supabaseUrl,
+      supabase_url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NOT SET',
+      has_service_key: !!supabaseServiceKey,
+      service_key_length: supabaseServiceKey?.length || 0
+    })
+    
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Supabase環境変数が設定されていません')
       throw new Error('Supabase環境変数が設定されていません')
     }
-    
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
-    const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
     
     let companyInfo: any = {}
     let profileInfo: any = {}
@@ -76,7 +76,20 @@ export async function POST(request: NextRequest) {
     try {
       console.log('🔑 Using SERVICE_ROLE_KEY to bypass RLS')
       
+      // @supabase/supabase-js を動的インポート
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+      console.log('✅ @supabase/supabase-js imported successfully')
+      
+      const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+      console.log('✅ supabaseAdmin client created')
+      
       // プロフィールと会社情報をJOINで取得（RLSバイパス）
+      console.log('📡 Executing profiles query for userId:', userId)
       const { data: profiles, error: profileError, count } = await supabaseAdmin
         .from('profiles')
         .select(`
@@ -103,13 +116,23 @@ export async function POST(request: NextRequest) {
         error_hint: profileError?.hint,
         error_code: profileError?.code,
         profiles_length: profiles?.length || 0,
-        profiles_data: profiles ? JSON.stringify(profiles).substring(0, 200) : 'null',
-        first_profile_has_company: profiles?.[0]?.companies ? true : false
+        profiles_data_full: profiles ? JSON.stringify(profiles, null, 2) : 'null',
+        first_profile_exists: !!profiles?.[0],
+        first_profile_has_company: profiles?.[0]?.companies ? true : false,
+        first_profile_company_id: profiles?.[0]?.company_id || 'null'
       })
 
       const profile = profiles?.[0] // 最初の1件を使用
 
       if (!profileError && profile) {
+        console.log('📋 Profile data:', {
+          profile_id: profile.id,
+          user_id: profile.user_id,
+          company_id: profile.company_id,
+          name: profile.name,
+          has_companies_data: !!profile.companies
+        })
+
         profileInfo = {
           name: profile.name,
           email: profile.email,
@@ -118,6 +141,8 @@ export async function POST(request: NextRequest) {
         }
 
         if (profile.companies) {
+          console.log('🏢 Company data:', profile.companies)
+          
           companyInfo = {
             name: profile.companies.name,
             industry: profile.companies.industry,
@@ -127,17 +152,28 @@ export async function POST(request: NextRequest) {
             website: profile.companies.website,
             business_description: profile.companies.business_description
           }
+          
+          console.log('✅ Company info extracted:', companyInfo)
+        } else {
+          console.warn('⚠️ Profile found but no companies data')
         }
 
         console.log('✅ Company & Profile info fetched:', {
           company: companyInfo.name || 'なし',
-          user: profileInfo.name
+          user: profileInfo.name,
+          has_company_info: !!companyInfo.name
         })
       } else {
-        console.warn('⚠️ Profile not found or error:', profileError?.message)
+        console.warn('⚠️ Profile not found or error:', {
+          error: profileError?.message,
+          has_profile: !!profile
+        })
       }
     } catch (fetchError) {
-      console.error('❌ Failed to fetch company info:', fetchError)
+      console.error('❌ Failed to fetch company info:', {
+        error: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+        stack: fetchError instanceof Error ? fetchError.stack : undefined
+      })
       // エラーが発生してもDify呼び出しは続行
     }
 
