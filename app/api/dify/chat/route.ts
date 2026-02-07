@@ -213,6 +213,9 @@ export async function POST(request: NextRequest) {
         console.log('🆕 No conversation_id - starting new Dify conversation')
       }
 
+      // 📤 Dify Request Body の完全な内容をログ出力
+      console.log('📤 Dify Request Body (FULL):', JSON.stringify(requestBody, null, 2))
+
       console.log('📤 Dify Chatflow Request:', {
         url: difyChatflowUrl,
         has_conversation_id: !!requestBody.conversation_id,
@@ -242,6 +245,9 @@ export async function POST(request: NextRequest) {
 
       const difyData = await difyResponse.json()
       const processingTime = Date.now() - startTime
+
+      // 📥 Dify Response の完全な内容をログ出力
+      console.log('📥 Dify Response (FULL):', JSON.stringify(difyData, null, 2))
 
       // Chatflow APIのレスポンス形式
       const aiResponse = difyData.answer || difyData.data?.answer || JSON.stringify(difyData)
