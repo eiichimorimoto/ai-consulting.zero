@@ -53,7 +53,7 @@ import { useFileAttachment } from "@/hooks/useFileAttachment";
 import ChatArea from "@/components/consulting/ChatArea";
 import SessionDialogs from "@/components/consulting/SessionDialogs";
 import MessageInputArea from "@/components/consulting/MessageInputArea";
-import TestPPTButton from "@/components/consulting/TestPPTButton";
+import ExportDialog from "@/components/consulting/ExportDialog";
 
 /** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
 function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
@@ -155,6 +155,9 @@ function createInitialSessionForNewUser(): SessionData {
 type UserChoice = null | "new" | "existing";
 
 export default function ConsultingStartPage() {
+  // エクスポートダイアログの状態
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
   // カスタムhook: セッション管理
   const session = useConsultingSession({
     onInputValueChange: (value) => {
@@ -484,7 +487,8 @@ export default function ConsultingStartPage() {
               variant="outline"
               className={`w-full ${BUTTON.leftPanel}`}
               size="sm"
-              onClick={() => toast.info("準備中", { description: "レポートエクスポート機能は準備中です。" })}
+              onClick={() => setIsExportDialogOpen(true)}
+              disabled={!session.currentSession || session.currentSession.messages.length === 0}
             >
               <FileText className="w-4 h-4 mr-2" />
               レポートをエクスポート
@@ -578,8 +582,16 @@ export default function ConsultingStartPage() {
         </aside>
       </div>
 
-      {/* プロトタイプテスト用ボタン（開発環境のみ） */}
-      {process.env.NODE_ENV === 'development' && <TestPPTButton />}
+      {/* エクスポートダイアログ */}
+      {isExportDialogOpen && session.currentSession && (
+        <ExportDialog
+          messages={session.currentSession.messages}
+          sessionName={session.currentSession.name}
+          companyName={undefined} // 今後実装: ユーザー情報から取得
+          userName={undefined} // 今後実装: ユーザー情報から取得
+          onClose={() => setIsExportDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
