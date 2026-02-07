@@ -251,8 +251,10 @@ export default function ConsultingStartPage() {
 
   // activeSessionId変更時にメッセージを自動取得
   useEffect(() => {
+    const activeId = session.activeSessionId;
+    
     // 一時IDまたは空の場合はスキップ
-    if (!session.activeSessionId || session.activeSessionId.startsWith('temp-session-')) {
+    if (!activeId || activeId.startsWith('temp-session-')) {
       return;
     }
 
@@ -266,7 +268,7 @@ export default function ConsultingStartPage() {
     const fetchMessages = async () => {
       try {
         const res = await fetch(
-          `/api/consulting/sessions/${session.activeSessionId}/messages?limit=50&offset=0`
+          `/api/consulting/sessions/${activeId}/messages?limit=50&offset=0`
         );
 
         if (!res.ok) {
@@ -278,7 +280,7 @@ export default function ConsultingStartPage() {
 
         // セッション更新
         session.setAllSessions(prev => prev.map(s =>
-          s.id === session.activeSessionId
+          s.id === activeId
             ? { ...s, messages: data.messages }
             : s
         ));
@@ -287,7 +289,7 @@ export default function ConsultingStartPage() {
         setHasMoreMessages(data.hasMore);
 
         console.log('✅ Messages loaded:', {
-          sessionId: session.activeSessionId,
+          sessionId: activeId,
           count: data.messages.length,
           total: data.total
         });
@@ -297,10 +299,7 @@ export default function ConsultingStartPage() {
     };
 
     fetchMessages();
-    // Note: session.setAllSessions, setTotalMessages, setHasMoreMessages are stable
-    // session.currentSession is memoized, intentionally not in deps to avoid re-fetch
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.activeSessionId]);
+  }, [session.activeSessionId, session.setAllSessions]);
 
   // Auto-scroll when messages change
   useEffect(() => {
