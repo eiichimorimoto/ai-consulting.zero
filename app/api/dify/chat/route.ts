@@ -59,6 +59,16 @@ export async function POST(request: NextRequest) {
     let profileInfo: any = {}
 
     try {
+      // 認証状態を確認
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      console.log('🔐 Auth check:', {
+        has_auth_user: !!authUser,
+        auth_user_id: authUser?.id,
+        requested_user_id: userId,
+        ids_match: authUser?.id === userId,
+        auth_error: authError?.message
+      })
+
       // プロフィールと会社情報をJOINで取得
       // まず .single() なしで取得してデバッグ
       const { data: profiles, error: profileError, count } = await supabase
@@ -83,7 +93,11 @@ export async function POST(request: NextRequest) {
         count,
         has_error: !!profileError,
         error_message: profileError?.message,
+        error_details: profileError?.details,
+        error_hint: profileError?.hint,
+        error_code: profileError?.code,
         profiles_length: profiles?.length || 0,
+        profiles_data: profiles ? JSON.stringify(profiles).substring(0, 200) : 'null',
         first_profile_has_company: profiles?.[0]?.companies ? true : false
       })
 
