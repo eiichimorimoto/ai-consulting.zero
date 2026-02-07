@@ -3546,6 +3546,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         <p style={{ color: '#64748b', fontSize: '11px', margin: 0 }}>
                           業界見通し・リスク分析・経営提言
                         </p>
+                        {lastUpdatedAbsolute['industry-forecast'] && (
+                          <p style={{ color: '#6366f1', fontSize: '10px', fontWeight: '600', margin: '4px 0 0 0' }}>
+                            📅 {lastUpdatedAbsolute['industry-forecast']} 時点の提言
+                          </p>
+                        )}
                       </div>
                     </div>
                     <button
@@ -3848,7 +3853,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 経営への提言
                                 <span style={{ fontSize: '9px', fontWeight: '400', color: '#94a3b8', marginLeft: '6px' }}>(公開情報による提言)</span>
                               </div>
-                              <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '500' }}>Strategic Recommendations</div>
+                              <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '500' }}>
+                                Strategic Recommendations
+                                {lastUpdatedAbsolute['industry-forecast'] && (
+                                  <span style={{ color: '#6366f1', fontWeight: '600', marginLeft: '6px' }}>
+                                    • {lastUpdatedAbsolute['industry-forecast']} 時点
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div style={{
