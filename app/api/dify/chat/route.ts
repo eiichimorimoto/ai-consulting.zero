@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         error_hint: profileError?.hint,
         error_code: profileError?.code,
         profiles_length: profiles?.length || 0,
-        profiles_data_full: profiles ? JSON.stringify(profiles, null, 2) : 'null',
+        // profiles_data_full: センシティブデータのため出力を削除
         first_profile_exists: !!profiles?.[0],
         first_profile_has_company: profiles?.[0]?.companies ? true : false,
         first_profile_company_id: profiles?.[0]?.company_id || 'null'
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (profile.companies) {
-          console.log('🏢 Company data:', profile.companies)
+          // console.log('🏢 Company data:', profile.companies) // センシティブデータのため出力を削除
           
           companyInfo = {
             name: profile.companies.name,
@@ -153,7 +153,11 @@ export async function POST(request: NextRequest) {
             business_description: profile.companies.business_description
           }
           
-          console.log('✅ Company info extracted:', companyInfo)
+          console.log('✅ Company info extracted:', {
+            has_name: !!companyInfo.name,
+            has_industry: !!companyInfo.industry,
+            has_description: !!companyInfo.business_description
+          })
         } else {
           console.warn('⚠️ Profile found but no companies data')
         }

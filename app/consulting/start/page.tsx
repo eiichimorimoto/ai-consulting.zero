@@ -297,6 +297,9 @@ export default function ConsultingStartPage() {
     };
 
     fetchMessages();
+    // Note: session.setAllSessions, setTotalMessages, setHasMoreMessages are stable
+    // session.currentSession is memoized, intentionally not in deps to avoid re-fetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.activeSessionId]);
 
   // Auto-scroll when messages change
