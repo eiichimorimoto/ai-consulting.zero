@@ -257,6 +257,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState<Record<string, boolean>>({})
   const [lastUpdated, setLastUpdated] = useState<Record<string, string>>({})
+  const [lastUpdatedAbsolute, setLastUpdatedAbsolute] = useState<Record<string, string>>({})
   const [consultationHistoryCount, setConsultationHistoryCount] = useState<number>(0)
   const [swotInfoOpen, setSwotInfoOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -386,12 +387,23 @@ export default function DashboardClient({ profile, company, subscription }: Dash
           break
       }
 
-      // 更新時刻を記録
+      // 更新時刻を記録（相対時刻と絶対時刻）
       const now = new Date()
       const updatedTime = new Date(updatedAt)
       const diffMinutes = Math.floor((now.getTime() - updatedTime.getTime()) / (1000 * 60))
       const timeText = diffMinutes < 1 ? 'たった今' : diffMinutes < 60 ? `${diffMinutes}分前` : `${Math.floor(diffMinutes / 60)}時間前`
+      
+      // 絶対時刻も保存（YYYY-MM-DD HH:mm形式）
+      const absoluteTime = updatedTime.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      
       setLastUpdated(prev => ({ ...prev, [sectionType]: timeText }))
+      setLastUpdatedAbsolute(prev => ({ ...prev, [sectionType]: absoluteTime }))
     } catch (error: any) {
       // AbortError の場合はログを出力せずに終了
       if (error.name === 'AbortError') {
@@ -498,6 +510,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         setTabsLoaded(loadedTabs)
         
         if (data.lastUpdated) setLastUpdated(data.lastUpdated)
+        if (data.lastUpdatedAbsolute) setLastUpdatedAbsolute(data.lastUpdatedAbsolute)
         
         const loadedTabNames = Object.entries(loadedTabs)
           .filter(([_, loaded]) => loaded)
@@ -522,13 +535,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         worldNews,
         industryForecast,
         lastUpdated,
+        lastUpdatedAbsolute,
         savedAt: Date.now()
       }
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(data))
     } catch (e) {
       console.error('Failed to save cache:', e)
     }
-  }, [marketData, localInfo, industryTrends, swotAnalysis, worldNews, industryForecast, lastUpdated, SESSION_KEY])
+  }, [marketData, localInfo, industryTrends, swotAnalysis, worldNews, industryForecast, lastUpdated, lastUpdatedAbsolute, SESSION_KEY])
 
   // データ変更時にキャッシュを更新（localInfoも含む）
   useEffect(() => {
@@ -1224,8 +1238,21 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   マーケット概況
                 </h2>
                 <div className="section-header-right">
-                  <span className="update-time">
-                    {refreshing['market'] ? '更新中...' : lastUpdated['market'] ? `${lastUpdated['market']}更新` : '読み込み中...'}
+                  <span className="update-time" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                    {refreshing['market'] ? (
+                      '更新中...'
+                    ) : lastUpdatedAbsolute['market'] ? (
+                      <>
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {lastUpdatedAbsolute['market']} 更新
+                        </span>
+                        <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>
+                          （{lastUpdated['market']}）
+                        </span>
+                      </>
+                    ) : (
+                      '読み込み中...'
+                    )}
                   </span>
                   <button 
                     className="refresh-btn" 
@@ -1545,8 +1572,21 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   {company?.city || '名古屋市'}エリア情報
                 </h2>
                 <div className="section-header-right">
-                  <span className="update-time">
-                    {refreshing['local-info'] ? '更新中...' : lastUpdated['local-info'] ? `${lastUpdated['local-info']}更新` : '読み込み中...'}
+                  <span className="update-time" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                    {refreshing['local-info'] ? (
+                      '更新中...'
+                    ) : lastUpdatedAbsolute['local-info'] ? (
+                      <>
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {lastUpdatedAbsolute['local-info']} 更新
+                        </span>
+                        <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>
+                          （{lastUpdated['local-info']}）
+                        </span>
+                      </>
+                    ) : (
+                      '読み込み中...'
+                    )}
                   </span>
                   <button 
                     className="refresh-btn" 
@@ -2376,7 +2416,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     fontWeight: activeTab === 'swot' ? '700' : '500',
                     fontSize: '13px',
                     transition: 'all 0.2s ease',
-                    borderRadius: '4px 4px 0 0'
+                    borderRadius: '4px 4px 0 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                   onMouseEnter={(e) => {
                     if (activeTab !== 'swot') {
@@ -2389,7 +2433,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  📊 SWOT分析
+                  <span>📊 SWOT分析</span>
+                  {lastUpdatedAbsolute['swot-analysis'] && (
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>
+                      {lastUpdatedAbsolute['swot-analysis']}
+                    </span>
+                  )}
                 </button>
                 <button 
                   onClick={() => handleTabChange('trends')}
@@ -2403,7 +2452,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     fontWeight: activeTab === 'trends' ? '700' : '500',
                     fontSize: '13px',
                     transition: 'all 0.2s ease',
-                    borderRadius: '4px 4px 0 0'
+                    borderRadius: '4px 4px 0 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                   onMouseEnter={(e) => {
                     if (activeTab !== 'trends') {
@@ -2416,7 +2469,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  📈 業界動向
+                  <span>📈 業界動向</span>
+                  {lastUpdatedAbsolute['industry-trends'] && (
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>
+                      {lastUpdatedAbsolute['industry-trends']}
+                    </span>
+                  )}
                 </button>
                 <button 
                   onClick={() => handleTabChange('forecast')}
@@ -2430,7 +2488,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     fontWeight: activeTab === 'forecast' ? '700' : '500',
                     fontSize: '13px',
                     transition: 'all 0.2s ease',
-                    borderRadius: '4px 4px 0 0'
+                    borderRadius: '4px 4px 0 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                   onMouseEnter={(e) => {
                     if (activeTab !== 'forecast') {
@@ -2443,7 +2505,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  🔮 業界予測
+                  <span>🔮 業界予測</span>
+                  {lastUpdatedAbsolute['industry-forecast'] && (
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>
+                      {lastUpdatedAbsolute['industry-forecast']}
+                    </span>
+                  )}
                 </button>
                 <button 
                   onClick={() => handleTabChange('news')}
@@ -2457,7 +2524,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     fontWeight: activeTab === 'news' ? '700' : '500',
                     fontSize: '13px',
                     transition: 'all 0.2s ease',
-                    borderRadius: '4px 4px 0 0'
+                    borderRadius: '4px 4px 0 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                   onMouseEnter={(e) => {
                     if (activeTab !== 'news') {
@@ -2470,7 +2541,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  🌍 世界情勢
+                  <span>🌍 世界情勢</span>
+                  {lastUpdatedAbsolute['world-news'] && (
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>
+                      {lastUpdatedAbsolute['world-news']}
+                    </span>
+                  )}
                 </button>
               </div>
               
