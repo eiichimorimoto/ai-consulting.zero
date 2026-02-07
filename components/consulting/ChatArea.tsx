@@ -126,8 +126,8 @@ export default function ChatArea({
           background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(224, 231, 255, 0.9) 50%, rgba(239, 246, 255, 0.9) 100%)'
         }}
       >
-        {/* 背景画像 */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* 背景画像（固定） */}
+        <div className="fixed inset-0 z-0 pointer-events-none">
           <Image
             src="/AI相談画像01.png"
             alt="Background"
