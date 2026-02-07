@@ -425,9 +425,6 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const handleTabChange = async (tab: AnalysisTab) => {
     setActiveTab(tab)
     
-    // 分析セクションにスクロール
-    scrollToSection('analysis-section')
-    
     // 既にロード済みならスキップ
     if (tabsLoaded[tab]) {
       console.log(`✅ タブ "${tab}" は既にロード済み`)
@@ -2402,7 +2399,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 gap: '4px', 
                 borderBottom: '2px solid var(--border)', 
                 marginBottom: '20px',
-                order: 0.5
+                order: 0.5,
+                position: 'sticky',
+                top: '0',
+                background: 'white',
+                zIndex: 100,
+                paddingTop: '8px'
               }}>
                 <button 
                   onClick={() => handleTabChange('swot')}
