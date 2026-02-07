@@ -249,6 +249,56 @@ export default function ConsultingStartPage() {
     }
   }, [voiceError]);
 
+  // activeSessionId変更時にメッセージを自動取得
+  useEffect(() => {
+    // 一時IDまたは空の場合はスキップ
+    if (!session.activeSessionId || session.activeSessionId.startsWith('temp-session-')) {
+      return;
+    }
+
+    // 既にメッセージが存在する場合はスキップ（重複取得防止）
+    const currentMessages = session.currentSession?.messages || [];
+    if (currentMessages.length > 0) {
+      return;
+    }
+
+    // メッセージを取得
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(
+          `/api/consulting/sessions/${session.activeSessionId}/messages?limit=50&offset=0`
+        );
+
+        if (!res.ok) {
+          console.error('Failed to fetch messages:', res.status);
+          return;
+        }
+
+        const data = await res.json();
+
+        // セッション更新
+        session.setAllSessions(prev => prev.map(s =>
+          s.id === session.activeSessionId
+            ? { ...s, messages: data.messages }
+            : s
+        ));
+
+        setTotalMessages(data.total);
+        setHasMoreMessages(data.hasMore);
+
+        console.log('✅ Messages loaded:', {
+          sessionId: session.activeSessionId,
+          count: data.messages.length,
+          total: data.total
+        });
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [session.activeSessionId]);
+
   // Auto-scroll when messages change
   useEffect(() => {
     const el = chatScrollRef.current;

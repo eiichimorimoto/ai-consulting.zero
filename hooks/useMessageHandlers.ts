@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { SessionData, Message } from "@/types/consulting";
 import { SUBCATEGORY_MAP } from "@/lib/consulting/constants";
+import { CONSULTING_CATEGORIES } from "@/lib/consulting/category-data";
 import { 
   loadConversationId, 
   saveConversationId,
@@ -195,6 +196,36 @@ export function useMessageHandlers({
    */
   const handleQuickReply = async (reply: string, isCategory: boolean = false) => {
     if (!currentSession) return;
+    
+    // カテゴリかサブカテゴリかを判定
+    const isMainCategory = CONSULTING_CATEGORIES.some(cat => cat.label === reply);
+    
+    // sessionStorageに保存
+    const currentState = loadConsultingState();
+    
+    if (isMainCategory) {
+      // カテゴリ選択時
+      console.log('📌 Saving selected category:', reply);
+      if (currentState) {
+        saveConsultingState({
+          ...currentState,
+          selectedCategory: reply,
+          selectedSubcategory: undefined, // サブカテゴリをリセット
+          lastActivity: Date.now()
+        });
+      }
+    } else if (isCategory) {
+      // サブカテゴリ選択時
+      console.log('📌 Saving selected subcategory:', reply);
+      if (currentState) {
+        saveConsultingState({
+          ...currentState,
+          selectedSubcategory: reply,
+          lastActivity: Date.now()
+        });
+      }
+    }
+    
     const msgLen = currentSession?.messages?.length ?? 0;
     const newMessage: Message = {
       id: msgLen + 1,
@@ -215,7 +246,7 @@ export function useMessageHandlers({
     ));
 
     // カテゴリ選択時、一時IDの場合はSupabaseセッション作成
-    if (isCategory && currentSession.id.startsWith('temp-session-')) {
+    if (isMainCategory && currentSession.id.startsWith('temp-session-')) {
       try {
         const formData = new FormData();
         formData.append('category', reply);
