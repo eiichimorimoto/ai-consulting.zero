@@ -2,24 +2,7 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAIResult } from '@/lib/fact-checker';
 import { applyRateLimit } from "@/lib/rate-limit";
-
-// 簡易キャッシュ（メモリ内、5分間有効）
-const pageSpeedCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5分
-
-function getCachedPageSpeed(url: string): any | null {
-  const cached = pageSpeedCache.get(url);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log('✅ キャッシュからPageSpeedデータを取得:', url);
-    return cached.data;
-  }
-  return null;
-}
-
-function setCachedPageSpeed(url: string, data: any): void {
-  pageSpeedCache.set(url, { data, timestamp: Date.now() });
-  console.log('💾 PageSpeedデータをキャッシュに保存:', url);
-}
+import { getBulkPageSpeedCache, setBulkPageSpeedCache } from '@/lib/pagespeed-cache';
 
 // PageSpeed API レスポンス型定義
 interface LighthouseAudit {
@@ -53,9 +36,10 @@ interface ApiErrorResponse {
 
 // PageSpeed Insights APIを使用してサイトを分析
 async function analyzeWithPageSpeed(url: string) {
-  // キャッシュチェック
-  const cached = getCachedPageSpeed(url);
+  // Supabaseキャッシュチェック（24時間有効）
+  const cached = await getBulkPageSpeedCache(url);
   if (cached) {
+    console.log('✅ Supabaseキャッシュから結果を返却:', url);
     return cached;
   }
 
@@ -178,8 +162,8 @@ async function analyzeWithPageSpeed(url: string) {
     results[strategy] = await response.json();
   }
 
-  // キャッシュに保存
-  setCachedPageSpeed(url, results);
+  // Supabaseキャッシュに保存（24時間）
+  await setBulkPageSpeedCache(url, results as { mobile: any; desktop: any });
 
   return results;
 }
