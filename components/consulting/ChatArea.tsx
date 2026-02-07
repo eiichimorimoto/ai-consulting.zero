@@ -121,9 +121,23 @@ export default function ChatArea({
 
       <div 
         ref={containerRef}
-        className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100"
+        className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6"
+        style={{
+          background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(224, 231, 255, 0.9) 50%, rgba(239, 246, 255, 0.9) 100%)'
+        }}
       >
-        <div className="max-w-3xl mx-auto space-y-6">
+        {/* 背景画像 */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image
+            src="/AI相談画像01.png"
+            alt="Background"
+            fill
+            className="object-cover opacity-[0.08]"
+            priority
+          />
+        </div>
+
+        <div className="relative z-10 max-w-3xl mx-auto space-y-6">
           {/* 過去のメッセージを読み込むボタン */}
           {hasMoreMessages && (
             <div className="flex justify-center py-4">
