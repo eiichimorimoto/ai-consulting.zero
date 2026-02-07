@@ -16,7 +16,7 @@ export interface MessageInputAreaProps {
   
   // ファイル添付
   attachedFiles: File[];
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileAttach: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
   

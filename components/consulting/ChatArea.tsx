@@ -14,7 +14,7 @@ import { formatAIMessage } from '@/lib/utils/message-formatter';
 
 export interface ChatAreaProps {
   currentSession: SessionData | null;
-  chatScrollRef: React.RefObject<HTMLDivElement>;
+  chatScrollRef: React.RefObject<HTMLDivElement | null>;
   onQuickReply: (reply: string, isCategory?: boolean) => void;
   isLoading?: boolean;
   hasMoreMessages?: boolean;
