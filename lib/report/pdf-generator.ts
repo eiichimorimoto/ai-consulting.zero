@@ -311,8 +311,13 @@ export async function generatePDFReport(options: PDFGenerateOptions): Promise<PD
     // HTML生成
     const html = generateReportHTML(options);
 
+    console.log('🚀 PDF生成: ブラウザ起動準備');
+
+    // 本番環境と開発環境で異なる設定を使用
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     // Chromiumの実行パスを取得
-    const executablePath = process.env.NODE_ENV === 'production'
+    const executablePath = isProduction
       ? await chromium.executablePath()
       : process.platform === 'win32'
         ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
@@ -320,22 +325,46 @@ export async function generatePDFReport(options: PDFGenerateOptions): Promise<PD
           ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
           : '/usr/bin/google-chrome';
 
+    console.log('📍 Chromium実行パス:', executablePath);
+
+    // ブラウザ起動オプション
+    const launchOptions = isProduction
+      ? {
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath,
+          headless: true,
+        }
+      : {
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+          ],
+          executablePath,
+          headless: true,
+        };
+
+    console.log('⚙️ 起動オプション:', JSON.stringify(launchOptions, null, 2));
+
     // ブラウザ起動
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath,
-      headless: true,
-    });
+    browser = await puppeteer.launch(launchOptions);
+    console.log('✅ ブラウザ起動成功');
 
     const page = await browser.newPage();
+    console.log('📄 新規ページ作成成功');
     
     // HTMLを設定
+    console.log('📝 HTMLコンテンツ設定中...');
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'domcontentloaded', // networkidle0 → domcontentloaded に変更（高速化）
+      timeout: 30000, // 30秒タイムアウト
     });
+    console.log('✅ HTMLコンテンツ設定完了');
 
     // PDF生成
+    console.log('🖨️ PDF生成中...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -346,6 +375,7 @@ export async function generatePDFReport(options: PDFGenerateOptions): Promise<PD
         left: '20mm',
       },
     });
+    console.log('✅ PDF生成完了:', `${(pdfBuffer.length / 1024).toFixed(2)} KB`);
 
     // ファイル名生成
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -356,10 +386,19 @@ export async function generatePDFReport(options: PDFGenerateOptions): Promise<PD
       fileName,
       mimeType: 'application/pdf',
     };
+  } catch (error) {
+    console.error('❌ PDF生成処理でエラー:', error);
+    throw error;
   } finally {
     // ブラウザを閉じる
     if (browser) {
-      await browser.close();
+      console.log('🔒 ブラウザをクローズ中...');
+      try {
+        await browser.close();
+        console.log('✅ ブラウザクローズ完了');
+      } catch (closeError) {
+        console.error('⚠️ ブラウザクローズでエラー:', closeError);
+      }
     }
   }
 }

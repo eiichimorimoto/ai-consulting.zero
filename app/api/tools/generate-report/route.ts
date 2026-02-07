@@ -8,7 +8,7 @@ import { generatePDFReport } from '@/lib/report/pdf-generator';
 import type { PDFGenerateOptions } from '@/lib/report/types';
 
 export const runtime = 'nodejs'; // Node.jsランタイムを使用（Puppeteer用）
-export const maxDuration = 30; // 最大30秒（PDF生成は時間がかかる可能性）
+export const maxDuration = 60; // 最大60秒（初回Chromiumダウンロード対応）
 
 export async function POST(request: NextRequest) {
   try {
