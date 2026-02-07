@@ -413,6 +413,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const handleTabChange = async (tab: AnalysisTab) => {
     setActiveTab(tab)
     
+    // 分析セクションにスクロール
+    scrollToSection('analysis-section')
+    
     // 既にロード済みならスキップ
     if (tabsLoaded[tab]) {
       console.log(`✅ タブ "${tab}" は既にロード済み`)
@@ -2321,7 +2324,7 @@ export default function DashboardClient({ profile, company, subscription }: Dash
               </div>
             </div>
 
-            <section className="analysis-section" style={{ display: 'flex', flexDirection: 'column' }}>
+            <section id="analysis-section" className="analysis-section" style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="section-header" style={{ order: 0 }}>
                 <h2 className="section-title">
                   <svg viewBox="0 0 24 24">
