@@ -427,13 +427,42 @@ export async function POST(
       index === self.findIndex(m => m.id === msg.id)
     )
 
+    // 初期メッセージを動的に挿入（GET /messages と同じロジック）
+    const initialMessageTimestamp = new Date(session.created_at).toISOString()
+    const messagesWithInitial = {
+      messages: [
+        {
+          id: crypto.randomUUID(),
+          session_id: sessionId,
+          role: 'assistant' as const,
+          content: 'どのような課題をお抱えですか？貴社の状況に合わせて、最適なアドバイスを提供いたします。',
+          created_at: initialMessageTimestamp,
+          message_order: 0,
+          analysis_type: null,
+          tokens_used: 0,
+          processing_time: 0,
+          attachments: null
+        },
+        ...allMessages
+      ]
+    }
+
     // Supabaseのrole → フロントエンドのtype にマッピング
-    const mappedMessages = allMessages.map((msg, index) => {
+    const mappedMessages = messagesWithInitial.messages.map((msg, index) => {
       const baseMessage: any = {
         id: index + 1,
         type: msg.role === 'assistant' ? 'ai' : 'user',
         content: msg.content,
         timestamp: new Date(msg.created_at),
+      }
+
+      // 初回メッセージ（カテゴリ選択ボタン）の復元
+      if (msg.role === 'assistant' && msg.content.includes('どのような課題をお抱えですか')) {
+        console.log('✅ Category buttons restored for initial message (POST)')
+        baseMessage.interactive = {
+          type: 'category-buttons',
+          data: CONSULTING_CATEGORIES
+        }
       }
 
       // カテゴリ選択メッセージの場合、interactiveを復元
@@ -446,7 +475,7 @@ export async function POST(
       }
       
       // 既存データ対応: 内容から推測してinteractiveを復元
-      if (msg.role === 'assistant' && !msg.analysis_type) {
+      if (msg.role === 'assistant' && !msg.analysis_type && !baseMessage.interactive) {
         const categoryMatch = msg.content.match(/「(.+?)」について/)
         if (categoryMatch && SUBCATEGORY_MAP[categoryMatch[1]]) {
           baseMessage.interactive = {
