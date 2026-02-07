@@ -2433,7 +2433,15 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  <span>📊 SWOT分析</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: activeTab === 'swot' ? 'white' : 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                      <rect x="3" y="3" width="7" height="7"/>
+                      <rect x="14" y="3" width="7" height="7"/>
+                      <rect x="3" y="14" width="7" height="7"/>
+                      <rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    SWOT分析
+                  </span>
                   {lastUpdatedAbsolute['swot-analysis'] && (
                     <span style={{ fontSize: '9px', opacity: 0.8 }}>
                       {lastUpdatedAbsolute['swot-analysis']}
@@ -2469,7 +2477,12 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  <span>📈 業界動向</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: activeTab === 'trends' ? 'white' : 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                      <path d="M18 20V10M12 20V4M6 20v-6"/>
+                    </svg>
+                    業界動向
+                  </span>
                   {lastUpdatedAbsolute['industry-trends'] && (
                     <span style={{ fontSize: '9px', opacity: 0.8 }}>
                       {lastUpdatedAbsolute['industry-trends']}
@@ -2505,7 +2518,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  <span>🔮 業界予測</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: activeTab === 'forecast' ? 'white' : 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12,6 12,12 16,14"/>
+                    </svg>
+                    業界予測
+                  </span>
                   {lastUpdatedAbsolute['industry-forecast'] && (
                     <span style={{ fontSize: '9px', opacity: 0.8 }}>
                       {lastUpdatedAbsolute['industry-forecast']}
@@ -2541,7 +2560,13 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                     }
                   }}
                 >
-                  <span>🌍 世界情勢</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', stroke: activeTab === 'news' ? 'white' : 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                    世界情勢
+                  </span>
                   {lastUpdatedAbsolute['world-news'] && (
                     <span style={{ fontSize: '9px', opacity: 0.8 }}>
                       {lastUpdatedAbsolute['world-news']}
