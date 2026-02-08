@@ -28,6 +28,8 @@ type UseConsultingSessionOptions = {
   onInputValueChange?: (value: string) => void;
   createInitialSessionForNewUser: () => SessionData;
   mapApiSessionsToSessionData: (apiSessions: ApiSession[]) => SessionData[];
+  /** ステップ終了時に呼ぶ（進んだ最大STEPを親で記録し、未実施 vs 一時中止の判定に使う） */
+  onStepCompleted?: (sessionId: string, newStepId: number) => void;
 };
 
 /**
@@ -39,7 +41,7 @@ type UseConsultingSessionOptions = {
  * @returns セッション管理の状態とハンドラー
  */
 export function useConsultingSession(options: UseConsultingSessionOptions) {
-  const { onInputValueChange, createInitialSessionForNewUser, mapApiSessionsToSessionData } = options;
+  const { onInputValueChange, createInitialSessionForNewUser, mapApiSessionsToSessionData, onStepCompleted } = options;
 
   // 状態管理
   const [userChoice, setUserChoice] = useState<UserChoice>(null);
@@ -445,17 +447,86 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
     }
   };
 
-  const confirmStepNavigation = () => {
+  const confirmStepNavigation = async () => {
     if (stepToNavigate === null) return;
-
-    setAllSessions(allSessions.map(s =>
-      s.id === activeSessionId
-        ? { ...s, currentStepId: stepToNavigate, lastUpdated: new Date() }
-        : s
-    ));
-
-    toast.success(`STEP ${stepToNavigate} に戻りました`);
+    const sessionId = activeSessionId;
+    const targetRound = stepToNavigate - 1;
+    const session = allSessions.find((s) => s.id === sessionId);
+    if (!session || session.id.startsWith("temp-session-") || session.id === "new-session") {
+      setStepToNavigate(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/consulting/sessions/${session.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_round: targetRound }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error ?? "ステップに戻れませんでした");
+        setStepToNavigate(null);
+        return;
+      }
+      const listRes = await fetch("/api/consulting/sessions");
+      const listData = await listRes.json().catch(() => ({}));
+      const apiSessions: ApiSession[] = listData.sessions || [];
+      const mapped = mapApiSessionsToSessionData(apiSessions);
+      setAllSessions((prev) =>
+        prev.map((s) => {
+          const updated = mapped.find((m) => m.id === s.id);
+          if (!updated || s.id !== sessionId) return s;
+          return { ...updated, isOpen: s.isOpen, messages: s.messages };
+        })
+      );
+      toast.success(`STEP ${stepToNavigate} に戻りました`);
+    } catch {
+      toast.error("ステップに戻れませんでした");
+    }
     setStepToNavigate(null);
+  };
+
+  /** 現在のステップを終了し、次のステップに進む（API で current_round を 1 増やす） */
+  const handleCompleteStep = async () => {
+    if (!currentSession || currentSession.id === "new-session") return;
+    const activeStep = currentSession.steps?.find((s) => s.status === "active");
+    const stepTitle = activeStep?.title ?? "このステップ";
+    try {
+      const res = await fetch(`/api/consulting/sessions/${currentSession.id}/complete-step`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error ?? "ステップを終了できませんでした");
+        return;
+      }
+      const data = await res.json();
+      const newRound = data.current_round as number;
+      const maxRounds = 5;
+      const currentStepId = Math.min(newRound + 1, maxRounds);
+      setAllSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== currentSession.id) return s;
+          const newSteps = s.steps.map((step) => ({
+            ...step,
+            status: step.id < currentStepId ? "completed" : step.id === currentStepId ? "active" : "pending",
+          }));
+          return {
+            ...s,
+            currentStepId,
+            steps: newSteps,
+            lastUpdated: new Date(),
+          };
+        })
+      );
+      onStepCompleted?.(currentSession.id, currentStepId);
+      toast.success(
+        `${stepTitle}のレポートを作成します。出力は左メニューの「レポートをエクスポート」からご利用ください。`,
+        { duration: 5000 }
+      );
+    } catch {
+      toast.error("ステップの終了に失敗しました");
+    }
   };
 
   const handleEndSession = () => {
@@ -575,6 +646,7 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
     handleDeleteSession,
     handleStepClick,
     confirmStepNavigation,
+    handleCompleteStep,
     handleEndSession,
     confirmEndSession,
   };

@@ -90,10 +90,10 @@ export async function PATCH(
 
     const { id: sessionId } = await params
 
-    // セッション所有権確認
+    // セッション所有権確認（current_round 更新時の検証用に current_round, max_rounds も取得）
     const { data: existingSession, error: checkError } = await supabase
       .from('consulting_sessions')
-      .select('id')
+      .select('id, current_round, max_rounds')
       .eq('id', sessionId)
       .eq('user_id', user.id)
       .single()
@@ -123,6 +123,24 @@ export async function PATCH(
         { error: 'Invalid status. Must be one of: active, completed, archived' },
         { status: 400 }
       )
+    }
+
+    // current_round は「戻る」のみ許可（進捗を先に進めることはできない）
+    if (current_round !== undefined) {
+      const existingRound = existingSession.current_round ?? 0
+      const maxRounds = existingSession.max_rounds ?? 5
+      if (typeof current_round !== 'number' || current_round < 0 || current_round > maxRounds) {
+        return NextResponse.json(
+          { error: 'Invalid current_round. Must be 0 to max_rounds.' },
+          { status: 400 }
+        )
+      }
+      if (current_round > existingRound) {
+        return NextResponse.json(
+          { error: 'Cannot advance current_round via PATCH. Use complete-step to advance.' },
+          { status: 400 }
+        )
+      }
     }
 
     // 更新データ準備

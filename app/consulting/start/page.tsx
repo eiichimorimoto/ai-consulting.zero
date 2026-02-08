@@ -41,8 +41,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, BarChart3, CheckCircle2, FileText, Lightbulb, MessageSquare, Send, Target, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, X, Paperclip, Mic, MicOff } from "lucide-react";
-import { useState, useMemo, useRef, useEffect, ReactNode } from "react";
+import { ArrowRight, BarChart3, CheckCircle2, FileText, Lightbulb, MessageSquare, Pause, Send, Target, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, X, Paperclip, Mic, MicOff } from "lucide-react";
+import { useState, useMemo, useRef, useEffect, useCallback, ReactNode } from "react";
 import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { celebrateStepCompletion } from "@/lib/utils/confetti";
@@ -54,10 +54,13 @@ import ChatArea from "@/components/consulting/ChatArea";
 import SessionDialogs from "@/components/consulting/SessionDialogs";
 import MessageInputArea from "@/components/consulting/MessageInputArea";
 import ExportDialog from "@/components/consulting/ExportDialog";
-import { getDifyContentItems } from "@/lib/report/builder";
 
-/** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
-function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
+/** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に。
+ * getMaxReachedStepId: そのセッションで一度でも進んだ最大STEP（未設定時は currentStepId 扱い）。進んでいないステップは「未実施」、戻ったステップは「一時中止」 */
+function mapApiSessionsToSessionData(
+  apiSessions: ApiSession[],
+  getMaxReachedStepId?: (sessionId: string) => number
+): SessionData[] {
   const sorted = [...apiSessions].sort((a, b) => {
     const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
     const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
@@ -79,18 +82,29 @@ function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
     const lastUpdated = api.updated_at ? new Date(api.updated_at) : new Date();
     const createdAt = api.created_at ? new Date(api.created_at) : new Date();
     const completedAt = api.completed_at ? new Date(api.completed_at) : undefined;
+    const currentStepId = Math.min(currentRound + 1, maxRounds);
+    // API の max_reached_round を優先（戻った後の refetch で一時中止が正しく出る）。未対応時はフロントの getMaxReachedStepId にフォールバック
+    const apiMaxReachedStepId = (api.max_reached_round ?? currentRound) + 1;
+    const frontMax = getMaxReachedStepId?.(api.id) ?? 0;
+    const maxReachedStepId = Math.max(apiMaxReachedStepId, frontMax, currentStepId);
+    const stepStatus = (stepId: number): ConsultingStep["status"] => {
+      if (stepId < currentStepId) return "completed";
+      if (stepId === currentStepId) return "active";
+      if (stepId <= maxReachedStepId) return "paused";
+      return "pending";
+    };
     const steps: ConsultingStep[] = [
-      { id: 1, title: "課題のヒアリング", icon: <MessageSquare className="w-5 h-5" />, status: currentRound >= 1 ? "completed" : currentRound === 0 ? "active" : "pending" },
-      { id: 2, title: "現状分析", icon: <BarChart3 className="w-5 h-5" />, status: currentRound >= 2 ? "completed" : currentRound === 1 ? "active" : "pending" },
-      { id: 3, title: "解決策の提案", icon: <Lightbulb className="w-5 h-5" />, status: currentRound >= 3 ? "completed" : currentRound === 2 ? "active" : "pending" },
-      { id: 4, title: "実行計画の策定", icon: <Target className="w-5 h-5" />, status: currentRound >= 4 ? "completed" : currentRound === 3 ? "active" : "pending" },
-      { id: 5, title: "レポート作成", icon: <FileText className="w-5 h-5" />, status: currentRound >= 5 ? "completed" : currentRound === 4 ? "active" : "pending" },
+      { id: 1, title: "課題のヒアリング", icon: <MessageSquare className="w-5 h-5" />, status: stepStatus(1) },
+      { id: 2, title: "現状分析", icon: <BarChart3 className="w-5 h-5" />, status: stepStatus(2) },
+      { id: 3, title: "解決策の提案", icon: <Lightbulb className="w-5 h-5" />, status: stepStatus(3) },
+      { id: 4, title: "実行計画の策定", icon: <Target className="w-5 h-5" />, status: stepStatus(4) },
+      { id: 5, title: "レポート作成", icon: <FileText className="w-5 h-5" />, status: stepStatus(5) },
     ];
     return {
       id: api.id,
       name: api.title || "相談",
       progress,
-      currentStepId: Math.min(currentRound + 1, maxRounds),
+      currentStepId,
       lastUpdated,
       createdAt,
       isPinned: false,
@@ -159,13 +173,27 @@ export default function ConsultingStartPage() {
   // エクスポートダイアログの状態
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
+  // そのセッションで一度でも進んだ最大STEP（戻ったとき「一時中止」vs「未実施」の判定用）
+  const [maxReachedStepIdBySession, setMaxReachedStepIdBySession] = useState<Map<string, number>>(() => new Map());
+
+  const getMaxReachedStepId = useCallback((sessionId: string) => maxReachedStepIdBySession.get(sessionId) ?? 0, [maxReachedStepIdBySession]);
+
+  const onStepCompleted = useCallback((sessionId: string, newStepId: number) => {
+    setMaxReachedStepIdBySession((prev) => {
+      const next = new Map(prev);
+      next.set(sessionId, Math.max(next.get(sessionId) ?? 0, newStepId));
+      return next;
+    });
+  }, []);
+
   // カスタムhook: セッション管理
   const session = useConsultingSession({
     onInputValueChange: (value) => {
       // inputValueの変更通知用（messageハンドラーと連携）
     },
     createInitialSessionForNewUser,
-    mapApiSessionsToSessionData,
+    mapApiSessionsToSessionData: (apiSessions) => mapApiSessionsToSessionData(apiSessions, getMaxReachedStepId),
+    onStepCompleted,
   });
 
   // カスタムhook: ファイル添付
@@ -190,6 +218,29 @@ export default function ConsultingStartPage() {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalMessages, setTotalMessages] = useState(0);
+
+  // ピン留めしたAI回答（セッション別）。右パネルで一覧表示・チャットで見る用
+  const [pinnedBySession, setPinnedBySession] = useState<Map<string, Set<number>>>(() => new Map());
+  const [scrollToMessageId, setScrollToMessageId] = useState<number | null>(null);
+
+  const pinnedMessageIds = session.activeSessionId
+    ? (pinnedBySession.get(session.activeSessionId) ?? new Set<number>())
+    : new Set<number>();
+
+  const handleTogglePin = (messageId: number) => {
+    const sid = session.activeSessionId ?? "";
+    setPinnedBySession((prev) => {
+      const next = new Map(prev);
+      const set = new Set(next.get(sid) ?? []);
+      if (set.has(messageId)) set.delete(messageId);
+      else set.add(messageId);
+      next.set(sid, set);
+      return next;
+    });
+  };
+
+  const pinnedMessagesForPanel =
+    session.currentSession?.messages?.filter((m) => m.type === "ai" && pinnedMessageIds.has(m.id)).map((m) => ({ id: m.id, content: m.content })) ?? [];
 
   // 過去のメッセージを読み込む
   const loadMoreMessages = async () => {
@@ -441,11 +492,13 @@ export default function ConsultingStartPage() {
                             ? "bg-slate-100 border border-slate-200 shadow-sm"
                             : step.status === "completed"
                               ? "bg-slate-100/90 border border-slate-200 hover:bg-slate-200 cursor-pointer"
-                              : "bg-slate-100/50 border border-slate-200 cursor-not-allowed opacity-75"
+                              : step.status === "paused"
+                                ? "bg-amber-50/80 border border-amber-200 cursor-not-allowed opacity-90"
+                                : "bg-slate-100/50 border border-slate-200 cursor-not-allowed opacity-75"
                           }`}
                       >
-                        <div className={`mt-0.5 flex-shrink-0 ${step.status === "completed" ? STEP_STATUS.completedIcon : STEP_STATUS.pendingIcon}`}>
-                          {step.status === "completed" ? <CheckCircle2 className="w-5 h-5" /> : step.icon}
+                        <div className={`mt-0.5 flex-shrink-0 ${step.status === "completed" ? STEP_STATUS.completedIcon : step.status === "paused" ? STEP_STATUS.pausedIcon : STEP_STATUS.pendingIcon}`}>
+                          {step.status === "completed" ? <CheckCircle2 className="w-5 h-5" /> : step.status === "paused" ? <Pause className="w-5 h-5" /> : step.icon}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -455,6 +508,12 @@ export default function ConsultingStartPage() {
                             )}
                             {step.status === "completed" && (
                               <span className={STEP_STATUS.completedBadge}>完了</span>
+                            )}
+                            {step.status === "paused" && (
+                              <span className={STEP_STATUS.pausedBadge}>一時中止</span>
+                            )}
+                            {step.status === "pending" && (
+                              <span className={STEP_STATUS.pendingBadge}>未実施</span>
                             )}
                           </div>
                           <p className="font-semibold text-sm mt-1 text-gray-900">{step.title}</p>
@@ -477,10 +536,29 @@ export default function ConsultingStartPage() {
                         <p className="text-xs">クリックしてこのステップに戻る</p>
                       </TooltipContent>
                     )}
+                    {step.status === "paused" && (
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-xs">前のステップに戻ったため一時中止です。現在のステップを終了すると再開できます。</p>
+                      </TooltipContent>
+                    )}
                   </Tooltip>
                 );
               })}
             </nav>
+
+            {session.currentSession?.steps?.some((s) => s.status === "active") && (
+              <div className="px-4 pb-4">
+                <Button
+                  variant="outline"
+                  className="w-full border-white/30 text-white hover:bg-white/10"
+                  size="sm"
+                  onClick={session.handleCompleteStep}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
+                  このステップを終了
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border-t border-white/10 space-y-2 flex-shrink-0">
@@ -489,19 +567,10 @@ export default function ConsultingStartPage() {
               className={`w-full ${BUTTON.leftPanel}`}
               size="sm"
               onClick={() => setIsExportDialogOpen(true)}
-              disabled={!session.currentSession || session.currentSession.messages.length === 0}
+              disabled={!session.currentSession}
             >
               <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="flex-1 text-left">レポートをエクスポート</span>
-              {session.currentSession && (() => {
-                const aiCount = getDifyContentItems(session.currentSession.messages).length;
-                return aiCount > 0 ? (
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {aiCount}件
-                  </span>
-                ) : null;
-              })()}
             </Button>
             <Button
               variant="destructive"
@@ -545,6 +614,10 @@ export default function ConsultingStartPage() {
             isLoadingMore={isLoadingMore}
             onLoadMore={loadMoreMessages}
             totalMessages={totalMessages}
+            pinnedMessageIds={pinnedMessageIds}
+            onTogglePin={handleTogglePin}
+            scrollToMessageId={scrollToMessageId}
+            onScrollToMessageDone={() => setScrollToMessageId(null)}
           />
 
           <MessageInputArea
@@ -588,17 +661,19 @@ export default function ConsultingStartPage() {
             onInsertToChat={(text) => message.setInputValue(prev => prev ? `${prev}\n\n${text}` : text)}
             showDashboardPrompt={(session.currentSession?.name === "新規相談") && (session.currentSession?.progress === 0)}
             attachedFiles={file.attachedFiles}
+            pinnedMessages={pinnedMessagesForPanel}
+            onScrollToMessage={(id) => setScrollToMessageId(id)}
           />
         </aside>
       </div>
 
       {/* エクスポートダイアログ */}
-      {isExportDialogOpen && session.currentSession && (
+      {isExportDialogOpen && session.currentSession && session.currentSession.id !== 'new-session' && (
         <ExportDialog
-          messages={session.currentSession.messages}
+          sessionId={session.currentSession.id}
           sessionName={session.currentSession.name}
-          companyName={undefined} // 今後実装: ユーザー情報から取得
-          userName={undefined} // 今後実装: ユーザー情報から取得
+          companyName={undefined}
+          userName={undefined}
           onClose={() => setIsExportDialogOpen(false)}
         />
       )}

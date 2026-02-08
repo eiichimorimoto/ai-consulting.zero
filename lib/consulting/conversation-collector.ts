@@ -103,3 +103,26 @@ export async function getAllSessionMessages(
   const list = (messages || []) as CollectedMessage[];
   return list.slice(-maxMessages);
 }
+
+/**
+ * 指定した step_round のメッセージのみ取得する（ステップ終了時レポート用）
+ */
+export async function getMessagesByStepRound(
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
+  sessionId: string,
+  stepRound: number
+): Promise<CollectedMessage[]> {
+  const { data: messages, error } = await supabase
+    .from('consulting_messages')
+    .select('role, content, created_at, message_order')
+    .eq('session_id', sessionId)
+    .eq('step_round', stepRound)
+    .order('message_order', { ascending: true });
+
+  if (error) {
+    console.error('conversation-collector: getMessagesByStepRound error', error);
+    throw error;
+  }
+
+  return (messages || []) as CollectedMessage[];
+}

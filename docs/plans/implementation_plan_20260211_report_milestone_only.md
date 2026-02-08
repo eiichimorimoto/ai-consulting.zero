@@ -218,6 +218,58 @@ git log -1 --oneline
 
 ---
 
+## 実行が必要なマイグレーション（詳細）
+
+Phase 3〜5 の動作には、次の **2 本のマイグレーションを必ず実行**してください。未実行のままではメッセージ保存時の `step_round` やステップ終了時のレポート保存でエラーになります。
+
+### 実行順序
+
+**1 → 2 の順で実行する。**
+
+---
+
+### 1. `supabase/20260211_add_step_round_to_consulting_messages.sql`
+
+| 項目 | 内容 |
+|------|------|
+| **目的** | どのメッセージがどの STEP の会話か判別するため。設計: `design_20260211_step_back_and_conversation_per_step.md` |
+| **対象テーブル** | `consulting_messages` |
+| **変更内容** | カラム追加: `step_round INTEGER NOT NULL DEFAULT 1`（1=STEP1 課題のヒアリング 〜 5=STEP5）。既存行には DEFAULT により 1 が入る。インデックス `idx_consulting_messages_session_step` を `(session_id, step_round)` に作成。カラムコメントを付与。 |
+| **ロールバック** | `ALTER TABLE consulting_messages DROP COLUMN IF EXISTS step_round;`（必要に応じてインデックスも削除） |
+| **注意** | 既存メッセージはすべて `step_round = 1` になる。新規メッセージは API で `current_round + 1` をセット。 |
+
+---
+
+### 2. `supabase/20260211_create_consulting_step_reports.sql`
+
+| 項目 | 内容 |
+|------|------|
+| **目的** | ステップ終了時に生成するコンセンサスレポートを保存。Phase 4 で使用。 |
+| **作成するテーブル** | `consulting_step_reports` |
+| **カラム** | `id` (UUID PK), `session_id` (FK consulting_sessions, CASCADE), `step_round` (1〜5 CHECK), `title`, `content`, `content_markdown`, `created_at` |
+| **制約・インデックス** | UNIQUE `(session_id, step_round)`（1 セッション・1 ステップあたり 1 件）。`session_id` のインデックス。 |
+| **RLS** | 有効。SELECT / INSERT / UPDATE はいずれも「当該 session の user_id = auth.uid()」の場合のみ許可。 |
+| **ロールバック** | `DROP TABLE IF EXISTS consulting_step_reports;` |
+
+---
+
+### 実行方法（Supabase の利用形態別）
+
+| 環境 | 手順 |
+|------|------|
+| **Supabase ダッシュボード** | SQL Editor を開き、上記 1 の SQL を貼り付けて実行。成功したら 2 の SQL を同様に実行。 |
+| **Supabase CLI（ローカル）** | プロジェクトルートで `supabase db push` を使う場合、`supabase/migrations/` に上記 2 ファイルを配置し、日付順で実行されるようにする。または `psql` / `supabase db execute` でファイルを指定して実行。 |
+| **手動で psql** | `psql $DATABASE_URL -f supabase/20260211_add_step_round_to_consulting_messages.sql` のあと、`psql $DATABASE_URL -f supabase/20260211_create_consulting_step_reports.sql` を実行。 |
+
+---
+
+### 実行後の確認
+
+- **1 の後**: `consulting_messages` に `step_round` カラムがあること。既存レコードの `step_round` が 1 になっていること。
+- **2 の後**: `consulting_step_reports` テーブルが存在し、RLS と 3 本のポリシー（SELECT / INSERT / UPDATE）が付いていること。
+
+---
+
 ## ファクトチェック一覧（実施必須）
 
 - [ ] Phase 0: コミットが存在し、`git status` がクリーン。
@@ -233,3 +285,4 @@ git log -1 --oneline
 ## 変更履歴
 
 - 2026-02-11: 初版（節目一本化・ステップ終了意思表示・エクスポートから AI 回答削除・全 STEP でレポート）
+- 2026-02-11: Phase 3〜5 実装済み。Phase 3: step_round マイグレーション・型・保存時セット。Phase 4: consulting_step_reports テーブル・complete-step でレポート生成・GET reports API。Phase 5: ExportDialog をステップレポートのみに変更・sessionId 渡し。Phase 6 は任意のため未実装。**事前にマイグレーション 2 本を実行すること**: `supabase/20260211_add_step_round_to_consulting_messages.sql`, `supabase/20260211_create_consulting_step_reports.sql`

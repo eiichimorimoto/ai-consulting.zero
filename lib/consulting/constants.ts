@@ -12,6 +12,18 @@
 export const MAX_OPEN_TABS = 5;
 
 /**
+ * STEP（step_round）1〜5 の表示タイトル。ステップ終了レポートのタイトル等で使用。
+ * start/page の steps と一致させる。
+ */
+export const STEP_TITLES: readonly [string, string, string, string, string] = [
+  '課題のヒアリング',
+  '現状分析',
+  '解決策の提案',
+  '実行計画の策定',
+  'レポート作成',
+];
+
+/**
  * カテゴリラベルのリスト（API ルートで使用）
  * 
  * 初回メッセージの category-buttons 復元用

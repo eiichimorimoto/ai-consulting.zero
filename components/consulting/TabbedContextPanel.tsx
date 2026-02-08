@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { RIGHT_PANEL } from "@/lib/consulting-ui-tokens";
-import { TrendingUp, Lightbulb, FileText, Upload, Search, BarChart3, LayoutDashboard } from "lucide-react";
+import { TrendingUp, Lightbulb, FileText, Upload, Search, BarChart3, LayoutDashboard, Pin, MessageSquare } from "lucide-react";
 import { FilesTab } from "./FilesTab";
 import { BudgetTab } from "./BudgetTab";
 import { SearchTab } from "./SearchTab";
@@ -18,6 +19,12 @@ interface KPI {
   trend: "up" | "down" | "neutral";
 }
 
+/** ピン留めしたAI回答（右パネル一覧・チャットで見る用） */
+export interface PinnedMessageItem {
+  id: number;
+  content: string;
+}
+
 interface TabbedContextPanelProps {
   currentStep: number;
   sessionName: string;
@@ -26,9 +33,18 @@ interface TabbedContextPanelProps {
   /** 新規登録者時: インサイトはダッシュボードから表示を促す */
   showDashboardPrompt?: boolean;
   attachedFiles?: File[];
+  /** ピン留めしたAI回答一覧。クリックでチャットの該当メッセージにスクロール */
+  pinnedMessages?: PinnedMessageItem[];
+  onScrollToMessage?: (messageId: number) => void;
 }
 
-export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToChat, showDashboardPrompt, attachedFiles = [] }: TabbedContextPanelProps) {
+/** 本文の先頭をタイトル用に短くする（改行・Markdown除去） */
+function toTitle(content: string, maxLen = 48): string {
+  const one = content.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/#+\s*/g, "").split(/\n/)[0]?.trim() ?? "";
+  return one.length > maxLen ? one.slice(0, maxLen) + "…" : one;
+}
+
+export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToChat, showDashboardPrompt, attachedFiles = [], pinnedMessages = [], onScrollToMessage }: TabbedContextPanelProps) {
   const [activeTab, setActiveTab] = useState("insights");
 
   return (
@@ -70,6 +86,39 @@ export function TabbedContextPanel({ currentStep, sessionName, kpis, onInsertToC
         <TabsContent value="insights" className="flex-1 overflow-y-auto m-0 bg-white">
           <div className="p-6">
             <h3 className="text-sm font-bold text-gray-900 mb-1">インサイト</h3>
+
+            {/* ピン留めしたAI回答一覧（コンパクト表示） */}
+            {pinnedMessages.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-[11px] font-semibold text-gray-600 mb-1.5 flex items-center gap-1">
+                  <Pin className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                  ピン留め（{pinnedMessages.length}）
+                </h4>
+                <ul className="space-y-1">
+                  {pinnedMessages.map((msg) => (
+                    <li key={msg.id}>
+                      <div className="rounded border border-amber-100 bg-amber-50/40 px-2 py-1.5">
+                        <p className="text-[11px] text-gray-600 line-clamp-1 mb-1" title={msg.content}>
+                          {toTitle(msg.content)}
+                        </p>
+                        {onScrollToMessage && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 min-h-0 px-1.5 text-[11px] text-amber-700 hover:bg-amber-100 border-0"
+                            onClick={() => onScrollToMessage(msg.id)}
+                          >
+                            <MessageSquare className="w-2.5 h-2.5 mr-1 flex-shrink-0" />
+                            チャットで見る
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {showDashboardPrompt ? (
               <div className="space-y-4 mt-4">
                 <p className="text-xs text-gray-600 leading-relaxed">

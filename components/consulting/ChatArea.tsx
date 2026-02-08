@@ -1,11 +1,11 @@
 'use client';
 
-import type { SessionData, CategoryData } from "@/types/consulting";
+import type { SessionData, CategoryData, Message } from "@/types/consulting";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, Loader2, User, Volume2, VolumeX, FileCheck } from "lucide-react";
+import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, Loader2, User, Volume2, VolumeX, Pin, Download } from "lucide-react";
 import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useRef } from 'react';
@@ -21,6 +21,12 @@ export interface ChatAreaProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   totalMessages?: number;
+  /** ピン留めしたメッセージID（親で管理し、右パネル一覧と同期） */
+  pinnedMessageIds?: Set<number>;
+  onTogglePin?: (messageId: number) => void;
+  /** 右パネル「チャットで見る」で指定されたメッセージにスクロール */
+  scrollToMessageId?: number | null;
+  onScrollToMessageDone?: () => void;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -43,7 +49,11 @@ export default function ChatArea({
   hasMoreMessages = false,
   isLoadingMore = false,
   onLoadMore,
-  totalMessages = 0
+  totalMessages = 0,
+  pinnedMessageIds = new Set<number>(),
+  onTogglePin,
+  scrollToMessageId = null,
+  onScrollToMessageDone,
 }: ChatAreaProps) {
   const [profile, setProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const supabase = createClient();
@@ -76,6 +86,33 @@ export default function ChatArea({
   useEffect(() => {
     return () => { window.speechSynthesis?.cancel(); };
   }, []);
+
+  // ピン留めのトグル（親から渡されていれば使用）
+  const handleTogglePin = (messageId: number) => {
+    onTogglePin?.(messageId);
+  };
+
+  // 右パネル「チャットで見る」で指定されたメッセージにスクロール
+  useEffect(() => {
+    if (scrollToMessageId == null || !containerRef.current || !onScrollToMessageDone) return;
+    const el = containerRef.current.querySelector(`[data-message-id="${scrollToMessageId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    onScrollToMessageDone();
+  }, [scrollToMessageId, onScrollToMessageDone]);
+
+  // AI回答をテキストファイルでダウンロード
+  const handleDownloadMessage = (message: Message) => {
+    const plain = message.content.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/#+\s*/g, "").trim();
+    const blob = new Blob([plain], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ai-answer-${message.id}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // プロフィール情報を取得
   useEffect(() => {
@@ -196,12 +233,19 @@ export default function ChatArea({
           {(currentSession?.messages ?? []).map((message) => (
             <div
               key={message.id}
+              data-message-id={message.id}
               className={`flex gap-3 ${message.type === "user" ? "justify-end" : "justify-start"}`}
             >
               {/* AIアイコン */}
               {message.type === "ai" && (
-                <div className="w-10 h-10 rounded-full bg-teal-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                  <span className="text-white font-bold">AI</span>
+                <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden border border-slate-200 bg-slate-100">
+                  <Image
+                    src="/humanoid-ai-robot-with-blue-glowing-elements-havin.jpg"
+                    alt="AI"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
 
@@ -213,33 +257,48 @@ export default function ChatArea({
                     } ${message.type === "ai" ? "relative" : ""}`}
                 >
                   {message.type === "ai" && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={() => handleSpeak(message.id, message.content)}
-                      title={speakingMessageId === message.id ? "読み上げを停止" : "音声で読み上げる"}
-                    >
-                      {speakingMessageId === message.id ? (
-                        <VolumeX className="h-3.5 w-3.5 animate-pulse" />
-                      ) : (
-                        <Volume2 className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    <div className="absolute top-2 right-2 flex items-center gap-0.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleTogglePin(message.id)}
+                        title={pinnedMessageIds.has(message.id) ? "ピン留めを外す" : "ピン留め"}
+                      >
+                        <Pin className={`h-3.5 w-3.5 ${pinnedMessageIds.has(message.id) ? "fill-amber-500 text-amber-500" : ""}`} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleDownloadMessage(message)}
+                        title="テキストでダウンロード"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleSpeak(String(message.id), message.content)}
+                        title={speakingMessageId === String(message.id) ? "読み上げを停止" : "音声で読み上げる"}
+                      >
+                        {speakingMessageId === String(message.id) ? (
+                          <VolumeX className="h-3.5 w-3.5 animate-pulse" />
+                        ) : (
+                          <Volume2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
                   )}
                   {message.type === "ai" ? (
-                    <div className="space-y-2 pr-8">
-                      {/^「.+」のレポートを作成しました。\.?$/.test((message.content || "").trim()) ? (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <FileCheck className="h-3.5 w-3.5 shrink-0 text-green-600" />
-                          <span>レポートを作成しました</span>
-                        </div>
-                      ) : (
+                    <div className="space-y-2 pr-24">
                       <div className="text-sm leading-relaxed">
                         {formatAIMessage(message.content)}
                       </div>
-                      )}
                     </div>
                   ) : (
                     <p className="text-sm leading-relaxed">{message.content}</p>
@@ -383,8 +442,14 @@ export default function ChatArea({
           {/* AIが考えている時の表示（チャット内） */}
           {isLoading && (
             <div className="flex gap-3 justify-start animate-fade-in">
-              <div className="w-10 h-10 rounded-full bg-teal-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                <span className="text-white font-bold">AI</span>
+              <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden border border-slate-200 bg-slate-100">
+                <Image
+                  src="/humanoid-ai-robot-with-blue-glowing-elements-havin.jpg"
+                  alt="AI"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="max-w-[80%]">
                 <div className="rounded-lg p-6 bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-300 shadow-lg">

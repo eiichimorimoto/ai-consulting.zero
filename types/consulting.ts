@@ -15,7 +15,8 @@ export type ConsultingStep = {
   id: number;
   title: string;
   icon: ReactNode;
-  status: "completed" | "active" | "pending";
+  /** completed=完了, active=進行中, paused=一時中止（戻ったことで離れたステップ）, pending=未着手 */
+  status: "completed" | "active" | "pending" | "paused";
   summary?: string[];
 };
 
@@ -88,6 +89,8 @@ export type ApiSession = {
   status: string | null;
   current_round: number | null;
   max_rounds: number | null;
+  /** 一度でも進んだ最大 round（0始まり）。ステップ戻り時の「一時中止」表示に使用 */
+  max_reached_round?: number | null;
   created_at: string | null;
   updated_at: string | null;
   completed_at: string | null;

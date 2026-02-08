@@ -1,21 +1,30 @@
 /**
  * エクスポートダイアログコンポーネント
- * セクション選択 → プレビュー → ダウンロードの統合UI
+ * ステップ終了で作成したレポートのみを選択し、PDF/PPT/MD でエクスポートする。
  */
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, FileText, CheckSquare, Square, Download, Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { getAvailableSections, buildReportSections, getDifyContentItems, buildReportSectionsFromDifyItems, buildReportMarkdown } from '@/lib/report/builder';
 import ReportPreview from './ReportPreview';
-import type { Message } from '@/types/consulting';
-import type { SectionId, AvailableSection, ReportSection, DifyContentItem } from '@/lib/report/types';
+import { buildReportMarkdown } from '@/lib/report/builder';
+import type { ReportSection } from '@/lib/report/types';
+
+export interface StepReportItem {
+  id: string;
+  session_id: string;
+  step_round: number;
+  title: string;
+  content: string;
+  content_markdown: string | null;
+  created_at: string;
+}
 
 interface ExportDialogProps {
-  messages: Message[];
+  sessionId: string;
   sessionName: string;
   companyName?: string;
   userName?: string;
@@ -24,26 +33,18 @@ interface ExportDialogProps {
 
 type ExportFormat = 'pdf' | 'ppt' | 'md';
 
-/** セクションIDから表示用の「場所」ラベルを返す */
-function getSectionLocation(id: SectionId): string {
-  if (id === 'chat') return 'チャット';
-  return 'AI回答';
-}
-
 export default function ExportDialog({
-  messages,
+  sessionId,
   sessionName,
   companyName,
   userName,
   onClose,
 }: ExportDialogProps) {
-  // State
-  const [selectedSections, setSelectedSections] = useState<Set<SectionId>>(new Set());
-  const [availableSections, setAvailableSections] = useState<AvailableSection[]>([]);
-  const [difyItems, setDifyItems] = useState<DifyContentItem[]>([]);
-  const [selectedDifyIds, setSelectedDifyIds] = useState<Set<string>>(new Set());
+  const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
+  const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [loading, setLoading] = useState(true);
   const exportMetadata = {
     title: 'AI経営コンサルティングレポート',
     sessionName,
@@ -59,71 +60,65 @@ export default function ExportDialog({
   const [showPreview, setShowPreview] = useState(false);
   const [previewSections, setPreviewSections] = useState<ReportSection[]>([]);
 
-  const hasSelection = selectedSections.size > 0 || selectedDifyIds.size > 0;
+  const hasSelection = selectedReportIds.size > 0;
 
-  // 利用可能なセクションとAI回答を取得。会話は初期チェックなし、AIの回答は一番新しい1件のみデフォルト選択
   useEffect(() => {
-    const sections = getAvailableSections(messages);
-    setAvailableSections(sections);
-    const items = getDifyContentItems(messages);
-    setDifyItems(items);
-    const newestId = items.length > 0 ? items[items.length - 1].id : null;
-    setSelectedDifyIds(newestId ? new Set([newestId]) : new Set());
-  }, [messages]);
-
-  // AIの回答を新しい順で表示用にソート
-  const sortedDifyItems = useMemo(
-    () => [...difyItems].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
-    [difyItems]
-  );
-
-  // セクション選択トグル
-  const toggleSection = (sectionId: SectionId) => {
-    const newSet = new Set(selectedSections);
-    if (newSet.has(sectionId)) {
-      newSet.delete(sectionId);
-    } else {
-      newSet.add(sectionId);
+    let cancelled = false;
+    async function fetchReports() {
+      try {
+        const res = await fetch(`/api/consulting/sessions/${sessionId}/reports`);
+        if (!res.ok) throw new Error('Failed to fetch reports');
+        const { reports } = await res.json();
+        if (!cancelled) {
+          setStepReports(reports ?? []);
+          if ((reports ?? []).length > 0) {
+            setSelectedReportIds(new Set((reports as StepReportItem[]).map((r) => r.id)));
+          }
+        }
+      } catch (e) {
+        if (!cancelled) toast.error('レポート一覧の取得に失敗しました');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-    setSelectedSections(newSet);
-  };
+    fetchReports();
+    return () => { cancelled = true; };
+  }, [sessionId]);
 
-  // 全選択/全解除（会話セクションのみ）
-  const toggleAll = () => {
-    if (selectedSections.size === availableSections.filter(s => s.available).length) {
-      setSelectedSections(new Set());
-    } else {
-      const allIds = availableSections.filter(s => s.available).map(s => s.id);
-      setSelectedSections(new Set(allIds as SectionId[]));
-    }
-  };
-
-  const toggleDifyItem = (id: string) => {
-    const next = new Set(selectedDifyIds);
+  const toggleReport = (id: string) => {
+    const next = new Set(selectedReportIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    setSelectedDifyIds(next);
+    setSelectedReportIds(next);
   };
 
-  /** 選択内容からレポートセクションを構築（主役: AIのレポート内容・降順、付録: 会話セクション） */
+  const toggleAllReports = () => {
+    if (selectedReportIds.size === stepReports.length) {
+      setSelectedReportIds(new Set());
+    } else {
+      setSelectedReportIds(new Set(stepReports.map((r) => r.id)));
+    }
+  };
+
+  /** 選択されたステップレポートから ReportSection[] を構築 */
   const buildSectionsForExport = (): ReportSection[] => {
-    const selectedDify = difyItems
-      .filter(i => selectedDifyIds.has(i.id))
-      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-    const fromDify = selectedDify.length > 0 ? buildReportSectionsFromDifyItems(selectedDify) : [];
-    const fromSections = selectedSections.size > 0
-      ? buildReportSections(messages, Array.from(selectedSections))
-      : [];
-    return [...fromDify, ...fromSections];
+    return stepReports
+      .filter((r) => selectedReportIds.has(r.id))
+      .sort((a, b) => a.step_round - b.step_round)
+      .map((r) => ({
+        id: `step-${r.step_round}`,
+        type: 'text' as const,
+        title: r.title,
+        content: r.content_markdown ?? r.content,
+        metadata: { createdAt: r.created_at },
+      }));
   };
 
-  // プレビュー表示
   const handlePreview = () => {
     if (!hasSelection) {
-      toast.error('エクスポートする内容を選択してください');
+      toast.error('エクスポートするレポートを選択してください');
       return;
     }
-
     try {
       const sections = buildSectionsForExport();
       setPreviewSections(sections);
@@ -135,10 +130,9 @@ export default function ExportDialog({
     }
   };
 
-  // ダウンロード実行
   const handleDownload = async () => {
     if (!hasSelection) {
-      toast.error('エクスポートする内容を選択してください');
+      toast.error('エクスポートするレポートを選択してください');
       return;
     }
 
@@ -164,13 +158,9 @@ export default function ExportDialog({
     }
   };
 
-  // Markdownダウンロード（クライアント側で生成）
   const downloadMarkdown = () => {
-    const selectedDify = difyItems.filter(i => selectedDifyIds.has(i.id));
-    const fromSections = selectedSections.size > 0
-      ? buildReportSections(messages, Array.from(selectedSections))
-      : [];
-    const md = buildReportMarkdown(selectedDify, fromSections, exportMetadata);
+    const sections = buildSectionsForExport();
+    const md = buildReportMarkdown([], sections, exportMetadata);
     const blob = new Blob([md], { type: 'text/markdown; charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -312,7 +302,7 @@ export default function ExportDialog({
               📊 レポートのエクスポート
             </h2>
             <p className="text-sm text-gray-500">
-              会話内容をPDFまたはPowerPointでダウンロードできます。含めるセクションを選択してください。
+              ステップ終了時に作成したレポートを選択し、PDF・PowerPoint・Markdownでダウンロードできます。
             </p>
             <p className="text-xs text-gray-400 mt-1">
               PDFは用紙の向きを選択できます。PPTはA4横で出力されます。プレビューは枠に合わせて縮小表示されます。
@@ -325,6 +315,12 @@ export default function ExportDialog({
 
         {/* コンテンツ */}
         <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : (
+          <>
           {/* フォーマット選択 */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -383,30 +379,43 @@ export default function ExportDialog({
             )}
           </div>
 
-          {/* AIの回答（メイン。新しい順・作成時間表示・デフォルトで全選択） */}
-          {difyItems.length > 0 && (
-            <div className="mb-6">
-              <label className="block text-base font-semibold text-gray-800 mb-2">
-                AIの回答（レポート形式で成型してPDFに）
+          {/* ステップレポート一覧 */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-base font-semibold text-gray-800">
+                ステップレポート
               </label>
-              <p className="text-xs text-gray-500 mb-3">
-                個別に選択すると、それぞれをレポート体裁で1セクションとしてPDFに含めます。新しい順で表示しています。
+              {stepReports.length > 0 && (
+                <Button
+                  onClick={toggleAllReports}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-indigo-600 hover:text-indigo-700"
+                >
+                  {selectedReportIds.size === stepReports.length ? '全解除' : '全選択'}
+                </Button>
+              )}
+            </div>
+            {stepReports.length === 0 ? (
+              <p className="text-sm text-gray-500 py-4">
+                まだステップレポートがありません。各ステップを「このステップを終了」で完了するとレポートが作成されます。
               </p>
+            ) : (
               <div className="space-y-2 max-h-56 overflow-y-auto">
-                {sortedDifyItems.map(item => (
+                {stepReports.map((report) => (
                   <button
-                    key={item.id}
-                    onClick={() => toggleDifyItem(item.id)}
+                    key={report.id}
+                    onClick={() => toggleReport(report.id)}
                     type="button"
                     className={`
                       w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all
-                      ${selectedDifyIds.has(item.id)
+                      ${selectedReportIds.has(report.id)
                         ? 'border-emerald-600 bg-emerald-50'
                         : 'border-gray-200 hover:border-gray-300 bg-white'}
                     `}
                   >
                     <div className="flex-shrink-0 mt-0.5">
-                      {selectedDifyIds.has(item.id) ? (
+                      {selectedReportIds.has(report.id) ? (
                         <CheckSquare className="w-4 h-4 text-emerald-600" />
                       ) : (
                         <Square className="w-4 h-4 text-gray-400" />
@@ -414,113 +423,32 @@ export default function ExportDialog({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 text-sm truncate">
-                        {item.title}
+                        {report.title}
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                        <span>
-                          {item.type === 'analysis' && '分析'}
-                          {item.type === 'recommendation' && '提言'}
-                          {item.type === 'summary' && 'サマリー'}
-                          {item.type === 'other' && 'その他'}
-                        </span>
-                        {item.createdAt && (
-                          <span>
-                            {new Date(item.createdAt).toLocaleString('ja-JP', {
-                              year: 'numeric',
-                              month: 'numeric',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        )}
-                        <span className="truncate">· {item.body.slice(0, 40)}…</span>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {new Date(report.created_at).toLocaleString('ja-JP', {
+                          year: 'numeric',
+                          month: 'numeric',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* 会話・セクション（付録。固定内容・2列でコンパクトに） */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-medium text-gray-500">
-                会話・セクション（付録）
-              </label>
-              <Button
-                onClick={toggleAll}
-                variant="ghost"
-                size="sm"
-                className="text-xs text-indigo-600 hover:text-indigo-700 h-6 px-2"
-              >
-                {selectedSections.size === availableSections.filter(s => s.available).length
-                  ? '全解除'
-                  : '全選択'}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {availableSections.map(section => (
-                <button
-                  key={section.id}
-                  onClick={() => section.available && toggleSection(section.id)}
-                  disabled={!section.available}
-                  className={`
-                    flex items-start gap-2 p-2 rounded-md border text-left transition-all
-                    ${
-                      section.available
-                        ? selectedSections.has(section.id)
-                          ? 'border-indigo-500 bg-indigo-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                        : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
-                    }
-                  `}
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    {selectedSections.has(section.id) ? (
-                      <CheckSquare className="w-4 h-4 text-indigo-600" />
-                    ) : (
-                      <Square className="w-4 h-4 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-800 text-xs leading-tight">
-                      {section.label}
-                      {section.messageCount !== undefined && (
-                        <span className="ml-1 font-normal text-gray-500">({section.messageCount})</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {getSectionLocation(section.id)}
-                    </div>
-                    {!section.available && (
-                      <div className="text-xs text-amber-600 mt-0.5">
-                        ⚠ データなし
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
-          {/* 選択サマリー */}
           {hasSelection && (
             <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
               <p className="text-sm text-indigo-700">
-                📌
-                {selectedDifyIds.size > 0 && selectedSections.size > 0 ? (
-                  <> レポートの主役: AI回答 <strong>{selectedDifyIds.size}件</strong> · 付録: 会話セクション <strong>{selectedSections.size}個</strong></>
-                ) : selectedDifyIds.size > 0 ? (
-                  <> AI回答 <strong>{selectedDifyIds.size}件</strong></>
-                ) : (
-                  <> 会話セクション <strong>{selectedSections.size}個</strong></>
-                )}
-                {' '}を選択中
+                📌 ステップレポート <strong>{selectedReportIds.size}件</strong> を選択中
               </p>
             </div>
+          )}
+          </>
           )}
         </div>
 

@@ -125,6 +125,7 @@ export interface Database {
           category: string | null
           max_rounds: number | null
           current_round: number | null
+          max_reached_round: number | null
           completed_at: string | null
           conversation_id: string | null
           pending_report_query: string | null
@@ -146,6 +147,7 @@ export interface Database {
           category?: string | null
           max_rounds?: number | null
           current_round?: number | null
+          max_reached_round?: number | null
           completed_at?: string | null
           conversation_id?: string | null
           pending_report_query?: string | null
@@ -167,6 +169,7 @@ export interface Database {
           category?: string | null
           max_rounds?: number | null
           current_round?: number | null
+          max_reached_round?: number | null
           completed_at?: string | null
           conversation_id?: string | null
           pending_report_query?: string | null
@@ -182,6 +185,7 @@ export interface Database {
           tokens_used: number | null
           processing_time_ms: number | null
           created_at: string
+          step_round: number
         }
         Insert: {
           id?: string
@@ -192,6 +196,7 @@ export interface Database {
           tokens_used?: number | null
           processing_time_ms?: number | null
           created_at?: string
+          step_round?: number
         }
         Update: {
           id?: string
@@ -201,6 +206,36 @@ export interface Database {
           message_order?: number
           tokens_used?: number | null
           processing_time_ms?: number | null
+          created_at?: string
+          step_round?: number
+        }
+      }
+      consulting_step_reports: {
+        Row: {
+          id: string
+          session_id: string
+          step_round: number
+          title: string
+          content: string
+          content_markdown: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          step_round: number
+          title: string
+          content: string
+          content_markdown?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          step_round?: number
+          title?: string
+          content?: string
+          content_markdown?: string | null
           created_at?: string
         }
       }
