@@ -4,6 +4,7 @@
  */
 
 import type { Message } from '@/types/consulting';
+import { isEchoReplyContent, isReportCreatedContent } from '@/lib/consulting/report-request';
 import type {
   ReportSection,
   SectionId,
@@ -21,21 +22,36 @@ function isAssistantMessage(m: Message): boolean {
 
 /**
  * Difyが提示したコンテンツ一覧を取得（個別エクスポート用）
+ * レポート対象は「依頼された1件」に限定：「〇〇のレポートを作成しました。」の直後の本文のみを含める
  */
 export function getDifyContentItems(messages: Message[]): DifyContentItem[] {
   const items: DifyContentItem[] = [];
   messages.forEach((m, index) => {
     if (!isAssistantMessage(m)) return;
     const content = m.content.trim();
+    if (isEchoReplyContent(content)) return;
+    if (isReportCreatedContent(content)) return;
+    const prev = index > 0 ? messages[index - 1] : null;
+    const prevIsReportCreated =
+      prev && prev.type === 'ai' && prev.content && isReportCreatedContent(prev.content.trim());
+    if (!prevIsReportCreated) return;
     const title = deriveTitle(content);
     const itemType = deriveContentType(content);
+    const createdAt =
+      m.timestamp instanceof Date
+        ? m.timestamp.toISOString()
+        : typeof m.timestamp === 'string'
+          ? m.timestamp
+          : m.timestamp
+            ? new Date(m.timestamp as unknown as number | string).toISOString()
+            : undefined;
     items.push({
       id: `dify-${index}`,
       type: itemType,
       title,
       body: content,
       sourceMessageIndex: index,
-      createdAt: m.timestamp instanceof Date ? m.timestamp.toISOString() : undefined,
+      createdAt,
     });
   });
   return items;
@@ -391,21 +407,42 @@ export function stripReportDisclaimer(body: string): string {
   return text.trim();
 }
 
+/** 番号付きリストの1項目（本文とネストした箇条書き） */
+type OrderedListItem = { text: string; nested: string[] };
+
 /**
  * 簡易Markdownをレポート用HTMLに変換
+ * 番号付き（1. 2. …）は <ol>、記号（- * •）は <ul>。Difyが全て「1.」で出す場合は同じ<ol>内で連番になるよう、
+ * 「1.」の直下の「•」はその項目のネストとして扱う。
  */
 export function markdownToReportHtml(text: string): string {
   const lines = text.split('\n');
   const blocks: string[] = [];
-  let inList = false;
   let listItems: string[] = [];
+  let orderedItems: OrderedListItem[] = [];
+  let listOrdered: boolean | null = null;
 
   const flushList = () => {
-    if (listItems.length > 0) {
-      blocks.push('<ul class="report-list">' + listItems.map(li => `<li>${escapeHtml(li)}</li>`).join('') + '</ul>');
+    if (listOrdered === true && orderedItems.length > 0) {
+      const html = orderedItems
+        .map(
+          (item) =>
+            `<li>${inlineMarkdownToHtml(item.text)}` +
+            (item.nested.length > 0
+              ? `<ul class="report-list">${item.nested.map((n) => `<li>${inlineMarkdownToHtml(n)}</li>`).join('')}</ul>`
+              : '') +
+            '</li>'
+        )
+        .join('');
+      blocks.push(`<ol class="report-list">${html}</ol>`);
+      orderedItems = [];
+    } else if (listOrdered === false && listItems.length > 0) {
+      blocks.push(
+        `<ul class="report-list">` + listItems.map((li) => `<li>${inlineMarkdownToHtml(li)}</li>`).join('') + `</ul>`
+      );
       listItems = [];
     }
-    inList = false;
+    listOrdered = null;
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -423,15 +460,25 @@ export function markdownToReportHtml(text: string): string {
       blocks.push(`<${tag} class="report-heading">${escapeHtml(title)}</${tag}>`);
       continue;
     }
-    if (/^[-*•]\s/.test(trimmed) || /^\d+\.\s/.test(trimmed)) {
-      inList = true;
-      const item = trimmed.replace(/^[-*•]\s*/, '').replace(/^\d+\.\s*/, '');
-      listItems.push(item);
+    if (/^\d+\.\s/.test(trimmed)) {
+      if (listOrdered === false) flushList();
+      listOrdered = true;
+      orderedItems.push({ text: trimmed.replace(/^\d+\.\s*/, ''), nested: [] });
+      continue;
+    }
+    if (/^[-*•]\s/.test(trimmed)) {
+      const bulletText = trimmed.replace(/^[-*•]\s*/, '');
+      if (listOrdered === true && orderedItems.length > 0) {
+        orderedItems[orderedItems.length - 1].nested.push(bulletText);
+        continue;
+      }
+      if (listOrdered !== true) flushList();
+      listOrdered = false;
+      listItems.push(bulletText);
       continue;
     }
     flushList();
-    const safe = escapeHtml(trimmed).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    blocks.push(`<p class="report-para">${safe}</p>`);
+    blocks.push(`<p class="report-para">${inlineMarkdownToHtml(trimmed)}</p>`);
   }
   flushList();
   return blocks.join('\n');
@@ -447,18 +494,122 @@ function escapeHtml(s: string): string {
 }
 
 /**
+ * インラインMarkdown（**太字**）をHTMLに変換。内部はエスケープする。
+ */
+function inlineMarkdownToHtml(s: string): string {
+  const re = /\*\*(.+?)\*\*/g;
+  let result = '';
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s)) !== null) {
+    result += escapeHtml(s.slice(last, m.index)) + '<strong>' + escapeHtml(m[1]) + '</strong>';
+    last = re.lastIndex;
+  }
+  result += escapeHtml(s.slice(last));
+  return result;
+}
+
+/**
  * 選択したDifyコンテンツからレポートセクションを構築（レポート形式HTML）
  */
 export function buildReportSectionsFromDifyItems(items: DifyContentItem[]): ReportSection[] {
   return items.map(item => {
     const body = stripReportDisclaimer(item.body);
     const title = body ? deriveTitle(body) : item.title;
+    let bodyForHtml = body || item.body;
+    // セクションタイトルと重複する先頭の # 見出し行を除去（タイトル二重表示を防ぐ）
+    const firstLine = bodyForHtml.split('\n')[0]?.trim() ?? '';
+    if (/^#+\s+/.test(firstLine)) {
+      const firstLineTitle = firstLine.replace(/^#+\s*/, '').trim();
+      const titleNorm = title.trim().slice(0, 60);
+      if (firstLineTitle === titleNorm || firstLineTitle.startsWith(titleNorm) || titleNorm.startsWith(firstLineTitle)) {
+        const rest = bodyForHtml.slice(bodyForHtml.indexOf('\n') + 1).trim();
+        if (rest) bodyForHtml = rest;
+      }
+    }
     return {
       id: item.id,
       type: 'html' as const,
       title,
-      content: markdownToReportHtml(body || item.body),
+      content: markdownToReportHtml(bodyForHtml),
       metadata: item.createdAt ? { createdAt: item.createdAt } : undefined,
     };
   });
+}
+
+/** レポート用メタデータ（Markdown出力ヘッダー） */
+export interface ReportMarkdownMetadata {
+  sessionName: string;
+  companyName?: string;
+  userName?: string;
+  createdAt?: string;
+}
+
+/**
+ * 1つのレポートセクションをMarkdown文字列に変換（chat/table/list/text 用。htmlは呼び出し元でDifyのbodyを使う）
+ */
+function sectionToMarkdown(section: ReportSection): string {
+  const title = `## ${section.title}\n\n`;
+  switch (section.type) {
+    case 'chat': {
+      const chat = section.content as ChatData;
+      const lines = chat.messages.map(m =>
+        `**${m.role === 'user' ? 'ユーザー' : 'AI'}**\n\n${m.content}`
+      );
+      return title + lines.join('\n\n---\n\n') + '\n\n';
+    }
+    case 'table': {
+      const table = section.content as TableData;
+      const header = '| ' + table.headers.join(' | ') + ' |\n';
+      const sep = '| ' + table.headers.map(() => '---').join(' | ') + ' |\n';
+      const rows = table.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+      return title + header + sep + rows + '\n\n';
+    }
+    case 'list': {
+      const list = section.content as ListData;
+      const items = list.items.map(i => `- ${i}`).join('\n');
+      return title + items + '\n\n';
+    }
+    case 'text':
+      return title + (section.content as string) + '\n\n';
+    case 'html':
+      return title + '(HTMLセクションはMarkdownでは表示されません。PDF/PPTをご利用ください。)\n\n';
+    default:
+      return title;
+  }
+}
+
+/**
+ * レポート全体をMarkdown文字列で構築（Difyのbodyをそのまま利用し、付録セクションはMarkdown化）
+ */
+export function buildReportMarkdown(
+  difyItems: DifyContentItem[],
+  otherSections: ReportSection[],
+  metadata: ReportMarkdownMetadata
+): string {
+  const lines: string[] = [];
+  lines.push('# AI経営コンサルティングレポート\n');
+  lines.push(`**${metadata.sessionName}**\n`);
+  if (metadata.companyName) lines.push(`会社名: ${metadata.companyName}\n`);
+  if (metadata.userName) lines.push(`担当: ${metadata.userName}\n`);
+  if (metadata.createdAt) lines.push(`作成日: ${metadata.createdAt}\n`);
+  lines.push('\n---\n\n');
+
+  for (const item of difyItems) {
+    const body = stripReportDisclaimer(item.body);
+    const title = body ? deriveTitle(body) : item.title;
+    const createdAt = item.createdAt
+      ? new Date(item.createdAt).toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+    lines.push(`## ${title}\n\n`);
+    if (createdAt) lines.push(`作成日時: ${createdAt}\n\n`);
+    lines.push(body || item.body);
+    lines.push('\n\n');
+  }
+
+  for (const section of otherSections) {
+    lines.push(sectionToMarkdown(section));
+  }
+
+  return lines.join('');
 }

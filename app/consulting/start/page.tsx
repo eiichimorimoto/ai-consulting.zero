@@ -54,6 +54,7 @@ import ChatArea from "@/components/consulting/ChatArea";
 import SessionDialogs from "@/components/consulting/SessionDialogs";
 import MessageInputArea from "@/components/consulting/MessageInputArea";
 import ExportDialog from "@/components/consulting/ExportDialog";
+import { getDifyContentItems } from "@/lib/report/builder";
 
 /** 既存顧客用: APIのセッション一覧をSessionDataに変換。直近をタブに、全件を履歴に */
 function mapApiSessionsToSessionData(apiSessions: ApiSession[]): SessionData[] {
@@ -492,12 +493,15 @@ export default function ConsultingStartPage() {
             >
               <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="flex-1 text-left">レポートをエクスポート</span>
-              {session.currentSession && session.currentSession.messages.length > 0 && (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {session.currentSession.messages.length}件
-                </span>
-              )}
+              {session.currentSession && (() => {
+                const aiCount = getDifyContentItems(session.currentSession.messages).length;
+                return aiCount > 0 ? (
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {aiCount}件
+                  </span>
+                ) : null;
+              })()}
             </Button>
             <Button
               variant="destructive"

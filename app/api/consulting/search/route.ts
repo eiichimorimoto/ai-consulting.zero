@@ -8,7 +8,7 @@
  * 
  * @endpoint POST /api/consulting/search
  * @param {string} query - 検索クエリ
- * @returns {SearchResult[]} 検索結果（最大3件）
+ * @returns {SearchResult[]} 検索結果（最大10件）
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 2. Brave Search実行
-    const results = await braveWebSearch(query, 3)
+    // 2. Brave Search実行（最大10件）
+    const results = await braveWebSearch(query, 10)
     
     if (results.length === 0) {
       return NextResponse.json({

@@ -101,6 +101,9 @@ export interface AvailableSection {
 
 /**
  * PDF生成オプション
+ * orientation: 用紙の向き（未指定時は landscape）
+ * authorLabel: 文責表示（未指定時は「AI参謀 - AI経営コンサルティング」）
+ * baseUrl: ヘッダー用ロゴ等の絶対URL（API側で request.nextUrl.origin を渡す）
  */
 export interface PDFGenerateOptions {
   sections: ReportSection[];
@@ -111,6 +114,9 @@ export interface PDFGenerateOptions {
     companyName?: string;
     createdAt: string;
   };
+  orientation?: 'portrait' | 'landscape';
+  authorLabel?: string;
+  baseUrl?: string;
 }
 
 /**

@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
   try {
     // リクエストボディを取得
     const body = await request.json();
-    const { sections, metadata } = body as PDFGenerateOptions;
+    const {
+      sections,
+      metadata,
+      orientation,
+      authorLabel,
+    } = body as PDFGenerateOptions & { orientation?: 'portrait' | 'landscape'; authorLabel?: string };
 
     // バリデーション
     if (!sections || sections.length === 0) {
@@ -37,14 +42,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const baseUrl = request.nextUrl.origin;
+
     console.log('📄 PDF生成開始:', {
       sessionName: metadata.sessionName,
       sectionCount: sections.length,
+      orientation: orientation ?? 'landscape',
     });
 
     // PDF生成
     const startTime = Date.now();
-    const result = await generatePDFReport({ sections, metadata });
+    const result = await generatePDFReport({
+      sections,
+      metadata,
+      orientation,
+      authorLabel,
+      baseUrl,
+    });
     const duration = Date.now() - startTime;
 
     console.log('✅ PDF生成完了:', {

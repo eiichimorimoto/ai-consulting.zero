@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, Loader2, User } from "lucide-react";
+import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, Loader2, User, Volume2, VolumeX, FileCheck } from "lucide-react";
 import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useRef } from 'react';
@@ -49,6 +49,33 @@ export default function ChatArea({
   const supabase = createClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const [prevScrollHeight, setPrevScrollHeight] = useState(0);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+
+  // AI回答の音声読み上げ（Web Speech API）
+  const handleSpeak = (messageId: string, content: string) => {
+    if (speakingMessageId === messageId) {
+      window.speechSynthesis?.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+    if (!window.speechSynthesis || !content?.trim()) return;
+    window.speechSynthesis.cancel();
+    const text = content.replace(/#+\s*/g, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\n/g, ' ').trim();
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    utterance.onstart = () => setSpeakingMessageId(messageId);
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    return () => { window.speechSynthesis?.cancel(); };
+  }, []);
 
   // プロフィール情報を取得
   useEffect(() => {
@@ -183,11 +210,36 @@ export default function ChatArea({
                   className={`rounded-lg p-4 ${message.type === "user"
                       ? CHAT.userBubble
                       : CHAT.aiBubble
-                    }`}
+                    } ${message.type === "ai" ? "relative" : ""}`}
                 >
+                  {message.type === "ai" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleSpeak(message.id, message.content)}
+                      title={speakingMessageId === message.id ? "読み上げを停止" : "音声で読み上げる"}
+                    >
+                      {speakingMessageId === message.id ? (
+                        <VolumeX className="h-3.5 w-3.5 animate-pulse" />
+                      ) : (
+                        <Volume2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
                   {message.type === "ai" ? (
-                    <div className="text-sm leading-relaxed">
-                      {formatAIMessage(message.content)}
+                    <div className="space-y-2 pr-8">
+                      {/^「.+」のレポートを作成しました。\.?$/.test((message.content || "").trim()) ? (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <FileCheck className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                          <span>レポートを作成しました</span>
+                        </div>
+                      ) : (
+                      <div className="text-sm leading-relaxed">
+                        {formatAIMessage(message.content)}
+                      </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm leading-relaxed">{message.content}</p>

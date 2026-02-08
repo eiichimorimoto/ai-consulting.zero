@@ -127,6 +127,7 @@ export interface Database {
           current_round: number | null
           completed_at: string | null
           conversation_id: string | null
+          pending_report_query: string | null
         }
         Insert: {
           id?: string
@@ -147,6 +148,7 @@ export interface Database {
           current_round?: number | null
           completed_at?: string | null
           conversation_id?: string | null
+          pending_report_query?: string | null
         }
         Update: {
           id?: string
@@ -167,6 +169,7 @@ export interface Database {
           current_round?: number | null
           completed_at?: string | null
           conversation_id?: string | null
+          pending_report_query?: string | null
         }
       }
       consulting_messages: {

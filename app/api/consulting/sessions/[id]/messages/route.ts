@@ -8,6 +8,30 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { SUBCATEGORY_MAP } from '@/lib/consulting/constants'
 import { CONSULTING_CATEGORIES } from '@/lib/consulting/category-data'
+import {
+  isReportRequest,
+  isConfirmation,
+  buildEchoReply,
+  buildReportCreatedReply,
+  isEchoReplyContent,
+  isReportCreatedContent,
+  extractReportTargetReference,
+  findAssistantMessageByReference,
+  isDiscussionSummaryReportRequest,
+  buildDiscussionSummaryEchoReply,
+  isPendingDiscussionSummary,
+  unwrapPendingDiscussionSummaryQuery,
+  PENDING_DISCUSSION_SUMMARY_PREFIX,
+  extractDiscussionSummaryTheme,
+  isPendingUserTopic,
+  unwrapPendingUserTopic,
+  wrapPendingUserTopic,
+} from '@/lib/consulting/report-request'
+import {
+  collectMessagesByTheme,
+  formatCollectedConversation,
+  getAllSessionMessages,
+} from '@/lib/consulting/conversation-collector'
 
 /**
  * GET /api/consulting/sessions/[id]/messages
@@ -128,17 +152,21 @@ export async function GET(
         }
       }
 
-      // サブカテゴリ選択メッセージの復元（analysis_typeベース）
-      if (msg.role === 'assistant' && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
+      // サブカテゴリは「カテゴリ選択の直後」の1通だけに表示。Dify回答の下には付けない。
+      // 「さらに詳しくお聞かせください。具体的にはどのような課題でしょうか」を含む場合のみ復元
+      const isSubcategoryPrompt =
+        msg.role === 'assistant' &&
+        typeof msg.content === 'string' &&
+        msg.content.includes('さらに詳しくお聞かせください') &&
+        msg.content.includes('どのような課題でしょうか');
+      if (isSubcategoryPrompt && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
         baseMessage.interactive = {
           type: 'subcategory-buttons',
           data: SUBCATEGORY_MAP[msg.analysis_type],
           selectedCategory: msg.analysis_type
         }
       }
-      
-      // 既存データ対応: 内容から推測してinteractiveを復元
-      if (msg.role === 'assistant' && !msg.analysis_type && !baseMessage.interactive) {
+      if (isSubcategoryPrompt && !baseMessage.interactive) {
         const categoryMatch = msg.content.match(/「(.+?)」について/)
         if (categoryMatch && SUBCATEGORY_MAP[categoryMatch[1]]) {
           baseMessage.interactive = {
@@ -301,6 +329,65 @@ export async function POST(
       userMessage = newMessage
     }
 
+    // レポート要求フロー: 復唱 or 確認後にDifyでレポート内容取得
+    const pendingQuery = (session as { pending_report_query?: string | null }).pending_report_query ?? null
+    const isConfirm = isConfirmation(message)
+    const isReportReq = isReportRequest(message)
+    const isDiscussionSummaryReq = isDiscussionSummaryReportRequest(message)
+    const useDiscussionSummaryEcho = !pendingQuery && isDiscussionSummaryReq
+    const useReportEcho = !pendingQuery && isReportReq && !useDiscussionSummaryEcho
+    const useEchoReply = useDiscussionSummaryEcho || useReportEcho
+    // 通常レポート依頼時: 「何々の内容をレポートに」なら会話を遡って何々に該当するAI回答を特定。それ以外は直前一件
+    const assistantMessages = (existingMessages || [])
+      .filter((m: { role: string }) => m.role === 'assistant')
+      .map((m: { content: string }) => ({ content: m.content }))
+    const latestAssistant = existingMessages?.length
+      ? [...existingMessages].reverse().find((m: { role: string }) => m.role === 'assistant')
+      : null
+    const latestAiContent = latestAssistant?.content?.trim() ? (latestAssistant as { content: string }).content : null
+    const reportTargetRef = useReportEcho ? extractReportTargetReference(message) : null
+    const matchedByRef =
+      reportTargetRef && assistantMessages.length > 0
+        ? findAssistantMessageByReference(assistantMessages, reportTargetRef, { titleOnly: true })
+        : null
+    const reportTargetContent = matchedByRef?.content?.trim()
+      ? matchedByRef.content
+      : latestAiContent
+
+    // pending が無い場合の復旧: 直直前のAIが復唱なら、その1つ前のAI回答をレポート対象としてDifyに送る
+    let recoveredReportTarget: string | null = null
+    if (isConfirm && !pendingQuery && (existingMessages?.length ?? 0) >= 2) {
+      const assistants = existingMessages!.filter((m: { role: string }) => m.role === 'assistant')
+      const lastAssistant = assistants[assistants.length - 1] as { content: string } | undefined
+      if (lastAssistant?.content && isEchoReplyContent(lastAssistant.content.trim())) {
+        const prevAssistant = assistants[assistants.length - 2] as { content: string } | undefined
+        if (prevAssistant?.content?.trim()) recoveredReportTarget = prevAssistant.content.trim()
+      }
+    }
+    const effectivePending = pendingQuery || recoveredReportTarget
+    const treatAsReportConfirm = !!(effectivePending && isConfirm)
+    const isDiscussionSummaryConfirm = treatAsReportConfirm && pendingQuery ? isPendingDiscussionSummary(pendingQuery) : false
+    const queryForDify = treatAsReportConfirm && !isDiscussionSummaryConfirm ? effectivePending! : (treatAsReportConfirm ? '' : message)
+
+    if (useEchoReply) {
+      const safeContent =
+        useReportEcho &&
+        reportTargetContent &&
+        !isEchoReplyContent(reportTargetContent) &&
+        !isReportCreatedContent(reportTargetContent)
+          ? reportTargetContent
+          : null
+      const pendingValue = useDiscussionSummaryEcho
+        ? PENDING_DISCUSSION_SUMMARY_PREFIX + message
+        : useReportEcho && reportTargetRef && !safeContent
+          ? wrapPendingUserTopic(reportTargetRef, message)
+          : (useReportEcho && safeContent ? safeContent : message)
+      await supabase
+        .from('consulting_sessions')
+        .update({ pending_report_query: pendingValue, updated_at: new Date().toISOString() })
+        .eq('id', sessionId)
+    }
+
     // 2. Dify呼び出し（skipDify=trueの場合はスキップ）
     const difyStartTime = Date.now()
     
@@ -314,73 +401,172 @@ export async function POST(
       aiResponseContent = aiResponse
       processingTime = Date.now() - difyStartTime
       console.log('📝 Dify skipped - using provided aiResponse')
+    } else if (useEchoReply) {
+      // レポート依頼の復唱: ユーザーが指定した〇〇（reportTargetRef）を表題に使う。無い場合は該当AI回答の見出し
+      aiResponseContent = useDiscussionSummaryEcho
+        ? buildDiscussionSummaryEchoReply(message)
+        : buildEchoReply(message, reportTargetContent, reportTargetRef ?? undefined)
+      processingTime = Date.now() - difyStartTime
+      console.log('📝 Report request echo - skipping Dify', useDiscussionSummaryEcho ? '(discussion summary)' : '')
     } else {
-      // 通常のDify呼び出し
-      try {
-        // Dify Chat APIを呼び出し
-        const difyResponse = await fetch(`${request.nextUrl.origin}/api/dify/chat`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sessionId,
-            message,
-            userId: user.id,
-            conversationId,  // Dify会話履歴用
-            categoryInfo     // カテゴリ情報をDifyに渡す
-          })
-        })
-
-        if (!difyResponse.ok) {
-          throw new Error(`Dify API error: ${difyResponse.statusText}`)
+      // 通常のDify呼び出し または 議論まとめ時の要約用呼び出し
+      // 通常レポート確認時: effectivePending（pending または復旧した対象）をレポート形式で整えるよう依頼する
+      let messageToSend = queryForDify
+      // 該当AI回答が見つからず「ユーザー指定トピック」で保留している場合: 会話履歴から該当部分を抽出してレポート化
+      if (treatAsReportConfirm && effectivePending && isPendingUserTopic(effectivePending)) {
+        const unwrapped = unwrapPendingUserTopic(effectivePending)
+        if (unwrapped) {
+          const collected = await getAllSessionMessages(supabase, sessionId, 50)
+          if (collected.length > 0) {
+            const conversationText = formatCollectedConversation(collected)
+            messageToSend = `以下は相談のやり取りです。ユーザーは【${unwrapped.topic}】についてのレポートを求めています。会話からその話題に関する部分を抽出し、レポート形式（見出し・箇条書き・必要なら表）でまとめてください。\n\n---\n\n${conversationText}`
+          }
         }
+      } else if (treatAsReportConfirm && !isDiscussionSummaryConfirm && effectivePending) {
+        messageToSend = `以下をレポート形式（見出し・箇条書き・必要なら表）で整えてください。\n\n---\n\n${effectivePending}`
+      }
 
-        const difyData = await difyResponse.json()
-        aiResponseContent = difyData.response || 'AI応答の取得に失敗しました。'
-        tokensUsed = difyData.tokens_used || 0
-        processingTime = Date.now() - difyStartTime
-        newConversationId = difyData.conversation_id  // Difyから返ってきたconversation_id
+      if (isDiscussionSummaryConfirm && pendingQuery) {
+        const originalMessage = unwrapPendingDiscussionSummaryQuery(pendingQuery)
+        const theme = extractDiscussionSummaryTheme(originalMessage)
+        let collected: Awaited<ReturnType<typeof collectMessagesByTheme>>
+        if (theme) {
+          collected = await collectMessagesByTheme(supabase, sessionId, theme, { maxMessages: 50 })
+        } else {
+          collected = await getAllSessionMessages(supabase, sessionId, 50)
+        }
+        if (collected.length === 0) {
+          aiResponseContent = '該当する議論が見つかりませんでした。テーマに合う発言が会話に含まれているかご確認ください。'
+          processingTime = Date.now() - difyStartTime
+        } else {
+          const conversationText = formatCollectedConversation(collected)
+          const themeLabel = theme || 'ご指定のテーマ'
+          messageToSend = `以下は、ある相談セッションの会話です。【${themeLabel}】に関する部分を整理・要約し、レポート形式（見出し・箇条書き・必要なら表）で出力してください。\n\n---\n\n${conversationText}`
+        }
+      }
 
-      } catch (difyError) {
-        console.error('Dify API call error:', difyError)
-        // Difyエラーの場合もフォールバックレスポンスを返す
-        aiResponseContent = 'AI処理中にエラーが発生しました。しばらく経ってから再度お試しください。'
-        processingTime = Date.now() - difyStartTime
+      if (messageToSend) {
+        try {
+          // レポート確認時は会話履歴を渡さず、依頼文だけをDifyに送りレポートを生成させる
+          const bodyPayload: Record<string, unknown> = {
+            sessionId,
+            message: messageToSend,
+            userId: user.id,
+            categoryInfo,
+          };
+          if (!treatAsReportConfirm && conversationId) {
+            bodyPayload.conversationId = conversationId;
+          }
+          const difyResponse = await fetch(`${request.nextUrl.origin}/api/dify/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyPayload),
+          })
+
+          if (!difyResponse.ok) {
+            throw new Error(`Dify API error: ${difyResponse.statusText}`)
+          }
+
+          const difyData = await difyResponse.json()
+          aiResponseContent = difyData.response || 'AI応答の取得に失敗しました。'
+          tokensUsed = difyData.tokens_used || 0
+          processingTime = Date.now() - difyStartTime
+          newConversationId = difyData.conversation_id
+        } catch (difyError) {
+          console.error('Dify API call error:', difyError)
+          aiResponseContent = 'AI処理中にエラーが発生しました。しばらく経ってから再度お試しください。'
+          processingTime = Date.now() - difyStartTime
+        }
+      }
+
+      if (pendingQuery && treatAsReportConfirm) {
+        await supabase
+          .from('consulting_sessions')
+          .update({ pending_report_query: null, updated_at: new Date().toISOString() })
+          .eq('id', sessionId)
       }
     }
 
     // 3. AIレスポンス保存
-    // AI応答のmessage_orderは、重複チェック結果に応じて調整
+    // レポート確認後は「〇〇のレポートを作成しました。」＋本文の2件を保存する
     const aiMessageOrder = isInitialMessageDuplicate ? 2 : nextMessageOrder + 1
-    
-    // AIメッセージのinsertデータを構築
-    const aiMessageData: any = {
-      session_id: sessionId,
-      role: 'assistant',
-      content: aiResponseContent,
-      message_order: aiMessageOrder,
-      tokens_used: tokensUsed,
-      processing_time_ms: processingTime
-    }
+    const isReportConfirmResponse = !!(
+      treatAsReportConfirm &&
+      effectivePending &&
+      aiResponseContent &&
+      !useEchoReply
+    )
 
-    // カテゴリ情報があればanalysis_typeに保存
-    if (categoryInfo?.selectedCategory) {
-      aiMessageData.analysis_type = categoryInfo.selectedCategory
-    }
+    let aiMessage: { id: string; content: string; role: string; created_at: string; message_order: number; analysis_type?: string | null; tokens_used?: number; processing_time_ms?: number }
+    let aiMessageSecond: typeof aiMessage | null = null
 
-    const { data: aiMessage, error: aiMessageError } = await supabase
-      .from('consulting_messages')
-      .insert(aiMessageData)
-      .select()
-      .single()
-
-    if (aiMessageError) {
-      console.error('AI message save error:', aiMessageError)
-      return NextResponse.json(
-        { error: aiMessageError.message },
-        { status: 500 }
-      )
+    if (isReportConfirmResponse) {
+      const createdReply = buildReportCreatedReply(effectivePending!)
+      const { data: firstMsg, error: firstError } = await supabase
+        .from('consulting_messages')
+        .insert({
+          session_id: sessionId,
+          role: 'assistant',
+          content: createdReply,
+          message_order: aiMessageOrder,
+          tokens_used: 0,
+          processing_time_ms: 0,
+        })
+        .select()
+        .single()
+      if (firstError) {
+        console.error('AI message (report created) save error:', firstError)
+        return NextResponse.json(
+          { error: firstError.message },
+          { status: 500 }
+        )
+      }
+      const { data: secondMsg, error: secondError } = await supabase
+        .from('consulting_messages')
+        .insert({
+          session_id: sessionId,
+          role: 'assistant',
+          content: aiResponseContent,
+          message_order: aiMessageOrder + 1,
+          tokens_used: tokensUsed,
+          processing_time_ms: processingTime,
+        })
+        .select()
+        .single()
+      if (secondError) {
+        console.error('AI message (report body) save error:', secondError)
+        return NextResponse.json(
+          { error: secondError.message },
+          { status: 500 }
+        )
+      }
+      aiMessage = firstMsg
+      aiMessageSecond = secondMsg
+    } else {
+      const aiMessageData: any = {
+        session_id: sessionId,
+        role: 'assistant',
+        content: aiResponseContent,
+        message_order: aiMessageOrder,
+        tokens_used: tokensUsed,
+        processing_time_ms: processingTime,
+      }
+      if (categoryInfo?.selectedCategory) {
+        aiMessageData.analysis_type = categoryInfo.selectedCategory
+      }
+      const { data: inserted, error: aiMessageError } = await supabase
+        .from('consulting_messages')
+        .insert(aiMessageData)
+        .select()
+        .single()
+      if (aiMessageError) {
+        console.error('AI message save error:', aiMessageError)
+        return NextResponse.json(
+          { error: aiMessageError.message },
+          { status: 500 }
+        )
+      }
+      aiMessage = inserted
     }
 
     // 4. セッションのcurrent_roundを更新
@@ -417,13 +603,13 @@ export async function POST(
       updated_at: new Date().toISOString()
     }
 
-    // 全件のメッセージを作成（既存 + 新規2件）
+    // 全件のメッセージを作成（既存 + 新規。レポート確認時は user + 作成しました + 本文の3件）
     const allMessages = [
       ...(existingMessages || []),
       userMessage,
-      aiMessage
-    ].filter((msg, index, self) => 
-      // 重複除去: 同じidのメッセージは最後のものだけを残す
+      aiMessage,
+      ...(aiMessageSecond ? [aiMessageSecond] : []),
+    ].filter((msg, index, self) =>
       index === self.findIndex(m => m.id === msg.id)
     )
 
@@ -465,17 +651,20 @@ export async function POST(
         }
       }
 
-      // カテゴリ選択メッセージの場合、interactiveを復元
-      if (msg.role === 'assistant' && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
+      // サブカテゴリは「カテゴリ選択の直後」の1通だけ（POST応答でも同条件）
+      const isSubcategoryPromptPost =
+        msg.role === 'assistant' &&
+        typeof msg.content === 'string' &&
+        msg.content.includes('さらに詳しくお聞かせください') &&
+        msg.content.includes('どのような課題でしょうか');
+      if (isSubcategoryPromptPost && msg.analysis_type && SUBCATEGORY_MAP[msg.analysis_type]) {
         baseMessage.interactive = {
           type: 'subcategory-buttons',
           data: SUBCATEGORY_MAP[msg.analysis_type],
           selectedCategory: msg.analysis_type
         }
       }
-      
-      // 既存データ対応: 内容から推測してinteractiveを復元
-      if (msg.role === 'assistant' && !msg.analysis_type && !baseMessage.interactive) {
+      if (isSubcategoryPromptPost && !baseMessage.interactive) {
         const categoryMatch = msg.content.match(/「(.+?)」について/)
         if (categoryMatch && SUBCATEGORY_MAP[categoryMatch[1]]) {
           baseMessage.interactive = {

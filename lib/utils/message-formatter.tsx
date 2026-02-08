@@ -28,9 +28,11 @@ export function formatAIMessage(text: string): React.ReactNode {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let listItems: string[] = [];
-  let orderedListItems: string[] = [];
   let listType: 'ul' | 'ol' | null = null;
   let key = 0;
+
+  // 番号付きリストは { num, text } を保持（2.1 等のサブ番号をそのまま表示するため）
+  let orderedListData: { num: string; text: string }[] = [];
 
   const flushList = () => {
     if (listType === 'ul' && listItems.length > 0) {
@@ -42,15 +44,18 @@ export function formatAIMessage(text: string): React.ReactNode {
         </ul>
       );
       listItems = [];
-    } else if (listType === 'ol' && orderedListItems.length > 0) {
+    } else if (listType === 'ol' && orderedListData.length > 0) {
       elements.push(
-        <ol key={`list-${key++}`} className="list-decimal list-inside space-y-1 my-2 ml-4">
-          {orderedListItems.map((item, idx) => (
-            <li key={idx} className="text-sm">{formatInlineText(item)}</li>
+        <ol key={`list-${key++}`} className="list-none space-y-1 my-2 ml-4 pl-0">
+          {orderedListData.map((item, idx) => (
+            <li key={idx} className="text-sm flex gap-2">
+              <span className="flex-shrink-0 font-medium text-teal-800">{item.num}.</span>
+              <span>{formatInlineText(item.text)}</span>
+            </li>
           ))}
         </ol>
       );
-      orderedListItems = [];
+      orderedListData = [];
     }
     listType = null;
   };
@@ -96,13 +101,14 @@ export function formatAIMessage(text: string): React.ReactNode {
       continue;
     }
 
-    // 番号付きリスト: 1. 項目 または 1) 項目
-    if (line.match(/^\d+[.)]\s+/)) {
+    // 番号付きリスト: 1. 項目 / 2.1 項目 / 1) 項目（番号を保持して表示し、全て1になる問題を回避）
+    const orderedMatch = line.match(/^(\d+(?:\.\d+)?)[.)]\s+(.*)$/);
+    if (orderedMatch) {
       if (listType !== 'ol') {
         flushList();
         listType = 'ol';
       }
-      orderedListItems.push(line.replace(/^\d+[.)]\s+/, ''));
+      orderedListData.push({ num: orderedMatch[1], text: orderedMatch[2] });
       continue;
     }
 

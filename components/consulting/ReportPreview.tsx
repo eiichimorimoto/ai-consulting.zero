@@ -19,15 +19,30 @@ interface ReportPreviewProps {
   sessionName: string;
   companyName?: string;
   userName?: string;
+  /** 選択中の出力形式（プレビュー説明に表示） */
+  format?: 'pdf' | 'ppt' | 'md';
   onClose: () => void;
   onDownload: () => void;
 }
+
+const FORMAT_LABELS: Record<string, string> = {
+  pdf: 'PDF（A4横）',
+  ppt: 'PowerPoint（スライド形式）',
+  md: 'Markdown（テキスト）',
+};
+
+const DOWNLOAD_BUTTON_LABELS: Record<string, string> = {
+  pdf: 'PDFをダウンロード',
+  ppt: 'PPTをダウンロード',
+  md: 'Markdownをダウンロード',
+};
 
 export default function ReportPreview({
   sections,
   sessionName,
   companyName,
   userName,
+  format = 'pdf',
   onClose,
   onDownload,
 }: ReportPreviewProps) {
@@ -74,7 +89,10 @@ export default function ReportPreview({
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h3 className="text-lg font-bold text-gray-900">📄 レポートプレビュー</h3>
-            <p className="text-xs text-gray-500 mt-0.5">この内容でレポートをダウンロードできます（A4横）</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {FORMAT_LABELS[format] || 'PDF'}用のイメージです。下のボタンで選択中の形式（{FORMAT_LABELS[format] || 'PDF'}）でダウンロードできます。
+              {format === 'md' && ' Markdownはテキスト形式で保存されます。'}
+            </p>
           </div>
           <Button onClick={onClose} variant="ghost" size="icon">
             <X className="w-5 h-5" />
@@ -118,7 +136,7 @@ export default function ReportPreview({
             className="flex-shrink-0 rounded shadow-lg"
           >
             <div
-              className="bg-white absolute left-0 top-0"
+              className="bg-white absolute left-0 top-0 report-preview-paper"
               style={{
                 width: PAPER_WIDTH_PX,
                 minHeight: PAPER_HEIGHT_PX,
@@ -127,10 +145,58 @@ export default function ReportPreview({
                 transformOrigin: 'top left',
               }}
             >
+              <style>{`
+                .report-preview-paper .report-header { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 0; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%); color: #fff; border-radius: 0 0 8px 8px; margin: 0 -20mm 16px -20mm; padding-left: 20mm; padding-right: 20mm; font-size: 9.5pt; font-weight: 600; letter-spacing: 0.08em; }
+                .report-preview-paper .report-header img { height: 20px; width: auto; vertical-align: middle; }
+                .report-preview-paper .report-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 0; background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%); color: rgba(255,255,255,0.95); font-size: 9pt; border-radius: 8px 8px 0 0; margin: 24px -20mm 0 -20mm; padding-left: 20mm; padding-right: 20mm; }
+                .report-preview-paper .report-footer .page-number { font-weight: 600; }
+                .report-preview-paper .report-footer .copyright { font-size: 8pt; opacity: 0.85; }
+                .report-preview-paper .cover-page { min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px 0; position: relative; }
+                .report-preview-paper .cover-page .cover-logo { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 6px; color: #4f46e5; font-size: 9pt; font-weight: 600; letter-spacing: 0.06em; }
+                .report-preview-paper .cover-page .cover-logo img { height: 22px; width: auto; }
+                .report-preview-paper .cover-title { font-size: 28pt; font-weight: bold; color: #1e293b; margin-bottom: 16px; line-height: 1.3; }
+                .report-preview-paper .cover-subtitle { font-size: 14pt; color: #64748b; margin-bottom: 32px; }
+                .report-preview-paper .cover-meta { font-size: 11pt; color: #475569; text-align: center; line-height: 1.8; }
+                .report-preview-paper .cover-meta .created { margin-bottom: 8px; }
+                .report-preview-paper .cover-meta .author { margin-top: 16px; font-size: 10pt; color: #64748b; }
+                .report-preview-paper .section { margin-top: 24px; padding-bottom: 32px; }
+                .report-preview-paper .section-title { font-size: 16pt; font-weight: bold; color: #334155; border-bottom: 2px solid #6366f1; padding-bottom: 8px; margin-bottom: 16px; }
+                .report-preview-paper .section-meta { font-size: 10pt; color: #64748b; margin-bottom: 16px; }
+                .report-preview-paper .report-body { font-size: 11pt; line-height: 1.7; color: #334155; }
+                .report-preview-paper .report-body .report-heading { margin: 20px 0 10px 0; font-size: 14pt; font-weight: bold; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+                .report-preview-paper .report-body .report-para { margin: 0 0 14px 0; }
+                .report-preview-paper .report-body .report-list { margin: 0 0 14px 0; padding-left: 24px; }
+                .report-preview-paper .report-body ol.report-list { list-style-type: decimal; }
+                .report-preview-paper .report-body ul.report-list { list-style-type: disc; }
+                .report-preview-paper .chat-message { margin-bottom: 20px; padding: 12px; border-radius: 4px; }
+                .report-preview-paper .chat-user { background-color: #f1f5f9; border-left: 4px solid #6366f1; }
+                .report-preview-paper .chat-assistant { background-color: #fef3c7; border-left: 4px solid #f59e0b; }
+                .report-preview-paper .chat-role { font-weight: bold; font-size: 10pt; color: #64748b; margin-bottom: 4px; }
+                .report-preview-paper .chat-content { font-size: 11pt; line-height: 1.6; }
+                .report-preview-paper .report-table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; border: 1px solid #e2e8f0; }
+                .report-preview-paper .report-table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+                .report-preview-paper .report-table th, .report-preview-paper .report-table td { border: 1px solid #e2e8f0; padding: 12px 14px; text-align: left; }
+                .report-preview-paper .report-table th { background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%); color: #fff; font-weight: 600; }
+                .report-preview-paper .report-table tr:nth-child(even) td { background: #f8fafc; }
+                .report-preview-paper .swot-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                .report-preview-paper .swot-table th, .report-preview-paper .swot-table td { border: 1px solid #e2e8f0; padding: 12px 14px; }
+                .report-preview-paper .swot-table th { background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%); color: #fff; font-weight: 600; }
+              `}</style>
               {currentPage === 0 ? (
-                <CoverPage sessionName={sessionName} companyName={companyName} userName={userName} />
+                <CoverPage sessionName={sessionName} companyName={companyName} userName={userName} sections={sections} />
               ) : (
-                <SectionPage section={sections[currentPage - 1]} />
+                <>
+                  <header className="report-header">
+                    <span>SOLVE WISE</span>
+                    <img src="/logo.png" alt="" />
+                  </header>
+                  <SectionPage section={sections[currentPage - 1]} />
+                  <footer className="report-footer">
+                    <span className="page-number">{currentPage} / {totalPages}</span>
+                    <span>AI参謀 - AI経営コンサルティング</span>
+                    <span className="copyright">© 2026 SOLVE WISE</span>
+                  </footer>
+                </>
               )}
             </div>
           </div>
@@ -143,7 +209,7 @@ export default function ReportPreview({
           </Button>
           <Button onClick={onDownload} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
             <Download className="w-4 h-4 mr-2" />
-            PDFをダウンロード
+            {DOWNLOAD_BUTTON_LABELS[format] ?? 'PDFをダウンロード'}
           </Button>
         </div>
       </div>
@@ -152,81 +218,89 @@ export default function ReportPreview({
 }
 
 /**
- * 表紙ページ
+ * 表紙ページ（サンプルHTML体裁: ロゴ・表題・作成日時・文責）
  */
 function CoverPage({
   sessionName,
   companyName,
   userName,
+  sections,
 }: {
   sessionName: string;
   companyName?: string;
   userName?: string;
+  sections: ReportSection[];
 }) {
   const today = new Date().toLocaleDateString('ja-JP', {
     year: 'numeric',
-    month: 'long',
+    month: 'numeric',
     day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
+  const reportTitle = sections[0]?.title ?? 'AI経営コンサルティング';
 
   return (
-    <div className="h-full flex flex-col justify-center items-center text-center">
-      <h1 className="text-5xl font-bold text-indigo-600 mb-6">
-        AI経営コンサルティング
-      </h1>
-      <h2 className="text-3xl text-gray-600 mb-12">
-        {sessionName}
-      </h2>
-      <div className="text-base text-gray-500 space-y-2">
-        {companyName && <p>{companyName}</p>}
-        {userName && <p>担当: {userName}</p>}
-        <p>作成日: {today}</p>
+    <div className="cover-page">
+      <div className="cover-logo">
+        <img src="/logo.png" alt="SOLVE WISE" />
+        <span>SOLVE WISE</span>
+      </div>
+      <div className="cover-title">{reportTitle}</div>
+      <div className="cover-subtitle">{sessionName}</div>
+      <div className="cover-meta">
+        <div className="created">作成日時: {today}</div>
+        {userName && <>担当: {userName}<br /></>}
+        <div className="author">文責: AI参謀 - AI経営コンサルティング</div>
       </div>
     </div>
   );
 }
 
 /**
- * セクションページ
+ * セクションページ（PDFと同じクラス名・構造でレイアウト統一）
  */
 function SectionPage({ section }: { section: ReportSection }) {
+  const createdAt = section.metadata?.createdAt
+    ? new Date(section.metadata.createdAt).toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-indigo-600 border-b-2 border-indigo-600 pb-2 mb-6">
-        {section.title}
-      </h2>
-      <div className="space-y-4">
-        {section.type === 'chat' && <ChatSection section={section} />}
-        {section.type === 'table' && <TableSection section={section} />}
-        {section.type === 'list' && <ListSection section={section} />}
-        {section.type === 'text' && <TextSection section={section} />}
-        {section.type === 'html' && <HtmlSection section={section} />}
-      </div>
+    <div className="section">
+      <h2 className="section-title">{section.title}</h2>
+      {section.type === 'html' && createdAt && (
+        <p className="section-meta">作成日時: {createdAt}</p>
+      )}
+      {section.type === 'chat' && <ChatSection section={section} />}
+      {section.type === 'table' && <TableSection section={section} />}
+      {section.type === 'list' && <ListSection section={section} />}
+      {section.type === 'text' && <TextSection section={section} />}
+      {section.type === 'html' && <HtmlSection section={section} />}
     </div>
   );
 }
 
 /**
- * 会話セクション
+ * 会話セクション（PDFと同じクラス名）
  */
 function ChatSection({ section }: { section: ReportSection }) {
   const chatData = section.content as ChatData;
 
   return (
-    <div className="space-y-4">
+    <div>
       {chatData.messages.map((msg, index) => (
         <div
           key={index}
-          className={`p-3 rounded ${
-            msg.role === 'user'
-              ? 'bg-gray-100 border-l-4 border-indigo-600'
-              : 'bg-yellow-50 border-l-4 border-amber-500'
-          }`}
+          className={`chat-message ${msg.role === 'user' ? 'chat-user' : 'chat-assistant'}`}
         >
-          <div className="text-xs font-bold text-gray-500 mb-1">
-            {msg.role === 'user' ? 'ユーザー' : 'AI'}
-          </div>
-          <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+          <div className="chat-role">{msg.role === 'user' ? 'ユーザー' : 'AI'}</div>
+          <div className="chat-content" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
         </div>
       ))}
     </div>
@@ -234,29 +308,25 @@ function ChatSection({ section }: { section: ReportSection }) {
 }
 
 /**
- * テーブルセクション
+ * テーブルセクション（PDFと同じクラス名）
  */
 function TableSection({ section }: { section: ReportSection }) {
   const tableData = section.content as TableData;
 
   return (
-    <table className="w-full border-collapse border border-gray-300">
+    <table className="swot-table">
       <thead>
-        <tr className="bg-indigo-600 text-white">
+        <tr>
           {tableData.headers.map((header, i) => (
-            <th key={i} className="border border-gray-300 p-3 text-left font-bold">
-              {header}
-            </th>
+            <th key={i}>{header}</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {tableData.rows.map((row, i) => (
-          <tr key={i} className="bg-gray-50">
+          <tr key={i}>
             {row.map((cell, j) => (
-              <td key={j} className="border border-gray-300 p-3 text-sm whitespace-pre-wrap align-top">
-                {cell}
-              </td>
+              <td key={j} style={{ whiteSpace: 'pre-wrap', verticalAlign: 'top' }}>{cell}</td>
             ))}
           </tr>
         ))}
@@ -266,46 +336,59 @@ function TableSection({ section }: { section: ReportSection }) {
 }
 
 /**
- * リストセクション
+ * リストセクション（PDFと同じ report-body 内リスト）
  */
 function ListSection({ section }: { section: ReportSection }) {
   const listData = section.content as ListData;
 
   return (
-    <ul className="space-y-2">
-      {listData.items.map((item, index) => (
-        <li key={index} className="flex items-start gap-2">
-          <span className="text-indigo-600 font-bold mt-1">•</span>
-          <span className="text-sm flex-1">{item}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="report-body">
+      <ul className="report-list">
+        {listData.items.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
 /**
- * テキストセクション
+ * テキストセクション（PDFと同じ report-body）
  */
 function TextSection({ section }: { section: ReportSection }) {
   const content = section.content as string;
 
   return (
-    <div className="text-sm whitespace-pre-wrap">
+    <div className="report-body report-para" style={{ whiteSpace: 'pre-wrap' }}>
       {content}
     </div>
   );
 }
 
 /**
- * レポート用HTMLセクション（Dify提示コンテンツ成型済み）
+ * レポート用HTMLセクション（PDFと同じ report-body クラス。作成日時があれば表示）
  */
 function HtmlSection({ section }: { section: ReportSection }) {
   const htmlContent = section.content as string;
+  const createdAt = section.metadata?.createdAt
+    ? new Date(section.metadata.createdAt).toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
 
   return (
-    <div
-      className="report-body text-sm prose prose-sm max-w-none [&_.report-heading]:text-base [&_.report-heading]:font-bold [&_.report-para]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
-    />
+    <div>
+      {createdAt && (
+        <p className="section-meta text-[10pt] text-gray-500 mb-2">作成日時: {createdAt}</p>
+      )}
+      <div
+        className="report-body"
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
+    </div>
   );
 }

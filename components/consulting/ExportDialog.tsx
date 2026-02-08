@@ -5,11 +5,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, FileText, CheckSquare, Square, Download, Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { getAvailableSections, buildReportSections, getDifyContentItems, buildReportSectionsFromDifyItems } from '@/lib/report/builder';
+import { getAvailableSections, buildReportSections, getDifyContentItems, buildReportSectionsFromDifyItems, buildReportMarkdown } from '@/lib/report/builder';
 import ReportPreview from './ReportPreview';
 import type { Message } from '@/types/consulting';
 import type { SectionId, AvailableSection, ReportSection, DifyContentItem } from '@/lib/report/types';
@@ -22,7 +22,13 @@ interface ExportDialogProps {
   onClose: () => void;
 }
 
-type ExportFormat = 'pdf' | 'ppt';
+type ExportFormat = 'pdf' | 'ppt' | 'md';
+
+/** セクションIDから表示用の「場所」ラベルを返す */
+function getSectionLocation(id: SectionId): string {
+  if (id === 'chat') return 'チャット';
+  return 'AI回答';
+}
 
 export default function ExportDialog({
   messages,
@@ -37,22 +43,39 @@ export default function ExportDialog({
   const [difyItems, setDifyItems] = useState<DifyContentItem[]>([]);
   const [selectedDifyIds, setSelectedDifyIds] = useState<Set<string>>(new Set());
   const [format, setFormat] = useState<ExportFormat>('pdf');
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const exportMetadata = {
+    title: 'AI経営コンサルティングレポート',
+    sessionName,
+    companyName,
+    userName,
+    createdAt: new Date().toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+  };
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewSections, setPreviewSections] = useState<ReportSection[]>([]);
 
   const hasSelection = selectedSections.size > 0 || selectedDifyIds.size > 0;
 
-  // 利用可能なセクションとDify提示コンテンツを取得
+  // 利用可能なセクションとAI回答を取得。会話は初期チェックなし、AIの回答は一番新しい1件のみデフォルト選択
   useEffect(() => {
     const sections = getAvailableSections(messages);
     setAvailableSections(sections);
-    setDifyItems(getDifyContentItems(messages));
-
-    if (sections.find(s => s.id === 'chat' && s.available)) {
-      setSelectedSections(new Set(['chat']));
-    }
+    const items = getDifyContentItems(messages);
+    setDifyItems(items);
+    const newestId = items.length > 0 ? items[items.length - 1].id : null;
+    setSelectedDifyIds(newestId ? new Set([newestId]) : new Set());
   }, [messages]);
+
+  // AIの回答を新しい順で表示用にソート
+  const sortedDifyItems = useMemo(
+    () => [...difyItems].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [difyItems]
+  );
 
   // セクション選択トグル
   const toggleSection = (sectionId: SectionId) => {
@@ -82,9 +105,11 @@ export default function ExportDialog({
     setSelectedDifyIds(next);
   };
 
-  /** 選択内容からレポートセクションを構築（主役: AIのレポート内容、付録: 会話セクション） */
+  /** 選択内容からレポートセクションを構築（主役: AIのレポート内容・降順、付録: 会話セクション） */
   const buildSectionsForExport = (): ReportSection[] => {
-    const selectedDify = difyItems.filter(i => selectedDifyIds.has(i.id));
+    const selectedDify = difyItems
+      .filter(i => selectedDifyIds.has(i.id))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     const fromDify = selectedDify.length > 0 ? buildReportSectionsFromDifyItems(selectedDify) : [];
     const fromSections = selectedSections.size > 0
       ? buildReportSections(messages, Array.from(selectedSections))
@@ -124,36 +149,53 @@ export default function ExportDialog({
 
       if (format === 'pdf') {
         await downloadPDF(sections);
-      } else {
+      } else if (format === 'ppt') {
         await downloadPPT(sections);
+      } else {
+        downloadMarkdown();
       }
     } catch (error) {
       console.error('エクスポートエラー:', error);
       const message = error instanceof Error ? error.message : 'エクスポートに失敗しました';
-      toast.error(format === 'pdf' ? 'PDF生成に失敗しました' : 'PPT生成に失敗しました', { description: message });
+      const fmtMsg = format === 'pdf' ? 'PDF' : format === 'ppt' ? 'PPT' : 'Markdown';
+      toast.error(`${fmtMsg}生成に失敗しました`, { description: message });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const exportMetadata = {
-    title: 'AI経営コンサルティングレポート',
-    sessionName,
-    companyName,
-    userName,
-    createdAt: new Date().toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }),
+  // Markdownダウンロード（クライアント側で生成）
+  const downloadMarkdown = () => {
+    const selectedDify = difyItems.filter(i => selectedDifyIds.has(i.id));
+    const fromSections = selectedSections.size > 0
+      ? buildReportSections(messages, Array.from(selectedSections))
+      : [];
+    const md = buildReportMarkdown(selectedDify, fromSections, exportMetadata);
+    const blob = new Blob([md], { type: 'text/markdown; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `report-${sessionName.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Markdownのダウンロードが完了しました', { duration: 4000 });
+    setShowPreview(false);
+    onClose();
   };
 
   // PDF生成とダウンロード
   const downloadPDF = async (sections: ReportSection[]) => {
-    const response = await fetch('/api/tools/generate-report', {
+      const response = await fetch('/api/tools/generate-report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sections, metadata: exportMetadata }),
+      body: JSON.stringify({
+        sections,
+        metadata: exportMetadata,
+        orientation,
+        authorLabel: 'AI参謀 - AI経営コンサルティング',
+      }),
     });
 
     if (!response.ok) {
@@ -253,6 +295,7 @@ export default function ExportDialog({
         sessionName={sessionName}
         companyName={companyName}
         userName={userName}
+        format={format}
         onClose={() => setShowPreview(false)}
         onDownload={handlePreviewDownload}
       />
@@ -272,7 +315,7 @@ export default function ExportDialog({
               会話内容をPDFまたはPowerPointでダウンロードできます。含めるセクションを選択してください。
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              PDF・PPTはいずれもA4横で出力されます。プレビューは枠に合わせて縮小表示されます。
+              PDFは用紙の向きを選択できます。PPTはA4横で出力されます。プレビューは枠に合わせて縮小表示されます。
             </p>
           </div>
           <Button onClick={onClose} variant="ghost" size="icon">
@@ -287,7 +330,7 @@ export default function ExportDialog({
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               エクスポート形式
             </label>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button
                 onClick={() => setFormat('pdf')}
                 variant={format === 'pdf' ? 'default' : 'outline'}
@@ -304,88 +347,53 @@ export default function ExportDialog({
                 <FileText className="w-4 h-4 mr-2" />
                 PowerPoint
               </Button>
-            </div>
-          </div>
-
-          {/* 会話セクション（会話全体・キーワード抽出） */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                会話・セクション
-              </label>
               <Button
-                onClick={toggleAll}
-                variant="ghost"
-                size="sm"
-                className="text-xs text-indigo-600 hover:text-indigo-700"
+                onClick={() => setFormat('md')}
+                variant={format === 'md' ? 'default' : 'outline'}
+                className={format === 'md' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}
               >
-                {selectedSections.size === availableSections.filter(s => s.available).length
-                  ? '全解除'
-                  : '全選択'}
+                <FileText className="w-4 h-4 mr-2" />
+                Markdown
               </Button>
             </div>
-
-            <div className="space-y-2">
-              {availableSections.map(section => (
-                <button
-                  key={section.id}
-                  onClick={() => section.available && toggleSection(section.id)}
-                  disabled={!section.available}
-                  className={`
-                    w-full flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all
-                    ${
-                      section.available
-                        ? selectedSections.has(section.id)
-                          ? 'border-indigo-600 bg-indigo-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                        : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-50'
-                    }
-                  `}
-                >
-                  {/* チェックボックスアイコン */}
-                  <div className="flex-shrink-0 mt-0.5">
-                    {selectedSections.has(section.id) ? (
-                      <CheckSquare className="w-5 h-5 text-indigo-600" />
-                    ) : (
-                      <Square className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-
-                  {/* セクション情報 */}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 mb-1">
-                      {section.label}
-                      {section.messageCount !== undefined && (
-                        <span className="ml-2 text-xs font-normal text-gray-500">
-                          ({section.messageCount}件)
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {section.description}
-                    </div>
-                    {!section.available && (
-                      <div className="text-xs text-amber-600 mt-1">
-                        ⚠️ このセクションのデータがありません
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
+            {format === 'pdf' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">用紙の向き</label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={orientation === 'landscape' ? 'default' : 'outline'}
+                    size="sm"
+                    className={orientation === 'landscape' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}
+                    onClick={() => setOrientation('landscape')}
+                  >
+                    横（A4 横向き）
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={orientation === 'portrait' ? 'default' : 'outline'}
+                    size="sm"
+                    className={orientation === 'portrait' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}
+                    onClick={() => setOrientation('portrait')}
+                  >
+                    縦（A4 縦向き）
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* AIが回答した内容（レポート形式で個別に出力） */}
+          {/* AIの回答（メイン。新しい順・作成時間表示・デフォルトで全選択） */}
           {difyItems.length > 0 && (
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-base font-semibold text-gray-800 mb-2">
                 AIの回答（レポート形式で成型してPDFに）
               </label>
-              <p className="text-xs text-gray-500 mb-2">
-                個別に選択すると、それぞれをレポート体裁で1セクションとしてPDFに含めます。
+              <p className="text-xs text-gray-500 mb-3">
+                個別に選択すると、それぞれをレポート体裁で1セクションとしてPDFに含めます。新しい順で表示しています。
               </p>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {difyItems.map(item => (
+              <div className="space-y-2 max-h-56 overflow-y-auto">
+                {sortedDifyItems.map(item => (
                   <button
                     key={item.id}
                     onClick={() => toggleDifyItem(item.id)}
@@ -408,13 +416,25 @@ export default function ExportDialog({
                       <div className="font-medium text-gray-900 text-sm truncate">
                         {item.title}
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {item.type === 'analysis' && '分析'}
-                        {item.type === 'recommendation' && '提言'}
-                        {item.type === 'summary' && 'サマリー'}
-                        {item.type === 'other' && 'その他'}
-                        {' · '}
-                        {item.body.slice(0, 50)}…
+                      <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span>
+                          {item.type === 'analysis' && '分析'}
+                          {item.type === 'recommendation' && '提言'}
+                          {item.type === 'summary' && 'サマリー'}
+                          {item.type === 'other' && 'その他'}
+                        </span>
+                        {item.createdAt && (
+                          <span>
+                            {new Date(item.createdAt).toLocaleString('ja-JP', {
+                              year: 'numeric',
+                              month: 'numeric',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                        <span className="truncate">· {item.body.slice(0, 40)}…</span>
                       </div>
                     </div>
                   </button>
@@ -422,6 +442,69 @@ export default function ExportDialog({
               </div>
             </div>
           )}
+
+          {/* 会話・セクション（付録。固定内容・2列でコンパクトに） */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-500">
+                会話・セクション（付録）
+              </label>
+              <Button
+                onClick={toggleAll}
+                variant="ghost"
+                size="sm"
+                className="text-xs text-indigo-600 hover:text-indigo-700 h-6 px-2"
+              >
+                {selectedSections.size === availableSections.filter(s => s.available).length
+                  ? '全解除'
+                  : '全選択'}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {availableSections.map(section => (
+                <button
+                  key={section.id}
+                  onClick={() => section.available && toggleSection(section.id)}
+                  disabled={!section.available}
+                  className={`
+                    flex items-start gap-2 p-2 rounded-md border text-left transition-all
+                    ${
+                      section.available
+                        ? selectedSections.has(section.id)
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                        : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                    }
+                  `}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {selectedSections.has(section.id) ? (
+                      <CheckSquare className="w-4 h-4 text-indigo-600" />
+                    ) : (
+                      <Square className="w-4 h-4 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-800 text-xs leading-tight">
+                      {section.label}
+                      {section.messageCount !== undefined && (
+                        <span className="ml-1 font-normal text-gray-500">({section.messageCount})</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {getSectionLocation(section.id)}
+                    </div>
+                    {!section.available && (
+                      <div className="text-xs text-amber-600 mt-0.5">
+                        ⚠ データなし
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* 選択サマリー */}
           {hasSelection && (

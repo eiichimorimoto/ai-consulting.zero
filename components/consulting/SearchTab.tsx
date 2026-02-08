@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Search, ExternalLink, Clock, Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Search, ExternalLink, Clock, Loader2, Sparkles, RefreshCw, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [sources, setSources] = useState<string[]>([]);
+  /** この要約に使ったソース件数（要約結果カードで表示用） */
+  const [summarizedCount, setSummarizedCount] = useState<number>(0);
   const [isSearching, setIsSearching] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
@@ -28,6 +30,17 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
   const [retryCount, setRetryCount] = useState(0);
   const [searchSource, setSearchSource] = useState<'google' | 'brave' | null>(null);
   const [fallbackInfo, setFallbackInfo] = useState<string | null>(null);
+  /** 要約に含める検索結果のインデックス（未設定時は全件選択） */
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+
+  // 検索結果が変わったら全件を選択状態にする
+  useEffect(() => {
+    if (results.length > 0) {
+      setSelectedIndices(new Set(results.map((_, i) => i)));
+    } else {
+      setSelectedIndices(new Set());
+    }
+  }, [results]);
 
   // 検索履歴をlocalStorageから読み込み
   useEffect(() => {
@@ -142,9 +155,27 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
     }
   };
 
-  // 要約生成
+  // 要約対象の選択トグル
+  const toggleSelected = (idx: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  // 全選択 / 全解除
+  const selectAll = () => setSelectedIndices(new Set(results.map((_, i) => i)));
+  const selectNone = () => setSelectedIndices(new Set());
+
+  // 要約生成（選択された結果のみ）
   const handleSummarize = async () => {
-    if (results.length === 0) return;
+    const selectedResults = results.filter((_, i) => selectedIndices.has(i));
+    if (selectedResults.length === 0) {
+      toast.error('要約するソースを1件以上選択してください');
+      return;
+    }
 
     setIsSummarizing(true);
     setError(null);
@@ -153,7 +184,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       const response = await fetch('/api/consulting/search/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, results })
+        body: JSON.stringify({ query, results: selectedResults })
       });
 
       if (!response.ok) {
@@ -165,6 +196,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       if (data.success) {
         setSummary(data.summary);
         setSources(data.sources);
+        setSummarizedCount(selectedResults.length);
         toast.success('要約を生成しました');
       } else {
         throw new Error(data.error || '要約生成に失敗しました');
@@ -205,6 +237,11 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
     setResults([]);
     setSummary(null);
     setError(null);
+  };
+
+  // 要約を閉じて検索画面に戻る
+  const handleBackToSearch = () => {
+    setSummary(null);
   };
 
   // 再試行
@@ -305,45 +342,98 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
         </div>
       )}
 
-      {/* Search Results */}
+      {/* Search Results（要約前: チェックで選択 → ボタンで要約） */}
       {results.length > 0 && !summary && (
         <div className="space-y-3 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h4 className="text-xs font-semibold text-muted-foreground">
-              検索結果 ({results.length}件)
+              検索結果 ({results.length}件) · {selectedIndices.size}件選択中
             </h4>
-            <span className="text-xs text-muted-foreground">
-              🦁 Brave Search
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">🦁 Brave Search</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="text-xs h-7"
+              >
+                {isSearching ? <Loader2 className="w-3 h-3 animate-spin" /> : "再検索"}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            要約に含めるソースにチェックを入れてから、下のボタンで要約してください。
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-2">
+              <button type="button" onClick={selectAll} className="text-xs text-blue-600 hover:underline">
+                全選択
+              </button>
+              <span className="text-xs text-muted-foreground">/</span>
+              <button type="button" onClick={selectNone} className="text-xs text-blue-600 hover:underline">
+                全解除
+              </button>
+            </div>
+            <Button
+              onClick={handleSummarize}
+              disabled={isSummarizing || selectedIndices.size === 0}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
+            >
+              {isSummarizing ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              選択した {selectedIndices.size} 件を要約
+            </Button>
           </div>
           {results.map((result, idx) => (
-            <Card key={idx} className="border-border/50">
+            <Card
+              key={idx}
+              className={`border-border/50 cursor-pointer transition-colors ${selectedIndices.has(idx) ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+              onClick={() => toggleSelected(idx)}
+            >
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-1">
-                  <h5 className="text-sm font-semibold text-foreground flex-1">
-                    {result.title}
-                  </h5>
-                  <a
-                    href={result.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 flex-shrink-0 ml-2"
-                    title="別タブで開く"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedIndices.has(idx)}
+                      onChange={() => toggleSelected(idx)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-1">
+                      <h5 className="text-sm font-semibold text-foreground flex-1">
+                        {result.title}
+                      </h5>
+                      <a
+                        href={result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 flex-shrink-0 ml-2"
+                        title="別タブで開く"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {result.description}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {result.description}
-                </p>
               </CardContent>
             </Card>
           ))}
           
-          {/* Summarize Button */}
+          {/* 要約ボタン（一覧下にも配置） */}
           <Button
             onClick={handleSummarize}
-            disabled={isSummarizing}
+            disabled={isSummarizing || selectedIndices.size === 0}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isSummarizing ? (
@@ -354,7 +444,7 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                要約を生成
+                選択した {selectedIndices.size} 件を要約
               </>
             )}
           </Button>
@@ -365,13 +455,29 @@ export function SearchTab({ onInsertToChat }: SearchTabProps) {
       {summary && (
         <Card className="border-blue-200 bg-blue-50 mb-6">
           <CardContent className="p-4">
-            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-900">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              要約結果
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2 text-blue-900">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                要約結果
+              </h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToSearch}
+                className="text-xs text-blue-700 hover:text-blue-900 hover:bg-blue-100 -mr-2"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                検索に戻る
+              </Button>
+            </div>
+            <p className="text-xs text-blue-700 mb-1">
               検索キーワード「{query}」
             </p>
+            {summarizedCount > 0 && (
+              <p className="text-xs text-blue-600 mb-3">
+                選択した {summarizedCount} 件のソースで要約しました
+              </p>
+            )}
             <div className="text-sm whitespace-pre-line mb-4 leading-relaxed text-blue-900">
               {summary}
             </div>
