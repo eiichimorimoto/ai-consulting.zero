@@ -17,8 +17,10 @@ import {
   X,
   Check,
   Key,
-  Upload
+  Upload,
+  Globe
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -47,6 +49,26 @@ export default function SettingsContent({ user, profile, company, subscription, 
   const [isUploadingDocuments, setIsUploadingDocuments] = useState(false)
   const [existingDocumentPaths, setExistingDocumentPaths] = useState<string[]>(company?.documents_urls || [])
   const [postalCodeStatus, setPostalCodeStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [refetchingCompany, setRefetchingCompany] = useState(false)
+
+  // URL の tab と同期（階層メニューから遷移した場合など）
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) setActiveTab(initialTab)
+  }, [initialTab])
+
+  // アカウント設定メニューからハッシュ付きで飛んできた場合、該当セクションへスクロール
+  useEffect(() => {
+    if (activeTab !== 'account') return
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    if (!hash) return
+    const id = hash.slice(1)
+    if (!['profile-section', 'company-section', 'password-section'].includes(id)) return
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(id)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+    return () => window.clearTimeout(timer)
+  }, [activeTab])
 
   // プロフィール情報の状態
   const [profileData, setProfileData] = useState({
@@ -78,7 +100,10 @@ export default function SettingsContent({ user, profile, company, subscription, 
     established_date: company?.established_date || '',
     representative_name: company?.representative_name || '',
     business_description: company?.business_description || '',
-    fiscal_year_end: company?.fiscal_year_end ? String(company.fiscal_year_end) : '',
+    // DBは期末（1-12）。表示は決算開始月（期末の翌月）で保持
+    fiscal_year_end: company?.fiscal_year_end != null
+      ? String(company.fiscal_year_end === 12 ? 1 : company.fiscal_year_end + 1)
+      : '',
   })
 
   // パスワード変更の状態
@@ -353,12 +378,12 @@ export default function SettingsContent({ user, profile, company, subscription, 
         throw new Error(`プロフィール情報の更新に失敗しました: ${error.message}`)
       }
 
-      alert('プロフィール情報を更新しました')
+      toast.success('プロフィール情報を更新しました')
       router.refresh()
     } catch (error) {
       console.error('エラー:', error)
       const errorMessage = error instanceof Error ? error.message : 'プロフィール情報の更新に失敗しました'
-      alert(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -462,7 +487,10 @@ export default function SettingsContent({ user, profile, company, subscription, 
           established_date: companyData.established_date || null,
           representative_name: companyData.representative_name || null,
           business_description: companyData.business_description || null,
-          fiscal_year_end: companyData.fiscal_year_end ? parseInt(companyData.fiscal_year_end) : null,
+          // 画面上は決算開始月（1-12）。DBには期末で保存（開始月1→12月、それ以外→開始月-1）
+          fiscal_year_end: companyData.fiscal_year_end
+            ? (parseInt(companyData.fiscal_year_end, 10) === 1 ? 12 : parseInt(companyData.fiscal_year_end, 10) - 1)
+            : null,
           documents_urls: allDocuments.length > 0 ? allDocuments : null,
         })
         .eq('id', company.id)
@@ -473,13 +501,33 @@ export default function SettingsContent({ user, profile, company, subscription, 
         setCompanyDocuments([]) // アップロード後、ファイルリストをクリア
       }
 
-      alert('会社情報を更新しました')
+      toast.success('会社情報を更新しました')
       router.refresh()
     } catch (error) {
       console.error('エラー:', error)
-      alert('会社情報の更新に失敗しました')
+      toast.error('会社情報の更新に失敗しました')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleRefetchCompany = async () => {
+    if (!company?.id) return
+    setRefetchingCompany(true)
+    try {
+      const res = await fetch('/api/settings/company-refetch', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(body?.error || '会社情報の再取得に失敗しました')
+        return
+      }
+      toast.success('会社情報を再取得しました。次にダッシュボードを開くと分析が最新になります。')
+      router.refresh()
+    } catch (error) {
+      console.error('Refetch error:', error)
+      toast.error('会社情報の再取得に失敗しました')
+    } finally {
+      setRefetchingCompany(false)
     }
   }
 
@@ -619,12 +667,14 @@ export default function SettingsContent({ user, profile, company, subscription, 
       {/* アカウント管理タブ */}
       <TabsContent value="account" className="mt-6 space-y-6">
         {/* プロフィール情報 */}
-        <Card className="bg-white border border-gray-200">
+        <Card id="profile-section" className="bg-white border border-gray-200">
           <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
             <CardTitle>プロフィール情報</CardTitle>
             <CardDescription>個人情報を変更できます</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="pt-6 space-y-6">
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">基本情報</h4>
             {/* プロフィール写真 */}
             <div className="grid gap-2">
               <Label htmlFor="avatar">写真</Label>
@@ -710,6 +760,9 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
+            </section>
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">連絡先</h4>
             <div className="grid gap-2">
               <Label htmlFor="email">メールアドレス</Label>
               <Input
@@ -739,20 +792,24 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
+            </section>
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">部署</h4>
             <div className="grid gap-2">
               <Label htmlFor="department">部署</Label>
               <select
                 id="department"
                 value={profileData.department}
                 onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               >
-                <option value="">選択してください</option>
+                <option value="">選択してください（任意）</option>
                 {departments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
             </div>
+            </section>
             <Button onClick={handleSaveProfile} disabled={isLoading} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">
               {isLoading ? (
                 <>
@@ -770,12 +827,14 @@ export default function SettingsContent({ user, profile, company, subscription, 
         </Card>
 
         {/* 会社情報 */}
-        <Card className="bg-white border border-gray-200">
+        <Card id="company-section" className="bg-white border border-gray-200">
           <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
             <CardTitle>会社情報</CardTitle>
             <CardDescription>会社の基本情報を変更できます</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="pt-6 space-y-6">
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">基本情報</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="company_name">会社名 <span className="text-red-500">*</span></Label>
@@ -800,8 +859,12 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 id="corporate_number"
                 value={companyData.corporate_number}
                 onChange={(e) => setCompanyData(prev => ({ ...prev, corporate_number: e.target.value }))}
+                placeholder="13桁の数字"
               />
             </div>
+            </section>
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">住所</h4>
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="postal_code">郵便番号</Label>
@@ -863,16 +926,17 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="address">町名番地以下</Label>
-                <Input
-                  id="address"
-                  value={companyData.address}
-                  onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="address">町名番地以下</Label>
+              <Input
+                id="address"
+                value={companyData.address}
+                onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
+              />
             </div>
+            </section>
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">連絡先</h4>
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="company_phone">電話番号</Label>
@@ -901,13 +965,17 @@ export default function SettingsContent({ user, profile, company, subscription, 
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="website">ウェブサイト</Label>
+              <Label htmlFor="website">会社ホームページ</Label>
               <Input
                 id="website"
                 value={companyData.website}
                 onChange={(e) => setCompanyData(prev => ({ ...prev, website: e.target.value }))}
+                placeholder="https:// から入力"
               />
             </div>
+            </section>
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">経営指標</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="industry">業種</Label>
@@ -915,7 +983,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   id="industry"
                   value={companyData.industry}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, industry: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 >
                   <option value="">選択してください</option>
                   {industries.map(ind => (
@@ -929,7 +997,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   id="employee_count"
                   value={companyData.employee_count}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, employee_count: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 >
                   <option value="">選択してください</option>
                   {employeeRanges.map(range => (
@@ -953,9 +1021,9 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   id="annual_revenue"
                   value={companyData.annual_revenue}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, annual_revenue: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 >
-                  <option value="">選択してください</option>
+                  <option value="">選択してください（任意）</option>
                   {revenueRanges.map(range => (
                     <option key={range} value={range}>{range}</option>
                   ))}
@@ -981,34 +1049,89 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="fiscal_year_end">決算月</Label>
-                <select
-                  id="fiscal_year_end"
-                  value={companyData.fiscal_year_end}
-                  onChange={(e) => setCompanyData(prev => ({ ...prev, fiscal_year_end: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">選択してください</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>{i + 1}月</option>
-                  ))}
-                </select>
-              </div>
-              <div></div>
+            <div className="grid gap-2">
+              <Label htmlFor="fiscal_year_end">決算開始月</Label>
+              <select
+                id="fiscal_year_end"
+                value={companyData.fiscal_year_end}
+                onChange={(e) => setCompanyData(prev => ({ ...prev, fiscal_year_end: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              >
+                <option value="">選択してください（任意）</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>{i + 1}月</option>
+                ))}
+              </select>
             </div>
+            </section>
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">事業内容</h4>
             <div className="grid gap-2">
               <Label htmlFor="business_description">事業内容</Label>
               <textarea
                 id="business_description"
                 value={companyData.business_description}
                 onChange={(e) => setCompanyData(prev => ({ ...prev, business_description: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[100px]"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[100px] w-full"
               />
             </div>
+            </section>
 
-            {/* 会社資料アップロード */}
+            {/* 追加情報（外部情報検索結果）・デバッグ・再取得 */}
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">追加情報（外部情報検索結果）</h4>
+              {company?.retrieved_info && typeof company.retrieved_info === 'object' ? (
+                <>
+                  <div className="grid gap-2">
+                    <Label>取得済みの要約・メモ</Label>
+                    <div className="px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 min-h-[80px] text-sm text-gray-800 whitespace-pre-wrap">
+                      {(company.retrieved_info as Record<string, unknown>).summary != null
+                        ? String((company.retrieved_info as Record<string, unknown>).summary)
+                        : (company.retrieved_info as Record<string, unknown>).rawNotes != null
+                          ? String((company.retrieved_info as Record<string, unknown>).rawNotes)
+                          : '（要約・メモはありません）'}
+                    </div>
+                  </div>
+                  <details className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <summary className="cursor-pointer text-xs font-medium text-gray-700">保存されている取得情報</summary>
+                    <pre className="mt-2 whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-72 overflow-auto">
+                      {JSON.stringify(company.retrieved_info, null, 2)}
+                    </pre>
+                  </details>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">まだ外部情報の取得がありません。下の「会社情報を再取得」でWebから取得できます。</p>
+              )}
+              <div className="space-y-2">
+                {companyData.website?.trim() ? (
+                  <p className="text-sm text-gray-700">
+                    会社ホームページのアドレスが登録されています。このURLで再取得します。<br />
+                    <span className="font-mono text-xs text-gray-600 break-all">{companyData.website.trim()}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-600">会社ホームページのアドレスを上記「連絡先」の下にある「会社ホームページ」欄に入力してから再取得できます。</p>
+                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRefetchCompany}
+                    disabled={refetchingCompany || !companyData.website?.trim()}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    {refetchingCompany ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Globe className="w-4 h-4 mr-2" />
+                    )}
+                    会社情報を再取得
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">会社資料</h4>
             <div className="grid gap-2">
               <Label>会社資料</Label>
               <FileUpload
@@ -1068,7 +1191,8 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 </div>
               )}
             </div>
-            
+            </section>
+
             <Button onClick={handleSaveCompany} disabled={isLoading || isUploadingDocuments} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">
               {isLoading ? (
                 <>
@@ -1086,7 +1210,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
         </Card>
 
         {/* パスワード変更 */}
-        <Card className="bg-white border border-gray-200">
+        <Card id="password-section" className="bg-white border border-gray-200">
           <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
             <CardTitle>パスワード変更</CardTitle>
             <CardDescription>アカウントのパスワードを変更できます</CardDescription>

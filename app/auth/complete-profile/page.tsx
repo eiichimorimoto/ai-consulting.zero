@@ -250,7 +250,7 @@ export default function CompleteProfilePage() {
     fax: '',
     businessDescription: '',
     capital: '',
-    fiscalYearEnd: '', // 決算月（1-12）
+    fiscalYearEnd: '', // 決算開始月（1-12）。DBには期末で保存するため保存時に変換
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
   const [companyIntelMeta, setCompanyIntelMeta] = useState<Record<string, any> | null>(null)
@@ -1438,7 +1438,10 @@ export default function CompleteProfilePage() {
         // 資本金を自動セット（取得できた場合のみ）
         capital: intel.capital || prev.capital,
         // 決算月を自動セット（取得できた場合のみ）
-        fiscalYearEnd: intel.fiscalYearEnd || prev.fiscalYearEnd,
+        // APIは期末（例: 3月決算→"3"）。表示は決算開始月のため変換
+        fiscalYearEnd: intel.fiscalYearEnd
+          ? (intel.fiscalYearEnd === '12' ? '1' : String(parseInt(intel.fiscalYearEnd, 10) + 1))
+          : prev.fiscalYearEnd,
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
         retrievedInfo: (() => {
           const lines: string[] = []
@@ -1685,7 +1688,10 @@ export default function CompleteProfilePage() {
           fax: companyData.fax || null,
           business_description: companyData.businessDescription || null,
           capital: companyData.capital || null,
-          fiscal_year_end: companyData.fiscalYearEnd ? parseInt(companyData.fiscalYearEnd) : null,
+          // 画面上は決算開始月。DBには期末で保存（開始1月→12月、それ以外→開始月-1）
+          fiscal_year_end: companyData.fiscalYearEnd
+            ? (parseInt(companyData.fiscalYearEnd, 10) === 1 ? 12 : parseInt(companyData.fiscalYearEnd, 10) - 1)
+            : null,
           ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
         }
         console.log('📝 会社データ挿入:', JSON.stringify(insertData, null, 2))
@@ -1830,7 +1836,10 @@ export default function CompleteProfilePage() {
             fax: companyData.fax || null,
             business_description: companyData.businessDescription || null,
             capital: companyData.capital || null,
-            fiscal_year_end: companyData.fiscalYearEnd ? parseInt(companyData.fiscalYearEnd) : null,
+            // 画面上は決算開始月。DBには期末で保存（開始1月→12月、それ以外→開始月-1）
+          fiscal_year_end: companyData.fiscalYearEnd
+            ? (parseInt(companyData.fiscalYearEnd, 10) === 1 ? 12 : parseInt(companyData.fiscalYearEnd, 10) - 1)
+            : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
           .eq('id', companyId)
@@ -2679,7 +2688,7 @@ export default function CompleteProfilePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="fiscalYearEnd">決算月</Label>
+                    <Label htmlFor="fiscalYearEnd">決算開始月</Label>
                     <select
                       id="fiscalYearEnd"
                       value={companyData.fiscalYearEnd}

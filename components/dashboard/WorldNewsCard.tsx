@@ -54,11 +54,11 @@ export default function WorldNewsCard({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                {cat.category === 'it_tech' && '💻'}
-                {cat.category === 'ai' && '🤖'}
+                {cat.category === 'industry_world' && '🌐'}
                 {cat.category === 'economy' && '📈'}
+                {cat.category === 'geopolitics' && '🗺️'}
                 {cat.category === 'conflict' && '⚠️'}
-                {cat.category === 'software' && '📦'}
+                {cat.category === 'ai' && '🤖'}
                 {cat.title}
               </div>
               {cat.items?.slice(0, 1).map((item, itemIdx) => (

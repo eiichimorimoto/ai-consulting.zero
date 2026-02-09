@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LineChart, IndustryChart } from './DashboardCharts'
@@ -174,7 +174,7 @@ interface WorldNewsItem {
 }
 
 interface WorldNewsCategory {
-  category: 'it_tech' | 'ai' | 'economy' | 'conflict' | 'software'
+  category: 'industry_world' | 'economy' | 'geopolitics' | 'conflict' | 'ai'
   title: string
   items: WorldNewsItem[]
 }
@@ -260,6 +260,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   const [lastUpdatedAbsolute, setLastUpdatedAbsolute] = useState<Record<string, string>>({})
   const [consultationHistoryCount, setConsultationHistoryCount] = useState<number>(0)
   const [swotInfoOpen, setSwotInfoOpen] = useState(false)
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
+  const settingsMenuRef = useRef<HTMLDivElement>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -275,6 +277,32 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     forecast: false,
     news: false
   })
+  // 更新中メッセージ（回転が止まっても「何か更新中」と分かるように常に表示）
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null)
+  // 更新後に「ここが変わった」を吹き出しで表示（数秒で消す）
+  const [sectionChangeSummary, setSectionChangeSummary] = useState<Record<string, string | null>>({})
+  // 比較用：更新前のデータを保持（吹き出しメッセージ生成に使用）
+  const lastSwotRef = useRef<SWOTAnalysis | null>(null)
+  const lastIndustryTrendsRef = useRef<IndustryTrends | null>(null)
+  const lastWorldNewsRef = useRef<WorldNews | null>(null)
+  const lastIndustryForecastRef = useRef<IndustryForecast | null>(null)
+
+  useEffect(() => { lastSwotRef.current = swotAnalysis }, [swotAnalysis])
+  useEffect(() => { lastIndustryTrendsRef.current = industryTrends }, [industryTrends])
+  useEffect(() => { lastWorldNewsRef.current = worldNews }, [worldNews])
+  useEffect(() => { lastIndustryForecastRef.current = industryForecast }, [industryForecast])
+
+  // 更新中メッセージ文言（refreshing の状態から生成）
+  const getUpdateMessageFromRefreshing = useCallback((r: Record<string, boolean>) => {
+    const labels: string[] = []
+    if (r['swot-analysis']) labels.push('SWOT分析')
+    if (r['industry-trends']) labels.push('業界動向')
+    if (r['world-news']) labels.push('世界情勢')
+    if (r['industry-forecast']) labels.push('業界予測')
+    if (labels.length === 0) return null
+    if (labels.length === 1) return `${labels[0]}を更新中です`
+    return '分析データを取得中です'
+  }, [])
 
   interface Notification {
     id: string
@@ -306,10 +334,64 @@ export default function DashboardClient({ profile, company, subscription }: Dash
     return () => clearInterval(interval)
   }, [])
 
+  // アカウント設定メニュー外クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(e.target as Node)) {
+        setSettingsMenuOpen(false)
+      }
+    }
+    if (settingsMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [settingsMenuOpen])
+
+  // 変更内容の要約文を生成（更新前データと新データを比較）
+  const buildChangeSummary = useCallback((sectionType: string, oldData: unknown, newData: unknown): string | null => {
+    if (oldData == null && newData == null) return null
+    if (oldData == null) return '新規に取得しました'
+    if (newData == null) return null
+    const o = oldData as Record<string, unknown>
+    const n = newData as Record<string, unknown>
+    if (sectionType === 'swot-analysis') {
+      const parts: string[] = []
+      const keys = ['strengths', 'weaknesses', 'opportunities', 'threats'] as const
+      const labels = { strengths: '強み', weaknesses: '弱み', opportunities: '機会', threats: '脅威' }
+      for (const k of keys) {
+        const a = (o[k] as unknown[])?.length ?? 0
+        const b = (n[k] as unknown[])?.length ?? 0
+        if (a !== b) parts.push(`${labels[k]}${a}件→${b}件`)
+      }
+      if (parts.length === 0) return '内容を更新しました'
+      return parts.join('、') + ' に更新されました'
+    }
+    if (sectionType === 'industry-trends') {
+      const oldItems = (o.trends as unknown[])?.length ?? 0
+      const newItems = (n.trends as unknown[])?.length ?? 0
+      if (oldItems !== newItems) return `業界動向 ${oldItems}件→${newItems}件 に更新されました`
+      return '業界動向を更新しました'
+    }
+    if (sectionType === 'world-news') {
+      const oldCats = Object.keys((o.categories as Record<string, unknown>) ?? {}).length
+      const newCats = Object.keys((n.categories as Record<string, unknown>) ?? {}).length
+      if (oldCats !== newCats) return `世界情勢 カテゴリ${oldCats}→${newCats} に更新されました`
+      return '世界情勢を更新しました'
+    }
+    if (sectionType === 'industry-forecast') {
+      return '業界予測を更新しました'
+    }
+    return '更新しました'
+  }, [])
+
   // 個別データ取得関数
   const fetchSectionData = async (sectionType: string, forceRefresh = false, signal?: AbortSignal) => {
     try {
-      setRefreshing(prev => ({ ...prev, [sectionType]: true }))
+      setRefreshing(prev => {
+        const next = { ...prev, [sectionType]: true }
+        setUpdateMessage(getUpdateMessageFromRefreshing(next))
+        return next
+      })
       
       let endpoint = ''
       switch (sectionType) {
@@ -358,6 +440,27 @@ export default function DashboardClient({ profile, company, subscription }: Dash
       // エラーレスポンスのチェック
       if (result.error) {
         throw new Error(result.error)
+      }
+
+      // 更新前データと比較して「何が変わったか」の要約を表示してからデータをセット
+      const analysisSections = ['industry-trends', 'swot-analysis', 'world-news', 'industry-forecast']
+      const getOldData = () => {
+        switch (sectionType) {
+          case 'swot-analysis': return lastSwotRef.current
+          case 'industry-trends': return lastIndustryTrendsRef.current
+          case 'world-news': return lastWorldNewsRef.current
+          case 'industry-forecast': return lastIndustryForecastRef.current
+          default: return null
+        }
+      }
+      if (analysisSections.includes(sectionType)) {
+        const summary = buildChangeSummary(sectionType, getOldData(), data)
+        if (summary) {
+          setSectionChangeSummary(prev => ({ ...prev, [sectionType]: summary }))
+          setTimeout(() => {
+            setSectionChangeSummary(prev => ({ ...prev, [sectionType]: null }))
+          }, 5000)
+        }
       }
 
       // データをセット
@@ -417,7 +520,11 @@ export default function DashboardClient({ profile, company, subscription }: Dash
         setSwotError('SWOT分析を作成できませんでした。企業情報が不足しているか、外部データの取得に失敗した可能性があります。')
       }
     } finally {
-      setRefreshing(prev => ({ ...prev, [sectionType]: false }))
+      setRefreshing(prev => {
+        const next = { ...prev, [sectionType]: false }
+        setUpdateMessage(getUpdateMessageFromRefreshing(next))
+        return next
+      })
     }
   }
 
@@ -860,15 +967,55 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 Webサイト分析
               </Link>
             </div>
-            <div className="nav-section">
+            <div className="nav-section" ref={settingsMenuRef}>
               <div className="nav-section-title">設定</div>
-              <Link href="/dashboard/settings" className="nav-item">
-                <svg className="nav-icon" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                </svg>
-                アカウント設定
-              </Link>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="nav-item"
+                  onClick={() => setSettingsMenuOpen(prev => !prev)}
+                  style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', color: 'var(--text-secondary)', fontSize: '13px' }}
+                >
+                  <svg className="nav-icon" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                  アカウント設定
+                  <svg viewBox="0 0 24 24" style={{ width: '12px', height: '12px', marginLeft: 'auto', opacity: 0.7, transform: settingsMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" fill="none" strokeWidth="2"/>
+                  </svg>
+                </button>
+                {settingsMenuOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: '100%',
+                      marginTop: '4px',
+                      minWidth: '200px',
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      zIndex: 200,
+                      padding: '6px 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px'
+                    }}
+                  >
+                    <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '600', color: 'var(--text-light)' }}>アカウント</div>
+                    <Link href="/dashboard/settings?tab=account#profile-section" className="nav-item" style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none', color: 'var(--text-secondary)' }} onClick={() => setSettingsMenuOpen(false)}>プロフィール情報</Link>
+                    <Link href="/dashboard/settings?tab=account#company-section" className="nav-item" style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none', color: 'var(--text-secondary)' }} onClick={() => setSettingsMenuOpen(false)}>会社情報</Link>
+                    <Link href="/dashboard/settings?tab=account#password-section" className="nav-item" style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none', color: 'var(--text-secondary)' }} onClick={() => setSettingsMenuOpen(false)}>パスワード変更</Link>
+                    <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+                    <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '600', color: 'var(--text-light)' }}>プラン・請求</div>
+                    <Link href="/dashboard/settings?tab=plan" className="nav-item" style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none', color: 'var(--text-secondary)' }} onClick={() => setSettingsMenuOpen(false)}>プラン</Link>
+                    <Link href="/dashboard/settings?tab=billing" className="nav-item" style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none', color: 'var(--text-secondary)' }} onClick={() => setSettingsMenuOpen(false)}>請求情報</Link>
+                    <Link href="/dashboard/settings?tab=payment" className="nav-item" style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none', color: 'var(--text-secondary)' }} onClick={() => setSettingsMenuOpen(false)}>支払情報</Link>
+                  </div>
+                )}
+              </div>
             </div>
           </nav>
           <div className="sidebar-footer">
@@ -1154,10 +1301,33 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                 </div>
               </div>
             </section>
+            {/* 更新中メッセージ（回転が止まっても「何か更新中」と分かるように常に表示） */}
+            {updateMessage && (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  padding: '8px 24px',
+                  background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                  borderBottom: '1px solid rgba(99, 102, 241, 0.2)',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: 'var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <svg className="spinning" viewBox="0 0 24 24" style={{ width: '16px', height: '16px', flexShrink: 0, stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                </svg>
+                {updateMessage}
+              </div>
+            )}
           </div>
           {/* 固定ラッパー終了 */}
 
-          <div className="content" style={{ paddingTop: '180px' }}>
+          <div className="content" style={{ paddingTop: updateMessage ? '220px' : '180px' }}>
             {/* 情報セクション大見出し */}
             <div className="section-category-wrapper">
               <div className="section-category-header">
@@ -2392,6 +2562,33 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </button>
                 </div>
               </div>
+              {/* 更新後の変更点メッセージ（キャッシュ差し替え前に表示） */}
+              {(() => {
+                const messages = [
+                  sectionChangeSummary['swot-analysis'],
+                  sectionChangeSummary['industry-trends'],
+                  sectionChangeSummary['world-news'],
+                  sectionChangeSummary['industry-forecast']
+                ].filter((m): m is string => !!m)
+                if (messages.length === 0) return null
+                return (
+                  <div
+                    style={{
+                      order: 0.3,
+                      marginBottom: '12px',
+                      padding: '10px 14px',
+                      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    <span style={{ fontWeight: '600', color: 'rgb(22, 163, 74)' }}>更新内容: </span>
+                    {messages.join(' / ')}
+                  </div>
+                )
+              })()}
               
               {/* タブヘッダー */}
               <div style={{ 
@@ -2856,9 +3053,28 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             flexShrink: 0,
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                           }}>
+                            {cat.category === 'industry_world' && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                              </svg>
+                            )}
                             {cat.category === 'economy' && (
                               <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
                                 <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                              </svg>
+                            )}
+                            {cat.category === 'geopolitics' && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                              </svg>
+                            )}
+                            {cat.category === 'conflict' && (
+                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
                               </svg>
                             )}
                             {cat.category === 'ai' && (
@@ -2867,18 +3083,6 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                 <circle cx="9" cy="10" r="1" fill="white"/>
                                 <circle cx="15" cy="10" r="1" fill="white"/>
                                 <path d="M9 15h6"/>
-                              </svg>
-                            )}
-                            {cat.category === 'it_tech' && (
-                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
-                                <polyline points="16,18 22,12 16,6"/>
-                                <polyline points="8,6 2,12 8,18"/>
-                              </svg>
-                            )}
-                            {!['economy', 'ai', 'it_tech'].includes(cat.category) && (
-                              <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', stroke: 'white', fill: 'none', strokeWidth: 2 }}>
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
                               </svg>
                             )}
                           </div>
@@ -3911,60 +4115,58 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                         </div>
 
                         {/* 提言リスト - SVGアイコン付きカード + タイムスケジュール */}
+                        {(() => {
+                          const now = new Date()
+                          const currentYear = now.getFullYear()
+                          const currentMonth = now.getMonth() + 1
+                          const currentQuarter = Math.ceil(currentMonth / 3)
+                          // 決算期（1-12）から期首月を算出。未設定時は3月決算とみなして期首4月
+                          const fiscalEnd = (company?.fiscal_year_end != null && company.fiscal_year_end >= 1 && company.fiscal_year_end <= 12)
+                            ? Number(company.fiscal_year_end)
+                            : 3
+                          const 期首月 = fiscalEnd === 12 ? 1 : fiscalEnd + 1
+                          // 開始月 = 期首月（決算開始月から開始、+1ヶ月は不要）
+                          const 開始月 = 期首月
+                          const 開始年 = (開始月 > currentMonth) ? currentYear : currentYear + 1
+                          const effortMonthsList = [4, 2, 3]
+                          const recSchedules: { startYear: number; startMonth: number; endYear: number; endMonth: number }[] = []
+                          let sy = 開始年
+                          let sm = 開始月
+                          for (let i = 0; i < 3; i++) {
+                            const total = sy * 12 + (sm - 1) + effortMonthsList[i]
+                            const ey = Math.floor(total / 12)
+                            const em = (total % 12) + 1
+                            recSchedules.push({ startYear: sy, startMonth: sm, endYear: ey, endMonth: em })
+                            sy = ey
+                            sm = em
+                          }
+                          const effortConfigs = [
+                            { effort: '約80人日', support: '外部支援含む', phases: ['要件定義', '開発・導入', '展開・定着'], months: 4 },
+                            { effort: '約40人日', support: '社内対応可', phases: ['分析', '施策実行', '効果測定'], months: 2 },
+                            { effort: '約60人日', support: '一部外部支援', phases: ['現状把握', '対策立案', '実施・検証'], months: 3 }
+                          ]
+                          const currentQuarterNum = currentYear * 4 + currentQuarter - 1
+                          return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {industryForecast.recommendation.split(/[。]/).filter(s => s.trim() && s.trim().length > 5).slice(0, 3).map((item, idx) => {
-                            // 【カテゴリ】を抽出
                             const categoryMatch = item.match(/【(.+?)】/)
                             const category = categoryMatch ? categoryMatch[1] : ['業務効率化', '収益改善', 'リスク対策'][idx]
                             const cleanText = item.replace(/^[①②③]\s*/, '').replace(/【.+?】/, '').trim()
-
-                            // 「：」で施策名とスケジュール詳細を分割
                             const colonIdx = cleanText.indexOf('：') !== -1 ? cleanText.indexOf('：') : cleanText.indexOf(':')
                             const actionTitle = colonIdx !== -1 ? cleanText.substring(0, colonIdx).trim() : cleanText
                             const scheduleDetail = colonIdx !== -1 ? cleanText.substring(colonIdx + 1).trim() : ''
-
-                            // 期限を抽出してタイムスケジュールを計算
-                            const now = new Date()
-                            const currentYear = now.getFullYear()
-                            const currentMonth = now.getMonth() + 1
-                            const currentQuarter = Math.ceil(currentMonth / 3)
-
-                            // テキストから期限を抽出
-                            const monthMatch = item.match(/(\d{1,2})月/)
-                            const yearMatch = item.match(/(\d{4})年/)
-
-                            let targetYear = yearMatch ? parseInt(yearMatch[1]) : currentYear
-                            let targetMonth = monthMatch ? parseInt(monthMatch[1]) : currentMonth + [3, 6, 9][idx]
-                            if (targetMonth > 12) {
-                              targetYear += Math.floor((targetMonth - 1) / 12)
-                              targetMonth = ((targetMonth - 1) % 12) + 1
-                            }
-
-                            // 開始時期を施策ごとにずらす（重複しないように）
-                            const startOffsets = [0, 1, 2] // 四半期オフセット
-                            const startQuarter = currentQuarter + startOffsets[idx]
-                            const startYear = currentYear + Math.floor((startQuarter - 1) / 4)
-                            const adjustedStartQ = ((startQuarter - 1) % 4) + 1
-
-                            // 開始四半期から適切な期間（2〜3四半期）を確保
-                            const minDuration = [3, 2, 2][idx] // 施策ごとの最小期間（四半期数）
-
-                            // 終了四半期と年を計算（開始四半期 + 期間 - 1）
-                            const endQuarterOffset = currentQuarter - 1 + startOffsets[idx] + minDuration - 1
-                            const endYear = currentYear + Math.floor(endQuarterOffset / 4)
-                            const endQuarter = (endQuarterOffset % 4) + 1
-
-                            // 終了月を計算（四半期の最終月: Q1=3月, Q2=6月, Q3=9月, Q4=12月）
-                            const endMonth = endQuarter * 3
-
-                            // 工数と体制の概算設定（施策の優先度に応じた目安値）
-                            // ※実際の工数は要件定義後に精査が必要
-                            const effortConfigs = [
-                              { effort: '約80人日', support: '外部支援含む', phases: ['要件定義', '開発・導入', '展開・定着'] },
-                              { effort: '約40人日', support: '社内対応可', phases: ['分析', '施策実行', '効果測定'] },
-                              { effort: '約60人日', support: '一部外部支援', phases: ['現状把握', '対策立案', '実施・検証'] }
-                            ]
+                            const rec = recSchedules[idx]
+                            const { startYear, startMonth, endYear, endMonth } = rec
                             const effortCfg = effortConfigs[idx]
+                            // 四半期はそのまま表示用（Q1=1-3月, Q2=4-6月, Q3=7-9月, Q4=10-12月）
+                            const startQ = Math.ceil(startMonth / 3)
+                            const endQ = Math.ceil(endMonth / 3)
+                            const startQuarterNum = startYear * 4 + startQ - 1
+                            const endQuarterNum = endYear * 4 + endQ - 1
+                            const durationQuarters = Math.max(1, endQuarterNum - startQuarterNum + 1)
+                            const startIdx = Math.max(0, startQuarterNum - currentQuarterNum)
+                            const barLeft = (startIdx / 4) * 100
+                            const barWidth = (Math.min(durationQuarters, 4 - startIdx) / 4) * 100
 
                             const configs = [
                               { bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04))', border: 'rgba(99, 102, 241, 0.2)', iconBg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1', barColor: '#6366f1', textColor: '#1e293b', shadow: 'rgba(99, 102, 241, 0.2)' },
@@ -3978,19 +4180,14 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                               <svg key="shield" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                             ];
 
-                            // 四半期ラベル生成（現在から4四半期分）
+                            // 四半期ラベル（実際の月範囲で表示: 1-3月, 4-6月, 7-9月, 10-12月）
                             const quarters = Array.from({ length: 4 }, (_, i) => {
                               const q = ((currentQuarter - 1 + i) % 4) + 1
                               const y = currentYear + Math.floor((currentQuarter - 1 + i) / 4)
-                              return { label: `${y}Q${q}`, year: y, quarter: q }
+                              const startM = (q - 1) * 3 + 1
+                              const endM = q * 3
+                              return { label: `${y}年${startM}-${endM}月`, year: y, quarter: q }
                             })
-
-                            // バーの位置計算
-                            const totalQuarters = 4
-                            const startIdx = startOffsets[idx]
-                            const durationQuarters = minDuration
-                            const barLeft = (startIdx / totalQuarters) * 100
-                            const barWidth = (Math.min(durationQuarters, totalQuarters - startIdx) / totalQuarters) * 100
 
                             return (
                               <div key={idx} style={{
@@ -4157,9 +4354,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                                       </div>
                                     </div>
 
-                                    {/* 期間表示 */}
+                                    {/* 期間表示（実際の月を表示） */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '9px', color: '#64748b' }}>
-                                      <span>開始: {startYear}年Q{adjustedStartQ}</span>
+                                      <span>開始: {startYear}年{startMonth}月</span>
                                       <span style={{ color: cfg.accent, fontWeight: '600' }}>完了: {endYear}年{endMonth}月</span>
                                     </div>
                                   </div>
@@ -4168,6 +4365,8 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                             );
                           })}
                         </div>
+                          );
+                        })()}
 
                         {/* AI相談CTA - ガラスデザイン（右寄せ） */}
                         <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>

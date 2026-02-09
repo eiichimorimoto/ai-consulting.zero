@@ -169,7 +169,7 @@ export interface WorldNewsItem {
 }
 
 export interface WorldNewsCategory {
-  category: 'it_tech' | 'ai' | 'economy' | 'conflict' | 'software'
+  category: 'industry_world' | 'economy' | 'geopolitics' | 'conflict' | 'ai'
   title: string
   items: WorldNewsItem[]
 }
