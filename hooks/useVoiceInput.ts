@@ -1,52 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { correctTranscript, getSpeechHints } from '@/lib/shared/voiceDictionary';
 
-// Web Speech API type declarations
-interface SpeechRecognitionResult {
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-  readonly isFinal: boolean;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionEventType {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionErrorEventType {
-  readonly error: string;
-  readonly message: string;
-}
-
-interface SpeechRecognitionType {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  grammars?: unknown;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onstart: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEventType) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventType) => void) | null;
-  onend: (() => void) | null;
-}
-
-interface UseVoiceInputReturn {
+export interface UseVoiceInputReturn {
   isListening: boolean;
   transcript: string;
   startListening: () => void;
@@ -62,132 +18,127 @@ export function useVoiceInput(): UseVoiceInputReturn {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [enableAICorrection, setEnableAICorrection] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionType | null>(null);
+  const enableAICorrectionRef = useRef(enableAICorrection);
+  enableAICorrectionRef.current = enableAICorrection;
 
-  useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  // アンマウント時・停止時にマイクを確実に解放する
+  const stopAllTracks = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
   }, []);
 
-  const startListening = useCallback(() => {
-    setError(null);
+  useEffect(() => {
+    return () => {
+      stopAllTracks();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [stopAllTracks]);
 
-    // Check browser support
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const windowAny = window as any;
-    if (!windowAny.webkitSpeechRecognition && !windowAny.SpeechRecognition) {
-      setError('お使いのブラウザは音声認識に対応していません。Chrome、Edge、Safariをお試しください。');
-      return;
-    }
+  const startListening = useCallback(async () => {
+    setError(null);
+    setTranscript('');
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SpeechRecognitionAPI = windowAny.webkitSpeechRecognition || windowAny.SpeechRecognition;
-      if (!SpeechRecognitionAPI) {
-        setError('音声認識APIが利用できません');
-        return;
-      }
-      const recognition = new SpeechRecognitionAPI() as SpeechRecognitionType;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
 
-      recognition.lang = 'ja-JP';
-      recognition.continuous = true; // Continue listening until stopped
-      recognition.interimResults = true; // Show interim results
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
 
-      // Add speech hints for better recognition of consulting terms
-      const hints = getSpeechHints();
-      if (hints.length > 0 && recognition.grammars) {
+      recorder.onstop = async () => {
+        stopAllTracks();
+        if (chunksRef.current.length === 0) {
+          setError('音声が記録されていません。もう一度お試しください。');
+          setIsListening(false);
+          return;
+        }
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const SpeechGrammarListAPI = windowAny.SpeechGrammarList || windowAny.webkitSpeechGrammarList;
-          if (SpeechGrammarListAPI) {
-            const grammarList = new SpeechGrammarListAPI();
-            const grammar = `#JSGF V1.0; grammar terms; public <term> = ${hints.join(' | ')} ;`;
-            grammarList.addFromString(grammar, 1);
-            recognition.grammars = grammarList;
+          const formData = new FormData();
+          formData.append('audio', blob, 'audio.webm');
+          const res = await fetch('/api/stt', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setError(data?.error || '音声の認識に失敗しました');
+            return;
           }
-        } catch {
-          // Grammar list not supported, continue without it
-          console.log('Speech grammar not supported, using basic recognition');
+          let text = (data.text && typeof data.text === 'string') ? data.text.trim() : '';
+          if (text && enableAICorrectionRef.current) {
+            try {
+              const correctRes = await fetch('/api/voice-correct', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+              });
+              const correctData = await correctRes.json();
+              if (correctRes.ok && correctData?.text && typeof correctData.text === 'string') {
+                text = correctData.text.trim();
+              }
+            } catch {
+              // 補正失敗時は元のテキストを使用
+            }
+          }
+          if (text) setTranscript(text);
+        } catch (e) {
+          console.error('STT request error:', e);
+          setError('音声の送信に失敗しました。ネットワークを確認してください。');
+        } finally {
+          setIsListening(false);
         }
-      }
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setTranscript('');
       };
 
-      recognition.onresult = (event: SpeechRecognitionEventType) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcriptResult = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcriptResult + ' ';
-          } else {
-            interimTranscript += transcriptResult;
-          }
-        }
-
-        setTranscript((prev) => {
-          // If we have a final result, append it to previous final results
-          if (finalTranscript) {
-            // Apply dictionary correction to final transcript
-            const corrected = correctTranscript(finalTranscript);
-            return prev + corrected;
-          }
-          // Otherwise, show interim result (no correction for interim)
-          return prev + interimTranscript;
-        });
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEventType) => {
-        console.error('音声認識エラー:', event.error);
-
-        let errorMessage = '音声認識でエラーが発生しました';
-        switch (event.error) {
-          case 'no-speech':
-            errorMessage = '音声が検出されませんでした。もう一度お試しください。';
-            break;
-          case 'audio-capture':
-            errorMessage = 'マイクにアクセスできません。マイクの設定を確認してください。';
-            break;
-          case 'not-allowed':
-            errorMessage = 'マイクの使用が許可されていません。ブラウザの設定を確認してください。';
-            break;
-          case 'network':
-            errorMessage = 'ネットワークエラーが発生しました。';
-            break;
-        }
-
-        setError(errorMessage);
+      recorder.onerror = () => {
+        setError('録音中にエラーが発生しました');
+        stopAllTracks();
         setIsListening(false);
       };
 
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setIsListening(true);
     } catch (err) {
-      console.error('音声認識の初期化エラー:', err);
-      setError('音声認識を開始できませんでした');
+      console.error('useVoiceInput start error:', err);
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setError('マイクの使用が許可されていません。ブラウザの設定を確認してください。');
+        } else if (err.name === 'NotFoundError') {
+          setError('マイクが見つかりません。');
+        } else {
+          setError('音声認識を開始できませんでした');
+        }
+      } else {
+        setError('音声認識を開始できませんでした');
+      }
       setIsListening(false);
     }
   }, []);
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+      // 録音停止直後にマイクを解放し、ブラウザのマイク表示をすぐ消す
+      stopAllTracks();
     }
     setIsListening(false);
-  }, []);
+  }, [stopAllTracks]);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');

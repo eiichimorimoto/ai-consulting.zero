@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Send, TrendingDown, DollarSign, Rocket, Users, Edit3, Cpu, Shield, Cloud, Zap, Loader2, User, Volume2, VolumeX, Pin, Download } from "lucide-react";
+import { ArrowRight, Send, TrendingDown, DollarSign, Edit3, Cpu, Zap, Loader2, User, Volume2, VolumeX, Pin, Download, UserPlus, Briefcase, Scale } from "lucide-react";
 import { CHAT, BUTTON } from "@/lib/consulting-ui-tokens";
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useRef } from 'react';
@@ -32,13 +32,12 @@ export interface ChatAreaProps {
 const iconMap: Record<string, React.ElementType> = {
   TrendingDown,
   DollarSign,
-  Rocket,
-  Users,
-  Edit3,
+  UserPlus,
+  Briefcase,
+  Zap,
   Cpu,
-  Shield,
-  Cloud,
-  Zap
+  Scale,
+  Edit3,
 };
 
 export default function ChatArea({ 

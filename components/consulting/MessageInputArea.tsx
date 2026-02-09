@@ -166,14 +166,19 @@ export default function MessageInputArea({
                   }
                 }}
                 size="icon"
-                variant={isListening ? "destructive" : "outline"}
+                variant="outline"
                 type="button"
+                aria-label={isListening ? "音声入力を停止" : "音声入力を開始"}
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isListening ? (
+                  <MicOff className="w-4 h-4" aria-hidden />
+                ) : (
+                  <Mic className="w-4 h-4" aria-hidden />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{isListening ? '音声入力を停止' : '音声入力を開始'}</p>
+              <p>{isListening ? 'クリックで停止' : '音声入力を開始'}</p>
             </TooltipContent>
           </Tooltip>
           <Button onClick={onSendMessage} size="icon" disabled={isListening} className={BUTTON.primary}>

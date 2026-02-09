@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Settings, Sparkles, BookOpen } from "lucide-react";
-import { CONSULTING_DICTIONARY, getCategories } from "@/lib/shared/voiceDictionary";
+import { Settings, Sparkles } from "lucide-react";
 
 interface VoiceSettingsDialogProps {
   enableAICorrection: boolean;
@@ -24,15 +22,6 @@ export function VoiceSettingsDialog({
   enableAICorrection,
   onToggleAICorrection,
 }: VoiceSettingsDialogProps) {
-  const categories = getCategories();
-  const categoryLabels: Record<string, string> = {
-    metrics: "ビジネス指標",
-    consulting: "コンサルティング",
-    technology: "テクノロジー",
-    finance: "財務",
-    strategy: "戦略",
-  };
-
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -71,60 +60,6 @@ export function VoiceSettingsDialog({
               checked={enableAICorrection}
               onCheckedChange={onToggleAICorrection}
             />
-          </div>
-
-          {/* Dictionary Section */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-              <h3 className="font-semibold text-gray-900 dark:text-slate-100">カスタム辞書</h3>
-              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200">
-                {CONSULTING_DICTIONARY.length}語
-              </Badge>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-slate-300">
-              コンサルティング業界でよく使われる専門用語を登録済みです。
-              これらの用語は自動的に認識精度が向上します。
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-              {categories.map((category) => {
-                const entries = CONSULTING_DICTIONARY.filter(
-                  (e) => e.category === category
-                );
-                const label = categoryLabels[category] || category;
-
-                return (
-                  <div
-                    key={category}
-                    className="p-3 rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-800"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-sm text-gray-900 dark:text-slate-100">{label}</h4>
-                      <Badge variant="outline" className="text-xs border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300">
-                        {entries.length}語
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {entries.slice(0, 6).map((entry) => (
-                        <Badge
-                          key={entry.term}
-                          variant="secondary"
-                          className="text-xs bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200"
-                        >
-                          {entry.term}
-                        </Badge>
-                      ))}
-                      {entries.length > 6 && (
-                        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200">
-                          +{entries.length - 6}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           {/* Tips Section */}

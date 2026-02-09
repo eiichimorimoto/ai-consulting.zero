@@ -15,6 +15,9 @@ import { CategoryData } from "@/types/consulting";
  * - createInitialSessionForNewUser: 新規ユーザーの初期セッション
  * - handleNewSession: 新規セッション作成時
  */
+/**
+ * 悩み事・相談の汎用カテゴリ（その他・最初2つ・DXは維持、他は悩み事系に統一）
+ */
 export const CONSULTING_CATEGORIES: CategoryData[] = [
   { 
     label: "売上の伸び悩み", 
@@ -29,16 +32,22 @@ export const CONSULTING_CATEGORIES: CategoryData[] = [
     bgLight: "bg-green-50 border-green-200" 
   },
   { 
-    label: "新規事業立ち上げ", 
-    icon: "Rocket", 
+    label: "人材・採用", 
+    icon: "UserPlus", 
     color: "bg-blue-500", 
     bgLight: "bg-blue-50 border-blue-200" 
   },
   { 
-    label: "組織改革", 
-    icon: "Users", 
+    label: "働き方・組織", 
+    icon: "Briefcase", 
     color: "bg-purple-500", 
     bgLight: "bg-purple-50 border-purple-200" 
+  },
+  { 
+    label: "業務効率化", 
+    icon: "Zap", 
+    color: "bg-yellow-500", 
+    bgLight: "bg-yellow-50 border-yellow-200" 
   },
   { 
     label: "DX推進", 
@@ -47,22 +56,10 @@ export const CONSULTING_CATEGORIES: CategoryData[] = [
     bgLight: "bg-indigo-50 border-indigo-200" 
   },
   { 
-    label: "セキュリティ強化", 
-    icon: "Shield", 
+    label: "法務・リスク", 
+    icon: "Scale", 
     color: "bg-amber-500", 
     bgLight: "bg-amber-50 border-amber-200" 
-  },
-  { 
-    label: "クラウド移行", 
-    icon: "Cloud", 
-    color: "bg-cyan-500", 
-    bgLight: "bg-cyan-50 border-cyan-200" 
-  },
-  { 
-    label: "業務自動化", 
-    icon: "Zap", 
-    color: "bg-yellow-500", 
-    bgLight: "bg-yellow-50 border-yellow-200" 
   },
   { 
     label: "その他", 
