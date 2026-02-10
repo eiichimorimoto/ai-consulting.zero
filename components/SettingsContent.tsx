@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import FileUpload from '@/components/FileUpload'
 import DocumentItem from '@/components/DocumentItem'
+import { getPlanMeta, getPlanLimits } from '@/lib/plan-config'
 
 interface SettingsContentProps {
   user: {
@@ -40,6 +41,7 @@ interface SettingsContentProps {
 export default function SettingsContent({ user, profile, company, subscription, initialTab }: SettingsContentProps & { initialTab?: string }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(initialTab || 'account')
+  const [accountSubTab, setAccountSubTab] = useState<'profile' | 'company' | 'password'>('profile')
   const [isLoading, setIsLoading] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
@@ -51,24 +53,24 @@ export default function SettingsContent({ user, profile, company, subscription, 
   const [postalCodeStatus, setPostalCodeStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [refetchingCompany, setRefetchingCompany] = useState(false)
 
+  const planMeta = getPlanMeta(profile?.plan_type || 'free')
+  const planLimits = getPlanLimits(profile?.plan_type || 'free')
+  const usedChats = Number(profile?.monthly_chat_count ?? 0)
+  const maxTurnsTotal = planLimits.maxTurnsTotal
+  const remainingChats = planLimits.isUnlimited || maxTurnsTotal == null
+    ? null
+    : Math.max(0, maxTurnsTotal - usedChats)
+
   // URL の tab と同期（階層メニューから遷移した場合など）
   useEffect(() => {
     if (initialTab && initialTab !== activeTab) setActiveTab(initialTab)
   }, [initialTab])
 
-  // アカウント設定メニューからハッシュ付きで飛んできた場合、該当セクションへスクロール
+  // アカウント設定画面を開いたときは常に画面先頭にスクロールさせる
   useEffect(() => {
-    if (activeTab !== 'account') return
-    const hash = typeof window !== 'undefined' ? window.location.hash : ''
-    if (!hash) return
-    const id = hash.slice(1)
-    if (!['profile-section', 'company-section', 'password-section'].includes(id)) return
-    const timer = window.setTimeout(() => {
-      const el = document.getElementById(id)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-    return () => window.clearTimeout(timer)
-  }, [activeTab])
+    if (typeof window === 'undefined') return
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [])
 
   // プロフィール情報の状態
   const [profileData, setProfileData] = useState({
@@ -77,6 +79,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
     email: profile?.email || '',
     phone: profile?.phone || '',
     mobile: profile?.mobile || '',
+    position: profile?.position || '',
     department: profile?.department || '',
   })
 
@@ -368,6 +371,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
           name_kana: profileData.name_kana || null,
           phone: profileData.phone || null,
           mobile: profileData.mobile || null,
+          position: profileData.position || null,
           department: profileData.department || null,
           avatar_url: avatarUrl || null,
         })
@@ -581,55 +585,89 @@ export default function SettingsContent({ user, profile, company, subscription, 
     return plans[planType] || planType
   }
 
-  // プラン変更（実際の実装はStripe連携が必要）
+  // プラン変更（DB 更新のみ。決済は未連携）
+  const [isChangingPlan, setIsChangingPlan] = useState(false)
   const handleChangePlan = async (newPlan: string) => {
-    if (confirm(`${getPlanName(newPlan)}プランに変更しますか？`)) {
-      alert('プラン変更機能は準備中です')
-      // TODO: Stripe連携を実装
+    if (!confirm(`${getPlanName(newPlan)}プランに変更しますか？`)) return
+    setIsChangingPlan(true)
+    try {
+      const res = await fetch('/api/settings/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType: newPlan }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data?.error || 'プラン変更に失敗しました')
+        return
+      }
+      toast.success(`${getPlanName(newPlan)}プランに変更しました`)
+      router.refresh()
+    } catch (e) {
+      console.error('change-plan error', e)
+      toast.error('プラン変更の処理中にエラーが発生しました')
+    } finally {
+      setIsChangingPlan(false)
     }
   }
 
-  // LPの料金プラン情報
+  // プランカード表示用の料金プラン情報
   const plans = [
     {
       name: 'Free',
-      subtitle: 'まずは体験してみたい方へ',
+      subtitle: 'まずAIコンサルを体験したい方へ',
       price: '0',
-      unit: '円',
-      features: ['AIチャットで経営相談（月5回まで）', '基本レポート出力機能', '簡易データ分析'],
-      planType: 'free',
+      unit: '円/月',
+      features: [
+        '月5セッション（1セッション15往復）',
+        '全カテゴリ診断OK',
+        '簡易サマリーのみ（最終レポートなし）',
+        'クレジット登録不要',
+      ],
+      planType: 'free' as const,
     },
     {
-      name: 'Standard',
-      subtitle: '本格的な経営支援を受けたい方へ',
-      price: '12,000',
-      unit: '円/月',
-      features: ['無制限AIコンサルティング', '詳細データベース連携・分析', 'カスタムレポート作成', 'メールサポート対応'],
-      planType: 'standard',
+      name: 'Pro',
+      subtitle: '継続的にAIコンサルを業務に組み込みたい方へ',
+      price: '35,000',
+      unit: '円/月（年払い ¥30,000/月）',
+      features: [
+        '月30セッション（1セッション30往復）',
+        '最終レポート出力',
+        '実行計画書の作成',
+        '過去相談の履歴・分析ダッシュボード',
+        '新機能の優先利用権',
+        'クレジット支払対応',
+      ],
+      planType: 'standard' as const,
       highlighted: true,
     },
     {
       name: 'Enterprise',
-      subtitle: '大規模組織向けカスタムプラン',
-      price: 'お問い合わせ',
-      unit: '',
+      subtitle: 'AIコンサルを組織に定着させたい企業向け',
+      price: '120,000〜',
+      unit: '円/月（要相談）',
       features: [
-        'すべての機能＋独自カスタマイズ',
-        '専任AIコンサルタント入稀入',
-        'セキュリティ監査・オンプレ対応',
-        '24時間優先サポート',
+        '無制限セッション',
+        '実行計画支援（進捗管理付き）',
+        '実際のコンサルタント紹介・連携',
+        '全新機能の最速アクセス',
+        'カスタム診断テンプレート',
+        '専任サポート・オンボーディング',
+        'クレジット・請求書払い対応',
       ],
-      planType: 'enterprise',
+      planType: 'enterprise' as const,
     },
   ]
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-0">
+      <div className="sticky top-16 z-10 mb-4 -mt-1 pt-1 bg-white rounded-b-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <TabsList className="grid w-full grid-cols-4 bg-white border border-gray-200 rounded-lg p-0">
         <TabsTrigger 
           value="account" 
-          className={`data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm ${
-            activeTab === 'account' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600'
+          className={`border-0 px-4 py-2.5 text-sm font-medium border-r border-gray-200 rounded-l-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-transparent ${
+            activeTab === 'account' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <User className="w-4 h-4 mr-2" />
@@ -637,8 +675,8 @@ export default function SettingsContent({ user, profile, company, subscription, 
         </TabsTrigger>
         <TabsTrigger 
           value="plan"
-          className={`data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm ${
-            activeTab === 'plan' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600'
+          className={`border-0 px-4 py-2.5 text-sm font-medium border-r border-gray-200 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-transparent ${
+            activeTab === 'plan' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <Shield className="w-4 h-4 mr-2" />
@@ -646,8 +684,8 @@ export default function SettingsContent({ user, profile, company, subscription, 
         </TabsTrigger>
         <TabsTrigger 
           value="billing"
-          className={`data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm ${
-            activeTab === 'billing' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600'
+          className={`border-0 px-4 py-2.5 text-sm font-medium border-r border-gray-200 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-transparent ${
+            activeTab === 'billing' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <FileText className="w-4 h-4 mr-2" />
@@ -655,26 +693,52 @@ export default function SettingsContent({ user, profile, company, subscription, 
         </TabsTrigger>
         <TabsTrigger 
           value="payment"
-          className={`data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm ${
-            activeTab === 'payment' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600'
+          className={`border-0 px-4 py-2.5 text-sm font-medium rounded-r-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white ${
+            activeTab === 'payment' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <CreditCard className="w-4 h-4 mr-2" />
           支払情報
         </TabsTrigger>
-      </TabsList>
+        </TabsList>
+      </div>
 
       {/* アカウント管理タブ */}
-      <TabsContent value="account" className="mt-6 space-y-6">
-        {/* プロフィール情報 */}
-        <Card id="profile-section" className="bg-white border border-gray-200">
-          <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
-            <CardTitle>プロフィール情報</CardTitle>
-            <CardDescription>個人情報を変更できます</CardDescription>
+      <TabsContent value="account" className="mt-4 space-y-6">
+        {/* アカウント内サブタブ（プロフィール / 会社情報 / パスワード変更） */}
+        <Tabs value={accountSubTab} onValueChange={(v) => setAccountSubTab(v as typeof accountSubTab)} className="gap-0">
+          <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200 rounded-lg p-0 mb-4">
+            <TabsTrigger
+              value="profile"
+              className="border-0 px-4 py-2.5 text-sm font-medium border-r border-gray-200 rounded-l-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:border-transparent text-gray-600 hover:bg-gray-50"
+            >
+              プロフィール
+            </TabsTrigger>
+            <TabsTrigger
+              value="company"
+              className="border-0 px-4 py-2.5 text-sm font-medium border-r border-gray-200 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:border-transparent text-gray-600 hover:bg-gray-50"
+            >
+              会社情報
+            </TabsTrigger>
+            <TabsTrigger
+              value="password"
+              className="border-0 px-4 py-2.5 text-sm font-medium rounded-r-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-gray-600 hover:bg-gray-50"
+            >
+              パスワード変更
+            </TabsTrigger>
+          </TabsList>
+
+          {/* プロフィール情報 */}
+          <TabsContent value="profile" className="space-y-6">
+        <Card id="profile-section" className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">プロフィール情報</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">個人情報を変更できます</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">基本情報</h4>
+          <CardContent className="pt-6 space-y-6 bg-white">
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">基本情報</h4>
+              <div className="p-4 space-y-4">
             {/* プロフィール写真 */}
             <div className="grid gap-2">
               <Label htmlFor="avatar">写真</Label>
@@ -760,9 +824,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
+              </div>
             </section>
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">連絡先</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">連絡先</h4>
+              <div className="p-4 space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="email">メールアドレス</Label>
               <Input
@@ -792,24 +858,76 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 />
               </div>
             </div>
+              </div>
             </section>
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">部署</h4>
-            <div className="grid gap-2">
-              <Label htmlFor="department">部署</Label>
-              <select
-                id="department"
-                value={profileData.department}
-                onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              >
-                <option value="">選択してください（任意）</option>
-                {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">肩書き・部署</h4>
+              <div className="p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="position">肩書き</Label>
+                <Input
+                  id="position"
+                  value={profileData.position}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
+                  placeholder="例：部長、課長"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="department">部署</Label>
+                <select
+                  id="department"
+                  value={profileData.department}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">選択してください（任意）</option>
+                  {departments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+              </div>
             </section>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">アカウント情報</h4>
+              <div className="p-4 space-y-2">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">現在のプラン:</span>{' '}
+                  {planMeta.label}（{planMeta.priceLabel}）
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">今月の課題数:</span>{' '}
+                  {planLimits.isUnlimited || planLimits.maxSessions == null
+                    ? '制限なし'
+                    : `上限 ${planLimits.maxSessions} 件`}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">今月のAI相談:</span>{' '}
+                  {planLimits.isUnlimited || maxTurnsTotal == null
+                    ? '制限なし'
+                    : `${usedChats} / ${maxTurnsTotal} 回`}
+                </p>
+                {!planLimits.isUnlimited && remainingChats != null && (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">残り相談可能回数:</span>{' '}
+                    既存の課題であと {remainingChats} 回 AI に相談できます
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab('plan')}
+                  className="mt-2"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  プラン詳細・変更を見る
+                </Button>
+              </div>
+            </section>
+            <div className="pt-2">
             <Button onClick={handleSaveProfile} disabled={isLoading} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">
               {isLoading ? (
                 <>
@@ -823,18 +941,22 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 </>
               )}
             </Button>
+            </div>
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* 会社情報 */}
-        <Card id="company-section" className="bg-white border border-gray-200">
-          <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
-            <CardTitle>会社情報</CardTitle>
-            <CardDescription>会社の基本情報を変更できます</CardDescription>
+          {/* 会社情報 */}
+          <TabsContent value="company" className="space-y-6">
+        <Card id="company-section" className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">会社情報</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">会社の基本情報を変更できます</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">基本情報</h4>
+          <CardContent className="pt-6 space-y-6 bg-white">
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">基本情報</h4>
+              <div className="p-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="company_name">会社名 <span className="text-red-500">*</span></Label>
@@ -862,9 +984,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 placeholder="13桁の数字"
               />
             </div>
+              </div>
             </section>
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">住所</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">住所</h4>
+              <div className="p-4 space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="postal_code">郵便番号</Label>
@@ -934,9 +1058,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
               />
             </div>
+              </div>
             </section>
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">連絡先</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">連絡先</h4>
+              <div className="p-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="company_phone">電話番号</Label>
@@ -973,9 +1099,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 placeholder="https:// から入力"
               />
             </div>
+              </div>
             </section>
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">経営指標</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">経営指標</h4>
+              <div className="p-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="industry">業種</Label>
@@ -983,7 +1111,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   id="industry"
                   value={companyData.industry}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, industry: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">選択してください</option>
                   {industries.map(ind => (
@@ -997,7 +1125,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   id="employee_count"
                   value={companyData.employee_count}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, employee_count: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">選択してください</option>
                   {employeeRanges.map(range => (
@@ -1021,7 +1149,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   id="annual_revenue"
                   value={companyData.annual_revenue}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, annual_revenue: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">選択してください（任意）</option>
                   {revenueRanges.map(range => (
@@ -1055,7 +1183,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 id="fiscal_year_end"
                 value={companyData.fiscal_year_end}
                 onChange={(e) => setCompanyData(prev => ({ ...prev, fiscal_year_end: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="">選択してください（任意）</option>
                 {[...Array(12)].map((_, i) => (
@@ -1063,23 +1191,27 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 ))}
               </select>
             </div>
+              </div>
             </section>
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">事業内容</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">事業内容</h4>
+              <div className="p-4">
             <div className="grid gap-2">
               <Label htmlFor="business_description">事業内容</Label>
               <textarea
                 id="business_description"
                 value={companyData.business_description}
                 onChange={(e) => setCompanyData(prev => ({ ...prev, business_description: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[100px] w-full"
+                className="px-3 py-2 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px] w-full"
               />
             </div>
+              </div>
             </section>
 
             {/* 追加情報（外部情報検索結果）・デバッグ・再取得 */}
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">追加情報（外部情報検索結果）</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">追加情報（外部情報検索結果）</h4>
+              <div className="p-4 space-y-4">
               {company?.retrieved_info && typeof company.retrieved_info === 'object' ? (
                 <>
                   <div className="grid gap-2">
@@ -1128,10 +1260,12 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   </Button>
                 </div>
               </div>
+              </div>
             </section>
 
-            <section className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2">会社資料</h4>
+            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">会社資料</h4>
+              <div className="p-4">
             <div className="grid gap-2">
               <Label>会社資料</Label>
               <FileUpload
@@ -1191,6 +1325,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                 </div>
               )}
             </div>
+              </div>
             </section>
 
             <Button onClick={handleSaveCompany} disabled={isLoading || isUploadingDocuments} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">
@@ -1208,14 +1343,16 @@ export default function SettingsContent({ user, profile, company, subscription, 
             </Button>
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* パスワード変更 */}
-        <Card id="password-section" className="bg-white border border-gray-200">
-          <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
-            <CardTitle>パスワード変更</CardTitle>
-            <CardDescription>アカウントのパスワードを変更できます</CardDescription>
+          {/* パスワード変更 */}
+          <TabsContent value="password" className="space-y-6">
+        <Card id="password-section" className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">パスワード変更</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">アカウントのパスワードを変更できます</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="pt-6 space-y-4 bg-white">
             <div className="grid gap-2">
               <Label htmlFor="currentPassword">現在のパスワード</Label>
               <Input
@@ -1258,20 +1395,24 @@ export default function SettingsContent({ user, profile, company, subscription, 
             </Button>
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </TabsContent>
 
       {/* プラン変更タブ */}
-      <TabsContent value="plan" className="mt-6">
-        <Card className="bg-white border border-gray-200">
-          <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
-            <CardTitle>プラン管理</CardTitle>
-            <CardDescription>現在のプランと使用状況を確認できます</CardDescription>
+      <TabsContent value="plan" className="mt-4">
+        <Card className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">プラン管理</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">現在のプランと使用状況を確認できます</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="mb-8 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
+          <CardContent className="pt-6 bg-white">
+            <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{getPlanName(profile?.plan_type || 'free')}プラン</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    現在のプラン: {planMeta.label}（{planMeta.priceLabel}）
+                  </h3>
                   {subscription?.status && (
                     <p className="text-sm text-gray-600 mt-1">
                       ステータス: {subscription.status === 'active' ? '有効' : subscription.status}
@@ -1339,7 +1480,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                           : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700'
                       }`}
                       onClick={() => handleChangePlan(plan.planType)}
-                      disabled={profile?.plan_type === plan.planType}
+                      disabled={profile?.plan_type === plan.planType || isChangingPlan}
                     >
                       {profile?.plan_type === plan.planType ? '現在のプラン' : 'プランを変更'}
                     </Button>
@@ -1352,11 +1493,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
       </TabsContent>
 
       {/* 請求情報タブ */}
-      <TabsContent value="billing" className="mt-6">
-        <Card className="bg-white border border-gray-200">
-          <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
-            <CardTitle>請求履歴</CardTitle>
-            <CardDescription>これまでの請求履歴を確認できます</CardDescription>
+      <TabsContent value="billing" className="mt-4">
+        <Card className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">請求履歴</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">これまでの請求履歴を確認できます</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="text-center py-12 text-gray-500">
@@ -1369,11 +1510,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
       </TabsContent>
 
       {/* 支払情報タブ */}
-      <TabsContent value="payment" className="mt-6">
-        <Card className="bg-white border border-gray-200">
-          <CardHeader className="bg-blue-50 border-b border-blue-200 rounded-t-lg px-6 py-4">
-            <CardTitle>支払い方法</CardTitle>
-            <CardDescription>クレジットカードなどの支払い方法を管理できます</CardDescription>
+      <TabsContent value="payment" className="mt-4">
+        <Card className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">支払い方法</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">クレジットカードなどの支払い方法を管理できます</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="text-center py-12 text-gray-500">
