@@ -15,6 +15,24 @@ Supabaseからクライアント情報を取得し、DifyでAIコンサルティ
 
 ---
 
+## 📥 アプリから渡される入力（Chatflow API）
+
+Next.js の `/api/dify/chat` 経由で Dify に送っている `inputs` は以下のとおりです。**LLM のシステムプロンプトで参照すると、STEP に応じた応答**（例：STEP1 では「なぜそうなったと思いますか？」のような深掘り質問）ができます。
+
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `company_name`, `industry`, `business_description` 等 | 会社・プロフィール情報 | （既存） |
+| `selected_category` | ユーザーが選んだメインカテゴリ | 売上の伸び悩み |
+| `selected_subcategory` | ユーザーが選んだサブカテゴリ | 既存顧客の離脱 |
+| **`consulting_step_number`** | 現在のSTEP（1〜5） | 1 |
+| **`consulting_step_title`** | STEP の表示名 | 課題のヒアリング |
+| **`consulting_step_goal`** | このSTEPでやること（プロンプト用） | 課題の深掘りヒアリング。選択されたテーマについて「なぜそうなったと思うか」… |
+
+**Dify 側の設定例（LLM ノードのシステムプロンプト）**  
+「今は STEP {{consulting_step_number}}（{{consulting_step_title}}）です。{{consulting_step_goal}} に従い、回答は会話調で簡潔に。」
+
+---
+
 ## 🔧 ワークフロー構成
 
 ```

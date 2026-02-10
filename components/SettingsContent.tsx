@@ -36,9 +36,11 @@ interface SettingsContentProps {
   profile: any
   company: any
   subscription: any
+   /** 今月の相談セッション数（課題数） */
+  monthlySessionCount: number
 }
 
-export default function SettingsContent({ user, profile, company, subscription, initialTab }: SettingsContentProps & { initialTab?: string }) {
+export default function SettingsContent({ user, profile, company, subscription, monthlySessionCount, initialTab }: SettingsContentProps & { initialTab?: string }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(initialTab || 'account')
   const [accountSubTab, setAccountSubTab] = useState<'profile' | 'company' | 'password'>('profile')
@@ -55,6 +57,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
 
   const planMeta = getPlanMeta(profile?.plan_type || 'free')
   const planLimits = getPlanLimits(profile?.plan_type || 'free')
+  const sessionsThisMonth = Number(monthlySessionCount ?? 0)
   const usedChats = Number(profile?.monthly_chat_count ?? 0)
   const maxTurnsTotal = planLimits.maxTurnsTotal
   const remainingChats = planLimits.isUnlimited || maxTurnsTotal == null
@@ -890,31 +893,13 @@ export default function SettingsContent({ user, profile, company, subscription, 
             </div>
               </div>
             </section>
-            <section className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+            <section id="profile-account-info" className="border border-gray-200 rounded-lg overflow-hidden bg-white">
               <h4 className="text-sm font-semibold text-gray-900 bg-gray-50 border-b border-gray-200 px-4 py-2.5">アカウント情報</h4>
               <div className="p-4 space-y-2">
                 <p className="text-sm text-gray-700">
                   <span className="font-medium">現在のプラン:</span>{' '}
                   {planMeta.label}（{planMeta.priceLabel}）
                 </p>
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium">今月の課題数:</span>{' '}
-                  {planLimits.isUnlimited || planLimits.maxSessions == null
-                    ? '制限なし'
-                    : `上限 ${planLimits.maxSessions} 件`}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium">今月のAI相談:</span>{' '}
-                  {planLimits.isUnlimited || maxTurnsTotal == null
-                    ? '制限なし'
-                    : `${usedChats} / ${maxTurnsTotal} 回`}
-                </p>
-                {!planLimits.isUnlimited && remainingChats != null && (
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">残り相談可能回数:</span>{' '}
-                    既存の課題であと {remainingChats} 回 AI に相談できます
-                  </p>
-                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -923,7 +908,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
                   className="mt-2"
                 >
                   <Shield className="w-4 h-4 mr-2" />
-                  プラン詳細・変更を見る
+                  プラン詳細・利用状況を見る
                 </Button>
               </div>
             </section>
@@ -1426,6 +1411,26 @@ export default function SettingsContent({ user, profile, company, subscription, 
                     </p>
                   )}
                 </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">今月の課題数:</span>{' '}
+                  {planLimits.isUnlimited || planLimits.maxSessions == null
+                    ? '制限なし'
+                    : `${sessionsThisMonth} / ${planLimits.maxSessions} 件`}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">今月のAI相談:</span>{' '}
+                  {planLimits.isUnlimited || maxTurnsTotal == null
+                    ? '制限なし'
+                    : `${usedChats} / ${maxTurnsTotal} 回`}
+                </p>
+                {!planLimits.isUnlimited && remainingChats != null && (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">残り相談可能回数:</span>{' '}
+                    既存の課題であと {remainingChats} 回 AI に相談できます
+                  </p>
+                )}
               </div>
             </div>
 

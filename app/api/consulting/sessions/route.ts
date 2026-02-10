@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadFile } from '@/lib/storage/upload'
 import { extractText, isSupportedTextFile } from '@/lib/file-processing/text-extractor'
+import { getPlanLimits } from '@/lib/plan-config'
 
 /**
  * GET /api/consulting/sessions
@@ -113,12 +114,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ユーザープロフィール取得（company_id取得のため）
+    // ユーザープロフィール取得（company_id・plan_type取得のため）
     const { data: profile } = await supabase
       .from('profiles')
-      .select('company_id')
+      .select('company_id, plan_type')
       .eq('user_id', user.id)
       .single()
+
+    // プラン別のセッション上限チェック（Enterprise は制限なし）
+    const { maxSessions, isUnlimited } = getPlanLimits(profile?.plan_type as string | undefined)
+    if (!isUnlimited && maxSessions != null) {
+      const now = new Date()
+      const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0))
+      const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59))
+
+      const { count: sessionCount, error: countError } = await supabase
+        .from('consulting_sessions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString())
+        .lte('created_at', endOfMonth.toISOString())
+
+      if (countError) {
+        console.error('Session count error:', countError)
+        return NextResponse.json(
+          { error: 'Failed to check session limits' },
+          { status: 500 }
+        )
+      }
+
+      if ((sessionCount || 0) >= maxSessions) {
+        return NextResponse.json(
+          { 
+            error: 'Session limit exceeded',
+            message: '今月の課題数の上限に達しました。アカウントのプランをご覧ください。'
+          },
+          { status: 400 }
+        )
+      }
+    }
 
     // セッション作成
     const { data: session, error: sessionError } = await supabase

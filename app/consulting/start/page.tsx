@@ -202,6 +202,9 @@ export default function ConsultingStartPage() {
   // Voice input（resetTranscriptが必要なため先に初期化）
   const { isListening, transcript, startListening, stopListening, resetTranscript, error: voiceError, enableAICorrection, setEnableAICorrection } = useVoiceInput();
 
+  // プラン上限到達時のダイアログ表示用状態
+  const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
+
   // カスタムhook: メッセージ処理
   const message = useMessageHandlers({
     currentSession: session.currentSession,
@@ -212,6 +215,7 @@ export default function ConsultingStartPage() {
     attachedFiles: file.attachedFiles,
     clearFiles: file.clearFiles,
     resetTranscript,
+    onPlanLimitReached: (msg) => setPlanLimitMessage(msg || '今月の課題数の上限に達しました。アカウントのプランをご覧ください。'),
   });
 
   // ページネーション状態
@@ -460,6 +464,42 @@ export default function ConsultingStartPage() {
         onSetEndSessionStatus={session.setEndSessionStatus}
         onConfirmEndSession={session.confirmEndSession}
       />
+
+      {/* プラン上限到達時の案内ダイアログ */}
+      <AlertDialog
+        open={planLimitMessage !== null}
+        onOpenChange={(open) => {
+          if (!open) setPlanLimitMessage(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-md bg-white text-gray-900 border border-gray-200 shadow-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              今月の課題数の上限に達しました
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-gray-600 whitespace-pre-line">
+              {planLimitMessage ??
+                '今月の課題数の上限に達しました。アカウントのプランをご覧ください。'}
+              {'\n\n'}
+              アカウント設定の「プロフィール」内、アカウント情報をご確認ください。利用状況の詳細は「プラン」タブの現在のプラン枠内に表示されています。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-gray-700 border-gray-300">
+              閉じる
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPlanLimitMessage(null);
+                window.location.href = '/dashboard/settings?tab=account#profile-account-info';
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              アカウント設定（プロフィール）を開く
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">

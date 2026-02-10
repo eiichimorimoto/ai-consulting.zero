@@ -6,8 +6,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { SUBCATEGORY_MAP } from '@/lib/consulting/constants'
+import { SUBCATEGORY_MAP, STEP_TITLES, STEP_GOALS } from '@/lib/consulting/constants'
 import { CONSULTING_CATEGORIES } from '@/lib/consulting/category-data'
+import { getPlanLimits } from '@/lib/plan-config'
 /**
  * GET /api/consulting/sessions/[id]/messages
  * 
@@ -310,6 +311,28 @@ export async function POST(
       userMessage = newMessage
     }
 
+    // 1.5 プラン別の AI相談回数上限チェック（Enterprise は制限なし）
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan_type, monthly_chat_count')
+      .eq('user_id', user.id)
+      .single()
+
+    const { maxTurnsTotal, isUnlimited } = getPlanLimits(profile?.plan_type as string | undefined)
+    if (!isUnlimited && maxTurnsTotal != null) {
+      const used = profile?.monthly_chat_count ?? 0
+      const remaining = maxTurnsTotal - used
+      if (remaining <= 0) {
+        return NextResponse.json(
+          {
+            error: 'Chat limit exceeded',
+            message: '今月のAI相談回数の上限に達しました。アカウントのプランをご覧ください。',
+          },
+          { status: 400 },
+        )
+      }
+    }
+
     // 2. Dify呼び出し（skipDify=trueの場合はスキップ）
     const difyStartTime = Date.now()
     
@@ -327,11 +350,16 @@ export async function POST(
       // 通常のDify呼び出し（ユーザーメッセージをそのまま送信）
       const messageToSend = message
       try {
+        const stepTitle = STEP_TITLES[stepRound - 1] ?? '';
+        const stepGoal = STEP_GOALS[stepRound - 1] ?? '';
         const bodyPayload: Record<string, unknown> = {
           sessionId,
           message: messageToSend,
           userId: user.id,
           categoryInfo,
+          stepRound,
+          stepTitle,
+          stepGoal,
         };
         if (conversationId) {
           bodyPayload.conversationId = conversationId;
@@ -403,6 +431,20 @@ export async function POST(
     if (updateError) {
       console.error('Session update error:', updateError)
       // 更新失敗してもメッセージは保存されているので続行
+    }
+
+    // 4.5 利用カウント加算（実際に Dify を呼び出した場合のみ。skipDify の場合は加算しない）
+    if (!(skipDify && aiResponse)) {
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('monthly_chat_count')
+        .eq('id', user.id)
+        .single()
+      const nextChatCount = (profileRow?.monthly_chat_count ?? 0) + 1
+      await supabase
+        .from('profiles')
+        .update({ monthly_chat_count: nextChatCount })
+        .eq('id', user.id)
     }
 
     // 5. 往復回数上限チェック（current_round は DB の現在値のまま。currentRound は上で定義済み）

@@ -27,6 +27,8 @@ type UseMessageHandlersProps = {
   attachedFiles: File[];
   clearFiles: () => void;
   resetTranscript: () => void;
+  /** プラン上限に達したときの通知（モーダル表示などに使用） */
+  onPlanLimitReached?: (message: string) => void;
 };
 
 /**
@@ -57,6 +59,7 @@ export function useMessageHandlers({
   attachedFiles,
   clearFiles,
   resetTranscript,
+  onPlanLimitReached,
 }: UseMessageHandlersProps) {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -249,22 +252,48 @@ export function useMessageHandlers({
     if (isMainCategory && currentSession.id.startsWith('temp-session-')) {
       try {
         const formData = new FormData();
-        formData.append('category', reply);
-        formData.append('initial_message', reply);
-        formData.append('title', reply);
+        const categoryValue = typeof reply === 'string' ? reply : '';
+        const initialMessage = categoryValue.trim() || '新規相談';
+        formData.append('category', categoryValue);
+        formData.append('initial_message', initialMessage);
+        formData.append('title', categoryValue || '新規相談');
 
         const res = await fetch('/api/consulting/sessions', {
           method: 'POST',
           body: formData,
         });
 
-        if (!res.ok) {
-          throw new Error(`Session creation failed: ${res.status}`);
-        }
+        let data: any = null;
 
-        const data = await res.json();
+        if (!res.ok) {
+          // 失敗時: API のエラーメッセージを解釈し、上限超過ならコールバックを優先
+          let serverMessage = `セッション作成に失敗しました（${res.status}）`;
+          try {
+            const errBody = await res.json();
+            serverMessage = (errBody.message || errBody.error || serverMessage) as string;
+          } catch {
+            // レスポンスがJSONでない場合はそのまま
+          }
+          const isLimitExceeded =
+            serverMessage.includes('上限') || serverMessage.includes('Session limit exceeded');
+
+          if (isLimitExceeded && onPlanLimitReached) {
+            // プラン上限到達時はポップアップなどで明示的に案内したいので、
+            // 呼び出し元のハンドラーに委譲する（トーストは出さない）
+            onPlanLimitReached(serverMessage);
+          } else {
+            // その他のエラーは従来どおりトーストで通知
+            toast.error('セッション作成に失敗しました', {
+              description:
+                serverMessage || '一時的に保存されています。もう一度お試しください。',
+            });
+          }
+        } else {
+          // 成功時のみレスポンスボディをパース
+          data = await res.json();
+        }
         
-        if (data.session?.id) {
+        if (data?.session?.id) {
           const tempId = currentSession.id;
           const realId = data.session.id;
 
