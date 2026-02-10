@@ -409,8 +409,7 @@ export function useMessageHandlers({
         }
       }, 800);
     } else {
-      // サブカテゴリ選択時、またはその他のクイック返信
-      // sessionStorageにサブカテゴリ情報を保存
+      // サブカテゴリ選択時: sessionStorageに保存し、Difyに送ってAI応答を取得
       const currentState = loadConsultingState();
       if (currentState && currentState.selectedCategory) {
         saveConsultingState({
@@ -419,6 +418,62 @@ export function useMessageHandlers({
           lastActivity: Date.now()
         });
         console.log('✅ Subcategory saved to sessionStorage:', reply);
+      }
+
+      // 一時IDの場合はDifyを呼べない（先にカテゴリでセッション作成される想定）
+      if (!currentSession || currentSession.id.startsWith('temp-session-')) {
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        let conversationId = loadConversationId(currentSession.id);
+        if (!conversationId && currentSession.conversationId) {
+          conversationId = currentSession.conversationId;
+        }
+        const categoryInfo = currentState ? {
+          selectedCategory: currentState.selectedCategory,
+          selectedSubcategory: reply
+        } : undefined;
+
+        const res = await fetch(`/api/consulting/sessions/${currentSession.id}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: reply,
+            conversationId,
+            categoryInfo
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status} ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        if (data.conversation_id) {
+          saveConversationId(currentSession.id, data.conversation_id);
+        }
+        setAllSessions(prev => prev.map(s =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                messages: data.messages ?? s.messages,
+                conversationId: data.conversation_id,
+                lastUpdated: new Date()
+              }
+            : s
+        ));
+      } catch (error) {
+        console.error('Subcategory message send failed:', error);
+        setAllSessions(prev => prev.map(s =>
+          s.id === activeSessionId
+            ? { ...s, messages: (s.messages ?? []).filter(m => !(m.type === 'user' && m.content === reply)) }
+            : s
+        ));
+        toast.error('AI応答の取得に失敗しました', { description: 'もう一度お試しください。' });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
