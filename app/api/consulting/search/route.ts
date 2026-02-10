@@ -60,11 +60,11 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // 3. 結果整形
+    // 3. 結果整形（title/description は Brave では optional のため空文字でフォールバック）
     const formattedResults: SearchResult[] = results.map(r => ({
       url: r.url,
-      title: r.title,
-      description: r.description
+      title: r.title ?? '',
+      description: r.description ?? ''
     }))
     
     // 4. 結果返却

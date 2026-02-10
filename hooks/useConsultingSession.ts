@@ -8,7 +8,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import type { SessionData, Message, SessionStatus, ApiSession } from "@/types/consulting";
+import type { SessionData, Message, SessionStatus, ApiSession, ConsultingStep } from "@/types/consulting";
 import { MAX_OPEN_TABS } from "@/lib/consulting/constants";
 import { CONSULTING_CATEGORIES } from "@/lib/consulting/category-data";
 import { celebrateStepCompletion } from "@/lib/utils/confetti";
@@ -507,9 +507,9 @@ export function useConsultingSession(options: UseConsultingSessionOptions) {
       setAllSessions((prev) =>
         prev.map((s) => {
           if (s.id !== currentSession.id) return s;
-          const newSteps = s.steps.map((step) => ({
+          const newSteps: ConsultingStep[] = s.steps.map((step) => ({
             ...step,
-            status: step.id < currentStepId ? "completed" : step.id === currentStepId ? "active" : "pending",
+            status: (step.id < currentStepId ? "completed" : step.id === currentStepId ? "active" : "pending") as ConsultingStep["status"],
           }));
           return {
             ...s,

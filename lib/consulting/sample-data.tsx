@@ -1,9 +1,9 @@
 /**
  * 開発環境用のサンプルセッションデータ
- * 
+ *
  * 本番環境ではAPIから取得するため、このデータは使用されない
  * 使用箇所: 開発中のUIプレビュー、Storybook、テスト環境など
- * 
+ *
  * @module lib/consulting/sample-data
  */
 
@@ -12,13 +12,13 @@ import { MessageSquare, BarChart3, Lightbulb, Target, FileText } from "lucide-re
 
 /**
  * 開発環境用のサンプルセッションデータを生成
- * 
+ *
  * 4つのセッションを含む:
  * - session-1: 売上の伸び悩み（進捗40%、active）
  * - session-2: コスト削減（進捗80%、active）
  * - session-3: 新規事業立ち上げ（進捗60%、paused）
  * - session-4: 組織改革（進捗30%、paused）
- * 
+ *
  * @returns サンプルセッションデータの配列
  */
 export const createInitialSessions = (): SessionData[] => [

@@ -168,7 +168,7 @@ function extractChatHistory(messages: Message[]): ReportSection | null {
     messages: chatMessages.map(m => ({
       role: (m.type === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
       content: m.content,
-      timestamp: m.timestamp,
+      timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
     })),
   };
 
