@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sessionId, message, userId, conversationId, categoryInfo } = body
+    const { sessionId, message, userId, conversationId, categoryInfo, stepRound, stepTitle, stepGoal } = body
 
     console.log('📥 Dify API received:', {
       sessionId,
@@ -102,7 +102,11 @@ export async function POST(request: NextRequest) {
             employee_count,
             fiscal_year_end,
             website,
-            business_description
+            business_description,
+            postal_code,
+            prefecture,
+            city,
+            address
           )
         `, { count: 'exact' })
         .eq('user_id', userId)
@@ -150,13 +154,18 @@ export async function POST(request: NextRequest) {
             employee_count: profile.companies.employee_count,
             fiscal_year_end: profile.companies.fiscal_year_end,
             website: profile.companies.website,
-            business_description: profile.companies.business_description
+            business_description: profile.companies.business_description,
+            postal_code: profile.companies.postal_code ?? null,
+            prefecture: profile.companies.prefecture ?? null,
+            city: profile.companies.city ?? null,
+            address: profile.companies.address ?? null
           }
           
           console.log('✅ Company info extracted:', {
             has_name: !!companyInfo.name,
             has_industry: !!companyInfo.industry,
-            has_description: !!companyInfo.business_description
+            has_description: !!companyInfo.business_description,
+            has_address: !!(companyInfo.prefecture || companyInfo.city || companyInfo.address)
           })
         } else {
           console.warn('⚠️ Profile found but no companies data')
@@ -195,6 +204,12 @@ export async function POST(request: NextRequest) {
           website: companyInfo.website || '',
           business_description: companyInfo.business_description || '',
           
+          // エリア情報（住所：県・市区町村・番地）
+          postal_code: companyInfo.postal_code || '',
+          prefecture: companyInfo.prefecture || '',
+          city: companyInfo.city || '',
+          address: companyInfo.address || '',
+          
           // ユーザー情報
           user_name: profileInfo.name || '',
           user_position: profileInfo.position || '',
@@ -202,7 +217,12 @@ export async function POST(request: NextRequest) {
 
           // カテゴリ情報（課題の文脈）
           selected_category: categoryInfo?.selectedCategory || '',
-          selected_subcategory: categoryInfo?.selectedSubcategory || ''
+          selected_subcategory: categoryInfo?.selectedSubcategory || '',
+
+          // 現在のSTEP（Difyでヒアリング／分析など振る舞いを切り替える用）
+          consulting_step_number: String(stepRound ?? 1),
+          consulting_step_title: stepTitle ?? '課題のヒアリング',
+          consulting_step_goal: stepGoal ?? ''
         },
         query: message,
         user: userId,
@@ -227,7 +247,7 @@ export async function POST(request: NextRequest) {
         company: companyInfo.name || 'なし'
       })
 
-      const difyResponse = await fetch(difyChatflowUrl, {
+      let difyResponse = await fetch(difyChatflowUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${difyApiKey}`,
@@ -235,6 +255,27 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify(requestBody)
       })
+
+      // conversation_idが無効（Difyリセット等）の場合、conversation_idなしでリトライ
+      if (!difyResponse.ok && requestBody.conversation_id) {
+        const errorText = await difyResponse.text()
+        const isConversationNotFound =
+          difyResponse.status === 404 ||
+          errorText.includes('Conversation Not Exists')
+
+        if (isConversationNotFound) {
+          console.warn('⚠️ Conversation not found in Dify, retrying without conversation_id:', requestBody.conversation_id)
+          delete requestBody.conversation_id
+          difyResponse = await fetch(difyChatflowUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${difyApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          })
+        }
+      }
 
       if (!difyResponse.ok) {
         const errorText = await difyResponse.text()
@@ -276,10 +317,15 @@ export async function POST(request: NextRequest) {
       })
 
     } catch (difyError) {
-      console.error('Dify API call error:', difyError)
+      const errMsg = difyError instanceof Error ? difyError.message : String(difyError)
+      const errName = difyError instanceof Error ? difyError.name : 'Error'
+      console.error('Dify API call error:', errName, errMsg)
+      if (difyError instanceof Error && difyError.stack) {
+        console.error('Dify API call stack:', difyError.stack)
+      }
       
-      // Difyエラー時はフォールバックレスポンス
-      const fallbackResponse = generateFallbackResponse(message, { profile: { name: 'お客様' } })
+      // Difyエラー時はフォールバックレスポンス（取得済みのプロフィール名があれば使用）
+      const fallbackResponse = generateFallbackResponse(message, { profile: profileInfo })
       const processingTime = Date.now() - startTime
 
       return NextResponse.json({
@@ -339,9 +385,10 @@ ${companyName}の状況を確認いたしました。
  * フォールバックレスポンス生成（Difyエラー時）
  */
 function generateFallbackResponse(message: string, context: any): string {
-  const userName = context?.profile?.name || 'お客様'
+  const rawName = context?.profile?.name || 'お客様'
+  const userName = rawName.endsWith('様') ? rawName : `${rawName}様`
   
-  return `${userName}様、申し訳ございません。
+  return `${userName}、申し訳ございません。
 
 現在、AI処理システムに一時的な問題が発生しております。
 

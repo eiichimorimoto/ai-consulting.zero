@@ -145,7 +145,33 @@ export function useMessageHandlers({
       });
 
       if (!res.ok) {
-        throw new Error(`API error: ${res.status} ${res.statusText}`);
+        // エラーメッセージを解釈し、上限超過ならコールバックを優先
+        let serverMessage = `メッセージ送信に失敗しました（${res.status}）`;
+        try {
+          const errBody = await res.json();
+          serverMessage = (errBody.message || errBody.error || serverMessage) as string;
+        } catch {
+          // レスポンスがJSONでない場合はそのまま
+        }
+        const isLimitExceeded =
+          serverMessage.includes('上限') || serverMessage.includes('limit exceeded');
+
+        if (isLimitExceeded && onPlanLimitReached) {
+          onPlanLimitReached(serverMessage);
+        } else {
+          toast.error('メッセージ送信に失敗しました', {
+            description: serverMessage,
+          });
+        }
+
+        // 楽観的更新をロールバック
+        setAllSessions(allSessions.map(s =>
+          s.id === activeSessionId
+            ? { ...s, messages: s.messages.filter(m => m.id !== tempUserMessage.id) }
+            : s
+        ));
+        setInputValue(originalInput);
+        return;
       }
 
       const data = await res.json();
