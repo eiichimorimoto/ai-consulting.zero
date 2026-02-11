@@ -280,6 +280,18 @@ export async function POST(request: Request) {
 
       console.log("📋 ファクトチェック結果:", JSON.stringify(factCheckResult, null, 2))
 
+      // 利用カウント加算（OCR 成功時）
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("monthly_ocr_count")
+        .eq("id", user.id)
+        .single()
+      const nextOcrCount = (profileRow?.monthly_ocr_count ?? 0) + 1
+      await supabase
+        .from("profiles")
+        .update({ monthly_ocr_count: nextOcrCount })
+        .eq("id", user.id)
+
       // 結果を返す（ファクトチェック結果を含む）
       return NextResponse.json({ 
         data: ocrResult,

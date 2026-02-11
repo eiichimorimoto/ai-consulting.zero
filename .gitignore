@@ -179,9 +179,8 @@ google-credentials.json.git/index.lock
 *.backup.*
 .next*/
 
-# Large media files
+# Large media files（Vercel デプロイで画像・動画を配信するため public の mp4/m4a は追跡する）
 info-data/
 .obsidian/
-public/**/*.mp4
-public/**/*.m4a
+# public/**/*.mp4 と public/**/*.m4a を削除：LP・診断等で動画をデプロイに含める
 bin/

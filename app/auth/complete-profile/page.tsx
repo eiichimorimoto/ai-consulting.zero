@@ -217,6 +217,7 @@ export default function CompleteProfilePage() {
   const [profileData, setProfileData] = useState({
     name: '',
     nameKana: '',
+    position: '',
     department: '',
     phone: '',
     mobile: '',
@@ -308,7 +309,7 @@ export default function CompleteProfilePage() {
         // プロフィールが既に登録されているか確認（エラーを無視）
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('name, name_kana, department, phone, mobile, avatar_url, company_id')
+          .select('name, name_kana, position, department, phone, mobile, avatar_url, company_id')
           .eq('user_id', user.id)
           .maybeSingle() // single()の代わりにmaybeSingle()を使用（存在しない場合エラーにならない）
         
@@ -322,6 +323,7 @@ export default function CompleteProfilePage() {
           setProfileData({
             name: profile.name || '',
             nameKana: profile.name_kana || '',
+            position: profile.position || '',
             department: profile.department || '',
             phone: profile.phone || '',
             mobile: profile.mobile || '',
@@ -1553,6 +1555,7 @@ export default function CompleteProfilePage() {
           email: user.email, // NOT NULL制約があるためemailを追加
           name: profileData.name,
           name_kana: profileData.nameKana || null,
+          position: profileData.position || null,
           department: profileData.department || null,
           phone: profileData.phone || null,
           mobile: profileData.mobile || null,
@@ -2348,6 +2351,15 @@ export default function CompleteProfilePage() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="position">肩書き</Label>
+                    <Input
+                      id="position"
+                      value={profileData.position}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
+                      placeholder="例：部長、課長"
+                    />
+                  </div>
                   <div className="grid gap-2">
                     <Label htmlFor="department">部署</Label>
                     <select

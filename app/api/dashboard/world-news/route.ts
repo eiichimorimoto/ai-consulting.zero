@@ -4,6 +4,7 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
+import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 
@@ -61,6 +62,9 @@ const worldNewsSchema = z.object({
 })
 
 export async function GET(request: Request) {
+  const rateLimitError = applyRateLimit(request, 'dashboard')
+  if (rateLimitError) return rateLimitError
+
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -86,10 +90,12 @@ export async function GET(request: Request) {
       )
     }
 
+    const companyId = profile.company_id
+
     const { data: company } = await supabase
       .from('companies')
       .select('name, industry, business_description')
-      .eq('id', profile.company_id)
+      .eq('id', companyId)
       .single()
 
     if (!company) {
@@ -100,6 +106,30 @@ export async function GET(request: Request) {
     }
 
     const industryQuery = company.industry || ''
+
+    // 強制更新でない場合、キャッシュから返す（有効期限: 30分）
+    const { searchParams } = new URL(request.url)
+    const forceRefresh = searchParams.get('refresh') === 'true'
+    if (!forceRefresh) {
+      const cacheExpiry = new Date()
+      cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 30)
+      const { data: cachedRow } = await supabase
+        .from('dashboard_data')
+        .select('data, updated_at')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .eq('data_type', 'world-news')
+        .gte('updated_at', cacheExpiry.toISOString())
+        .maybeSingle()
+      if (cachedRow?.data) {
+        const payload = cachedRow.data as { data: unknown; company?: unknown; updatedAt?: string }
+        return NextResponse.json({
+          ...payload,
+          updatedAt: payload.updatedAt || cachedRow.updated_at,
+          cached: true
+        })
+      }
+    }
     const businessDesc = company.business_description || ''
 
     // 5カテゴリの情報を並列収集（順序: 業界世界情勢, 世界/日本経済動向, 地政学, 紛争, AI/生成AI）
@@ -207,13 +237,31 @@ direction: "positive"(好影響), "negative"(悪影響), "neutral"(中立)
       ],
     })
 
-    return NextResponse.json({
+    const updatedAt = new Date().toISOString()
+    const payload = {
       data: object,
       company: {
         name: company.name,
         industry: company.industry,
       },
-      updatedAt: new Date().toISOString()
+      updatedAt
+    }
+
+    await supabase
+      .from('dashboard_data')
+      .upsert({
+        user_id: user.id,
+        company_id: companyId,
+        data_type: 'world-news',
+        data: payload,
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      }, {
+        onConflict: 'user_id,company_id,data_type'
+      })
+
+    return NextResponse.json({
+      ...payload,
+      cached: false
     })
 
   } catch (error) {

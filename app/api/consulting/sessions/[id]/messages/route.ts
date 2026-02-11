@@ -6,9 +6,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { SUBCATEGORY_MAP, STEP_TITLES, STEP_GOALS } from '@/lib/consulting/constants'
-import { CONSULTING_CATEGORIES } from '@/lib/consulting/category-data'
-import { getPlanLimits } from '@/lib/plan-config'
+import { SUBCATEGORY_MAP, STEP_TITLES, STEP_GOALS } from '../../../../../../lib/consulting/constants'
+import { CONSULTING_CATEGORIES } from '../../../../../../lib/consulting/category-data'
+import { getPlanLimits } from '../../../../../../lib/plan-config'
 /**
  * GET /api/consulting/sessions/[id]/messages
  * 

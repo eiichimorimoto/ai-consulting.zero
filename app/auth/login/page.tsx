@@ -46,22 +46,39 @@ export default function LoginPage() {
       setLoadingMessage("ログインしました。リダイレクト中...")
 
       // プロファイルが完成しているかチェック
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name, company_id')
-          .eq('user_id', user.id)
-          .single()
-        
-        // プロファイルが未完成の場合（nameが'User'またはcompany_idが存在しない）はプロファイル登録画面へ
-        if (!profile || !profile.name || profile.name === 'User' || !profile.company_id) {
-          router.push("/auth/complete-profile")
-          return
+      let redirectPath = "/dashboard"
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, company_id')
+            .eq('user_id', user.id)
+            .single()
+
+          // プロファイルが未完成の場合はプロファイル登録画面へ
+          if (!profile || !profile.name || profile.name === 'User' || !profile.company_id) {
+            redirectPath = "/auth/complete-profile"
+          }
         }
+      } catch {
+        // プロファイル取得失敗時はダッシュボードへ（未完成ならそこでリダイレクトされる）
+        redirectPath = "/dashboard"
       }
-      
-      router.push("/dashboard")
+
+      // クライアントナビゲーションを試す
+      router.push(redirectPath)
+      // Vercel等で router.push が効かない場合の対策: 2秒後もログイン画面にいたらフルリロードで遷移
+      const fallbackTimer = window.setTimeout(() => {
+        if (typeof window !== "undefined" && window.location.pathname === "/auth/login") {
+          window.location.href = redirectPath
+        }
+      }, 2000)
+      const unsub = () => {
+        window.clearTimeout(fallbackTimer)
+        window.removeEventListener("beforeunload", unsub)
+      }
+      window.addEventListener("beforeunload", unsub)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "エラーが発生しました")
     } finally {

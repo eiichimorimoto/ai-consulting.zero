@@ -1,5 +1,6 @@
 -- PageSpeed結果キャッシュテーブル
 -- 同じURLの分析結果を1日間キャッシュし、API使用量を大幅削減
+-- ※ RLS は supabase/20260211_enable_rls_pagespeed_cache.sql で有効化すること
 
 CREATE TABLE IF NOT EXISTS pagespeed_cache (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

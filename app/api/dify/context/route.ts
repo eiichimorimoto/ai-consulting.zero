@@ -305,8 +305,11 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
       .from('profiles')
       .select(`
         name,
+        name_kana,
         email,
         phone,
+        position,
+        department,
         company_id,
         companies:company_id (
           name,

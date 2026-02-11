@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
+const LOGO_SRC = `/logo.png?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "1"}`;
+
 export default function LandingHeader() {
   const [isLightMode, setIsLightMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     const updateHeaderMode = () => {
@@ -42,9 +45,20 @@ export default function LandingHeader() {
         }
       `}
     >
-      {/* ロゴ（キャッシュバスティングでVercel反映を確実に） */}
+      {/* ロゴ（キャッシュバスティングでVercel反映を確実に・読み込み失敗時はテキスト表示） */}
       <Link href="/" className="flex items-center gap-3 no-underline">
-        <img src={`/logo.png?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? '1'}`} alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
+        {!logoError ? (
+          <img
+            src={LOGO_SRC}
+            alt="SolveWise"
+            width={40}
+            height={40}
+            className="h-10 w-auto object-contain"
+            onError={() => setLogoError(true)}
+          />
+        ) : (
+          <span className="flex h-10 w-10 items-center justify-center rounded bg-slate-700 text-white text-xs font-bold">S</span>
+        )}
         <div>
           <div
             className={`font-bold text-lg transition-colors duration-300 ${

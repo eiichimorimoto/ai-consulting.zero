@@ -292,16 +292,18 @@ export default function DashboardClient({ profile, company, subscription }: Dash
   useEffect(() => { lastWorldNewsRef.current = worldNews }, [worldNews])
   useEffect(() => { lastIndustryForecastRef.current = industryForecast }, [industryForecast])
 
-  // 更新中メッセージ文言（refreshing の状態から生成）
+  // 更新中メッセージ文言（refreshing の状態から生成・全セクション対応）
   const getUpdateMessageFromRefreshing = useCallback((r: Record<string, boolean>) => {
     const labels: string[] = []
+    if (r['market']) labels.push('マーケット概況')
+    if (r['local-info']) labels.push('地域情報')
     if (r['swot-analysis']) labels.push('SWOT分析')
     if (r['industry-trends']) labels.push('業界動向')
     if (r['world-news']) labels.push('世界情勢')
     if (r['industry-forecast']) labels.push('業界予測')
     if (labels.length === 0) return null
-    if (labels.length === 1) return `${labels[0]}を更新中です`
-    return '分析データを取得中です'
+    if (labels.length === 1) return `${labels[0]}を更新しています`
+    return 'ダッシュボードを更新しています'
   }, [])
 
   interface Notification {
@@ -2562,6 +2564,59 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                   </button>
                 </div>
               </div>
+              {/* 分析取得中の進捗インジケーター */}
+              {(refreshing['industry-trends'] || refreshing['swot-analysis'] || refreshing['world-news'] || refreshing['industry-forecast']) && (
+                <div
+                  style={{
+                    order: 0.2,
+                    marginBottom: '12px',
+                    padding: '12px 14px',
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(99, 102, 241, 0.02) 100%)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    borderRadius: '8px',
+                    fontSize: '13px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                    <svg className="spinning" viewBox="0 0 24 24" style={{ width: '16px', height: '16px', flexShrink: 0, stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+                    </svg>
+                    <span style={{ fontWeight: '500' }}>分析データを取得中…</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      { key: 'industry-trends', label: '業界動向', r: refreshing['industry-trends'] },
+                      { key: 'swot-analysis', label: 'SWOT分析', r: refreshing['swot-analysis'] },
+                      { key: 'world-news', label: '世界ニュース', r: refreshing['world-news'] },
+                      { key: 'industry-forecast', label: '業界予測', r: refreshing['industry-forecast'] }
+                    ].map(({ key, label, r }) => (
+                      <span
+                        key={key}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          background: r ? 'rgba(99, 102, 241, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                          color: r ? 'var(--primary)' : 'var(--text-secondary)',
+                          fontSize: '12px',
+                          fontWeight: 500
+                        }}
+                      >
+                        {r ? (
+                          <svg className="spinning" viewBox="0 0 24 24" style={{ width: '12px', height: '12px', flexShrink: 0 }}>
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2" stroke="currentColor" fill="none" strokeWidth="2"/>
+                          </svg>
+                        ) : (
+                          <span style={{ width: '12px', height: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>✓</span>
+                        )}
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               {/* 更新後の変更点メッセージ（キャッシュ差し替え前に表示） */}
               {(() => {
                 const messages = [

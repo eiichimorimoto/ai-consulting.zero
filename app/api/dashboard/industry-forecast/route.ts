@@ -82,10 +82,12 @@ export async function GET(request: Request) {
       )
     }
 
+    const companyId = profile.company_id
+
     const { data: company } = await supabase
       .from('companies')
       .select('name, industry, business_description, retrieved_info, prefecture, employee_count, annual_revenue')
-      .eq('id', profile.company_id)
+      .eq('id', companyId)
       .single()
 
     if (!company) {
@@ -96,6 +98,30 @@ export async function GET(request: Request) {
     }
 
     const industryQuery = company.industry || ''
+
+    // 強制更新でない場合、キャッシュから返す（有効期限: 30分）
+    const { searchParams } = new URL(request.url)
+    const forceRefresh = searchParams.get('refresh') === 'true'
+    if (!forceRefresh) {
+      const cacheExpiry = new Date()
+      cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 30)
+      const { data: cachedRow } = await supabase
+        .from('dashboard_data')
+        .select('data, updated_at')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .eq('data_type', 'industry-forecast')
+        .gte('updated_at', cacheExpiry.toISOString())
+        .maybeSingle()
+      if (cachedRow?.data) {
+        const payload = cachedRow.data as { data: unknown; company?: unknown; updatedAt?: string; factCheck?: unknown }
+        return NextResponse.json({
+          ...payload,
+          updatedAt: payload.updatedAt || cachedRow.updated_at,
+          cached: true
+        })
+      }
+    }
     const businessDesc = company.business_description || ''
     const companyName = company.name || ''
     
@@ -236,14 +262,32 @@ ${searchContext}
 
     console.log("📋 業界予測ファクトチェック:", JSON.stringify(factCheckResult, null, 2))
 
-    return NextResponse.json({
+    const updatedAt = new Date().toISOString()
+    const payload = {
       data: object,
       company: {
         name: companyName,
         industry: industryQuery,
       },
-      updatedAt: new Date().toISOString(),
+      updatedAt,
       factCheck: factCheckResult
+    }
+
+    await supabase
+      .from('dashboard_data')
+      .upsert({
+        user_id: user.id,
+        company_id: companyId,
+        data_type: 'industry-forecast',
+        data: payload,
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      }, {
+        onConflict: 'user_id,company_id,data_type'
+      })
+
+    return NextResponse.json({
+      ...payload,
+      cached: false
     })
 
   } catch (error) {
