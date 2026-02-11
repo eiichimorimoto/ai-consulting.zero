@@ -38,9 +38,10 @@ const nextConfig = {
     }
     return config
   },
-  // Turbopack設定（Next.js 16で必要）
+  // Turbopack設定（Next.js 16で必要・@/* を明示してビルド時の解決を確実に）
   turbopack: {
     resolveAlias: {
+      '@': '.',
       'pdfjs-dist/build/pdf.worker.mjs': './lib/ocr/pdf-worker-stub.js',
       'pdfjs-dist/build/pdf.worker.min.mjs': './lib/ocr/pdf-worker-stub.js',
     },
