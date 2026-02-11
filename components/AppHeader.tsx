@@ -74,10 +74,10 @@ export default function AppHeader() {
                 <span className="text-[10px] font-medium">Back</span>
               </button>
             )}
-            
+
             {/* ロゴ（クリックでダッシュボードへ・キャッシュバスティングでVercel反映を確実に） */}
             <Link href="/dashboard" className="flex items-center gap-3">
-              <img src={`/logo.png?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? '1'}`} alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
+              <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
               <div>
                 <span className="text-lg font-bold text-gray-900">
                   SolveWise

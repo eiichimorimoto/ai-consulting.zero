@@ -13,7 +13,7 @@ export default function LandingHero() {
       <div
         className="absolute inset-0 bg-cover bg-center opacity-[0.18]"
         style={{
-          backgroundImage: `url(/lp-bg.jpg?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? '1'})`,
+          backgroundImage: `url(/lp-bg.jpg)`,
         }}
       />
       {/* ネットワーク・星パターン（点と線） */}

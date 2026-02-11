@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const LOGO_SRC = `/logo.png?v=${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "1"}`;
+const LOGO_SRC = "/logo.png";
 
 export default function LandingHeader() {
   const [isLightMode, setIsLightMode] = useState(false);
