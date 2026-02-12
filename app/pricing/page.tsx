@@ -42,20 +42,20 @@ export default function PricingPage() {
                 成長を加速させる
               </span>
               <br />
-              AI活用プラン
+              AIコンサルプラン
             </h1>
             <p className="text-xl text-gray-600">
               まずは無料プランでお試しください。<br />
-              貴社の事業に永続的な価値をもたらすための羅針盤として、共に未来を描きましょう。
+              AIコンサルを体験し、貴社の事業に永続的な価値をもたらす羅針盤として、共に未来を描きましょう。
             </p>
           </m.div>
 
-          {/* Pricing Cards */}
+          {/* Pricing Cards（アカウント設定のプラン内容と一致） */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {[
-              { name: 'Free', price: '0', desc: 'お試し利用に', features: ['AIチャット 月5回', '名刺OCR 月10枚', '基本レポート'] },
-              { name: 'Standard', price: '12,000', desc: '本格的な活用に', featured: true, features: ['AIチャット 無制限', '名刺OCR 無制限', '詳細レポート', 'Web情報自動取得', '優先サポート'] },
-              { name: 'Enterprise', price: 'お問い合わせ', desc: '大規模利用に', features: ['全機能利用可能', 'API連携', '専任サポート', 'カスタム分析'] }
+              { name: 'Free', price: '0', unit: '円/月', desc: 'まずAIコンサルを体験したい方へ', features: ['月5セッション（1セッション15往復）', '全カテゴリ診断OK', '簡易サマリーのみ（最終レポートなし）', 'クレジット登録不要'] },
+              { name: 'Pro', price: '35,000', unit: '円/月（年払い ¥30,000/月）', desc: '継続的にAIコンサルを業務に組み込みたい方へ', featured: true, features: ['月30セッション（1セッション30往復）', '最終レポート出力', '実行計画書の作成', '過去相談の履歴・分析ダッシュボード', '新機能の優先利用権', 'クレジット支払対応'] },
+              { name: 'Enterprise', price: '120,000〜', unit: '円/月（要相談）', desc: 'AIコンサルを組織に定着させたい企業向け', features: ['無制限セッション', '実行計画支援（進捗管理付き）', '実際のコンサルタント紹介・連携', '全新機能の最速アクセス', 'カスタム診断テンプレート', '専任サポート・オンボーディング', 'クレジット・請求書払い対応'] }
             ].map((plan, index) => (
               <m.div
                 key={plan.name}
@@ -74,7 +74,7 @@ export default function PricingPage() {
                 <div className="text-lg font-semibold mb-2">{plan.name}</div>
                 <div className="text-3xl font-bold text-gray-900 mb-2">
                   {plan.price === 'お問い合わせ' ? plan.price : `¥${plan.price}`}
-                  {plan.price !== 'お問い合わせ' && <span className="text-base font-normal text-gray-500">/月</span>}
+                  {plan.unit ? <span className="text-base font-normal text-gray-500"> {plan.unit}</span> : plan.price !== 'お問い合わせ' && <span className="text-base font-normal text-gray-500">/月</span>}
                 </div>
                 <div className="text-sm text-gray-500 mb-6">{plan.desc}</div>
                 <ul className="space-y-3 mb-6">

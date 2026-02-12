@@ -439,9 +439,9 @@ export default function LandingPage() {
                 AI技術を活用し、経営者の意思決定をサポートする次世代のコンサルティングサービス。貴社の具体的なニーズと目標を深く理解し、オーダーメイドのAI戦略を立案・実行します。
               </p>
               <div>
-                <Link href="/contact">
+                <Link href="/pricing">
                   <Button size="lg" variant="outline" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-6 text-lg font-light rounded-xl">
-                    お問い合わせ
+                    料金プラン
                   </Button>
                 </Link>
               </div>

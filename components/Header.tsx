@@ -35,9 +35,6 @@ export function Header() {
             <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               料金プラン
             </Link>
-            <Link href="/contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-              お問い合わせ
-            </Link>
             <Link href="/auth/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               ログイン
             </Link>

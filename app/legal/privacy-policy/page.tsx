@@ -3,11 +3,11 @@ import { Home } from "lucide-react"
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="flex items-center gap-3 text-white hover:opacity-80 transition-opacity">
+          <Link href="/" className="flex items-center gap-3 text-gray-900 hover:opacity-80 transition-opacity">
             <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
             <span className="font-semibold text-sm">SolveWise</span>
           </Link>
@@ -16,14 +16,14 @@ export default function PrivacyPolicyPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8 md:p-12 shadow-2xl">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 md:p-12 shadow-sm">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
             プライバシーポリシー
           </h1>
-          <p className="text-gray-400 mb-12">制定日：2025年11月1日</p>
+          <p className="text-gray-500 mb-12">制定日：2025年11月1日</p>
 
-          <div className="space-y-8 text-gray-300">
-            <section className="prose prose-invert max-w-none">
+          <div className="space-y-8 text-gray-700">
+            <section className="prose max-w-none">
               <p className="text-sm leading-relaxed">
                 株式会社マネジメント総研（以下「当社」といいます。）は、
                 <br />
@@ -32,7 +32,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 1. 個人情報の利用目的</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 1. 個人情報の利用目的</h2>
               <ul className="space-y-3 text-sm list-disc list-inside ml-4">
                 <li>会員登録、本人確認、サービス提供のため</li>
                 <li>サービス改善・新機能開発・お知らせのため</li>
@@ -43,7 +43,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 2. 個人情報の第三者提供</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 2. 個人情報の第三者提供</h2>
               <p className="text-sm">
                 次の場合を除き、第三者に提供しません。
               </p>
@@ -54,14 +54,14 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 3. 安全管理措置</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 3. 安全管理措置</h2>
               <p className="text-sm">
                 個人情報への不正アクセス、漏洩、改ざんを防ぐための技術的・組織的安全対策を講じます。
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 4. 外部サービスの利用</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 4. 外部サービスの利用</h2>
               <ul className="space-y-3 text-sm list-disc list-inside ml-4">
                 <li>Stripe（決済処理）</li>
                 <li>Box／Google Drive（データ保管）</li>
@@ -70,29 +70,29 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 5. 開示・訂正・削除</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 5. 開示・訂正・削除</h2>
               <p className="text-sm">
-                <a href="mailto:info@solvewise.jp" className="text-blue-400 hover:text-blue-300 underline">info@solvewise.jp</a> までお問い合わせください。
+                <a href="mailto:info@solvewise.jp" className="text-blue-600 hover:text-blue-700 underline">info@solvewise.jp</a> までお問い合わせください。
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 6. Cookieの利用</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 6. Cookieの利用</h2>
               <p className="text-sm">
                 利便性向上・アクセス解析・広告配信のためCookieを使用します。
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">● 7. 改定</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">● 7. 改定</h2>
               <p className="text-sm">
                 内容変更時は本サイト上でお知らせします。
               </p>
             </section>
           </div>
 
-          <div className="mt-16 pt-8 border-t border-gray-700 text-center">
-            <p className="text-gray-400 text-sm">
+          <div className="mt-16 pt-8 border-t border-gray-200 text-center">
+            <p className="text-gray-500 text-sm">
               ――――――――――――――――――――――――
               <br />
               株式会社マネジメント総研 SolveWise事業部

@@ -83,7 +83,6 @@ export default function LandingHeader() {
           { href: "#features", label: "機能" },
           { href: "#steps", label: "5つのステップ" },
           { href: "/pricing", label: "料金プラン" },
-          { href: "/contact", label: "お問い合わせ" },
           { href: "/auth/login", label: "ログイン" },
         ].map((item) => (
           <Link
@@ -158,7 +157,6 @@ export default function LandingHeader() {
             { href: "#features", label: "機能" },
             { href: "#steps", label: "5つのステップ" },
             { href: "/pricing", label: "料金プラン" },
-            { href: "/contact", label: "お問い合わせ" },
             { href: "/auth/login", label: "ログイン" },
           ].map((item) => (
             <Link
