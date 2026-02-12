@@ -46,7 +46,7 @@ export default function SpecificCommercialTransactionsPage() {
               <p className="text-sm">
                 電話番号：<a href="tel:090-7314-9690" className="text-blue-600 hover:text-blue-700 underline">090-7314-9690</a>
                 <br />
-                メールアドレス：<a href="mailto:info@solvewise.jp" className="text-blue-600 hover:text-blue-700 underline">info@solvewise.jp</a>
+                メールアドレス：<a href="mailto:info@solve-wise.com" className="text-blue-600 hover:text-blue-700 underline">info@solve-wise.com</a>
                 <br />
                 （お問い合わせはフォーム、メールにてお願いいたします）
               </p>
