@@ -424,7 +424,7 @@ export default function LandingPage() {
                   loop
                   playsInline
                 >
-                  <source src="/info-data/video-1766055205064.mp4" type="video/mp4" />
+                  <source src="/video-1765885080626.mp4" type="video/mp4" />
                   お使いのブラウザは動画タグをサポートしていません。
                 </video>
               </div>
