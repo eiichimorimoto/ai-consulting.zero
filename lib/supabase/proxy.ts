@@ -32,11 +32,35 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const pathname = request.nextUrl.pathname
+
   // 保護されたルートへのアクセス制御
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+  const protectedPaths = ["/dashboard", "/consulting", "/account"]
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
+
+  if (!user && isProtected) {
     const url = request.nextUrl.clone()
     url.pathname = "/auth/login"
     return NextResponse.redirect(url)
+  }
+
+  // §8-3: app_status=suspended のユーザーを支払い更新ページへリダイレクト
+  // /account/billing 系は許可（支払い更新するため）
+  const suspendCheckPaths = ["/dashboard", "/consulting"]
+  const needsSuspendCheck = suspendCheckPaths.some((p) => pathname.startsWith(p))
+
+  if (user && needsSuspendCheck) {
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("app_status")
+      .eq("user_id", user.id)
+      .single()
+
+    if (subscription?.app_status === "suspended") {
+      const url = request.nextUrl.clone()
+      url.pathname = "/account/billing/update-payment"
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
