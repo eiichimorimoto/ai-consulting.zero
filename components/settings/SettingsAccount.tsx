@@ -1010,7 +1010,6 @@ export default function SettingsAccount({
                       {existingDocumentPaths.map((path, index) => (
                         <DocumentItem
                           key={index}
-                          fileName={path.split('/').pop() || path}
                           filePath={path}
                           onDelete={async () => {
                             if (confirm('この資料を削除しますか？')) {
@@ -1029,13 +1028,22 @@ export default function SettingsAccount({
                 <div className="grid gap-2">
                   <Label>新しい資料をアップロード</Label>
                   <FileUpload
-                    label="会社資料をドラッグ＆ドロップまたはクリックして選択"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                    maxSize={10}
-                    multiple={true}
-                    onFilesSelected={(files) => {
-                      setCompanyDocuments(prev => [...prev, ...files])
+                    files={companyDocuments}
+                    onFilesChange={(files: File[]) => {
+                      setCompanyDocuments(files)
                     }}
+                    acceptedTypes={[
+                      'application/pdf',
+                      'application/msword',
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                      'application/vnd.ms-excel',
+                      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                      'application/vnd.ms-powerpoint',
+                      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                    ]}
+                    maxSize={10 * 1024 * 1024}
+                    multiple={true}
+                    label="会社資料をドラッグ＆ドロップまたはクリックして選択"
                   />
                   <p className="text-xs text-gray-500">PDF、Word、Excel、PowerPoint形式（各ファイル最大10MB）</p>
                   {companyDocuments.length > 0 && (

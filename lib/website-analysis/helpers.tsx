@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { AlertTriangle, Shield, Smartphone, TrendingUp, Zap } from 'lucide-react'
 
 /**
@@ -86,7 +87,7 @@ export function getSeverityLabel(severity: string): string {
 /**
  * カテゴリアイコンを返す
  */
-export function getCategoryIcon(category: string): JSX.Element {
+export function getCategoryIcon(category: string): React.ReactElement {
   switch (category) {
     case 'performance': return <Zap className="w-5 h-5" />
     case 'security': return <Shield className="w-5 h-5" />
