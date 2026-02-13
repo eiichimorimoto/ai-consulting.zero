@@ -582,7 +582,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
   const getPlanName = (planType: string) => {
     const plans: Record<string, string> = {
       free: 'Free',
-      standard: 'Standard',
+      pro: 'Pro',
       enterprise: 'Enterprise',
     }
     return plans[planType] || planType
@@ -642,7 +642,7 @@ export default function SettingsContent({ user, profile, company, subscription, 
         '新機能の優先利用権',
         'クレジット支払対応',
       ],
-      planType: 'standard' as const,
+      planType: 'pro' as const,
       highlighted: true,
     },
     {

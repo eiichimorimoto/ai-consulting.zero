@@ -1,13 +1,13 @@
 /**
  * プラン変更 API
- * POST body: { planType: 'free' | 'standard' | 'enterprise' }
+ * POST body: { planType: 'free' | 'pro' | 'enterprise' }
  * profiles.plan_type と subscriptions を更新する（決済は行わない簡易フロー）
  */
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
-const ALLOWED_PLANS = ['free', 'standard', 'enterprise'] as const
+const ALLOWED_PLANS = ['free', 'pro', 'enterprise'] as const
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_PLANS.includes(planType as typeof ALLOWED_PLANS[number])) {
       return NextResponse.json(
-        { error: '無効なプランです。free / standard / enterprise のいずれかを指定してください。' },
+        { error: '無効なプランです。free / pro / enterprise のいずれかを指定してください。' },
         { status: 400 }
       )
     }

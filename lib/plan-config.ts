@@ -1,4 +1,4 @@
-export type PlanType = 'free' | 'standard' | 'enterprise'
+export type PlanType = 'free' | 'pro' | 'enterprise'
 
 export interface PlanLimits {
   maxSessions?: number
@@ -25,8 +25,8 @@ export const PLAN_CONFIG: Record<PlanType, PlanMeta> = {
     maxTurnsTotal: 5 * 15,
     isUnlimited: false,
   },
-  standard: {
-    id: 'standard',
+  pro: {
+    id: 'pro',
     label: 'Pro',
     priceLabel: '¥35,000/月（年払い ¥30,000/月）',
     description: '継続的にAIコンサルを業務に組み込むための実務向けプラン',

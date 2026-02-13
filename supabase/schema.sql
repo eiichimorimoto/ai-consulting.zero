@@ -87,7 +87,7 @@ CREATE TABLE profiles (
   avatar_url TEXT,
   
   -- プラン情報
-  plan_type VARCHAR(20) DEFAULT 'free' CHECK (plan_type IN ('free', 'standard', 'enterprise')),
+  plan_type VARCHAR(20) DEFAULT 'free' CHECK (plan_type IN ('free', 'pro', 'enterprise')),
   monthly_chat_count INTEGER DEFAULT 0,
   monthly_ocr_count INTEGER DEFAULT 0,
   
