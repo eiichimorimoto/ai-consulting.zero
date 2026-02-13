@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/dunning-check",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/data-cleanup",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

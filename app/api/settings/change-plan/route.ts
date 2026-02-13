@@ -1,7 +1,14 @@
 /**
- * プラン変更 API
+ * プラン変更 API（非推奨）
+ *
+ * @deprecated Phase 2以降は /api/stripe/change-plan を使用してください。
+ * このAPIはStripe連携なしのDB直接更新のみで、
+ * 決済処理・日割り調整は行いません。
+ *
  * POST body: { planType: 'free' | 'pro' | 'enterprise' }
  * profiles.plan_type と subscriptions を更新する（決済は行わない簡易フロー）
+ *
+ * @see stripe-payment-spec-v2.2.md §4-5（M3注記）
  */
 
 import { createClient } from '@/lib/supabase/server'

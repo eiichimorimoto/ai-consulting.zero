@@ -588,18 +588,56 @@ export default function SettingsContent({ user, profile, company, subscription, 
     return plans[planType] || planType
   }
 
-  // プラン変更（DB 更新のみ。決済は未連携）
+  // プラン変更（Stripe連携）
   const [isChangingPlan, setIsChangingPlan] = useState(false)
   const handleChangePlan = async (newPlan: string) => {
+    const currentPlan = profile?.plan_type || 'free'
+
+    // Enterpriseは問い合わせフロー
+    if (newPlan === 'enterprise') {
+      router.push('/contact')
+      return
+    }
+
+    // Free→有料: Checkoutへリダイレクト
+    if (currentPlan === 'free' && newPlan !== 'free') {
+      setIsChangingPlan(true)
+      try {
+        const res = await fetch('/api/stripe/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planType: newPlan, interval: 'monthly' }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (data.url) {
+          window.location.href = data.url
+          return
+        }
+        toast.error(data?.error || 'Checkout の生成に失敗しました')
+      } catch (e) {
+        console.error('create-checkout error', e)
+        toast.error('プラン変更の処理中にエラーが発生しました')
+      } finally {
+        setIsChangingPlan(false)
+      }
+      return
+    }
+
+    // 有料→有料: Stripe APIでプラン変更
     if (!confirm(`${getPlanName(newPlan)}プランに変更しますか？`)) return
     setIsChangingPlan(true)
     try {
-      const res = await fetch('/api/settings/change-plan', {
+      const res = await fetch('/api/stripe/change-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planType: newPlan }),
+        body: JSON.stringify({ planType: newPlan, interval: 'monthly' }),
       })
       const data = await res.json().catch(() => ({}))
+      if (data.redirect) {
+        // Free→有料のフォールバック
+        window.location.href = data.redirect
+        return
+      }
       if (!res.ok) {
         toast.error(data?.error || 'プラン変更に失敗しました')
         return
@@ -1505,10 +1543,18 @@ export default function SettingsContent({ user, profile, company, subscription, 
             <CardDescription className="text-gray-600 mt-1">これまでの請求履歴を確認できます</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="text-center py-12 text-gray-500">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>請求履歴はまだありません</p>
-              <p className="text-sm mt-2">プランを変更すると、ここに請求履歴が表示されます</p>
+            <div className="text-center py-8 space-y-4">
+              <p className="text-gray-600">
+                請求書の確認や詳細管理は課金管理ページで行えます。
+              </p>
+              <Button
+                variant="outline"
+                className="font-bold"
+                onClick={() => router.push('/account/billing/invoices')}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                請求書一覧を見る
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1522,12 +1568,31 @@ export default function SettingsContent({ user, profile, company, subscription, 
             <CardDescription className="text-gray-600 mt-1">クレジットカードなどの支払い方法を管理できます</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="text-center py-12 text-gray-500">
-              <CreditCard className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>登録されている支払い方法はありません</p>
-              <p className="text-sm mt-2">プランを変更すると、支払い方法の登録が必要になります</p>
-              <Button className="mt-4 font-bold" variant="outline">
-                支払い方法を追加
+            <div className="text-center py-8 space-y-4">
+              <p className="text-gray-600">
+                支払い方法の変更はStripeの安全な管理画面で行います。
+              </p>
+              <Button
+                className="font-bold"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/stripe/create-portal', { method: 'POST' })
+                    if (res.ok) {
+                      const data = await res.json()
+                      if (data.url) {
+                        window.location.href = data.url
+                        return
+                      }
+                    }
+                    toast.error('ポータルの生成に失敗しました')
+                  } catch {
+                    toast.error('エラーが発生しました')
+                  }
+                }}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Stripe管理画面を開く
               </Button>
             </div>
           </CardContent>

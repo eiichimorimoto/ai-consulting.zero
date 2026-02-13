@@ -1,24 +1,47 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
-import { CheckCircle, Home } from 'lucide-react'
+import { CheckCircle, Home, Loader2 } from 'lucide-react'
 import { Header } from '@/components/Header'
 
 export default function PricingPage() {
   const router = useRouter()
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
 
-  const handleSignup = () => {
-    router.push('/auth/sign-up')
+  async function handleCheckout(planType: string, interval: 'monthly' | 'yearly' = 'monthly') {
+    setCheckoutLoading(planType)
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType, interval }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+        return
+      }
+      if (res.status === 401) {
+        // 未ログイン → サインアップへ
+        router.push('/auth/sign-up')
+        return
+      }
+      alert(data.error || 'Checkout の生成に失敗しました')
+    } catch {
+      alert('エラーが発生しました')
+    } finally {
+      setCheckoutLoading(null)
+    }
   }
 
   return (
     <LazyMotion features={domAnimation}>
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Header />
-      
+
       <main className="pt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           {/* Back to Top Button */}
@@ -53,9 +76,9 @@ export default function PricingPage() {
           {/* Pricing Cards（アカウント設定のプラン内容と一致） */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {[
-              { name: 'Free', price: '0', unit: '円/月', desc: 'まずAIコンサルを体験したい方へ', features: ['月5セッション（1セッション15往復）', '全カテゴリ診断OK', '簡易サマリーのみ（最終レポートなし）', 'クレジット登録不要'] },
-              { name: 'Pro', price: '35,000', unit: '円/月（年払い ¥30,000/月）', desc: '継続的にAIコンサルを業務に組み込みたい方へ', featured: true, features: ['月30セッション（1セッション30往復）', '最終レポート出力', '実行計画書の作成', '過去相談の履歴・分析ダッシュボード', '新機能の優先利用権', 'クレジット支払対応'] },
-              { name: 'Enterprise', price: '120,000〜', unit: '円/月（要相談）', desc: 'AIコンサルを組織に定着させたい企業向け', features: ['無制限セッション', '実行計画支援（進捗管理付き）', '実際のコンサルタント紹介・連携', '全新機能の最速アクセス', 'カスタム診断テンプレート', '専任サポート・オンボーディング', 'クレジット・請求書払い対応'] }
+              { name: 'Free', planType: 'free', price: '0', unit: '円/月', desc: 'まずAIコンサルを体験したい方へ', features: ['月5セッション（1セッション15往復）', '全カテゴリ診断OK', '簡易サマリーのみ（最終レポートなし）', 'クレジット登録不要'] },
+              { name: 'Pro', planType: 'pro', price: '35,000', unit: '円/月（年払い ¥30,000/月）', desc: '継続的にAIコンサルを業務に組み込みたい方へ', featured: true, features: ['月30セッション（1セッション30往復）', '最終レポート出力', '実行計画書の作成', '過去相談の履歴・分析ダッシュボード', '新機能の優先利用権', 'クレジット支払対応'] },
+              { name: 'Enterprise', planType: 'enterprise', price: '120,000〜', unit: '円/月（要相談）', desc: 'AIコンサルを組織に定着させたい企業向け', features: ['無制限セッション', '実行計画支援（進捗管理付き）', '実際のコンサルタント紹介・連携', '全新機能の最速アクセス', 'カスタム診断テンプレート', '専任サポート・オンボーディング', 'クレジット・請求書払い対応'] }
             ].map((plan, index) => (
               <m.div
                 key={plan.name}
@@ -84,28 +107,39 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                {plan.name === 'Enterprise' ? (
+                {plan.planType === 'enterprise' ? (
                   <Link
                     href="/contact"
-                    className={`w-full py-3 rounded-xl font-medium transition-colors text-center inline-block ${
-                      plan.featured 
-                        ? 'btn-gradient text-white' 
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className="w-full py-3 rounded-xl font-medium transition-colors text-center inline-block border border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     問い合わせる
                   </Link>
-                ) : (
+                ) : plan.planType === 'free' ? (
                   <Link
                     href="/auth/sign-up"
-                    className={`w-full py-3 rounded-xl font-medium transition-colors text-center inline-block ${
-                      plan.featured 
-                        ? 'btn-gradient text-white' 
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className="w-full py-3 rounded-xl font-medium transition-colors text-center inline-block border border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     無料で登録
                   </Link>
+                ) : (
+                  <button
+                    onClick={() => handleCheckout(plan.planType)}
+                    disabled={checkoutLoading === plan.planType}
+                    className={`w-full py-3 rounded-xl font-medium transition-colors text-center inline-block disabled:opacity-50 ${
+                      plan.featured
+                        ? 'btn-gradient text-white'
+                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {checkoutLoading === plan.planType ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 size={16} className="animate-spin" />
+                        読み込み中...
+                      </span>
+                    ) : (
+                      '今すぐ始める'
+                    )}
+                  </button>
                 )}
               </m.div>
             ))}
@@ -116,4 +150,3 @@ export default function PricingPage() {
     </LazyMotion>
   )
 }
-

@@ -30,6 +30,21 @@ export const RATE_LIMIT_PRESETS = {
   general: { limit: 100, windowSeconds: 3600 },
   /** 認証API: 20回/15分 */
   auth: { limit: 20, windowSeconds: 900 },
+  // --- Stripe決済API用プリセット（§4-1） ---
+  /** Checkout Session作成: 5回/分 */
+  stripeCheckout: { limit: 5, windowSeconds: 60 },
+  /** Customer Portal: 10回/分 */
+  stripePortal: { limit: 10, windowSeconds: 60 },
+  /** サブスクリプション状態取得: 30回/分 */
+  stripeSubscriptionRead: { limit: 30, windowSeconds: 60 },
+  /** 請求書一覧取得: 15回/分 */
+  stripeInvoicesRead: { limit: 15, windowSeconds: 60 },
+  /** 解約: 3回/分 */
+  stripeCancel: { limit: 3, windowSeconds: 60 },
+  /** 手動再請求: 3回/分 */
+  stripeRetryPayment: { limit: 3, windowSeconds: 60 },
+  /** プラン変更: 3回/分 */
+  stripeChangePlan: { limit: 3, windowSeconds: 60 },
 } as const
 
 // メモリストア（インスタンス単位）
