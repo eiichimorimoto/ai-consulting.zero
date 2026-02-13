@@ -1,3 +1,5 @@
+'use client'
+
 import { AlertTriangle, Shield, Smartphone, TrendingUp, Zap } from 'lucide-react'
 
 /**
