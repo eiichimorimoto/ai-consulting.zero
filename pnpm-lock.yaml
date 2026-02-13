@@ -14,6 +14,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.36.1
         version: 0.36.3
+      '@date-fns/tz':
+        specifier: ^1.4.1
+        version: 1.4.1
       '@google-cloud/vision':
         specifier: ^5.3.4
         version: 5.3.4
@@ -68,6 +71,12 @@ importers:
       '@sparticuz/chromium':
         specifier: ^123.0.1
         version: 123.0.1
+      '@stripe/react-stripe-js':
+        specifier: ^5.6.0
+        version: 5.6.0(@stripe/stripe-js@8.7.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@stripe/stripe-js':
+        specifier: ^8.7.0
+        version: 8.7.0
       '@supabase/ssr':
         specifier: ^0.8.0
         version: 0.8.0(@supabase/supabase-js@2.93.3)
@@ -158,9 +167,15 @@ importers:
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
+      resend:
+        specifier: ^6.9.2
+        version: 6.9.2
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      stripe:
+        specifier: ^20.3.1
+        version: 20.3.1(@types/node@24.10.9)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -1984,11 +1999,25 @@ packages:
     resolution: {integrity: sha512-RPrA99xrddbXXZjhUH1WZkTCK3QDQ77t/0y+vULtiW1uAlWLBxorxGnNTuzBDk6eNolxOVFrXZ2aoAN+/eB5TA==}
     engines: {node: '>= 16'}
 
+  '@stablelib/base64@1.0.1':
+    resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
+
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@stripe/react-stripe-js@5.6.0':
+    resolution: {integrity: sha512-tucu/vTGc+5NXbo2pUiaVjA4ENdRBET8qGS00BM4BAU8J4Pi3eY6BHollsP2+VSuzzlvXwMg0it3ZLhbCj2fPg==}
+    peerDependencies:
+      '@stripe/stripe-js': '>=8.0.0 <9.0.0'
+      react: '>=16.8.0 <20.0.0'
+      react-dom: '>=16.8.0 <20.0.0'
+
+  '@stripe/stripe-js@8.7.0':
+    resolution: {integrity: sha512-tNUerSstwNC1KuHgX4CASGO0Md3CB26IJzSXmVlSuFvhsBP4ZaEPpY4jxWOn9tfdDscuVT4Kqb8cZ2o9nLCgRQ==}
+    engines: {node: '>=12.16'}
 
   '@supabase/auth-js@2.93.3':
     resolution: {integrity: sha512-JdnkHZPKexVGSNONtu89RHU4bxz3X9kxx+f5ZnR5osoCIX+vs/MckwWRPZEybAEvlJXt5xjomDb3IB876QCxWQ==}
@@ -3190,6 +3219,9 @@ packages:
 
   fast-levenshtein@2.0.6:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
+
+  fast-sha256@1.3.0:
+    resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -4537,6 +4569,9 @@ packages:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
 
+  postal-mime@2.7.3:
+    resolution: {integrity: sha512-MjhXadAJaWgYzevi46+3kLak8y6gbg0ku14O1gO/LNOuay8dO+1PtcSGvAdgDR0DoIsSaiIA8y/Ddw6MnrO0Tw==}
+
   postcss-import@15.1.0:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
     engines: {node: '>=14.0.0'}
@@ -4790,6 +4825,15 @@ packages:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
 
+  resend@6.9.2:
+    resolution: {integrity: sha512-uIM6CQ08tS+hTCRuKBFbOBvHIGaEhqZe8s4FOgqsVXSbQLAhmNWpmUhG3UAtRnmcwTWFUqnHa/+Vux8YGPyDBA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@react-email/render': '*'
+    peerDependenciesMeta:
+      '@react-email/render':
+        optional: true
+
   resolve-cwd@3.0.0:
     resolution: {integrity: sha512-OrZaX2Mb+rJCpH/6CpSqt9xFVpN++x01XnN2ie9g6P5/3xelLAkXWVADpdz1IHD/KFfEXyE6V0U01OQ3UO2rEg==}
     engines: {node: '>=8'}
@@ -4971,6 +5015,9 @@ packages:
     resolution: {integrity: sha512-XlkWvfIm6RmsWtNJx+uqtKLS8eqFbxUg0ZzLXqY0caEy9l7hruX8IpiDnjsLavoBgqCCR71TqWO8MaXYheJ3RQ==}
     engines: {node: '>=10'}
 
+  standardwebhooks@1.0.0:
+    resolution: {integrity: sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg==}
+
   stop-iteration-iterator@1.1.0:
     resolution: {integrity: sha512-eLoXW/DHyl62zxY4SCaIgnRhuMr6ri4juEYARS8E6sCEqzKpOiE521Ucofdx+KnDZl5xmvGYaaKCk5FEOxJCoQ==}
     engines: {node: '>= 0.4'}
@@ -5060,6 +5107,15 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
+  stripe@20.3.1:
+    resolution: {integrity: sha512-k990yOT5G5rhX3XluRPw5Y8RLdJDW4dzQ29wWT66piHrbnM2KyamJ1dKgPsw4HzGHRWjDiSSdcI2WdxQUPV3aQ==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   stubs@3.0.0:
     resolution: {integrity: sha512-PdHt7hHUJKxvTCgbKX9C1V/ftOcjJQgz8BZwNfV5c4B6dcGqlpelTbJ999jBGZ2jYiPAwcX5dP6oBwVlBlUbxw==}
 
@@ -5101,6 +5157,9 @@ packages:
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+
+  svix@1.84.1:
+    resolution: {integrity: sha512-K8DPPSZaW/XqXiz1kEyzSHYgmGLnhB43nQCMeKjWGCUpLIpAMMM8kx3rVVOSm6Bo6EHyK1RQLPT4R06skM/MlQ==}
 
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
@@ -5364,6 +5423,10 @@ packages:
 
   utrie@1.0.2:
     resolution: {integrity: sha512-1MLa5ouZiOmQzUbjbu9VmjLzn1QLXBhwpUa7kdLUQK+KQ5KA9I1vk5U4YHe/X2Ch7PYnJfWuWT+VbuxbGwljhw==}
+
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    hasBin: true
 
   v8-to-istanbul@9.3.0:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
@@ -7313,9 +7376,20 @@ snapshots:
       - debug
       - react-native-b4a
 
+  '@stablelib/base64@1.0.1': {}
+
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@stripe/react-stripe-js@5.6.0(@stripe/stripe-js@8.7.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@stripe/stripe-js': 8.7.0
+      prop-types: 15.8.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
+  '@stripe/stripe-js@8.7.0': {}
 
   '@supabase/auth-js@2.93.3':
     dependencies:
@@ -8730,6 +8804,8 @@ snapshots:
   fast-json-stable-stringify@2.1.0: {}
 
   fast-levenshtein@2.0.6: {}
+
+  fast-sha256@1.3.0: {}
 
   fastq@1.20.1:
     dependencies:
@@ -10546,6 +10622,8 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
+  postal-mime@2.7.3: {}
+
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
@@ -10937,6 +11015,11 @@ snapshots:
 
   require-directory@2.1.1: {}
 
+  resend@6.9.2:
+    dependencies:
+      postal-mime: 2.7.3
+      svix: 1.84.1
+
   resolve-cwd@3.0.0:
     dependencies:
       resolve-from: 5.0.0
@@ -11156,6 +11239,11 @@ snapshots:
     dependencies:
       escape-string-regexp: 2.0.0
 
+  standardwebhooks@1.0.0:
+    dependencies:
+      '@stablelib/base64': 1.0.1
+      fast-sha256: 1.3.0
+
   stop-iteration-iterator@1.1.0:
     dependencies:
       es-errors: 1.3.0
@@ -11278,6 +11366,10 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
+  stripe@20.3.1(@types/node@24.10.9):
+    optionalDependencies:
+      '@types/node': 24.10.9
+
   stubs@3.0.0: {}
 
   style-to-js@1.1.21:
@@ -11318,6 +11410,11 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  svix@1.84.1:
+    dependencies:
+      standardwebhooks: 1.0.0
+      uuid: 10.0.0
 
   symbol-tree@3.2.4: {}
 
@@ -11671,6 +11768,8 @@ snapshots:
   utrie@1.0.2:
     dependencies:
       base64-arraybuffer: 1.0.2
+
+  uuid@10.0.0: {}
 
   v8-to-istanbul@9.3.0:
     dependencies:
