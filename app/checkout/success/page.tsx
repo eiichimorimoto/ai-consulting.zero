@@ -12,7 +12,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { CheckCircle, Loader2, Clock, ArrowRight } from 'lucide-react'
-import { Header } from '@/components/Header'
+import AppHeader from '@/components/AppHeader'
 
 const POLL_INTERVAL = 5000 // 5秒
 const MAX_POLL_DURATION = 60000 // 60秒
@@ -62,7 +62,7 @@ export default function CheckoutSuccessPage() {
   return (
     <LazyMotion features={domAnimation}>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <Header />
+        <AppHeader />
 
         <main className="pt-20">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
