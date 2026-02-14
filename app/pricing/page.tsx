@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { CheckCircle, Home, Loader2 } from 'lucide-react'
 import { Header } from '@/components/Header'
+import { PLAN_CONFIG, getPlanFeatures, type PlanType } from '@/lib/plan-config'
 
 export default function PricingPage() {
   const router = useRouter()
@@ -79,46 +80,53 @@ export default function PricingPage() {
 
           {/* Pricing Cards（アカウント設定のプラン内容と一致） */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {[
-              { name: 'Free', planType: 'free', price: '0', unit: '円/月', desc: 'まずAIコンサルを体験したい方へ', features: ['月5セッション（1セッション15往復）', '全カテゴリ診断OK', '簡易サマリーのみ（最終レポートなし）', 'クレジット登録不要'] },
-              { name: 'Pro', planType: 'pro', price: '35,000', unit: '円/月（年払い ¥30,000/月）', desc: '継続的にAIコンサルを業務に組み込みたい方へ', featured: true, features: ['月30セッション（1セッション30往復）', '最終レポート出力', '実行計画書の作成', '過去相談の履歴・分析ダッシュボード', '新機能の優先利用権', 'クレジット支払対応'] },
-              { name: 'Enterprise', planType: 'enterprise', price: '120,000〜', unit: '円/月（要相談）', desc: 'AIコンサルを組織に定着させたい企業向け', features: ['無制限セッション', '実行計画支援（進捗管理付き）', '実際のコンサルタント紹介・連携', '全新機能の最速アクセス', 'カスタム診断テンプレート', '専任サポート・オンボーディング', 'クレジット・請求書払い対応'] }
-            ].map((plan, index) => (
+            {(Object.keys(PLAN_CONFIG) as PlanType[]).map((planType, index) => {
+              const config = PLAN_CONFIG[planType]
+              const features = getPlanFeatures(planType)
+              
+              // 表示用の追加情報
+              const displayInfo = {
+                free: { price: '0', unit: '円/月', desc: 'まずAIコンサルを体験したい方へ' },
+                pro: { price: '35,000', unit: '円/月（年払い ¥30,000/月）', desc: '継続的にAIコンサルを業務に組み込みたい方へ', featured: true },
+                enterprise: { price: '120,000〜', unit: '円/月（要相談）', desc: 'AIコンサルを組織に定着させたい企業向け' },
+              }[planType]
+              
+              return (
               <m.div
-                key={plan.name}
+                key={config.label}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className={`bg-white rounded-2xl p-6 relative ${
-                  plan.featured ? 'border-2 border-blue-500 shadow-xl' : 'border border-gray-200'
+                  displayInfo.featured ? 'border-2 border-blue-500 shadow-xl' : 'border border-gray-200'
                 }`}
               >
-                {plan.featured && (
+                {displayInfo.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
                     おすすめ
                   </div>
                 )}
-                <div className="text-lg font-semibold mb-2">{plan.name}</div>
+                <div className="text-lg font-semibold mb-2">{config.label}</div>
                 <div className="text-3xl font-bold text-gray-900 mb-2">
-                  {plan.price === 'お問い合わせ' ? plan.price : `¥${plan.price}`}
-                  {plan.unit ? <span className="text-base font-normal text-gray-500"> {plan.unit}</span> : plan.price !== 'お問い合わせ' && <span className="text-base font-normal text-gray-500">/月</span>}
+                  {displayInfo.price === 'お問い合わせ' ? displayInfo.price : `¥${displayInfo.price}`}
+                  {displayInfo.unit ? <span className="text-base font-normal text-gray-500"> {displayInfo.unit}</span> : displayInfo.price !== 'お問い合わせ' && <span className="text-base font-normal text-gray-500">/月</span>}
                 </div>
-                <div className="text-sm text-gray-500 mb-6">{plan.desc}</div>
+                <div className="text-sm text-gray-500 mb-6">{displayInfo.desc}</div>
                 <ul className="space-y-3 mb-6">
-                  {plan.features.map(f => (
+                  {features.map(f => (
                     <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
                       <CheckCircle size={16} className="text-green-500" /> {f}
                     </li>
                   ))}
                 </ul>
-                {plan.planType === 'enterprise' ? (
+                {planType === 'enterprise' ? (
                   <Link
                     href="/contact"
                     className="w-full py-3 rounded-xl font-medium transition-colors text-center inline-block border border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     問い合わせる
                   </Link>
-                ) : plan.planType === 'free' ? (
+                ) : planType === 'free' ? (
                   <Link
                     href="/auth/sign-up"
                     className="w-full py-3 rounded-xl font-medium transition-colors text-center inline-block border border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -127,15 +135,15 @@ export default function PricingPage() {
                   </Link>
                 ) : (
                   <button
-                    onClick={() => handleCheckout(plan.planType)}
-                    disabled={checkoutLoading === plan.planType}
+                    onClick={() => handleCheckout(planType)}
+                    disabled={checkoutLoading === planType}
                     className={`w-full py-3 rounded-xl font-medium transition-colors text-center inline-block disabled:opacity-50 ${
-                      plan.featured
+                      displayInfo.featured
                         ? 'btn-gradient text-white'
                         : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {checkoutLoading === plan.planType ? (
+                    {checkoutLoading === planType ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 size={16} className="animate-spin" />
                         読み込み中...
@@ -146,7 +154,8 @@ export default function PricingPage() {
                   </button>
                 )}
               </m.div>
-            ))}
+            )
+            })}
           </div>
         </div>
       </main>

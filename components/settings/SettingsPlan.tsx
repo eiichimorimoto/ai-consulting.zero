@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
-import { PlanMeta, PlanLimits } from '@/lib/plan-config'
+import { PlanMeta, PlanLimits, PLAN_CONFIG, getPlanFeatures, type PlanType } from '@/lib/plan-config'
 
 interface Plan {
   name: string
@@ -40,54 +40,28 @@ export default function SettingsPlan({
   isChangingPlan,
   handleChangePlan,
 }: SettingsPlanProps) {
-  // プランカード表示用の料金プラン情報
-  const plans: Plan[] = [
-    {
-      name: 'Free',
-      subtitle: 'まずAIコンサルを体験したい方へ',
-      price: '0',
-      unit: '円/月',
-      features: [
-        '月5セッション（1セッション15往復）',
-        '全カテゴリ診断OK',
-        '簡易サマリーのみ（最終レポートなし）',
-        'クレジット登録不要',
-      ],
-      planType: 'free' as const,
-    },
-    {
-      name: 'Pro',
-      subtitle: '継続的にAIコンサルを業務に組み込みたい方へ',
-      price: '35,000',
-      unit: '円/月（年払い ¥30,000/月）',
-      features: [
-        '月30セッション（1セッション30往復）',
-        '最終レポート出力',
-        '実行計画書の作成',
-        '過去相談の履歴・分析ダッシュボード',
-        '新機能の優先利用権',
-        'クレジット支払対応',
-      ],
-      planType: 'pro' as const,
-      highlighted: true,
-    },
-    {
-      name: 'Enterprise',
-      subtitle: 'AIコンサルを組織に定着させたい企業向け',
-      price: '120,000〜',
-      unit: '円/月（要相談）',
-      features: [
-        '無制限セッション',
-        '実行計画支援（進捗管理付き）',
-        '実際のコンサルタント紹介・連携',
-        '全新機能の最速アクセス',
-        'カスタム診断テンプレート',
-        '専任サポート・オンボーディング',
-        'クレジット・請求書払い対応',
-      ],
-      planType: 'enterprise' as const,
-    },
-  ]
+  // プランカード表示用の料金プラン情報（PLAN_CONFIGから動的生成）
+  const plans: Plan[] = (Object.keys(PLAN_CONFIG) as PlanType[]).map(planType => {
+    const config = PLAN_CONFIG[planType]
+    const features = getPlanFeatures(planType)
+    
+    // 表示用の追加情報
+    const displayInfo = {
+      free: { subtitle: 'まずAIコンサルを体験したい方へ', price: '0', unit: '円/月' },
+      pro: { subtitle: '継続的にAIコンサルを業務に組み込みたい方へ', price: '35,000', unit: '円/月（年払い ¥30,000/月）', highlighted: true },
+      enterprise: { subtitle: 'AIコンサルを組織に定着させたい企業向け', price: '120,000〜', unit: '円/月（要相談）' },
+    }[planType]
+    
+    return {
+      name: config.label,
+      subtitle: displayInfo.subtitle,
+      price: displayInfo.price,
+      unit: displayInfo.unit,
+      features,
+      planType,
+      highlighted: displayInfo.highlighted,
+    }
+  })
 
   return (
     <Card className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
