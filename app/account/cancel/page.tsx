@@ -48,7 +48,9 @@ export default function CancelPage() {
   // Freeプランや既に解約予定の場合はリダイレクト
   useEffect(() => {
     if (!loading && sub) {
-      if (sub.plan_type === 'free' || sub.cancel_at || !sub.has_stripe_subscription) {
+      // Freeプランまたは既に解約予定の場合のみリダイレクト
+      // has_stripe_subscriptionの条件は削除（有料プランなら解約フローを表示すべき）
+      if (sub.plan_type === 'free' || sub.cancel_at) {
         router.replace('/account/billing')
       }
     }
