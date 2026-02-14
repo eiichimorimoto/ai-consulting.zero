@@ -44,12 +44,13 @@ const eslintConfig = [
   // 除外パターン
   {
     ignores: [
-      ".next/",
-      "node_modules/",
-      "coverage/",
-      "backups/",
+      ".next/**",
+      "node_modules/**",
+      "coverage/**",
+      "backups/**",
       "public/pdf.worker.min.mjs",
-      "scripts/",
+      "scripts/**",
+      "slides/**",
     ],
   },
 ]
