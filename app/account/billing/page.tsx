@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { ArrowLeft, ExternalLink, FileText, XCircle, CreditCard, RefreshCw } from 'lucide-react'
-import { Header } from '@/components/Header'
+import AppHeader from '@/components/AppHeader'
 import { SubscriptionStatus } from '@/components/billing/SubscriptionStatus'
 import { PaymentFailureBanner } from '@/components/billing/PaymentFailureBanner'
 
@@ -93,16 +93,16 @@ function BillingContent() {
   return (
     <LazyMotion features={domAnimation}>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <Header />
+        <AppHeader />
 
         <main className="pt-20">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Link
-              href="/dashboard"
+              href="/dashboard/settings?tab=plan"
               className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
             >
               <ArrowLeft size={16} />
-              ダッシュボードに戻る
+              設定（プラン）に戻る
             </Link>
 
             <m.div
@@ -215,7 +215,7 @@ export default function BillingPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <Header />
+        <AppHeader />
         <main className="pt-20">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="space-y-4">

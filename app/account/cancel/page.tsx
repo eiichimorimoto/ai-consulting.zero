@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
-import { Header } from '@/components/Header'
+import AppHeader from '@/components/AppHeader'
 import { CancelFlow } from '@/components/billing/CancelFlow'
 
 interface SubscriptionData {
@@ -57,16 +57,16 @@ export default function CancelPage() {
   return (
     <LazyMotion features={domAnimation}>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <Header />
+        <AppHeader />
 
         <main className="pt-20">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Link
-              href="/account/billing"
+              href="/dashboard/settings?tab=plan"
               className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
             >
               <ArrowLeft size={16} />
-              課金管理に戻る
+              設定（プラン）に戻る
             </Link>
 
             <m.div
