@@ -7,7 +7,7 @@
  */
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
@@ -29,7 +29,7 @@ interface SubscriptionData {
   has_stripe_subscription: boolean
 }
 
-export default function BillingPage() {
+function BillingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [sub, setSub] = useState<SubscriptionData | null>(null)
@@ -208,5 +208,26 @@ export default function BillingPage() {
         </main>
       </div>
     </LazyMotion>
+  )
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <Header />
+        <main className="pt-20">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    }>
+      <BillingContent />
+    </Suspense>
   )
 }
