@@ -51,8 +51,8 @@ export default function AppHeader() {
   }
 
   const handleBack = () => {
-    // 前のページに戻る
-    window.history.back()
+    // ダッシュボードに戻る（フォワードしてきた元の画面）
+    router.push('/dashboard')
   }
 
   // ユーザーイニシャルを取得
