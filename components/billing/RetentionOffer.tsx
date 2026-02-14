@@ -28,21 +28,24 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
     setError(null)
 
     try {
-      // クーポン適用はPortal経由 or 将来のAPI実装
-      // 現時点ではPortalへリダイレクト
-      const res = await fetch('/api/stripe/create-portal', { method: 'POST' })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.url) {
-          window.location.href = data.url
-          return
-        }
+      // リテンションクーポンを適用
+      const res = await fetch('/api/stripe/apply-retention-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discountPercent }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.success) {
+        // 成功：課金管理ページに戻る
+        onAccept()
+      } else {
+        setError(data.error || 'クーポンの適用に失敗しました。')
+        setApplying(false)
       }
-      // Portalが利用できない場合はダッシュボードに戻す
-      onAccept()
     } catch {
       setError('エラーが発生しました。')
-    } finally {
       setApplying(false)
     }
   }

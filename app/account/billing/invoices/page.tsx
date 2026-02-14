@@ -11,7 +11,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
-import { Header } from '@/components/Header'
+import AppHeader from '@/components/AppHeader'
 import { InvoiceList } from '@/components/billing/InvoiceList'
 
 interface Invoice {
@@ -58,7 +58,7 @@ export default function InvoicesPage() {
   return (
     <LazyMotion features={domAnimation}>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <Header />
+        <AppHeader />
 
         <main className="pt-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
