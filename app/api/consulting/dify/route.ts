@@ -1,27 +1,24 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from "@/lib/supabase/server"
+import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
     // 認証チェック
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // リクエストボディ
     const { query, conversationId } = await request.json()
 
     if (!query) {
-      return NextResponse.json(
-        { error: 'query is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "query is required" }, { status: 400 })
     }
 
     // 環境変数チェック
@@ -30,48 +27,45 @@ export async function POST(request: NextRequest) {
     const workflowId = process.env.DIFY_WORKFLOW_ID
 
     if (!difyApiKey || !difyBaseUrl || !workflowId) {
-      console.error('Dify environment variables not set')
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      )
+      console.error("Dify environment variables not set")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     // Dify Workflow API 呼び出し
     const difyUrl = `${difyBaseUrl}/workflows/run`
-    
-    console.log('Calling Dify Workflow:', {
+
+    console.log("Calling Dify Workflow:", {
       url: difyUrl,
       userId: user.id,
       workflowId,
     })
 
     const difyResponse = await fetch(difyUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${difyApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${difyApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         inputs: {
-          user_id: user.id,  // ← Supabase user_id
+          user_id: user.id, // ← Supabase user_id
           query: query,
         },
-        response_mode: 'blocking',
+        response_mode: "blocking",
         user: user.id,
-      })
+      }),
     })
 
     if (!difyResponse.ok) {
       const errorText = await difyResponse.text()
-      console.error('Dify API error:', {
+      console.error("Dify API error:", {
         status: difyResponse.status,
-        error: errorText
+        error: errorText,
       })
       return NextResponse.json(
-        { 
-          error: 'Dify API call failed',
-          details: difyResponse.status  // ← typo 修正: tatus → difyResponse.status
+        {
+          error: "Dify API call failed",
+          details: difyResponse.status, // ← typo 修正: tatus → difyResponse.status
         },
         { status: difyResponse.status }
       )
@@ -81,15 +75,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: result
+      data: result,
     })
-
   } catch (error) {
-    console.error('Server error:', error)
+    console.error("Server error:", error)
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : String(error)
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     )
@@ -99,12 +92,12 @@ export async function POST(request: NextRequest) {
 // Health check
 export async function GET() {
   return NextResponse.json({
-    status: 'ok',
-    endpoint: 'Dify Workflow Proxy',
+    status: "ok",
+    endpoint: "Dify Workflow Proxy",
     configured: !!(
       process.env.DIFY_WORKFLOW_API_KEY &&
       process.env.DIFY_API_BASE_URL &&
       process.env.DIFY_WORKFLOW_ID
-    )
+    ),
   })
 }

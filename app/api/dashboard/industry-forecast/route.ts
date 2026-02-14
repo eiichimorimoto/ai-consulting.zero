@@ -4,127 +4,156 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { checkAIResult, checkSearchResult } from "@/lib/fact-checker"
-import { braveWebSearch, BraveWebResult } from '@/lib/brave-search'
+import { braveWebSearch, BraveWebResult } from "@/lib/brave-search"
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 export const maxDuration = 120 // 2分のタイムアウト
 
 const forecastSchema = z.object({
-  shortTerm: z.object({
-    period: z.string().describe("期間（例: 2025年1-3月）"),
-    outlook: z.enum(["positive", "neutral", "negative"]).describe("見通し"),
-    keyFactors: z.array(z.object({
-      factor: z.string().describe("要因"),
-      impact: z.enum(["positive", "negative", "neutral"]).describe("影響"),
-      description: z.string().describe("説明"),
-    })).describe("主要要因"),
-    prediction: z.string().describe("予測サマリー（3行程度、80〜120文字で具体的に）"),
-  }).describe("短期予測（3ヶ月）"),
-  midTerm: z.object({
-    period: z.string().describe("期間（例: 2025年4-9月）"),
-    outlook: z.enum(["positive", "neutral", "negative"]).describe("見通し"),
-    keyFactors: z.array(z.object({
-      factor: z.string().describe("要因"),
-      impact: z.enum(["positive", "negative", "neutral"]).describe("影響"),
-      description: z.string().describe("説明（3行程度、80〜120文字）"),
-    })).describe("主要要因"),
-    prediction: z.string().describe("予測サマリー（3行程度、80〜120文字で具体的に）"),
-  }).describe("中期予測（6ヶ月）"),
-  indicators: z.array(z.object({
-    name: z.string().describe("指標名"),
-    current: z.string().describe("現在値"),
-    forecast: z.string().describe("予測値"),
-    trend: z.enum(["up", "down", "stable"]).describe("トレンド"),
-    confidence: z.enum(["high", "medium", "low"]).describe("信頼度"),
-  })).describe("主要指標予測"),
-  risks: z.array(z.object({
-    risk: z.string().describe("リスク要因"),
-    probability: z.enum(["high", "medium", "low"]).describe("発生確率"),
-    impact: z.enum(["high", "medium", "low"]).describe("影響度"),
-    mitigation: z.string().describe("対策"),
-  })).describe("リスク要因"),
-  opportunities: z.array(z.object({
-    opportunity: z.string().describe("機会"),
-    timing: z.string().describe("タイミング"),
-    action: z.string().describe("推奨アクション"),
-  })).describe("成長機会"),
-  recommendation: z.string().describe("経営への提言（必ず3項目、句点で区切る。形式：「①【カテゴリ】施策名と数値目標：期限と想定効果」。※各提言は「〜が見込まれます」「〜の可能性があります」等の推定表現を使用。例：「①【コスト】在庫20%削減を推奨：3月末までに運転資金約500万円の確保が見込まれます。②【売上】新規顧客5社開拓を提案：上期中に年商10%増の可能性があります。③【効率】残業30%削減を検討：業務自動化により人件費年間約200万円の圧縮が期待できます」）"),
+  shortTerm: z
+    .object({
+      period: z.string().describe("期間（例: 2025年1-3月）"),
+      outlook: z.enum(["positive", "neutral", "negative"]).describe("見通し"),
+      keyFactors: z
+        .array(
+          z.object({
+            factor: z.string().describe("要因"),
+            impact: z.enum(["positive", "negative", "neutral"]).describe("影響"),
+            description: z.string().describe("説明"),
+          })
+        )
+        .describe("主要要因"),
+      prediction: z.string().describe("予測サマリー（3行程度、80〜120文字で具体的に）"),
+    })
+    .describe("短期予測（3ヶ月）"),
+  midTerm: z
+    .object({
+      period: z.string().describe("期間（例: 2025年4-9月）"),
+      outlook: z.enum(["positive", "neutral", "negative"]).describe("見通し"),
+      keyFactors: z
+        .array(
+          z.object({
+            factor: z.string().describe("要因"),
+            impact: z.enum(["positive", "negative", "neutral"]).describe("影響"),
+            description: z.string().describe("説明（3行程度、80〜120文字）"),
+          })
+        )
+        .describe("主要要因"),
+      prediction: z.string().describe("予測サマリー（3行程度、80〜120文字で具体的に）"),
+    })
+    .describe("中期予測（6ヶ月）"),
+  indicators: z
+    .array(
+      z.object({
+        name: z.string().describe("指標名"),
+        current: z.string().describe("現在値"),
+        forecast: z.string().describe("予測値"),
+        trend: z.enum(["up", "down", "stable"]).describe("トレンド"),
+        confidence: z.enum(["high", "medium", "low"]).describe("信頼度"),
+      })
+    )
+    .describe("主要指標予測"),
+  risks: z
+    .array(
+      z.object({
+        risk: z.string().describe("リスク要因"),
+        probability: z.enum(["high", "medium", "low"]).describe("発生確率"),
+        impact: z.enum(["high", "medium", "low"]).describe("影響度"),
+        mitigation: z.string().describe("対策"),
+      })
+    )
+    .describe("リスク要因"),
+  opportunities: z
+    .array(
+      z.object({
+        opportunity: z.string().describe("機会"),
+        timing: z.string().describe("タイミング"),
+        action: z.string().describe("推奨アクション"),
+      })
+    )
+    .describe("成長機会"),
+  recommendation: z
+    .string()
+    .describe(
+      "経営への提言（必ず3項目、句点で区切る。形式：「①【カテゴリ】施策名と数値目標：期限と想定効果」。※各提言は「〜が見込まれます」「〜の可能性があります」等の推定表現を使用。例：「①【コスト】在庫20%削減を推奨：3月末までに運転資金約500万円の確保が見込まれます。②【売上】新規顧客5社開拓を提案：上期中に年商10%増の可能性があります。③【効率】残業30%削減を検討：業務自動化により人件費年間約200万円の圧縮が期待できます」）"
+    ),
 })
 
 export async function GET(request: Request) {
   // レート制限チェック（30回/時間）
-  const rateLimitError = applyRateLimit(request, 'dashboard')
+  const rateLimitError = applyRateLimit(request, "dashboard")
   if (rateLimitError) return rateLimitError
 
   try {
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "認証されていません" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "認証されていません" }, { status: 401 })
     }
 
     // プロファイルと会社情報を取得
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', user.id)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", user.id)
       .single()
 
     if (!profile?.company_id) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     const companyId = profile.company_id
 
     const { data: company } = await supabase
-      .from('companies')
-      .select('name, industry, business_description, retrieved_info, prefecture, employee_count, annual_revenue')
-      .eq('id', companyId)
+      .from("companies")
+      .select(
+        "name, industry, business_description, retrieved_info, prefecture, employee_count, annual_revenue"
+      )
+      .eq("id", companyId)
       .single()
 
     if (!company) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
-    const industryQuery = company.industry || ''
+    const industryQuery = company.industry || ""
 
     // 強制更新でない場合、キャッシュから返す（有効期限: 30分）
     const { searchParams } = new URL(request.url)
-    const forceRefresh = searchParams.get('refresh') === 'true'
+    const forceRefresh = searchParams.get("refresh") === "true"
     if (!forceRefresh) {
       const cacheExpiry = new Date()
       cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 30)
       const { data: cachedRow } = await supabase
-        .from('dashboard_data')
-        .select('data, updated_at')
-        .eq('user_id', user.id)
-        .eq('company_id', companyId)
-        .eq('data_type', 'industry-forecast')
-        .gte('updated_at', cacheExpiry.toISOString())
+        .from("dashboard_data")
+        .select("data, updated_at")
+        .eq("user_id", user.id)
+        .eq("company_id", companyId)
+        .eq("data_type", "industry-forecast")
+        .gte("updated_at", cacheExpiry.toISOString())
         .maybeSingle()
       if (cachedRow?.data) {
-        const payload = cachedRow.data as { data: unknown; company?: unknown; updatedAt?: string; factCheck?: unknown }
+        const payload = cachedRow.data as {
+          data: unknown
+          company?: unknown
+          updatedAt?: string
+          factCheck?: unknown
+        }
         return NextResponse.json({
           ...payload,
           updatedAt: payload.updatedAt || cachedRow.updated_at,
-          cached: true
+          cached: true,
         })
       }
     }
-    const businessDesc = company.business_description || ''
-    const companyName = company.name || ''
-    
+    const businessDesc = company.business_description || ""
+    const companyName = company.name || ""
+
     // 多角的な情報を並列収集
     const searchPromises = [
       // 業界予測
@@ -146,21 +175,22 @@ export async function GET(request: Request) {
     ]
 
     const searchResults = await Promise.all(searchPromises)
-    
-    const formatResults = (results: BraveWebResult[]) => results
-      .slice(0, 6)
-      .map((r: BraveWebResult) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
-      .join('\n')
+
+    const formatResults = (results: BraveWebResult[]) =>
+      results
+        .slice(0, 6)
+        .map((r: BraveWebResult) => `[${r.url || ""}] ${r.title || ""}: ${r.description || ""}`)
+        .join("\n")
 
     const searchContext = `
 【企業情報】
 会社名: ${companyName}
-業種: ${industryQuery || '不明'}
-所在地: ${company.prefecture || '不明'}
-従業員数: ${company.employee_count || '不明'}
-売上規模: ${company.annual_revenue || '不明'}
-事業内容: ${businessDesc || '不明'}
-取得情報: ${company.retrieved_info ? JSON.stringify(company.retrieved_info) : 'なし'}
+業種: ${industryQuery || "不明"}
+所在地: ${company.prefecture || "不明"}
+従業員数: ${company.employee_count || "不明"}
+売上規模: ${company.annual_revenue || "不明"}
+事業内容: ${businessDesc || "不明"}
+取得情報: ${company.retrieved_info ? JSON.stringify(company.retrieved_info) : "なし"}
 
 【業界予測情報】
 ${formatResults([...searchResults[0], ...searchResults[1]])}
@@ -184,10 +214,7 @@ ${formatResults([...searchResults[8], ...searchResults[9]])}
     // AIで包括的な業界予測を実行
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "ANTHROPIC_API_KEYが設定されていません" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "ANTHROPIC_API_KEYが設定されていません" }, { status: 500 })
     }
 
     const anthropic = createAnthropic({ apiKey })
@@ -200,7 +227,7 @@ ${formatResults([...searchResults[8], ...searchResults[9]])}
           role: "user",
           content: `以下の企業「${companyName}」（${industryQuery || businessDesc}）の情報と収集した外部情報を基に、包括的な業界予測を行ってください。
 
-【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+【本日の日付】${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 
 ${searchContext}
 
@@ -254,9 +281,10 @@ ${searchContext}
     const factCheckResult = checkAIResult({
       content: JSON.stringify(object),
       issues: (object.indicators || []).map((ind) => ({
-        severity: ind.confidence === 'high' ? 'info' : ind.confidence === 'medium' ? 'warning' : 'error',
-        issue: ind.name || '',
-        category: 'forecast'
+        severity:
+          ind.confidence === "high" ? "info" : ind.confidence === "medium" ? "warning" : "error",
+        issue: ind.name || "",
+        category: "forecast",
       })),
     })
 
@@ -270,28 +298,28 @@ ${searchContext}
         industry: industryQuery,
       },
       updatedAt,
-      factCheck: factCheckResult
+      factCheck: factCheckResult,
     }
 
-    await supabase
-      .from('dashboard_data')
-      .upsert({
+    await supabase.from("dashboard_data").upsert(
+      {
         user_id: user.id,
         company_id: companyId,
-        data_type: 'industry-forecast',
+        data_type: "industry-forecast",
         data: payload,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-      }, {
-        onConflict: 'user_id,company_id,data_type'
-      })
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      },
+      {
+        onConflict: "user_id,company_id,data_type",
+      }
+    )
 
     return NextResponse.json({
       ...payload,
-      cached: false
+      cached: false,
     })
-
   } catch (error) {
-    console.error('Industry forecast error:', error)
+    console.error("Industry forecast error:", error)
     return NextResponse.json(
       {
         error: "業界予測の取得に失敗しました",

@@ -7,8 +7,8 @@
  * @module lib/consulting/sample-data
  */
 
-import { SessionData } from "@/types/consulting";
-import { MessageSquare, BarChart3, Lightbulb, Target, FileText } from "lucide-react";
+import { SessionData } from "@/types/consulting"
+import { MessageSquare, BarChart3, Lightbulb, Target, FileText } from "lucide-react"
 
 /**
  * 開発環境用のサンプルセッションデータを生成
@@ -36,18 +36,44 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 1,
         type: "ai",
-        content: "こんにちは！AIコンサルティングアシスタントです。まず、貴社の現状についてお聞かせください。現在直面している主な課題は何ですか？",
+        content:
+          "こんにちは！AIコンサルティングアシスタントです。まず、貴社の現状についてお聞かせください。現在直面している主な課題は何ですか？",
         timestamp: new Date(Date.now() - 120000),
         interactive: {
           type: "category-buttons",
           data: [
-            { label: "売上の伸び悩み", icon: "TrendingDown", color: "bg-red-500", bgLight: "bg-red-50 border-red-200" },
-            { label: "コスト削減", icon: "DollarSign", color: "bg-green-500", bgLight: "bg-green-50 border-green-200" },
-            { label: "新規事業立ち上げ", icon: "Rocket", color: "bg-blue-500", bgLight: "bg-blue-50 border-blue-200" },
-            { label: "組織改革", icon: "Users", color: "bg-purple-500", bgLight: "bg-purple-50 border-purple-200" },
-            { label: "その他", icon: "Edit3", color: "bg-gray-500", bgLight: "bg-gray-50 border-gray-200" }
-          ]
-        }
+            {
+              label: "売上の伸び悩み",
+              icon: "TrendingDown",
+              color: "bg-red-500",
+              bgLight: "bg-red-50 border-red-200",
+            },
+            {
+              label: "コスト削減",
+              icon: "DollarSign",
+              color: "bg-green-500",
+              bgLight: "bg-green-50 border-green-200",
+            },
+            {
+              label: "新規事業立ち上げ",
+              icon: "Rocket",
+              color: "bg-blue-500",
+              bgLight: "bg-blue-50 border-blue-200",
+            },
+            {
+              label: "組織改革",
+              icon: "Users",
+              color: "bg-purple-500",
+              bgLight: "bg-purple-50 border-purple-200",
+            },
+            {
+              label: "その他",
+              icon: "Edit3",
+              color: "bg-gray-500",
+              bgLight: "bg-gray-50 border-gray-200",
+            },
+          ],
+        },
       },
       {
         id: 2,
@@ -58,11 +84,12 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 3,
         type: "ai",
-        content: "承知しました。売上の伸び悩みについて詳しく分析していきましょう。現在の月間売上はどのくらいですか？また、目標とする売上はいくらでしょうか？",
+        content:
+          "承知しました。売上の伸び悩みについて詳しく分析していきましょう。現在の月間売上はどのくらいですか？また、目標とする売上はいくらでしょうか？",
         timestamp: new Date(Date.now() - 60000),
         interactive: {
           type: "form",
-        }
+        },
       },
     ],
     kpis: [
@@ -75,33 +102,33 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 1,
         title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
+        icon: <MessageSquare className="h-5 w-5" />,
         status: "completed",
-        summary: ["売上の伸び悩み", "新規顧客獲得が低調", "単価の低下"]
+        summary: ["売上の伸び悩み", "新規顧客獲得が低調", "単価の低下"],
       },
       {
         id: 2,
         title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
+        icon: <BarChart3 className="h-5 w-5" />,
         status: "active",
-        summary: ["月間売上: ¥12.5M", "平均単価: ¥10,125", "リピート率: 42%"]
+        summary: ["月間売上: ¥12.5M", "平均単価: ¥10,125", "リピート率: 42%"],
       },
       {
         id: 3,
         title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
+        icon: <Lightbulb className="h-5 w-5" />,
         status: "pending",
       },
       {
         id: 4,
         title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
+        icon: <Target className="h-5 w-5" />,
         status: "pending",
       },
       {
         id: 5,
         title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
+        icon: <FileText className="h-5 w-5" />,
         status: "pending",
       },
     ],
@@ -120,7 +147,8 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 1,
         type: "ai",
-        content: "コスト削減についてのご相談ですね。まず、現在の主要なコスト項目を教えていただけますか？",
+        content:
+          "コスト削減についてのご相談ですね。まず、現在の主要なコスト項目を教えていただけますか？",
         timestamp: new Date(Date.now() - 86400000),
       },
       {
@@ -132,7 +160,8 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 3,
         type: "ai",
-        content: "承知しました。人件費と設備維持費について詳しく分析していきましょう。現在の削減目標はどのくらいですか？",
+        content:
+          "承知しました。人件費と設備維持費について詳しく分析していきましょう。現在の削減目標はどのくらいですか？",
         timestamp: new Date(Date.now() - 86200000),
       },
     ],
@@ -146,34 +175,34 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 1,
         title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
+        icon: <MessageSquare className="h-5 w-5" />,
         status: "completed",
-        summary: ["コスト削減", "人件費の最適化", "設備維持費の削減"]
+        summary: ["コスト削減", "人件費の最適化", "設備維持費の削減"],
       },
       {
         id: 2,
         title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
+        icon: <BarChart3 className="h-5 w-5" />,
         status: "completed",
-        summary: ["月間コスト: ¥8.2M", "人件費率: 45%", "設備費率: 28%"]
+        summary: ["月間コスト: ¥8.2M", "人件費率: 45%", "設備費率: 28%"],
       },
       {
         id: 3,
         title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
+        icon: <Lightbulb className="h-5 w-5" />,
         status: "completed",
-        summary: ["業務自動化", "シフト最適化", "設備統合"]
+        summary: ["業務自動化", "シフト最適化", "設備統合"],
       },
       {
         id: 4,
         title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
+        icon: <Target className="h-5 w-5" />,
         status: "active",
       },
       {
         id: 5,
         title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
+        icon: <FileText className="h-5 w-5" />,
         status: "pending",
       },
     ],
@@ -206,31 +235,31 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 1,
         title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
+        icon: <MessageSquare className="h-5 w-5" />,
         status: "completed",
       },
       {
         id: 2,
         title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
+        icon: <BarChart3 className="h-5 w-5" />,
         status: "completed",
       },
       {
         id: 3,
         title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
+        icon: <Lightbulb className="h-5 w-5" />,
         status: "active",
       },
       {
         id: 4,
         title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
+        icon: <Target className="h-5 w-5" />,
         status: "pending",
       },
       {
         id: 5,
         title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
+        icon: <FileText className="h-5 w-5" />,
         status: "pending",
       },
     ],
@@ -263,33 +292,33 @@ export const createInitialSessions = (): SessionData[] => [
       {
         id: 1,
         title: "課題のヒアリング",
-        icon: <MessageSquare className="w-5 h-5" />,
+        icon: <MessageSquare className="h-5 w-5" />,
         status: "completed",
       },
       {
         id: 2,
         title: "現状分析",
-        icon: <BarChart3 className="w-5 h-5" />,
+        icon: <BarChart3 className="h-5 w-5" />,
         status: "active",
       },
       {
         id: 3,
         title: "解決策の提案",
-        icon: <Lightbulb className="w-5 h-5" />,
+        icon: <Lightbulb className="h-5 w-5" />,
         status: "pending",
       },
       {
         id: 4,
         title: "実行計画の策定",
-        icon: <Target className="w-5 h-5" />,
+        icon: <Target className="h-5 w-5" />,
         status: "pending",
       },
       {
         id: 5,
         title: "レポート作成",
-        icon: <FileText className="w-5 h-5" />,
+        icon: <FileText className="h-5 w-5" />,
         status: "pending",
       },
     ],
   },
-];
+]

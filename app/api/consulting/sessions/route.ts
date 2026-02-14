@@ -1,59 +1,55 @@
 /**
  * Consulting Sessions API
- * 
+ *
  * 相談セッションの一覧取得・新規作成（添付ファイル対応）
  */
 
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { uploadFile } from '@/lib/storage/upload'
-import { extractText, isSupportedTextFile } from '@/lib/file-processing/text-extractor'
-import { getPlanLimits } from '@/lib/plan-config'
+import { createClient } from "@/lib/supabase/server"
+import { NextRequest, NextResponse } from "next/server"
+import { uploadFile } from "@/lib/storage/upload"
+import { extractText, isSupportedTextFile } from "@/lib/file-processing/text-extractor"
+import { getPlanLimits } from "@/lib/plan-config"
 
 /**
  * GET /api/consulting/sessions
- * 
+ *
  * ユーザーの相談セッション一覧を取得
  */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // 認証チェック
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // セッション一覧取得
     const { data: sessions, error: sessionsError } = await supabase
-      .from('consulting_sessions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .from("consulting_sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
 
     if (sessionsError) {
-      console.error('Sessions fetch error:', sessionsError)
-      return NextResponse.json(
-        { error: sessionsError.message },
-        { status: 500 }
-      )
+      console.error("Sessions fetch error:", sessionsError)
+      return NextResponse.json({ error: sessionsError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       sessions: sessions || [],
-      count: sessions?.length || 0
+      count: sessions?.length || 0,
     })
-
   } catch (error) {
-    console.error('GET /api/consulting/sessions error:', error)
+    console.error("GET /api/consulting/sessions error:", error)
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Internal Server Error' 
+      {
+        error: error instanceof Error ? error.message : "Internal Server Error",
       },
       { status: 500 }
     )
@@ -62,92 +58,88 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/consulting/sessions
- * 
+ *
  * 新規相談セッション作成（添付ファイル対応）
  */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // 認証チェック
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     // デバッグ用ログ
-    console.log('🔍 [POST /api/consulting/sessions] 認証チェック:', {
+    console.log("🔍 [POST /api/consulting/sessions] 認証チェック:", {
       hasUser: !!user,
       userId: user?.id,
       authError: authError?.message,
-      hasAuthHeader: !!request.headers.get('authorization'),
-      cookies: request.cookies.getAll().map(c => c.name),
+      hasAuthHeader: !!request.headers.get("authorization"),
+      cookies: request.cookies.getAll().map((c) => c.name),
     })
-    
+
     if (authError || !user) {
-      console.error('❌ [POST /api/consulting/sessions] 認証失敗:', {
+      console.error("❌ [POST /api/consulting/sessions] 認証失敗:", {
         authError: authError?.message,
         hasUser: !!user,
       })
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // FormData取得（添付ファイル対応）
     const formData = await request.formData()
-    const category = formData.get('category') as string
-    const initialMessage = formData.get('initial_message') as string
-    const title = formData.get('title') as string | null
+    const category = formData.get("category") as string
+    const initialMessage = formData.get("initial_message") as string
+    const title = formData.get("title") as string | null
 
     // バリデーション
     if (!initialMessage || initialMessage.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'initial_message is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "initial_message is required" }, { status: 400 })
     }
 
     // 添付ファイル取得
     const files: File[] = []
     for (const [key, value] of formData.entries()) {
-      if (key.startsWith('file_') && value instanceof File) {
+      if (key.startsWith("file_") && value instanceof File) {
         files.push(value)
       }
     }
 
     // ユーザープロフィール取得（company_id・plan_type取得のため）
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id, plan_type')
-      .eq('user_id', user.id)
+      .from("profiles")
+      .select("company_id, plan_type")
+      .eq("user_id", user.id)
       .single()
 
     // プラン別のセッション上限チェック（Enterprise は制限なし）
     const { maxSessions, isUnlimited } = getPlanLimits(profile?.plan_type as string | undefined)
-    if (!isUnlimited && maxSessions != null) {
+    if (!isUnlimited && maxSessions !== null) {
       const now = new Date()
       const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0))
-      const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59))
+      const endOfMonth = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59)
+      )
 
       const { count: sessionCount, error: countError } = await supabase
-        .from('consulting_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', startOfMonth.toISOString())
-        .lte('created_at', endOfMonth.toISOString())
+        .from("consulting_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", startOfMonth.toISOString())
+        .lte("created_at", endOfMonth.toISOString())
 
       if (countError) {
-        console.error('Session count error:', countError)
-        return NextResponse.json(
-          { error: 'Failed to check session limits' },
-          { status: 500 }
-        )
+        console.error("Session count error:", countError)
+        return NextResponse.json({ error: "Failed to check session limits" }, { status: 500 })
       }
 
       if ((sessionCount || 0) >= maxSessions) {
         return NextResponse.json(
-          { 
-            error: 'Session limit exceeded',
-            message: '今月の課題数の上限に達しました。アカウントのプランをご覧ください。'
+          {
+            error: "Session limit exceeded",
+            message: "今月の課題数の上限に達しました。アカウントのプランをご覧ください。",
           },
           { status: 400 }
         )
@@ -156,30 +148,27 @@ export async function POST(request: NextRequest) {
 
     // セッション作成
     const { data: session, error: sessionError } = await supabase
-      .from('consulting_sessions')
+      .from("consulting_sessions")
       .insert({
         user_id: user.id,
         company_id: profile?.company_id || null,
-        title: title || (initialMessage ? initialMessage.slice(0, 50) + '...' : '新規相談'),
-        category: category || 'general',
-        status: 'active',
+        title: title || (initialMessage ? initialMessage.slice(0, 50) + "..." : "新規相談"),
+        category: category || "general",
+        status: "active",
         max_rounds: 5,
-        current_round: 0
+        current_round: 0,
       })
       .select()
       .single()
 
     if (sessionError) {
-      console.error('Session creation error:', sessionError)
-      return NextResponse.json(
-        { error: sessionError.message },
-        { status: 500 }
-      )
+      console.error("Session creation error:", sessionError)
+      return NextResponse.json({ error: sessionError.message }, { status: 500 })
     }
 
     // 添付ファイル処理
     let attachments: any[] = []
-    
+
     if (files.length > 0) {
       try {
         attachments = await Promise.all(
@@ -188,23 +177,25 @@ export async function POST(request: NextRequest) {
             if (file.size > 10 * 1024 * 1024) {
               throw new Error(`File ${file.name} exceeds 10MB limit`)
             }
-            
+
             // ファイルタイプ検証
             if (!isSupportedTextFile(file)) {
-              throw new Error(`File ${file.name} is not supported. Allowed: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx`)
+              throw new Error(
+                `File ${file.name} is not supported. Allowed: .txt, .csv, .md, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx`
+              )
             }
-            
+
             // Supabase Storageにアップロード
             const uploadResult = await uploadFile(file, user.id, session.id)
-            
+
             // テキスト抽出（テキストファイルのみ）
-            const textTypes = ['text/plain', 'text/csv', 'application/csv', 'text/markdown']
+            const textTypes = ["text/plain", "text/csv", "application/csv", "text/markdown"]
             let extraction = null
-            
+
             if (textTypes.includes(file.type)) {
               extraction = await extractText(file)
             }
-            
+
             return {
               id: crypto.randomUUID(),
               name: file.name,
@@ -221,12 +212,12 @@ export async function POST(request: NextRequest) {
         )
       } catch (error) {
         // ファイル処理エラーの場合、セッションは作成済みだが添付ファイルはなし
-        console.error('File processing error:', error)
+        console.error("File processing error:", error)
         return NextResponse.json(
-          { 
-            error: error instanceof Error ? error.message : 'File processing failed',
+          {
+            error: error instanceof Error ? error.message : "File processing failed",
             session,
-            attachments: []
+            attachments: [],
           },
           { status: 400 }
         )
@@ -235,41 +226,41 @@ export async function POST(request: NextRequest) {
 
     // ユーザーメッセージ作成（カテゴリ選択、添付ファイル情報を含む）
     // 注: 初回AIメッセージは動的生成されるため、DBには保存しない
-    const { error: messageError } = await supabase
-      .from('consulting_messages')
-      .insert({
-        session_id: session.id,
-        role: 'user',
-        content: initialMessage,
-        attachments: attachments.length > 0 ? attachments : null,
-        message_order: 1  // 最初のメッセージ
-      })
-    
+    const { error: messageError } = await supabase.from("consulting_messages").insert({
+      session_id: session.id,
+      role: "user",
+      content: initialMessage,
+      attachments: attachments.length > 0 ? attachments : null,
+      message_order: 1, // 最初のメッセージ
+    })
+
     if (messageError) {
-      console.error('Message creation error:', messageError)
+      console.error("Message creation error:", messageError)
       // メッセージ作成失敗だが、セッションは作成済み
       return NextResponse.json(
-        { 
-          error: 'Failed to save initial message',
+        {
+          error: "Failed to save initial message",
           session,
-          attachments
+          attachments,
         },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ 
-      success: true,
-      session,
-      attachments,
-      message: 'Session created successfully'
-    }, { status: 201 })
-
-  } catch (error) {
-    console.error('POST /api/consulting/sessions error:', error)
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Internal Server Error' 
+      {
+        success: true,
+        session,
+        attachments,
+        message: "Session created successfully",
+      },
+      { status: 201 }
+    )
+  } catch (error) {
+    console.error("POST /api/consulting/sessions error:", error)
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal Server Error",
       },
       { status: 500 }
     )

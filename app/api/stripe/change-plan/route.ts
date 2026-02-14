@@ -9,28 +9,31 @@
  * @see stripe-payment-spec-v2.2.md §4-5
  */
 
-import { createClient } from '@/lib/supabase/server'
-import { getStripe } from '@/lib/stripe/server'
-import { getPriceId, type BillingInterval } from '@/lib/stripe/config'
-import { applyRateLimit } from '@/lib/rate-limit'
-import { NextRequest, NextResponse } from 'next/server'
-import type { PlanType } from '@/lib/plan-config'
+import { createClient } from "@/lib/supabase/server"
+import { getStripe } from "@/lib/stripe/server"
+import { getPriceId, type BillingInterval } from "@/lib/stripe/config"
+import { applyRateLimit } from "@/lib/rate-limit"
+import { NextRequest, NextResponse } from "next/server"
+import type { PlanType } from "@/lib/plan-config"
 
-const PAID_PLANS: PlanType[] = ['pro', 'enterprise']
-const VALID_INTERVALS: BillingInterval[] = ['monthly', 'yearly']
+const PAID_PLANS: PlanType[] = ["pro", "enterprise"]
+const VALID_INTERVALS: BillingInterval[] = ["monthly", "yearly"]
 
 export async function POST(request: NextRequest) {
   try {
     // 1. 認証チェック
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: '認証されていません' }, { status: 401 })
+      return NextResponse.json({ error: "認証されていません" }, { status: 401 })
     }
 
     // 2. レート制限: 3回/分（§4-1）
-    const rateLimitError = applyRateLimit(request, 'stripeChangePlan', user.id)
+    const rateLimitError = applyRateLimit(request, "stripeChangePlan", user.id)
     if (rateLimitError) return rateLimitError
 
     // 3. リクエストボディの検証
@@ -40,34 +43,34 @@ export async function POST(request: NextRequest) {
 
     if (!newPlan || !PAID_PLANS.includes(newPlan as PlanType)) {
       return NextResponse.json(
-        { error: '無効なプランです。pro / enterprise のいずれかを指定してください。' },
+        { error: "無効なプランです。pro / enterprise のいずれかを指定してください。" },
         { status: 400 }
       )
     }
 
     if (!billingInterval || !VALID_INTERVALS.includes(billingInterval as BillingInterval)) {
       return NextResponse.json(
-        { error: '無効な課金間隔です。monthly / yearly のいずれかを指定してください。' },
+        { error: "無効な課金間隔です。monthly / yearly のいずれかを指定してください。" },
         { status: 400 }
       )
     }
 
     // 4. 現在のサブスクリプション情報を取得
     const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('stripe_subscription_id, stripe_customer_id, plan_type, status')
-      .eq('user_id', user.id)
+      .from("subscriptions")
+      .select("stripe_subscription_id, stripe_customer_id, plan_type, status")
+      .eq("user_id", user.id)
       .single()
 
     // 5. Freeプランからの変更 → Checkout APIへリダイレクト指示
     if (
       !subscription?.stripe_subscription_id ||
-      subscription.plan_type === 'free' ||
-      subscription.status === 'canceled'
+      subscription.plan_type === "free" ||
+      subscription.status === "canceled"
     ) {
       return NextResponse.json({
-        action: 'redirect_to_checkout',
-        message: '新規契約が必要です。Checkoutページへ遷移してください。',
+        action: "redirect_to_checkout",
+        message: "新規契約が必要です。Checkoutページへ遷移してください。",
       })
     }
 
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     if (!subscriptionItemId) {
       return NextResponse.json(
-        { error: 'サブスクリプションアイテムが見つかりません' },
+        { error: "サブスクリプションアイテムが見つかりません" },
         { status: 500 }
       )
     }
@@ -93,13 +96,13 @@ export async function POST(request: NextRequest) {
       subscription.stripe_subscription_id,
       {
         items: [{ id: subscriptionItemId, price: newPriceId }],
-        proration_behavior: 'create_prorations',
+        proration_behavior: "create_prorations",
       }
     )
 
     // 9. DBを更新
     const { error: updateError } = await supabase
-      .from('subscriptions')
+      .from("subscriptions")
       .update({
         plan_type: newPlan,
         stripe_price_id: newPriceId,
@@ -107,10 +110,10 @@ export async function POST(request: NextRequest) {
         status: updatedSubscription.status,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id)
+      .eq("user_id", user.id)
 
     if (updateError) {
-      console.error('[change-plan] DB update failed:', updateError)
+      console.error("[change-plan] DB update failed:", updateError)
       // Stripe側は変更済みなのでエラーにはするがロールバックはしない
       // （Webhookで同期される）
     }
@@ -121,11 +124,8 @@ export async function POST(request: NextRequest) {
       billing_interval: billingInterval,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('[change-plan] Error:', message)
-    return NextResponse.json(
-      { error: 'プラン変更に失敗しました' },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : "Unknown error"
+    console.error("[change-plan] Error:", message)
+    return NextResponse.json({ error: "プラン変更に失敗しました" }, { status: 500 })
   }
 }

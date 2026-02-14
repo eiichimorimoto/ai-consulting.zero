@@ -8,29 +8,36 @@ import FloatingDiagnosis from "@/components/FloatingDiagnosis"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 })
-const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] })
-const notoSansJP = Noto_Sans_JP({ 
-  subsets: ["latin"], 
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+})
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+})
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-noto",
   display: "swap",
 })
-const bebasNeue = Bebas_Neue({ 
-  subsets: ["latin"], 
-  weight: ["400"], 
+const bebasNeue = Bebas_Neue({
+  subsets: ["latin"],
+  weight: ["400"],
   variable: "--font-bebas-neue",
   display: "swap",
 })
 
 export const metadata: Metadata = {
   title: "SolveWise - AI Powered Consulting",
-  description: "AIが伴走する経営支援サービス。24時間休まない分析力で、あなたの経営を次のステージへ。",
+  description:
+    "AIが伴走する経営支援サービス。24時間休まない分析力で、あなたの経営を次のステージへ。",
   generator: "v0.app",
   icons: {
     icon: [
@@ -52,7 +59,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
@@ -71,7 +78,13 @@ export default function RootLayout({
         <ConditionalFooter />
         <FloatingDiagnosis />
         <Toaster />
-        <SonnerToaster position="top-right" expand richColors closeButton className="sonner-toaster-right" />
+        <SonnerToaster
+          position="top-right"
+          expand
+          richColors
+          closeButton
+          className="sonner-toaster-right"
+        />
       </body>
     </html>
   )

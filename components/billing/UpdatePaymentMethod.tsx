@@ -6,10 +6,10 @@
  *
  * @see stripe-payment-spec-v2.2.md §6-4
  */
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import { CreditCard, ExternalLink, Loader2 } from 'lucide-react'
+import React, { useState } from "react"
+import { CreditCard, ExternalLink, Loader2 } from "lucide-react"
 
 export function UpdatePaymentMethod() {
   const [loading, setLoading] = useState(false)
@@ -17,7 +17,7 @@ export function UpdatePaymentMethod() {
   async function handleUpdate() {
     setLoading(true)
     try {
-      const res = await fetch('/api/stripe/create-portal', { method: 'POST' })
+      const res = await fetch("/api/stripe/create-portal", { method: "POST" })
       if (res.ok) {
         const data = await res.json()
         if (data.url) {
@@ -25,18 +25,18 @@ export function UpdatePaymentMethod() {
           return
         }
       }
-      alert('ポータルの生成に失敗しました。')
+      alert("ポータルの生成に失敗しました。")
     } catch {
-      alert('エラーが発生しました。')
+      alert("エラーが発生しました。")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
+    <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
           <CreditCard size={20} className="text-blue-600" />
         </div>
         <div>
@@ -50,7 +50,7 @@ export function UpdatePaymentMethod() {
       <button
         onClick={handleUpdate}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
         {loading ? (
           <>

@@ -6,12 +6,12 @@
  *
  * @see stripe-payment-spec-v2.2.md §8-2
  */
-'use client'
+"use client"
 
-import React from 'react'
-import Link from 'next/link'
-import { AlertTriangle, Lock, CreditCard } from 'lucide-react'
-import type { PlanType } from '@/lib/plan-config'
+import React from "react"
+import Link from "next/link"
+import { AlertTriangle, Lock, CreditCard } from "lucide-react"
+import type { PlanType } from "@/lib/plan-config"
 
 interface PlanGateProps {
   /** 現在のユーザーのプラン */
@@ -27,9 +27,9 @@ interface PlanGateProps {
 }
 
 const PLAN_LABELS: Record<PlanType, string> = {
-  free: 'Free',
-  pro: 'Pro',
-  enterprise: 'Enterprise',
+  free: "Free",
+  pro: "Pro",
+  enterprise: "Enterprise",
 }
 
 const PLAN_LEVEL: Record<PlanType, number> = {
@@ -41,26 +41,24 @@ const PLAN_LEVEL: Record<PlanType, number> = {
 export function PlanGate({
   currentPlan,
   requiredPlan,
-  appStatus = 'active',
+  appStatus = "active",
   children,
   upgradeMessage,
 }: PlanGateProps) {
   // サービス停止中（§8-2）
-  if (appStatus === 'suspended') {
+  if (appStatus === "suspended") {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center space-y-4">
-        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
-        <h3 className="text-lg font-bold text-red-800">
-          サービスが一時停止されています
-        </h3>
-        <p className="text-red-700 text-sm">
+      <div className="space-y-4 rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
+        <h3 className="text-lg font-bold text-red-800">サービスが一時停止されています</h3>
+        <p className="text-sm text-red-700">
           お支払いが確認できなかったため、サービスを一時停止しております。
           <br />
           お支払い方法を更新していただくと、サービスが復旧されます。
         </p>
         <Link
           href="/account/billing?reason=suspended"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 font-medium text-white transition-colors hover:bg-red-700"
         >
           <CreditCard size={16} />
           お支払い情報を更新する
@@ -72,17 +70,18 @@ export function PlanGate({
   // プラン不足
   if (PLAN_LEVEL[currentPlan] < PLAN_LEVEL[requiredPlan]) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center space-y-4">
-        <Lock className="w-12 h-12 text-gray-400 mx-auto" />
+      <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+        <Lock className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="text-lg font-bold text-gray-800">
           {PLAN_LABELS[requiredPlan]}プラン以上が必要です
         </h3>
-        <p className="text-gray-600 text-sm">
-          {upgradeMessage || `この機能は${PLAN_LABELS[requiredPlan]}プラン以上でご利用いただけます。`}
+        <p className="text-sm text-gray-600">
+          {upgradeMessage ||
+            `この機能は${PLAN_LABELS[requiredPlan]}プラン以上でご利用いただけます。`}
         </p>
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
         >
           プランをアップグレード
         </Link>

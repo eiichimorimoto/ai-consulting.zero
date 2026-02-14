@@ -13,7 +13,7 @@ export function dunningDay7Template(params: DunningDay7Params): {
   html: string
 } {
   return {
-    subject: '【SolveWise】お支払いの確認のお願い（再送）',
+    subject: "【SolveWise】お支払いの確認のお願い（再送）",
     html: `
 <!DOCTYPE html>
 <html lang="ja">

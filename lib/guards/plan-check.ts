@@ -6,14 +6,14 @@
  * @see stripe-payment-spec-v2.2.md §8-2, §8-3
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { PlanType } from '@/lib/plan-config'
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { PlanType } from "@/lib/plan-config"
 
 export interface PlanCheckResult {
   allowed: boolean
   planType: PlanType
   appStatus: string
-  reason?: 'insufficient_plan' | 'suspended' | 'no_subscription'
+  reason?: "insufficient_plan" | "suspended" | "no_subscription"
 }
 
 /**
@@ -26,34 +26,34 @@ export interface PlanCheckResult {
 export async function checkPlanAccess(
   supabase: SupabaseClient,
   userId: string,
-  requiredPlan: PlanType = 'free'
+  requiredPlan: PlanType = "free"
 ): Promise<PlanCheckResult> {
   const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('plan_type, app_status, status')
-    .eq('user_id', userId)
+    .from("subscriptions")
+    .select("plan_type, app_status, status")
+    .eq("user_id", userId)
     .single()
 
   // サブスクリプションなし → Freeプラン
   if (!subscription) {
-    if (requiredPlan === 'free') {
-      return { allowed: true, planType: 'free', appStatus: 'active' }
+    if (requiredPlan === "free") {
+      return { allowed: true, planType: "free", appStatus: "active" }
     }
     return {
       allowed: false,
-      planType: 'free',
-      appStatus: 'active',
-      reason: 'insufficient_plan',
+      planType: "free",
+      appStatus: "active",
+      reason: "insufficient_plan",
     }
   }
 
   // サービス停止チェック（§8-2）
-  if (subscription.app_status === 'suspended') {
+  if (subscription.app_status === "suspended") {
     return {
       allowed: false,
       planType: subscription.plan_type as PlanType,
-      appStatus: 'suspended',
-      reason: 'suspended',
+      appStatus: "suspended",
+      reason: "suspended",
     }
   }
 
@@ -66,14 +66,14 @@ export async function checkPlanAccess(
     return {
       allowed: false,
       planType: subscription.plan_type as PlanType,
-      appStatus: subscription.app_status || 'active',
-      reason: 'insufficient_plan',
+      appStatus: subscription.app_status || "active",
+      reason: "insufficient_plan",
     }
   }
 
   return {
     allowed: true,
     planType: subscription.plan_type as PlanType,
-    appStatus: subscription.app_status || 'active',
+    appStatus: subscription.app_status || "active",
   }
 }

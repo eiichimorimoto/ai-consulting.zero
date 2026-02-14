@@ -1,151 +1,397 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkSearchResult } from "@/lib/fact-checker"
-import { fetchWithRetry } from '@/lib/fetch-with-retry'
-import { braveWebSearch, BraveWebResult } from '@/lib/brave-search'
+import { fetchWithRetry } from "@/lib/fetch-with-retry"
+import { braveWebSearch, BraveWebResult } from "@/lib/brave-search"
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 
 // 主要都市の座標マップ（OpenWeatherMap用）
 const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
-  '東京都': { lat: 35.6940, lon: 139.7536 },
-  '大阪府': { lat: 34.6937, lon: 135.5023 },
-  '愛知県': { lat: 35.1815, lon: 136.9066 },
-  '神奈川県': { lat: 35.4437, lon: 139.6380 },
-  '福岡県': { lat: 33.5904, lon: 130.4017 },
-  '北海道': { lat: 43.0642, lon: 141.3469 },
-  '宮城県': { lat: 38.2682, lon: 140.8694 },
-  '広島県': { lat: 34.3853, lon: 132.4553 },
-  '京都府': { lat: 35.0116, lon: 135.7681 },
-  '兵庫県': { lat: 34.6913, lon: 135.1830 },
+  東京都: { lat: 35.694, lon: 139.7536 },
+  大阪府: { lat: 34.6937, lon: 135.5023 },
+  愛知県: { lat: 35.1815, lon: 136.9066 },
+  神奈川県: { lat: 35.4437, lon: 139.638 },
+  福岡県: { lat: 33.5904, lon: 130.4017 },
+  北海道: { lat: 43.0642, lon: 141.3469 },
+  宮城県: { lat: 38.2682, lon: 140.8694 },
+  広島県: { lat: 34.3853, lon: 132.4553 },
+  京都府: { lat: 35.0116, lon: 135.7681 },
+  兵庫県: { lat: 34.6913, lon: 135.183 },
 }
 
 // ファクトチェック関数（検索結果の信頼性を検証）
 // 重要: 検索結果を表示する前に必ずこの関数を実行すること
-async function factCheckSearchResults(results: BraveWebResult[], _query: string, expectedType: 'labor' | 'event' | 'infrastructure' | 'weather'): Promise<BraveWebResult[]> {
+async function factCheckSearchResults(
+  results: BraveWebResult[],
+  _query: string,
+  expectedType: "labor" | "event" | "infrastructure" | "weather"
+): Promise<BraveWebResult[]> {
   if (!results || results.length === 0) return []
-  
+
   // 基本的なファクトチェック
-  const verifiedResults = results.filter(result => {
-    const text = `${result.title || ''} ${result.description || ''}`.toLowerCase()
-    
+  const verifiedResults = results.filter((result) => {
+    const text = `${result.title || ""} ${result.description || ""}`.toLowerCase()
+
     // 空の結果を除外
     if (!result.title && !result.description) return false
-    
+
     // スパムや無関係な結果を除外
-    const spamKeywords = ['広告', 'advertisement', 'sponsored', 'click here', '今すぐ', '無料体験', '限定']
-    if (spamKeywords.some(keyword => text.includes(keyword))) return false
-    
+    const spamKeywords = [
+      "広告",
+      "advertisement",
+      "sponsored",
+      "click here",
+      "今すぐ",
+      "無料体験",
+      "限定",
+    ]
+    if (spamKeywords.some((keyword) => text.includes(keyword))) return false
+
     // URLの信頼性チェック（簡易版）
     if (result.url) {
-      const suspiciousDomains = ['bit.ly', 'tinyurl', 'goo.gl', 'adf.ly']
-      if (suspiciousDomains.some(domain => result.url.includes(domain))) return false
+      const suspiciousDomains = ["bit.ly", "tinyurl", "goo.gl", "adf.ly"]
+      if (suspiciousDomains.some((domain) => result.url.includes(domain))) return false
     }
-    
+
     // タイプ別の検証
-    if (expectedType === 'labor') {
+    if (expectedType === "labor") {
       // 労務費関連のキーワードが含まれているか
-      const laborKeywords = ['時給', '賃金', '給与', '報酬', 'アルバイト', 'パート', '派遣', '最低賃金', '求人', '雇用']
-      return laborKeywords.some(keyword => text.includes(keyword))
+      const laborKeywords = [
+        "時給",
+        "賃金",
+        "給与",
+        "報酬",
+        "アルバイト",
+        "パート",
+        "派遣",
+        "最低賃金",
+        "求人",
+        "雇用",
+      ]
+      return laborKeywords.some((keyword) => text.includes(keyword))
     }
-    
-    if (expectedType === 'event') {
+
+    if (expectedType === "event") {
       // イベント関連のキーワードが含まれているか
-      const eventKeywords = ['イベント', 'セミナー', '展示会', '見本市', 'フォーラム', 'カンファレンス', 'シンポジウム', '勉強会']
-      return eventKeywords.some(keyword => text.includes(keyword))
+      const eventKeywords = [
+        "イベント",
+        "セミナー",
+        "展示会",
+        "見本市",
+        "フォーラム",
+        "カンファレンス",
+        "シンポジウム",
+        "勉強会",
+      ]
+      return eventKeywords.some((keyword) => text.includes(keyword))
     }
-    
-    if (expectedType === 'infrastructure') {
+
+    if (expectedType === "infrastructure") {
       // インフラ関連のキーワードが含まれているか
-      const infraKeywords = ['高速', '道路', '工事', '規制', '電力', '供給', '港', '運行', '交通', '物流', 'インフラ']
-      return infraKeywords.some(keyword => text.includes(keyword))
+      const infraKeywords = [
+        "高速",
+        "道路",
+        "工事",
+        "規制",
+        "電力",
+        "供給",
+        "港",
+        "運行",
+        "交通",
+        "物流",
+        "インフラ",
+      ]
+      return infraKeywords.some((keyword) => text.includes(keyword))
     }
-    
-    if (expectedType === 'weather') {
+
+    if (expectedType === "weather") {
       // 天気関連のキーワードが含まれているか
-      const weatherKeywords = ['天気', '気温', '降水', '晴れ', '雨', '雪', '気象', '天候', '予報']
-      return weatherKeywords.some(keyword => text.includes(keyword))
+      const weatherKeywords = ["天気", "気温", "降水", "晴れ", "雨", "雪", "気象", "天候", "予報"]
+      return weatherKeywords.some((keyword) => text.includes(keyword))
     }
-    
+
     return true
   })
-  
+
   return verifiedResults
 }
 
 // 都道府県別最低賃金データ（2024年10月改定・厚生労働省発表）
 // 出典: https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/minimumichiran/
 const MINIMUM_WAGE_2024: Record<string, number> = {
-  '東京': 1163, '神奈川': 1162, '大阪': 1114, '埼玉': 1078, '愛知': 1077,
-  '千葉': 1076, '京都': 1058, '兵庫': 1052, '静岡': 1034, '三重': 1023,
-  '広島': 1020, '滋賀': 1017, '北海道': 1010, '栃木': 1004, '茨城': 1005,
-  '岐阜': 1001, '富山': 998, '長野': 998, '福岡': 992, '山梨': 988,
-  '奈良': 986, '群馬': 985, '石川': 984, '岡山': 982, '新潟': 985,
-  '福井': 984, '和歌山': 980, '山口': 979, '宮城': 973, '香川': 970,
-  '徳島': 966, '福島': 955, '島根': 962, '愛媛': 956, '山形': 955,
-  '大分': 954, '鳥取': 957, '佐賀': 956, '熊本': 952, '長崎': 953,
-  '鹿児島': 953, '宮崎': 952, '高知': 952, '青森': 953, '秋田': 951,
-  '岩手': 952, '沖縄': 952,
+  東京: 1163,
+  神奈川: 1162,
+  大阪: 1114,
+  埼玉: 1078,
+  愛知: 1077,
+  千葉: 1076,
+  京都: 1058,
+  兵庫: 1052,
+  静岡: 1034,
+  三重: 1023,
+  広島: 1020,
+  滋賀: 1017,
+  北海道: 1010,
+  栃木: 1004,
+  茨城: 1005,
+  岐阜: 1001,
+  富山: 998,
+  長野: 998,
+  福岡: 992,
+  山梨: 988,
+  奈良: 986,
+  群馬: 985,
+  石川: 984,
+  岡山: 982,
+  新潟: 985,
+  福井: 984,
+  和歌山: 980,
+  山口: 979,
+  宮城: 973,
+  香川: 970,
+  徳島: 966,
+  福島: 955,
+  島根: 962,
+  愛媛: 956,
+  山形: 955,
+  大分: 954,
+  鳥取: 957,
+  佐賀: 956,
+  熊本: 952,
+  長崎: 953,
+  鹿児島: 953,
+  宮崎: 952,
+  高知: 952,
+  青森: 953,
+  秋田: 951,
+  岩手: 952,
+  沖縄: 952,
 }
 
 // 業種別賃金データ（2024年・厚生労働省 賃金構造基本統計調査ベース）
 // 出典: 厚生労働省 賃金構造基本統計調査、各種求人サイト統計
 // 正社員の平均月収・年収を含む
-const INDUSTRY_WAGE_DATA: Record<string, { 
-  hourly: number; // パート・アルバイト時給（円）
-  hourlyRange: { min: number; max: number }; // パート時給レンジ（円）
-  monthly: number; // 正社員平均月収（万円）
-  yearly: number; // 正社員平均年収（万円）
-  monthlyRange: { min: number; max: number }; // 月収レンジ（万円）
-  trend: number; // 年間上昇率（%）
-  keywords: string[]; // マッチング用キーワード
-}> = {
-  '製造業': { hourly: 1180, hourlyRange: { min: 1050, max: 1400 }, monthly: 32, yearly: 450, monthlyRange: { min: 25, max: 45 }, trend: 2.8, keywords: ['製造', '工場', 'メーカー', '生産', '組立', '加工', '機械'] },
-  '建設業': { hourly: 1350, hourlyRange: { min: 1150, max: 1800 }, monthly: 38, yearly: 520, monthlyRange: { min: 28, max: 55 }, trend: 4.2, keywords: ['建設', '建築', '土木', '工事', '施工', '設備', 'ゼネコン'] },
-  '情報通信業': { hourly: 1450, hourlyRange: { min: 1200, max: 2200 }, monthly: 42, yearly: 580, monthlyRange: { min: 30, max: 70 }, trend: 5.1, keywords: ['IT', '情報', 'システム', 'ソフトウェア', 'プログラム', 'エンジニア', 'Web', 'アプリ', 'DX', 'デジタル'] },
-  '運輸業': { hourly: 1200, hourlyRange: { min: 1050, max: 1500 }, monthly: 30, yearly: 420, monthlyRange: { min: 24, max: 42 }, trend: 3.5, keywords: ['運輸', '物流', '運送', '配送', 'トラック', '倉庫', '宅配', '貨物'] },
-  '卸売業': { hourly: 1150, hourlyRange: { min: 1000, max: 1400 }, monthly: 33, yearly: 460, monthlyRange: { min: 26, max: 48 }, trend: 2.3, keywords: ['卸売', '卸', '商社', '問屋', '仲卸', '流通'] },
-  '小売業': { hourly: 1080, hourlyRange: { min: 1000, max: 1300 }, monthly: 28, yearly: 380, monthlyRange: { min: 22, max: 40 }, trend: 2.0, keywords: ['小売', '販売', '店舗', 'スーパー', 'コンビニ', '百貨店'] },
-  '飲食業': { hourly: 1050, hourlyRange: { min: 1000, max: 1250 }, monthly: 26, yearly: 350, monthlyRange: { min: 20, max: 38 }, trend: 3.2, keywords: ['飲食', 'レストラン', '食品', '外食', 'フード', '調理'] },
-  '宿泊業': { hourly: 1100, hourlyRange: { min: 1000, max: 1350 }, monthly: 27, yearly: 370, monthlyRange: { min: 21, max: 40 }, trend: 3.8, keywords: ['宿泊', 'ホテル', '旅館', '観光', 'ツーリズム'] },
-  '医療': { hourly: 1300, hourlyRange: { min: 1100, max: 1800 }, monthly: 35, yearly: 480, monthlyRange: { min: 28, max: 60 }, trend: 2.5, keywords: ['医療', '病院', 'クリニック', '診療', '看護', '薬局'] },
-  '介護福祉': { hourly: 1150, hourlyRange: { min: 1050, max: 1400 }, monthly: 27, yearly: 370, monthlyRange: { min: 22, max: 38 }, trend: 4.0, keywords: ['介護', '福祉', 'ケア', '高齢者', '障害者', 'デイサービス'] },
-  '教育': { hourly: 1250, hourlyRange: { min: 1100, max: 1600 }, monthly: 32, yearly: 440, monthlyRange: { min: 25, max: 50 }, trend: 1.8, keywords: ['教育', '学校', '塾', '研修', '講師', 'スクール'] },
-  '金融保険': { hourly: 1400, hourlyRange: { min: 1200, max: 1800 }, monthly: 40, yearly: 550, monthlyRange: { min: 30, max: 70 }, trend: 2.2, keywords: ['金融', '銀行', '保険', '証券', 'ファイナンス', '投資'] },
-  '不動産': { hourly: 1280, hourlyRange: { min: 1100, max: 1600 }, monthly: 35, yearly: 480, monthlyRange: { min: 26, max: 55 }, trend: 2.0, keywords: ['不動産', '住宅', 'マンション', '賃貸', '仲介'] },
+const INDUSTRY_WAGE_DATA: Record<
+  string,
+  {
+    hourly: number // パート・アルバイト時給（円）
+    hourlyRange: { min: number; max: number } // パート時給レンジ（円）
+    monthly: number // 正社員平均月収（万円）
+    yearly: number // 正社員平均年収（万円）
+    monthlyRange: { min: number; max: number } // 月収レンジ（万円）
+    trend: number // 年間上昇率（%）
+    keywords: string[] // マッチング用キーワード
+  }
+> = {
+  製造業: {
+    hourly: 1180,
+    hourlyRange: { min: 1050, max: 1400 },
+    monthly: 32,
+    yearly: 450,
+    monthlyRange: { min: 25, max: 45 },
+    trend: 2.8,
+    keywords: ["製造", "工場", "メーカー", "生産", "組立", "加工", "機械"],
+  },
+  建設業: {
+    hourly: 1350,
+    hourlyRange: { min: 1150, max: 1800 },
+    monthly: 38,
+    yearly: 520,
+    monthlyRange: { min: 28, max: 55 },
+    trend: 4.2,
+    keywords: ["建設", "建築", "土木", "工事", "施工", "設備", "ゼネコン"],
+  },
+  情報通信業: {
+    hourly: 1450,
+    hourlyRange: { min: 1200, max: 2200 },
+    monthly: 42,
+    yearly: 580,
+    monthlyRange: { min: 30, max: 70 },
+    trend: 5.1,
+    keywords: [
+      "IT",
+      "情報",
+      "システム",
+      "ソフトウェア",
+      "プログラム",
+      "エンジニア",
+      "Web",
+      "アプリ",
+      "DX",
+      "デジタル",
+    ],
+  },
+  運輸業: {
+    hourly: 1200,
+    hourlyRange: { min: 1050, max: 1500 },
+    monthly: 30,
+    yearly: 420,
+    monthlyRange: { min: 24, max: 42 },
+    trend: 3.5,
+    keywords: ["運輸", "物流", "運送", "配送", "トラック", "倉庫", "宅配", "貨物"],
+  },
+  卸売業: {
+    hourly: 1150,
+    hourlyRange: { min: 1000, max: 1400 },
+    monthly: 33,
+    yearly: 460,
+    monthlyRange: { min: 26, max: 48 },
+    trend: 2.3,
+    keywords: ["卸売", "卸", "商社", "問屋", "仲卸", "流通"],
+  },
+  小売業: {
+    hourly: 1080,
+    hourlyRange: { min: 1000, max: 1300 },
+    monthly: 28,
+    yearly: 380,
+    monthlyRange: { min: 22, max: 40 },
+    trend: 2.0,
+    keywords: ["小売", "販売", "店舗", "スーパー", "コンビニ", "百貨店"],
+  },
+  飲食業: {
+    hourly: 1050,
+    hourlyRange: { min: 1000, max: 1250 },
+    monthly: 26,
+    yearly: 350,
+    monthlyRange: { min: 20, max: 38 },
+    trend: 3.2,
+    keywords: ["飲食", "レストラン", "食品", "外食", "フード", "調理"],
+  },
+  宿泊業: {
+    hourly: 1100,
+    hourlyRange: { min: 1000, max: 1350 },
+    monthly: 27,
+    yearly: 370,
+    monthlyRange: { min: 21, max: 40 },
+    trend: 3.8,
+    keywords: ["宿泊", "ホテル", "旅館", "観光", "ツーリズム"],
+  },
+  医療: {
+    hourly: 1300,
+    hourlyRange: { min: 1100, max: 1800 },
+    monthly: 35,
+    yearly: 480,
+    monthlyRange: { min: 28, max: 60 },
+    trend: 2.5,
+    keywords: ["医療", "病院", "クリニック", "診療", "看護", "薬局"],
+  },
+  介護福祉: {
+    hourly: 1150,
+    hourlyRange: { min: 1050, max: 1400 },
+    monthly: 27,
+    yearly: 370,
+    monthlyRange: { min: 22, max: 38 },
+    trend: 4.0,
+    keywords: ["介護", "福祉", "ケア", "高齢者", "障害者", "デイサービス"],
+  },
+  教育: {
+    hourly: 1250,
+    hourlyRange: { min: 1100, max: 1600 },
+    monthly: 32,
+    yearly: 440,
+    monthlyRange: { min: 25, max: 50 },
+    trend: 1.8,
+    keywords: ["教育", "学校", "塾", "研修", "講師", "スクール"],
+  },
+  金融保険: {
+    hourly: 1400,
+    hourlyRange: { min: 1200, max: 1800 },
+    monthly: 40,
+    yearly: 550,
+    monthlyRange: { min: 30, max: 70 },
+    trend: 2.2,
+    keywords: ["金融", "銀行", "保険", "証券", "ファイナンス", "投資"],
+  },
+  不動産: {
+    hourly: 1280,
+    hourlyRange: { min: 1100, max: 1600 },
+    monthly: 35,
+    yearly: 480,
+    monthlyRange: { min: 26, max: 55 },
+    trend: 2.0,
+    keywords: ["不動産", "住宅", "マンション", "賃貸", "仲介"],
+  },
   // コンサルティング業: 専門職として高い人件費（業態・サービス内容を考慮）
-  'コンサルティング業': { hourly: 2800, hourlyRange: { min: 2200, max: 4000 }, monthly: 50, yearly: 700, monthlyRange: { min: 40, max: 120 }, trend: 4.5, keywords: ['コンサル', 'コンサルティング', 'アドバイザリー', '戦略', '経営', 'マネジメント', 'DXコンサル', 'ITコンサル', '業務改善', '組織', '人事コンサル'] },
-  'サービス業': { hourly: 1100, hourlyRange: { min: 1000, max: 1400 }, monthly: 28, yearly: 380, monthlyRange: { min: 22, max: 42 }, trend: 2.8, keywords: ['サービス', '人材', '広告', 'イベント', '清掃', '警備', 'ビルメンテナンス'] },
-  '農林水産': { hourly: 1050, hourlyRange: { min: 1000, max: 1250 }, monthly: 25, yearly: 340, monthlyRange: { min: 20, max: 35 }, trend: 3.0, keywords: ['農業', '農林', '水産', '漁業', '畜産'] },
+  コンサルティング業: {
+    hourly: 2800,
+    hourlyRange: { min: 2200, max: 4000 },
+    monthly: 50,
+    yearly: 700,
+    monthlyRange: { min: 40, max: 120 },
+    trend: 4.5,
+    keywords: [
+      "コンサル",
+      "コンサルティング",
+      "アドバイザリー",
+      "戦略",
+      "経営",
+      "マネジメント",
+      "DXコンサル",
+      "ITコンサル",
+      "業務改善",
+      "組織",
+      "人事コンサル",
+    ],
+  },
+  サービス業: {
+    hourly: 1100,
+    hourlyRange: { min: 1000, max: 1400 },
+    monthly: 28,
+    yearly: 380,
+    monthlyRange: { min: 22, max: 42 },
+    trend: 2.8,
+    keywords: ["サービス", "人材", "広告", "イベント", "清掃", "警備", "ビルメンテナンス"],
+  },
+  農林水産: {
+    hourly: 1050,
+    hourlyRange: { min: 1000, max: 1250 },
+    monthly: 25,
+    yearly: 340,
+    monthlyRange: { min: 20, max: 35 },
+    trend: 3.0,
+    keywords: ["農業", "農林", "水産", "漁業", "畜産"],
+  },
 }
 
 // 従業員規模による賃金補正係数
 const EMPLOYEE_SIZE_FACTOR: Record<string, number> = {
-  '1-9': 0.85,      // 10人未満
-  '10-29': 0.90,    // 10-29人
-  '30-99': 0.95,    // 30-99人
-  '100-299': 1.00,  // 100-299人（基準）
-  '300-999': 1.08,  // 300-999人
-  '1000+': 1.15,    // 1000人以上
+  "1-9": 0.85, // 10人未満
+  "10-29": 0.9, // 10-29人
+  "30-99": 0.95, // 30-99人
+  "100-299": 1.0, // 100-299人（基準）
+  "300-999": 1.08, // 300-999人
+  "1000+": 1.15, // 1000人以上
 }
 
 // 業種をマッチング（コンサルティング業を優先）
 function matchIndustry(companyIndustry: string, companyDescription?: string): string {
-  const searchText = `${companyIndustry} ${companyDescription || ''}`.toLowerCase()
-  
+  const searchText = `${companyIndustry} ${companyDescription || ""}`.toLowerCase()
+
   // コンサルティング業を優先判定（業態・サービス内容を考慮）
-  const consultingKeywords = ['コンサル', 'アドバイザリー', '戦略', '経営支援', 'マネジメント', 'dxコンサル', 'itコンサル', '業務改善', '組織開発', '人事コンサル']
+  const consultingKeywords = [
+    "コンサル",
+    "アドバイザリー",
+    "戦略",
+    "経営支援",
+    "マネジメント",
+    "dxコンサル",
+    "itコンサル",
+    "業務改善",
+    "組織開発",
+    "人事コンサル",
+  ]
   for (const keyword of consultingKeywords) {
     if (searchText.includes(keyword)) {
       console.log(`✅ コンサルティング業と判定: キーワード "${keyword}" に一致`)
-      return 'コンサルティング業'
+      return "コンサルティング業"
     }
   }
-  
-  let bestMatch = 'サービス業'
+
+  let bestMatch = "サービス業"
   let maxScore = 0
-  
+
   for (const [industryName, data] of Object.entries(INDUSTRY_WAGE_DATA)) {
     let score = 0
     for (const keyword of data.keywords) {
@@ -158,24 +404,25 @@ function matchIndustry(companyIndustry: string, companyDescription?: string): st
       bestMatch = industryName
     }
   }
-  
+
   return bestMatch
 }
 
 // 従業員規模カテゴリを判定
 function getEmployeeSizeCategory(employeeCount: string | number | null | undefined): string {
-  if (!employeeCount) return '30-99'
-  
-  const count = typeof employeeCount === 'string' 
-    ? parseInt(employeeCount.replace(/[^0-9]/g, '')) 
-    : employeeCount
-    
-  if (count < 10) return '1-9'
-  if (count < 30) return '10-29'
-  if (count < 100) return '30-99'
-  if (count < 300) return '100-299'
-  if (count < 1000) return '300-999'
-  return '1000+'
+  if (!employeeCount) return "30-99"
+
+  const count =
+    typeof employeeCount === "string"
+      ? parseInt(employeeCount.replace(/[^0-9]/g, ""))
+      : employeeCount
+
+  if (count < 10) return "1-9"
+  if (count < 30) return "10-29"
+  if (count < 100) return "30-99"
+  if (count < 300) return "100-299"
+  if (count < 1000) return "300-999"
+  return "1000+"
 }
 
 // 労務費データを取得（月別グラフ用）- 改善版
@@ -187,39 +434,41 @@ async function getLaborCosts(
   employeeCount?: string | number | null,
   businessDescription?: string
 ) {
-  const prefName = prefecture.replace(/[都道府県]/g, '')
+  const prefName = prefecture.replace(/[都道府県]/g, "")
 
   // 都道府県の最低賃金を取得
   const minimumWage = MINIMUM_WAGE_2024[prefName] || 1000
-  
+
   // 業種をスマートにマッチング
   const matchedIndustryName = matchIndustry(industry, businessDescription)
   const industryData = INDUSTRY_WAGE_DATA[matchedIndustryName]
-  
+
   // 従業員規模による補正
   const sizeCategory = getEmployeeSizeCategory(employeeCount)
   const sizeFactor = EMPLOYEE_SIZE_FACTOR[sizeCategory]
-  
+
   // 地域補正係数（東京を1.0として）
   const regionFactor = minimumWage / 1163
-  
+
   // 外部検索で最新の労務費情報を取得（1クエリに統合して高速化）
   const query = `${prefName} ${matchedIndustryName} 平均年収 月収 2024`
   const searchResults = await braveWebSearch(query, 5)
-  const results = await factCheckSearchResults(searchResults, query, 'labor')
-  const searchLogs = [{
-    query,
-    resultCount: searchResults.length,
-    results
-  }]
+  const results = await factCheckSearchResults(searchResults, query, "labor")
+  const searchLogs = [
+    {
+      query,
+      resultCount: searchResults.length,
+      results,
+    },
+  ]
 
   // 検索結果から年収・月収の数値を抽出
   let searchBasedYearly = 0
   let searchBasedMonthly = 0
   if (results.length > 0) {
     for (const r of results) {
-      const text = (r.description || r.title || '')
-      
+      const text = r.description || r.title || ""
+
       // 年収パターン（300万〜800万程度）
       const yearlyMatch = text.match(/年収[：:\s]*(\d{3,4})[万]?|(\d{3,4})[万]?円.*年収/i)
       if (yearlyMatch) {
@@ -228,7 +477,7 @@ async function getLaborCosts(
           searchBasedYearly = value
         }
       }
-      
+
       // 月収パターン（20万〜60万程度）
       const monthlyMatch = text.match(/月収[：:\s]*(\d{2,3})[万]?|(\d{2,3})[万]?円.*月収/i)
       if (monthlyMatch) {
@@ -239,32 +488,34 @@ async function getLaborCosts(
       }
     }
   }
-  
+
   // 最終的な推定月収（業種平均 × 地域補正 × 規模補正）
   const baseMonthly = industryData.monthly
   const estimatedMonthly = Math.round(baseMonthly * regionFactor * sizeFactor)
-  
+
   // 検索結果の信頼性を判定（東京など主要都市では検索結果を優先）
-  const majorCities = ['東京', '大阪', '愛知', '神奈川', '福岡']
+  const majorCities = ["東京", "大阪", "愛知", "神奈川", "福岡"]
   const isSearchPriority = majorCities.includes(prefName) && searchBasedMonthly > 0
-  
+
   // 検索結果がある場合は加味（信頼性に応じて重み付け）
   // 主要都市: 検索結果70% + 基準値30%（実態を優先）
   // その他: 検索結果40% + 基準値60%（基準値を優先）
-  const finalMonthly = searchBasedMonthly > 0 
-    ? isSearchPriority
-      ? Math.round((searchBasedMonthly * 0.7) + (estimatedMonthly * 0.3))
-      : Math.round((searchBasedMonthly * 0.4) + (estimatedMonthly * 0.6))
-    : estimatedMonthly
-    
+  const finalMonthly =
+    searchBasedMonthly > 0
+      ? isSearchPriority
+        ? Math.round(searchBasedMonthly * 0.7 + estimatedMonthly * 0.3)
+        : Math.round(searchBasedMonthly * 0.4 + estimatedMonthly * 0.6)
+      : estimatedMonthly
+
   // 年収を算出（月収×14〜16ヶ月分：賞与考慮）
   const bonusMultiplier = 14 + (sizeFactor - 0.85) * 5 // 規模が大きいほど賞与が多い
-  const finalYearly = searchBasedYearly > 0
-    ? isSearchPriority
-      ? Math.round((searchBasedYearly * 0.7) + (finalMonthly * bonusMultiplier * 0.3))
-      : Math.round((searchBasedYearly * 0.4) + (finalMonthly * bonusMultiplier * 0.6))
-    : Math.round(finalMonthly * bonusMultiplier)
-  
+  const finalYearly =
+    searchBasedYearly > 0
+      ? isSearchPriority
+        ? Math.round(searchBasedYearly * 0.7 + finalMonthly * bonusMultiplier * 0.3)
+        : Math.round(searchBasedYearly * 0.4 + finalMonthly * bonusMultiplier * 0.6)
+      : Math.round(finalMonthly * bonusMultiplier)
+
   // 時給換算（月160時間として）
   const finalHourly = Math.round((finalMonthly * 10000) / 160)
 
@@ -277,7 +528,9 @@ async function getLaborCosts(
     const trendAdjustment = (5 - i) * (monthlyTrend / 100) * finalMonthly
     monthlyData.push({
       month: `${date.getMonth() + 1}月`,
-      value: Math.round((finalMonthly - (5 - i) * (monthlyTrend / 100) * finalMonthly + trendAdjustment) * 10000) // 円単位
+      value: Math.round(
+        (finalMonthly - (5 - i) * (monthlyTrend / 100) * finalMonthly + trendAdjustment) * 10000
+      ), // 円単位
     })
   }
 
@@ -295,7 +548,7 @@ async function getLaborCosts(
       // 時給レンジのバリデーション: 最低1000円以上であること（最低賃金対策）
       industryHourlyRange: {
         min: Math.max(industryData.hourlyRange.min, minimumWage),
-        max: industryData.hourlyRange.max >= 1000 ? industryData.hourlyRange.max : 1600
+        max: industryData.hourlyRange.max >= 1000 ? industryData.hourlyRange.max : 1600,
       },
       industryMonthlyRange: industryData.monthlyRange, // 正社員月収レンジ（万円）
       industryTrend: industryData.trend,
@@ -309,9 +562,9 @@ async function getLaborCosts(
     },
     sources: results.slice(0, 3),
     dataSource: {
-      minimumWage: '厚生労働省 地域別最低賃金（2024年10月改定）',
-      industryWage: '厚生労働省 賃金構造基本統計調査（2024年）',
-      lastUpdated: '2024年10月',
+      minimumWage: "厚生労働省 地域別最低賃金（2024年10月改定）",
+      industryWage: "厚生労働省 賃金構造基本統計調査（2024年）",
+      lastUpdated: "2024年10月",
     },
     _debug: {
       searchQuery: query,
@@ -325,95 +578,98 @@ async function getLaborCosts(
       searchBasedMonthly,
       searchBasedYearly,
       isSearchPriority,
-      searchWeight: isSearchPriority ? '70%' : '40%',
-      baseWeight: isSearchPriority ? '30%' : '60%',
+      searchWeight: isSearchPriority ? "70%" : "40%",
+      baseWeight: isSearchPriority ? "30%" : "60%",
       finalMonthly,
       finalYearly,
       finalHourly,
-      calculation: searchBasedMonthly > 0
-        ? isSearchPriority
-          ? `検索結果優先: ${searchBasedMonthly}万円×0.7 + ${estimatedMonthly}万円×0.3 = ${finalMonthly}万円`
-          : `基準値優先: ${searchBasedMonthly}万円×0.4 + ${estimatedMonthly}万円×0.6 = ${finalMonthly}万円`
-        : `基準値のみ: ${estimatedMonthly}万円`,
-    }
+      calculation:
+        searchBasedMonthly > 0
+          ? isSearchPriority
+            ? `検索結果優先: ${searchBasedMonthly}万円×0.7 + ${estimatedMonthly}万円×0.3 = ${finalMonthly}万円`
+            : `基準値優先: ${searchBasedMonthly}万円×0.4 + ${estimatedMonthly}万円×0.6 = ${finalMonthly}万円`
+          : `基準値のみ: ${estimatedMonthly}万円`,
+    },
   }
 }
 
 // 注目イベントを取得
 async function getEvents(prefecture: string, city: string, industry: string) {
-  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const industryQuery = industry ? `${industry} ` : ''
+  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, "")
+  const industryQuery = industry ? `${industry} ` : ""
   const query = `${area} ${industryQuery}イベント 2025 1月 2月 セミナー 展示会 見本市`
-  
+
   const searchResults = await braveWebSearch(query, 10)
   // ファクトチェックを実行
-  const verifiedResults = await factCheckSearchResults(searchResults, query, 'event')
-  
+  const verifiedResults = await factCheckSearchResults(searchResults, query, "event")
+
   // 注目度が高いもの3-5件を返す
   return {
     events: verifiedResults.slice(0, 5).map((r: BraveWebResult) => ({
-      title: r.title || '',
-      url: r.url || '',
-      description: r.description || '',
-      date: extractDate(r.description || r.title || '')
+      title: r.title || "",
+      url: r.url || "",
+      description: r.description || "",
+      date: extractDate(r.description || r.title || ""),
     })),
     _debug: {
       searchQuery: query,
       resultCount: searchResults.length,
       verifiedCount: verifiedResults.length,
-      allResults: verifiedResults
-    }
+      allResults: verifiedResults,
+    },
   }
 }
 
 // インフラ情報を取得（高速化: 2クエリに統合）
 async function getInfrastructure(prefecture: string, city: string, _industry: string) {
-  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
+  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, "")
   // 2つのクエリに統合して高速化
-  const queries = [
-    `${area} 高速道路 工事 規制 電力`,
-    `${area} 物流 インフラ 港 運行`,
-  ]
+  const queries = [`${area} 高速道路 工事 規制 電力`, `${area} 物流 インフラ 港 運行`]
 
   const results: BraveWebResult[] = []
-  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: BraveWebResult[] }> = []
+  const searchLogs: Array<{
+    query: string
+    resultCount: number
+    verifiedCount: number
+    results: BraveWebResult[]
+  }> = []
 
   for (const q of queries) {
     const searchResults = await braveWebSearch(q, 5)
-    const verifiedResults = await factCheckSearchResults(searchResults, q, 'infrastructure')
+    const verifiedResults = await factCheckSearchResults(searchResults, q, "infrastructure")
     results.push(...verifiedResults)
     searchLogs.push({
       query: q,
       resultCount: searchResults.length,
       verifiedCount: verifiedResults.length,
-      results: verifiedResults
+      results: verifiedResults,
     })
   }
 
   return {
     items: results.slice(0, 5).map((r: BraveWebResult) => ({
-      title: r.title || '',
-      url: r.url || '',
-      description: r.description || '',
-      status: extractStatus(r.description || r.title || '')
+      title: r.title || "",
+      url: r.url || "",
+      description: r.description || "",
+      status: extractStatus(r.description || r.title || ""),
     })),
     _debug: {
       searchQueries: queries,
       searchLogs,
-      totalResults: results.length
-    }
+      totalResults: results.length,
+    },
   }
 }
 
 // HTMLタグ、エンティティ、プレースホルダーを除去する関数
 function sanitizeDescription(text: string | undefined): string {
-  if (!text) return ''
+  if (!text) return ""
   return text
-    .replace(/<[^>]+>/g, '') // HTMLタグを除去
-    .replace(/&lt;[^&]+&gt;/g, '') // エスケープされたHTMLタグを除去
-    .replace(/&[a-z]+;/gi, ' ') // HTMLエンティティ（&gt; &lt; &amp; など）を除去
-    .replace(/&[#0-9]+;/g, ' ') // 数値参照エンティティを除去
-    .replace(/\s+/g, ' ') // 連続する空白を1つに
+    .replace(/<[^>]+>/g, "") // HTMLタグを除去
+    .replace(/&lt;[^&]+&gt;/g, "") // エスケープされたHTMLタグを除去
+    .replace(/&[a-z]+;/gi, " ") // HTMLエンティティ（&gt; &lt; &amp; など）を除去
+    .replace(/&[#0-9]+;/g, " ") // 数値参照エンティティを除去
+    .replace(/\s+/g, " ") // 連続する空白を1つに
     .trim()
 }
 
@@ -423,39 +679,40 @@ async function getWeather(prefecture: string, city: string) {
   const now = new Date()
   const jstOffset = 9 * 60 // 日本は UTC+9
   const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000)
-  
+
   // 座標を取得（主要都市のマップから）
-  const coordinates = CITY_COORDINATES[prefecture] || CITY_COORDINATES['東京都']
+  const coordinates = CITY_COORDINATES[prefecture] || CITY_COORDINATES["東京都"]
   const { lat, lon } = coordinates
-  
+
   console.log(`🌍 天気取得: ${prefecture}${city} (lat=${lat}, lon=${lon})`)
-  
+
   // OpenWeatherMap APIから現在の天気と5日間予報を取得
-  const { getCurrentWeather, get5DayForecast, weatherIconToEmoji, getDeliveryImpact } = await import('@/lib/openweather')
-  
+  const { getCurrentWeather, get5DayForecast, weatherIconToEmoji, getDeliveryImpact } =
+    await import("@/lib/openweather")
+
   const [currentWeather, forecast] = await Promise.all([
     getCurrentWeather(lat, lon),
-    get5DayForecast(lat, lon)
+    get5DayForecast(lat, lon),
   ])
-  
+
   // APIエラーの場合
   if (!currentWeather || !forecast) {
-    console.error('❌ OpenWeatherMap API からデータ取得失敗')
+    console.error("❌ OpenWeatherMap API からデータ取得失敗")
     return {
       location: `${prefecture}${city}`,
       timestamp: jstTime.toISOString(),
-      displayTime: `${jstTime.getMonth() + 1}月${jstTime.getDate()}日 ${jstTime.getHours()}:${String(jstTime.getMinutes()).padStart(2, '0')}`,
+      displayTime: `${jstTime.getMonth() + 1}月${jstTime.getDate()}日 ${jstTime.getHours()}:${String(jstTime.getMinutes()).padStart(2, "0")}`,
       current: {
         temp: null,
-        icon: '☀️',
-        desc: 'データ取得中...'
+        icon: "☀️",
+        desc: "データ取得中...",
       },
       week: [],
       hourly: [],
       alerts: [],
       _debug: {
         searchQuery: `OpenWeatherMap API (lat=${lat}, lon=${lon})`,
-        alertQuery: '',
+        alertQuery: "",
         resultCount: 0,
         alertResultCount: 0,
         verifiedCount: 0,
@@ -465,56 +722,58 @@ async function getWeather(prefecture: string, city: string) {
         extractedPrecipitation: null,
         location: `${prefecture}${city}`,
         timestamp: now.toISOString(),
-        apiError: 'OpenWeatherMap API エラー'
-      }
+        apiError: "OpenWeatherMap API エラー",
+      },
     }
   }
-  
+
   // 現在の気温と天気
   const currentTemp = Math.round(currentWeather.main.temp)
   const currentIcon = weatherIconToEmoji(currentWeather.weather[0].icon)
   const precipitationChance = forecast.list[0]?.pop || 0
-  
+
   // 天気の説明と配送への影響
   const currentDesc = getDeliveryImpact(currentWeather.weather[0].main, precipitationChance)
-  
+
   // 週間天気データ（予報から1日1件ずつ抽出）
-  const weekDays = ['日', '月', '火', '水', '木', '金', '土']
+  const weekDays = ["日", "月", "火", "水", "木", "金", "土"]
   const weekWeather = []
-  const dailyForecasts: Record<string, typeof forecast.list[0]> = {}
-  
+  const dailyForecasts: Record<string, (typeof forecast.list)[0]> = {}
+
   // 各日の正午のデータを取得（より代表的な気温）
   for (const item of forecast.list) {
     const date = new Date(item.dt * 1000)
     const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
     const hour = date.getHours()
-    
+
     // 正午（12時）のデータを優先、なければその日の最初のデータ
     if (!dailyForecasts[dateStr] || hour === 12) {
       dailyForecasts[dateStr] = item
     }
   }
-  
+
   // 今日を含む7日間
   for (let i = 0; i < 7; i++) {
     const date = new Date(now)
     date.setDate(date.getDate() + i)
     const dayOfWeek = date.getDay()
     const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
-    
+
     const forecastData = dailyForecasts[dateStr]
-    const temp = forecastData ? Math.round(forecastData.main.temp) : Math.round(currentTemp + (Math.random() * 4 - 2))
+    const temp = forecastData
+      ? Math.round(forecastData.main.temp)
+      : Math.round(currentTemp + (Math.random() * 4 - 2))
     const icon = forecastData ? weatherIconToEmoji(forecastData.weather[0].icon) : currentIcon
-    
+
     weekWeather.push({
       day: weekDays[dayOfWeek],
       date: dateStr,
       icon: icon,
       temp: temp,
-      high: temp
+      high: temp,
     })
   }
-  
+
   // 時間別予報（次の6時間、3時間ごと）- JST変換
   const hourlyForecast = []
   for (let i = 0; i < Math.min(6, forecast.list.length); i++) {
@@ -526,90 +785,141 @@ async function getWeather(prefecture: string, city: string) {
     hourlyForecast.push({
       hour: `${jstHour}時`,
       temp: Math.round(item.main.temp),
-      icon: weatherIconToEmoji(item.weather[0].icon)
+      icon: weatherIconToEmoji(item.weather[0].icon),
     })
   }
-  
+
   // 気象警報チェック（Brave Searchを使用）- 最新の情報のみ取得
-  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
+  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, "")
   const today = `${now.getMonth() + 1}月${now.getDate()}日`
   const alertQuery = `${area} 気象警報 注意報 現在 最新 ${today}`
   const alertResults = await braveWebSearch(alertQuery, 5)
-  
-  const alerts: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[] = []
+
+  const alerts: {
+    type: string
+    title: string
+    description: string
+    severity: "warning" | "severe" | "extreme"
+  }[] = []
   const alertKeywords = {
-    extreme: ['特別警報', '大雨特別警報', '暴風特別警報', '高潮特別警報', '大雪特別警報', '緊急'],
-    severe: ['警報', '暴風警報', '大雨警報', '洪水警報', '大雪警報', '高潮警報', '波浪警報'],
-    warning: ['注意報', '強風注意報', '大雨注意報', '雷注意報', '乾燥注意報', '霜注意報', '着雪注意報', '融雪注意報', '濃霧注意報', '低温注意報', '高温注意報']
+    extreme: ["特別警報", "大雨特別警報", "暴風特別警報", "高潮特別警報", "大雪特別警報", "緊急"],
+    severe: ["警報", "暴風警報", "大雨警報", "洪水警報", "大雪警報", "高潮警報", "波浪警報"],
+    warning: [
+      "注意報",
+      "強風注意報",
+      "大雨注意報",
+      "雷注意報",
+      "乾燥注意報",
+      "霜注意報",
+      "着雪注意報",
+      "融雪注意報",
+      "濃霧注意報",
+      "低温注意報",
+      "高温注意報",
+    ],
   }
-  
+
   for (const result of alertResults) {
     const text = `${result.title} ${result.description}`.toLowerCase()
-    
+
     // 除外キーワード（無関係な情報をフィルタリング）
     const excludeKeywords = [
-      '発表なし', '解除', '発令なし', '解除しました',
+      "発表なし",
+      "解除",
+      "発令なし",
+      "解除しました",
       // テレビ・メディア関連
-      '番組表', 'アナウンサー', 'バラエティ', 'ドラマ', '映画', 'アニメ', 
-      'ヒーロー', 'スポーツ', '音楽', '旅', 'ニュース・情報',
+      "番組表",
+      "アナウンサー",
+      "バラエティ",
+      "ドラマ",
+      "映画",
+      "アニメ",
+      "ヒーロー",
+      "スポーツ",
+      "音楽",
+      "旅",
+      "ニュース・情報",
       // ウェブサイトのナビゲーション
-      '閉じる', 'メニュー', 'ログイン', '会員登録', 'お問い合わせ',
-      'トップページ', 'サイトマップ', 'プライバシー', '利用規約',
+      "閉じる",
+      "メニュー",
+      "ログイン",
+      "会員登録",
+      "お問い合わせ",
+      "トップページ",
+      "サイトマップ",
+      "プライバシー",
+      "利用規約",
       // その他
-      '広告', 'pr', 'sponsored', 'おすすめ', 'ランキング'
+      "広告",
+      "pr",
+      "sponsored",
+      "おすすめ",
+      "ランキング",
     ]
-    
+
     // 除外キーワードが含まれている場合はスキップ
-    if (excludeKeywords.some(keyword => text.includes(keyword))) {
+    if (excludeKeywords.some((keyword) => text.includes(keyword))) {
       continue
     }
-    
+
     // 気象庁関連のURLでない場合はスキップ（信頼性を確保）
-    const trustedDomains = ['jma.go.jp', 'weather.yahoo.co.jp', 'tenki.jp', 'weathernews.jp']
-    const hasTrustedDomain = trustedDomains.some(domain => 
-      result.url?.includes(domain) || result.title?.includes('気象庁') || result.description?.includes('気象庁')
+    const trustedDomains = ["jma.go.jp", "weather.yahoo.co.jp", "tenki.jp", "weathernews.jp"]
+    const hasTrustedDomain = trustedDomains.some(
+      (domain) =>
+        result.url?.includes(domain) ||
+        result.title?.includes("気象庁") ||
+        result.description?.includes("気象庁")
     )
-    
+
     // 信頼できるドメインか、警報関連のキーワードが複数含まれている場合のみ処理
-    const alertKeywordCount = ['警報', '注意報', '特別警報', '気象'].filter(kw => text.includes(kw)).length
+    const alertKeywordCount = ["警報", "注意報", "特別警報", "気象"].filter((kw) =>
+      text.includes(kw)
+    ).length
     if (!hasTrustedDomain && alertKeywordCount < 2) {
       continue
     }
-    
+
     for (const keyword of alertKeywords.extreme) {
       if (text.includes(keyword.toLowerCase())) {
         alerts.push({
-          type: 'extreme',
+          type: "extreme",
           title: `🚨 ${keyword}発令中`,
-          description: sanitizeDescription(result.description)?.slice(0, 100) || sanitizeDescription(result.title),
-          severity: 'extreme'
+          description:
+            sanitizeDescription(result.description)?.slice(0, 100) ||
+            sanitizeDescription(result.title),
+          severity: "extreme",
         })
         break
       }
     }
-    
+
     if (alerts.length === 0) {
       for (const keyword of alertKeywords.severe) {
         if (text.includes(keyword.toLowerCase())) {
           alerts.push({
-            type: 'severe',
+            type: "severe",
             title: `⚠️ ${keyword}発令中`,
-            description: sanitizeDescription(result.description)?.slice(0, 100) || sanitizeDescription(result.title),
-            severity: 'severe'
+            description:
+              sanitizeDescription(result.description)?.slice(0, 100) ||
+              sanitizeDescription(result.title),
+            severity: "severe",
           })
           break
         }
       }
     }
-    
+
     if (alerts.length === 0) {
       for (const keyword of alertKeywords.warning) {
         if (text.includes(keyword.toLowerCase())) {
           alerts.push({
-            type: 'warning',
+            type: "warning",
             title: `ℹ️ ${keyword}発令中`,
-            description: sanitizeDescription(result.description)?.slice(0, 100) || sanitizeDescription(result.title),
-            severity: 'warning'
+            description:
+              sanitizeDescription(result.description)?.slice(0, 100) ||
+              sanitizeDescription(result.title),
+            severity: "warning",
           })
           break
         }
@@ -620,11 +930,11 @@ async function getWeather(prefecture: string, city: string) {
   return {
     location: `${prefecture}${city}`,
     timestamp: jstTime.toISOString(),
-    displayTime: `${jstTime.getMonth() + 1}月${jstTime.getDate()}日 ${jstTime.getHours()}:${String(jstTime.getMinutes()).padStart(2, '0')}`,
+    displayTime: `${jstTime.getMonth() + 1}月${jstTime.getDate()}日 ${jstTime.getHours()}:${String(jstTime.getMinutes()).padStart(2, "0")}`,
     current: {
       temp: currentTemp,
-      icon: alerts.length > 0 && alerts[0].severity === 'extreme' ? '🌀' : currentIcon,
-      desc: currentDesc
+      icon: alerts.length > 0 && alerts[0].severity === "extreme" ? "🌀" : currentIcon,
+      desc: currentDesc,
     },
     week: weekWeather,
     hourly: hourlyForecast,
@@ -641,10 +951,10 @@ async function getWeather(prefecture: string, city: string) {
       extractedPrecipitation: Math.round(precipitationChance * 100),
       location: `${prefecture}${city}`,
       timestamp: now.toISOString(),
-      apiSource: 'OpenWeatherMap',
+      apiSource: "OpenWeatherMap",
       weatherMain: currentWeather.weather[0].main,
-      weatherDescription: currentWeather.weather[0].description
-    }
+      weatherDescription: currentWeather.weather[0].description,
+    },
   }
 }
 
@@ -653,60 +963,60 @@ function extractDate(text: string): string {
   if (dateMatch) {
     return dateMatch[0]
   }
-  return ''
+  return ""
 }
 
-function extractStatus(text: string): 'normal' | 'warning' | 'error' {
-  if (text.includes('工事') || text.includes('規制') || text.includes('停止')) {
-    return 'warning'
+function extractStatus(text: string): "normal" | "warning" | "error" {
+  if (text.includes("工事") || text.includes("規制") || text.includes("停止")) {
+    return "warning"
   }
-  if (text.includes('異常') || text.includes('停止') || text.includes('不通')) {
-    return 'error'
+  if (text.includes("異常") || text.includes("停止") || text.includes("不通")) {
+    return "error"
   }
-  return 'normal'
+  return "normal"
 }
 
 // トラフィック情報を取得（高速化: 1クエリに統合）
 async function getTrafficInfo(prefecture: string, city: string) {
   console.log(`🚗 交通情報取得開始: ${prefecture}${city}`)
-  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
+  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, "")
   const query = `${area} 交通 渋滞 高速道路 規制 現在`
 
   console.log(`🔍 交通情報検索: ${query}`)
   const searchResults = await braveWebSearch(query, 8)
-  const verifiedResults = await factCheckSearchResults(searchResults, query, 'infrastructure')
+  const verifiedResults = await factCheckSearchResults(searchResults, query, "infrastructure")
   console.log(`🚗 交通情報取得完了: ${verifiedResults.length}件`)
 
   return {
     items: verifiedResults.slice(0, 5).map((r: BraveWebResult) => ({
-      title: r.title || '',
-      url: r.url || '',
-      description: r.description || '',
-      status: extractTrafficStatus(r.description || r.title || '')
+      title: r.title || "",
+      url: r.url || "",
+      description: r.description || "",
+      status: extractTrafficStatus(r.description || r.title || ""),
     })),
     _debug: {
       searchQuery: query,
       resultCount: searchResults.length,
       verifiedCount: verifiedResults.length,
-      totalResults: verifiedResults.length
-    }
+      totalResults: verifiedResults.length,
+    },
   }
 }
 
-function extractTrafficStatus(text: string): 'normal' | 'warning' | 'error' {
-  if (text.includes('渋滞') || text.includes('混雑') || text.includes('遅延')) {
-    return 'warning'
+function extractTrafficStatus(text: string): "normal" | "warning" | "error" {
+  if (text.includes("渋滞") || text.includes("混雑") || text.includes("遅延")) {
+    return "warning"
   }
-  if (text.includes('通行止め') || text.includes('規制') || text.includes('事故')) {
-    return 'error'
+  if (text.includes("通行止め") || text.includes("規制") || text.includes("事故")) {
+    return "error"
   }
-  return 'normal'
+  return "normal"
 }
 
 // ロジスティクス情報を取得（高速化: 2クエリに統合）
 async function getLogisticsInfo(prefecture: string, city: string, industry: string) {
-  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, '')
-  const industryTerm = industry ? `${industry} ` : ''
+  const area = `${prefecture}${city}`.replace(/[都道府県市区町村]/g, "")
+  const industryTerm = industry ? `${industry} ` : ""
   // 2つのクエリに統合して高速化
   const queries = [
     `${area} ${industryTerm}物流 配送 運送 燃料費 2025`,
@@ -714,66 +1024,96 @@ async function getLogisticsInfo(prefecture: string, city: string, industry: stri
   ]
 
   const results: BraveWebResult[] = []
-  const searchLogs: Array<{ query: string; resultCount: number; verifiedCount: number; results: BraveWebResult[] }> = []
+  const searchLogs: Array<{
+    query: string
+    resultCount: number
+    verifiedCount: number
+    results: BraveWebResult[]
+  }> = []
 
   for (const q of queries) {
     const searchResults = await braveWebSearch(q, 5)
-    const verifiedResults = searchResults.filter(result => {
-      const text = `${result.title || ''} ${result.description || ''}`.toLowerCase()
+    const verifiedResults = searchResults.filter((result) => {
+      const text = `${result.title || ""} ${result.description || ""}`.toLowerCase()
       if (!result.title && !result.description) return false
-      const logisticsKeywords = ['物流', '配送', '運送', '倉庫', 'トラック', '宅配', '輸送', 'サプライチェーン', '荷物', '貨物', '燃料', 'ドライバー', '2024年問題']
-      return logisticsKeywords.some(keyword => text.includes(keyword))
+      const logisticsKeywords = [
+        "物流",
+        "配送",
+        "運送",
+        "倉庫",
+        "トラック",
+        "宅配",
+        "輸送",
+        "サプライチェーン",
+        "荷物",
+        "貨物",
+        "燃料",
+        "ドライバー",
+        "2024年問題",
+      ]
+      return logisticsKeywords.some((keyword) => text.includes(keyword))
     })
     results.push(...verifiedResults)
     searchLogs.push({
       query: q,
       resultCount: searchResults.length,
       verifiedCount: verifiedResults.length,
-      results: verifiedResults
+      results: verifiedResults,
     })
   }
 
   // 重複を除去
   const uniqueResults = results.reduce((acc: BraveWebResult[], current) => {
-    const exists = acc.find(item => item.url === current.url)
+    const exists = acc.find((item) => item.url === current.url)
     if (!exists) acc.push(current)
     return acc
   }, [])
 
   return {
     items: uniqueResults.slice(0, 6).map((r: BraveWebResult) => ({
-      title: r.title || '',
-      url: r.url || '',
-      description: r.description || '',
-      category: extractLogisticsCategory(r.title || '', r.description || ''),
-      status: extractLogisticsStatus(r.description || r.title || '')
+      title: r.title || "",
+      url: r.url || "",
+      description: r.description || "",
+      category: extractLogisticsCategory(r.title || "", r.description || ""),
+      status: extractLogisticsStatus(r.description || r.title || ""),
     })),
     _debug: {
       searchQueries: queries,
       searchLogs,
-      totalResults: uniqueResults.length
-    }
+      totalResults: uniqueResults.length,
+    },
   }
 }
 
 function extractLogisticsCategory(title: string, description: string): string {
   const text = `${title} ${description}`.toLowerCase()
-  if (text.includes('燃料') || text.includes('ガソリン') || text.includes('軽油')) return 'fuel'
-  if (text.includes('ドライバー') || text.includes('人手不足') || text.includes('2024年問題')) return 'driver'
-  if (text.includes('倉庫') || text.includes('物流センター')) return 'warehouse'
-  if (text.includes('配送料') || text.includes('運賃') || text.includes('コスト')) return 'cost'
-  if (text.includes('サプライチェーン') || text.includes('供給')) return 'supply'
-  return 'general'
+  if (text.includes("燃料") || text.includes("ガソリン") || text.includes("軽油")) return "fuel"
+  if (text.includes("ドライバー") || text.includes("人手不足") || text.includes("2024年問題"))
+    return "driver"
+  if (text.includes("倉庫") || text.includes("物流センター")) return "warehouse"
+  if (text.includes("配送料") || text.includes("運賃") || text.includes("コスト")) return "cost"
+  if (text.includes("サプライチェーン") || text.includes("供給")) return "supply"
+  return "general"
 }
 
-function extractLogisticsStatus(text: string): 'normal' | 'warning' | 'error' {
-  if (text.includes('値上げ') || text.includes('上昇') || text.includes('遅延') || text.includes('不足')) {
-    return 'warning'
+function extractLogisticsStatus(text: string): "normal" | "warning" | "error" {
+  if (
+    text.includes("値上げ") ||
+    text.includes("上昇") ||
+    text.includes("遅延") ||
+    text.includes("不足")
+  ) {
+    return "warning"
   }
-  if (text.includes('停止') || text.includes('危機') || text.includes('混乱') || text.includes('崩壊')) {
-    return 'error'
+  if (
+    text.includes("停止") ||
+    text.includes("危機") ||
+    text.includes("混乱") ||
+    text.includes("崩壊")
+  ) {
+    return "error"
   }
-  return 'normal'
+  return "normal"
 }
 
 // 緊急情報・災害速報を取得（現在発令中のアラートのみ）
@@ -791,79 +1131,73 @@ async function getEmergencyAlerts(prefecture: string): Promise<{
     alerts: [],
     _debug: {
       prefecture,
-      note: '緊急情報は weather.alerts で取得。大規模災害時のみ別途対応。'
-    }
+      note: "緊急情報は weather.alerts で取得。大規模災害時のみ別途対応。",
+    },
   }
 }
 
 export async function GET(request: Request) {
   // レート制限チェック（30回/時間）
-  const rateLimitError = applyRateLimit(request, 'dashboard')
+  const rateLimitError = applyRateLimit(request, "dashboard")
   if (rateLimitError) return rateLimitError
 
   try {
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "認証されていません" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "認証されていません" }, { status: 401 })
     }
 
     // プロファイルと会社情報を取得
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', user.id)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", user.id)
       .single()
 
     if (!profile?.company_id) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     const { data: company } = await supabase
-      .from('companies')
-      .select('prefecture, city, industry, business_description, employee_count')
-      .eq('id', profile.company_id)
+      .from("companies")
+      .select("prefecture, city, industry, business_description, employee_count")
+      .eq("id", profile.company_id)
       .single()
 
     if (!company) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     // 会社情報をデバッグログ出力（問題追跡用）
-    console.log('📍 会社情報（DB取得結果）:', {
+    console.log("📍 会社情報（DB取得結果）:", {
       prefecture_raw: company.prefecture,
       city_raw: company.city,
       industry: company.industry,
-      employee_count: company.employee_count
+      employee_count: company.employee_count,
     })
 
-    const prefecture = company.prefecture || '愛知県'
-    const city = company.city || '名古屋市'
-    const industry = company.industry || ''
-    const businessDescription = company.business_description || ''
+    const prefecture = company.prefecture || "愛知県"
+    const city = company.city || "名古屋市"
+    const industry = company.industry || ""
+    const businessDescription = company.business_description || ""
     const employeeCount = company.employee_count || null
 
     // デフォルト値を使用した場合は警告ログ
     if (!company.prefecture) {
-      console.warn('⚠️ prefecture がDBに保存されていません。デフォルト値（愛知県）を使用します。')
+      console.warn("⚠️ prefecture がDBに保存されていません。デフォルト値（愛知県）を使用します。")
     }
     if (!company.city) {
-      console.warn('⚠️ city がDBに保存されていません。デフォルト値（名古屋市）を使用します。')
+      console.warn("⚠️ city がDBに保存されていません。デフォルト値（名古屋市）を使用します。")
     }
 
     // 強制更新パラメータをチェック
     const { searchParams } = new URL(request.url)
-    const forceRefresh = searchParams.get('refresh') === 'true'
+    const forceRefresh = searchParams.get("refresh") === "true"
 
     // 強制更新でない場合、キャッシュからデータを取得（有効期限: 5分）
     if (!forceRefresh) {
@@ -871,33 +1205,34 @@ export async function GET(request: Request) {
       cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 5)
 
       const { data: cachedData } = await supabase
-        .from('dashboard_data')
-        .select('data, updated_at')
-        .eq('user_id', user.id)
-        .eq('company_id', profile.company_id)
-        .eq('data_type', 'local_info')
-        .gte('updated_at', cacheExpiry.toISOString())
+        .from("dashboard_data")
+        .select("data, updated_at")
+        .eq("user_id", user.id)
+        .eq("company_id", profile.company_id)
+        .eq("data_type", "local_info")
+        .gte("updated_at", cacheExpiry.toISOString())
         .maybeSingle()
 
       if (cachedData?.data) {
         return NextResponse.json({
           data: cachedData.data,
           updatedAt: cachedData.updated_at,
-          cached: true
+          cached: true,
         })
       }
     }
 
     // 各データを並列取得（業種・会社規模情報を含める）
-    const [laborCosts, events, infrastructure, weather, traffic, logistics, emergencyAlerts] = await Promise.all([
-      getLaborCosts(prefecture, city, industry, employeeCount, businessDescription),
-      getEvents(prefecture, city, industry),
-      getInfrastructure(prefecture, city, industry),
-      getWeather(prefecture, city),
-      getTrafficInfo(prefecture, city),
-      getLogisticsInfo(prefecture, city, industry),
-      getEmergencyAlerts(prefecture)
-    ])
+    const [laborCosts, events, infrastructure, weather, traffic, logistics, emergencyAlerts] =
+      await Promise.all([
+        getLaborCosts(prefecture, city, industry, employeeCount, businessDescription),
+        getEvents(prefecture, city, industry),
+        getInfrastructure(prefecture, city, industry),
+        getWeather(prefecture, city),
+        getTrafficInfo(prefecture, city),
+        getLogisticsInfo(prefecture, city, industry),
+        getEmergencyAlerts(prefecture),
+      ])
 
     // デバッグ情報を収集
     const debugInfo = {
@@ -909,9 +1244,9 @@ export async function GET(request: Request) {
         prefecture_used: prefecture,
         city_used: city,
         isDefaultPrefecture: !company.prefecture,
-        isDefaultCity: !company.city
+        isDefaultCity: !company.city,
       },
-      industry: industry || '未設定',
+      industry: industry || "未設定",
       searchTimestamp: new Date().toISOString(),
       laborCosts: laborCosts._debug,
       events: events._debug,
@@ -920,7 +1255,7 @@ export async function GET(request: Request) {
       traffic: traffic._debug,
       logistics: logistics._debug,
       emergencyAlerts: emergencyAlerts._debug,
-      apiKeyConfigured: !!process.env.BRAVE_SEARCH_API_KEY
+      apiKeyConfigured: !!process.env.BRAVE_SEARCH_API_KEY,
     }
 
     const localInfoData = {
@@ -952,55 +1287,56 @@ export async function GET(request: Request) {
         ...debugInfo,
         traffic: traffic._debug,
         logistics: logistics._debug,
-        emergencyAlerts: emergencyAlerts._debug
-      }
+        emergencyAlerts: emergencyAlerts._debug,
+      },
     }
 
     // データをSupabaseに保存（UPSERT）
-    const { error: saveError } = await supabase
-      .from('dashboard_data')
-      .upsert({
+    const { error: saveError } = await supabase.from("dashboard_data").upsert(
+      {
         user_id: user.id,
         company_id: profile.company_id,
-        data_type: 'local_info',
+        data_type: "local_info",
         data: localInfoData,
-        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5分後
-      }, {
-        onConflict: 'user_id,company_id,data_type'
-      })
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5分後
+      },
+      {
+        onConflict: "user_id,company_id,data_type",
+      }
+    )
 
     if (saveError) {
-      console.error('Failed to save local info data:', saveError)
+      console.error("Failed to save local info data:", saveError)
       // 保存エラーでもデータは返す
     }
 
     // ファクトチェックを実行（検索結果のソース情報を収集）
     const sources: { url: string; title: string; date?: string }[] = []
-    
+
     // イベント情報からソースを収集
     if (events?.events) {
       events.events.forEach((e: any) => {
-        if (e.url) sources.push({ url: e.url, title: e.title || '' })
+        if (e.url) sources.push({ url: e.url, title: e.title || "" })
       })
     }
-    
+
     // インフラ情報からソースを収集
     if (infrastructure?.items) {
       infrastructure.items.forEach((i: any) => {
-        if (i.url) sources.push({ url: i.url, title: i.title || '' })
+        if (i.url) sources.push({ url: i.url, title: i.title || "" })
       })
     }
-    
+
     // 交通情報からソースを収集
     if (traffic?.items) {
       traffic.items.forEach((t: any) => {
-        if (t.url) sources.push({ url: t.url, title: t.title || '' })
+        if (t.url) sources.push({ url: t.url, title: t.title || "" })
       })
     }
 
     const factCheckResult = checkSearchResult({
       sources,
-      query: `${prefecture}${city} 地域情報`
+      query: `${prefecture}${city} 地域情報`,
     })
 
     console.log("📋 検索結果ファクトチェック:", JSON.stringify(factCheckResult, null, 2))
@@ -1009,11 +1345,10 @@ export async function GET(request: Request) {
       data: localInfoData,
       updatedAt: new Date().toISOString(),
       cached: false,
-      factCheck: factCheckResult
+      factCheck: factCheckResult,
     })
-
   } catch (error) {
-    console.error('Local info error:', error)
+    console.error("Local info error:", error)
     return NextResponse.json(
       {
         error: "地域情報の取得に失敗しました",
@@ -1023,4 +1358,3 @@ export async function GET(request: Request) {
     )
   }
 }
-

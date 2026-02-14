@@ -13,9 +13,9 @@ export function checkPasswordStrength(password: string): PasswordStrength {
   if (!password) {
     return {
       score: 0,
-      label: '',
-      color: 'bg-gray-200',
-      feedback: []
+      label: "",
+      color: "bg-gray-200",
+      feedback: [],
     }
   }
 
@@ -23,7 +23,7 @@ export function checkPasswordStrength(password: string): PasswordStrength {
   if (password.length >= 8) {
     score += 1
   } else {
-    feedback.push('8文字以上必要です')
+    feedback.push("8文字以上必要です")
   }
 
   if (password.length >= 12) {
@@ -34,41 +34,47 @@ export function checkPasswordStrength(password: string): PasswordStrength {
   if (/[a-z]/.test(password)) {
     score += 0.5
   } else {
-    feedback.push('小文字を含めてください')
+    feedback.push("小文字を含めてください")
   }
 
   // Uppercase check
   if (/[A-Z]/.test(password)) {
     score += 0.5
   } else {
-    feedback.push('大文字を含めてください')
+    feedback.push("大文字を含めてください")
   }
 
   // Number check
   if (/\d/.test(password)) {
     score += 0.5
   } else {
-    feedback.push('数字を含めてください')
+    feedback.push("数字を含めてください")
   }
 
   // Special character check
   if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     score += 0.5
   } else {
-    feedback.push('記号を含めると強度が上がります')
+    feedback.push("記号を含めると強度が上がります")
   }
 
   // Round score
   score = Math.min(Math.round(score), 4)
 
-  const labels = ['非常に弱い', '弱い', '普通', '強い', '非常に強い']
-  const colors = ['strength-weak', 'strength-weak', 'strength-fair', 'strength-good', 'strength-strong']
+  const labels = ["非常に弱い", "弱い", "普通", "強い", "非常に強い"]
+  const colors = [
+    "strength-weak",
+    "strength-weak",
+    "strength-fair",
+    "strength-good",
+    "strength-strong",
+  ]
 
   return {
     score,
     label: labels[score],
     color: colors[score],
-    feedback: score < 3 ? feedback : []
+    feedback: score < 3 ? feedback : [],
   }
 }
 
@@ -81,26 +87,16 @@ export function isValidEmail(email: string): boolean {
 // Password validation
 export function isValidPassword(password: string): { valid: boolean; message: string } {
   if (password.length < 8) {
-    return { valid: false, message: 'パスワードは8文字以上必要です' }
+    return { valid: false, message: "パスワードは8文字以上必要です" }
   }
   if (!/[a-z]/.test(password)) {
-    return { valid: false, message: '小文字を含めてください' }
+    return { valid: false, message: "小文字を含めてください" }
   }
   if (!/[A-Z]/.test(password)) {
-    return { valid: false, message: '大文字を含めてください' }
+    return { valid: false, message: "大文字を含めてください" }
   }
   if (!/\d/.test(password)) {
-    return { valid: false, message: '数字を含めてください' }
+    return { valid: false, message: "数字を含めてください" }
   }
-  return { valid: true, message: '' }
+  return { valid: true, message: "" }
 }
-
-
-
-
-
-
-
-
-
-

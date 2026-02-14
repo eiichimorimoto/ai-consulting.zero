@@ -8,7 +8,7 @@
  *
  * @see stripe-payment-spec-v2.2.md §1-1
  */
-import Stripe from 'stripe'
+import Stripe from "stripe"
 
 let stripeInstance: Stripe | null = null
 
@@ -35,7 +35,7 @@ export function getStripe(): Stripe {
   const secretKey = process.env.STRIPE_SECRET_KEY
 
   if (!secretKey) {
-    throw new Error('STRIPE_SECRET_KEY が設定されていません')
+    throw new Error("STRIPE_SECRET_KEY が設定されていません")
   }
 
   stripeInstance = new Stripe(secretKey)

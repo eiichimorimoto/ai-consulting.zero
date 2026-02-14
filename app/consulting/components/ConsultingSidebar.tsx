@@ -1,15 +1,15 @@
-'use client'
+"use client"
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  MessageSquare, 
-  FileText, 
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import {
+  LayoutDashboard,
+  MessageSquare,
+  FileText,
   Settings,
   PlusCircle,
-  ArrowLeft
-} from 'lucide-react'
+  ArrowLeft,
+} from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '@/components/sidebar'
+} from "@/components/sidebar"
 
 interface ConsultingSidebarProps {
   sessions?: Array<{
@@ -52,7 +52,7 @@ export function ConsultingSidebar({ sessions = [] }: ConsultingSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/consulting/start'}>
+                <SidebarMenuButton asChild isActive={pathname === "/consulting/start"}>
                   <Link href="/consulting/start">
                     <PlusCircle />
                     <span>新規相談</span>
@@ -69,21 +69,21 @@ export function ConsultingSidebar({ sessions = [] }: ConsultingSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {sessions.length === 0 ? (
-                <div className="px-2 py-4 text-sm text-muted-foreground">
+                <div className="text-muted-foreground px-2 py-4 text-sm">
                   まだ相談履歴がありません
                 </div>
               ) : (
                 sessions.map((session) => (
                   <SidebarMenuItem key={session.id}>
-                    <SidebarMenuButton 
-                      asChild 
+                    <SidebarMenuButton
+                      asChild
                       isActive={pathname === `/consulting/sessions/${session.id}`}
                     >
                       <Link href={`/consulting/sessions/${session.id}`}>
                         <MessageSquare />
                         <div className="flex flex-col overflow-hidden">
                           <span className="truncate">{session.title}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {session.current_round}/{session.max_rounds}回
                           </span>
                         </div>

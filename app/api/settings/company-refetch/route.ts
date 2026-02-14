@@ -4,60 +4,70 @@
  * company-intel を実行して companies を更新し、該当会社の dashboard_data を削除する（キャッシュ無効化）。
  */
 
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from "@/lib/supabase/server"
+import { NextRequest, NextResponse } from "next/server"
 
-export const runtime = 'nodejs'
+export const runtime = "nodejs"
 export const maxDuration = 120
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: '認証されていません' }, { status: 401 })
+      return NextResponse.json({ error: "認証されていません" }, { status: 401 })
     }
 
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', user.id)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", user.id)
       .single()
 
     if (!profile?.company_id) {
-      return NextResponse.json({ error: '会社情報が見つかりません' }, { status: 404 })
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('id, name, website, prefecture, city, address')
-      .eq('id', profile.company_id)
+      .from("companies")
+      .select("id, name, website, prefecture, city, address")
+      .eq("id", profile.company_id)
       .single()
 
     if (companyError || !company) {
-      return NextResponse.json({ error: '会社情報の取得に失敗しました' }, { status: 404 })
+      return NextResponse.json({ error: "会社情報の取得に失敗しました" }, { status: 404 })
     }
 
-    const website = (company.website || '').trim()
+    const website = (company.website || "").trim()
     if (!website) {
       return NextResponse.json(
-        { error: 'ウェブサイトが登録されていません。会社情報にURLを入力してから再取得してください。' },
+        {
+          error:
+            "ウェブサイトが登録されていません。会社情報にURLを入力してから再取得してください。",
+        },
         { status: 400 }
       )
     }
 
-    const baseUrl = request.url ? new URL(request.url).origin : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    const baseUrl = request.url
+      ? new URL(request.url).origin
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000"
 
     const intelRes = await fetch(`${baseUrl}/api/company-intel`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         website,
-        companyName: company.name || '',
-        companyPrefecture: company.prefecture || '',
-        companyCity: company.city || '',
-        companyAddress: company.address || '',
+        companyName: company.name || "",
+        companyPrefecture: company.prefecture || "",
+        companyCity: company.city || "",
+        companyAddress: company.address || "",
         forceExternalSearch: true,
       }),
     })
@@ -73,11 +83,8 @@ export async function POST(request: NextRequest) {
 
     const intelJson = await intelRes.json()
     const data = (intelJson as { data?: Record<string, unknown> }).data
-    if (!data || typeof data !== 'object') {
-      return NextResponse.json(
-        { error: '会社情報の取得結果が不正です' },
-        { status: 502 }
-      )
+    if (!data || typeof data !== "object") {
+      return NextResponse.json({ error: "会社情報の取得結果が不正です" }, { status: 502 })
     }
 
     const d = data as Record<string, unknown>
@@ -92,38 +99,35 @@ export async function POST(request: NextRequest) {
       fax: d.fax ?? null,
       business_description: d.businessDescription ?? null,
       capital: d.capital ?? null,
-      fiscal_year_end: d.fiscalYearEnd != null ? parseInt(String(d.fiscalYearEnd), 10) : null,
+      fiscal_year_end: d.fiscalYearEnd !== null ? parseInt(String(d.fiscalYearEnd), 10) : null,
       retrieved_info: data,
     }
 
     const { error: updateError } = await supabase
-      .from('companies')
+      .from("companies")
       .update(updatePayload)
-      .eq('id', company.id)
+      .eq("id", company.id)
 
     if (updateError) {
-      console.error('Company update error on refetch:', updateError)
-      return NextResponse.json(
-        { error: '会社情報の更新に失敗しました' },
-        { status: 500 }
-      )
+      console.error("Company update error on refetch:", updateError)
+      return NextResponse.json({ error: "会社情報の更新に失敗しました" }, { status: 500 })
     }
 
     const { error: deleteError } = await supabase
-      .from('dashboard_data')
+      .from("dashboard_data")
       .delete()
-      .eq('company_id', company.id)
-      .eq('user_id', user.id)
+      .eq("company_id", company.id)
+      .eq("user_id", user.id)
 
     if (deleteError) {
-      console.error('Dashboard cache delete error (non-fatal):', deleteError)
+      console.error("Dashboard cache delete error (non-fatal):", deleteError)
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Company refetch error:', error)
+    console.error("Company refetch error:", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : '会社情報の再取得に失敗しました' },
+      { error: error instanceof Error ? error.message : "会社情報の再取得に失敗しました" },
       { status: 500 }
     )
   }

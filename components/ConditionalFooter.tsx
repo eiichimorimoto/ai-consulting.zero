@@ -1,25 +1,32 @@
-'use client'
+"use client"
 
-import { usePathname } from 'next/navigation'
-import { Footer } from './footer'
-import Link from 'next/link'
+import { usePathname } from "next/navigation"
+import { Footer } from "./footer"
+import Link from "next/link"
 
 // アプリ部分用のフッター（ロゴ + コピーライト）
 function AppFooter() {
   return (
-    <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* ロゴ */}
-          <Link href="/dashboard" className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
-            <img src="/logo.png" alt="SolveWise" width={24} height={24} className="h-6 w-auto object-contain" />
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 opacity-60 transition-opacity hover:opacity-100"
+          >
+            <img
+              src="/logo.png"
+              alt="SolveWise"
+              width={24}
+              height={24}
+              className="h-6 w-auto object-contain"
+            />
             <span className="text-sm font-medium text-gray-600">SolveWise</span>
           </Link>
-          
+
           {/* コピーライト */}
-          <p className="text-xs text-gray-500">
-            © 2025 SolveWise. All rights reserved.
-          </p>
+          <p className="text-xs text-gray-500">© 2025 SolveWise. All rights reserved.</p>
         </div>
       </div>
     </footer>
@@ -30,29 +37,27 @@ export default function ConditionalFooter() {
   const pathname = usePathname()
 
   // ダッシュボードメインページはサイドバーがあるためフッター不要
-  if (pathname === '/dashboard') {
+  if (pathname === "/dashboard") {
     return null
   }
 
   // コンサルティングページは独自レイアウト（h-screen）のためフッター不要
-  if (pathname?.startsWith('/consulting')) {
+  if (pathname?.startsWith("/consulting")) {
     return null
   }
-  
+
   // LP部分（トップページ、料金、お問い合わせ、法的ページなど）
-  const isLPPage = 
-    pathname === '/' ||
-    pathname === '/pricing' ||
-    pathname === '/contact' ||
-    pathname?.startsWith('/legal')
-  
+  const isLPPage =
+    pathname === "/" ||
+    pathname === "/pricing" ||
+    pathname === "/contact" ||
+    pathname?.startsWith("/legal")
+
   // LP部分では通常のフッター（リンク付き）を表示
   if (isLPPage) {
     return <Footer />
   }
-  
+
   // アプリ部分（ダッシュボード配下、診断、認証関連など）ではアプリ用フッター
   return <AppFooter />
 }
-
-

@@ -6,8 +6,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '*.supabase.co',
+        protocol: "https",
+        hostname: "*.supabase.co",
       },
     ],
   },
@@ -15,11 +15,11 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/',
+        source: "/",
         headers: [
           {
-            key: 'Cache-Control',
-            value: 'no-store, max-age=0, must-revalidate',
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
           },
         ],
       },
@@ -32,8 +32,8 @@ const nextConfig = {
       config.resolve.alias = {
         ...config.resolve.alias,
         // ワーカーファイルのインポートを空のモジュールに置き換え
-        'pdfjs-dist/build/pdf.worker.mjs': require.resolve('./lib/ocr/pdf-worker-stub.js'),
-        'pdfjs-dist/build/pdf.worker.min.mjs': require.resolve('./lib/ocr/pdf-worker-stub.js'),
+        "pdfjs-dist/build/pdf.worker.mjs": require.resolve("./lib/ocr/pdf-worker-stub.js"),
+        "pdfjs-dist/build/pdf.worker.min.mjs": require.resolve("./lib/ocr/pdf-worker-stub.js"),
       }
     }
     return config

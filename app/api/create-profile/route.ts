@@ -16,24 +16,27 @@ function createServiceRoleClient() {
   return createServiceClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   })
 }
 
 export async function POST(request: Request) {
   console.log("🔵 [create-profile API] Request received")
-  
+
   try {
     // まず通常のクライアントを試す
     const supabase = await createClient()
     console.log("🔵 [create-profile API] Supabase client created")
-    
+
     // Service Roleクライアントも作成（RLSバイパス用）
     const serviceClient = createServiceRoleClient()
     const useServiceClient = !!serviceClient
-    console.log("🔵 [create-profile API] Service Role client:", useServiceClient ? "Available" : "Not available")
-    
+    console.log(
+      "🔵 [create-profile API] Service Role client:",
+      useServiceClient ? "Available" : "Not available"
+    )
+
     // リクエストボディからユーザーIDを取得（サインアップ直後はセッションが確立されていない可能性があるため）
     let requestBody: { userId?: string; email?: string; name?: string } = {}
     try {
@@ -48,13 +51,13 @@ export async function POST(request: Request) {
       // リクエストボディがない場合は認証から取得を試みる
       // 空のリクエストボディも許容する
     }
-    
+
     // 認証されているユーザーを取得（サインアップ直後はnullになる可能性がある）
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
-    
+
     console.log("🔵 [create-profile API] Auth check:", {
       hasUser: !!user,
       userId: user?.id,
@@ -65,12 +68,17 @@ export async function POST(request: Request) {
     const userId = requestBody.userId || user?.id
 
     if (!userId) {
-      console.error("❌ [create-profile API] User ID not found. Auth error:", authError, "Request body:", requestBody)
+      console.error(
+        "❌ [create-profile API] User ID not found. Auth error:",
+        authError,
+        "Request body:",
+        requestBody
+      )
       return NextResponse.json(
-        { 
-          error: "認証されていません", 
+        {
+          error: "認証されていません",
           details: authError?.message || "ユーザーIDが取得できませんでした",
-          code: "AUTH_ERROR"
+          code: "AUTH_ERROR",
         },
         { status: 401 }
       )
@@ -98,12 +106,15 @@ export async function POST(request: Request) {
 
     // チェックエラーは無視（プロファイルが存在しない場合もエラーになるため）
     if (existingProfile) {
-      console.log("✅ [create-profile API] Profile already exists (likely created by trigger):", existingProfile)
+      console.log(
+        "✅ [create-profile API] Profile already exists (likely created by trigger):",
+        existingProfile
+      )
       return NextResponse.json(
-        { 
-          message: "プロファイルは既に存在します", 
+        {
+          message: "プロファイルは既に存在します",
           profile: existingProfile,
-          code: "PROFILE_EXISTS"
+          code: "PROFILE_EXISTS",
         },
         { status: 200 }
       )
@@ -114,7 +125,8 @@ export async function POST(request: Request) {
     // プロファイルが存在しない場合のみ作成を試みる
     // ただし、RLSポリシー違反が発生する可能性があるため、エラーを適切に処理する
     const userEmail = user?.email || requestBody.email || ""
-    const userName = user?.user_metadata?.name || requestBody.name || userEmail.split("@")[0] || "User"
+    const userName =
+      user?.user_metadata?.name || requestBody.name || userEmail.split("@")[0] || "User"
 
     console.log("🔵 [create-profile API] Attempting to create profile with:", {
       userId,
@@ -126,11 +138,13 @@ export async function POST(request: Request) {
     // Service Roleクライアントが利用可能な場合のみプロファイルを作成を試みる
     // 利用できない場合は、トリガー関数に任せる
     if (!serviceClient) {
-      console.warn("⚠️ [create-profile API] Service Role Keyが設定されていません。トリガー関数にプロファイル作成を任せます。")
-      
+      console.warn(
+        "⚠️ [create-profile API] Service Role Keyが設定されていません。トリガー関数にプロファイル作成を任せます。"
+      )
+
       // トリガー関数でプロファイルが作成されるまで少し待って確認
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
       const finalCheckClient = supabase
       const { data: finalProfile } = await finalCheckClient
         .from("profiles")
@@ -141,19 +155,20 @@ export async function POST(request: Request) {
       if (finalProfile) {
         console.log("✅ [create-profile API] Profile created by trigger function:", finalProfile)
         return NextResponse.json(
-          { 
-            message: "プロファイルはトリガー関数により作成されました", 
+          {
+            message: "プロファイルはトリガー関数により作成されました",
             profile: finalProfile,
-            code: "PROFILE_CREATED_BY_TRIGGER"
+            code: "PROFILE_CREATED_BY_TRIGGER",
           },
           { status: 200 }
         )
       } else {
         // トリガー関数でも作成されていない場合、Service Role Keyの設定を促す
         return NextResponse.json(
-          { 
+          {
             error: "プロファイルの作成に失敗しました",
-            details: "Service Role Keyが設定されていないため、プロファイルを作成できません。.env.localにSUPABASE_SERVICE_ROLE_KEYを設定してください。",
+            details:
+              "Service Role Keyが設定されていないため、プロファイルを作成できません。.env.localにSUPABASE_SERVICE_ROLE_KEYを設定してください。",
             code: "SERVICE_ROLE_KEY_REQUIRED",
             hint: "トリガー関数が正常に動作していない可能性があります。Supabaseダッシュボードでトリガー関数を確認してください。",
           },
@@ -180,10 +195,10 @@ export async function POST(request: Request) {
         details: profileError.details,
         hint: profileError.hint,
       })
-      
+
       // エラーが発生した場合でも、トリガー関数が作成している可能性があるため再確認
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       const retryCheckClient = serviceClient
       const { data: retryProfile } = await retryCheckClient
         .from("profiles")
@@ -192,15 +207,18 @@ export async function POST(request: Request) {
         .single()
 
       if (retryProfile) {
-        console.log("✅ [create-profile API] Profile exists after error (created by trigger):", retryProfile)
+        console.log(
+          "✅ [create-profile API] Profile exists after error (created by trigger):",
+          retryProfile
+        )
         return NextResponse.json(
           { message: "プロファイルは既に存在します", profile: retryProfile },
           { status: 200 }
         )
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           error: "プロファイルの作成に失敗しました",
           details: profileError.message || "不明なエラーが発生しました",
           code: profileError.code || "UNKNOWN_ERROR",
@@ -219,8 +237,8 @@ export async function POST(request: Request) {
 
     // ファクトチェックを実行（DB更新）
     const factCheckResult = checkDBUpdate({
-      operation: 'insert',
-      table: 'profiles',
+      operation: "insert",
+      table: "profiles",
       fields: {
         user_id: userId,
         name: userName,
@@ -238,13 +256,11 @@ export async function POST(request: Request) {
       .single()
 
     if (!existingSub) {
-      const { error: subError } = await supabase
-        .from("subscriptions")
-        .insert({
-          user_id: userId,
-          plan_type: "free",
-          status: "active",
-        })
+      const { error: subError } = await supabase.from("subscriptions").insert({
+        user_id: userId,
+        plan_type: "free",
+        status: "active",
+      })
 
       if (subError) {
         console.error("Subscription creation error:", subError)
@@ -253,40 +269,39 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { 
-        message: "プロファイルを作成しました", 
+      {
+        message: "プロファイルを作成しました",
         profile,
-        factCheck: factCheckResult
+        factCheck: factCheckResult,
       },
       { status: 201 }
     )
   } catch (error) {
     console.error("❌ [create-profile API] Unexpected error:", error)
-    
+
     // エラー情報を詳細に記録
     const errorDetails = {
       message: error instanceof Error ? error.message : String(error),
-      name: error instanceof Error ? error.name : 'Unknown',
+      name: error instanceof Error ? error.name : "Unknown",
       stack: error instanceof Error ? error.stack : undefined,
     }
-    
+
     console.error("❌ [create-profile API] Error details:", JSON.stringify(errorDetails, null, 2))
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "予期しないエラーが発生しました",
         details: errorDetails.message,
         code: "UNEXPECTED_ERROR",
         errorType: errorDetails.name,
         stack: errorDetails.stack,
       },
-      { 
+      {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       }
     )
   }
 }
-

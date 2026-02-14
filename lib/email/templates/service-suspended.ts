@@ -13,7 +13,7 @@ export function serviceSuspendedTemplate(params: ServiceSuspendedParams): {
   html: string
 } {
   return {
-    subject: '【SolveWise】サービス停止のご連絡',
+    subject: "【SolveWise】サービス停止のご連絡",
     html: `
 <!DOCTYPE html>
 <html lang="ja">

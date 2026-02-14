@@ -1,17 +1,28 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Camera, Upload, CheckCircle, Loader2, Home, Building2, User, X, Globe, FileText } from 'lucide-react'
-import Link from 'next/link'
-import FileUpload from '@/components/FileUpload'
-import { convertPdfToImageClient } from '@/lib/ocr/pdf-to-image-client'
+import React, { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Camera,
+  Upload,
+  CheckCircle,
+  Loader2,
+  Home,
+  Building2,
+  User,
+  X,
+  Globe,
+  FileText,
+} from "lucide-react"
+import Link from "next/link"
+import FileUpload from "@/components/FileUpload"
+import { convertPdfToImageClient } from "@/lib/ocr/pdf-to-image-client"
 
 interface OCRResult {
   personName?: string
@@ -50,7 +61,11 @@ export default function CompleteProfilePage() {
 
   // PDFプレビュー用のObject URLは、ダイアログを閉じたタイミングで解放する（onOpenChangeで処理）
 
-  const splitJapaneseAddressForCompanyForm = (fullAddress: string, prefecture?: string, city?: string) => {
+  const splitJapaneseAddressForCompanyForm = (
+    fullAddress: string,
+    prefecture?: string,
+    city?: string
+  ) => {
     // 名刺OCRの住所（例: 愛知県名古屋市中村区名駅1-1-1 JPタワー名古屋25階）を
     // 「都道府県 / 市区町村 / 町名番地以下」に分割する
     const raw = (fullAddress || "").replace(/[〒]/g, "").trim()
@@ -60,26 +75,32 @@ export default function CompleteProfilePage() {
     const mPref = raw.match(/^(.*?[都道府県])/)
     const parsedPref = mPref?.[1] || ""
     const afterPref = parsedPref ? raw.slice(parsedPref.length) : raw
-    const mCity =
-      afterPref.match(/^(.+?市.+?区)/) ||
-      afterPref.match(/^(.+?(?:市|区|町|村))/)
+    const mCity = afterPref.match(/^(.+?市.+?区)/) || afterPref.match(/^(.+?(?:市|区|町|村))/)
     const parsedCity = mCity?.[1] || ""
     const afterCity = parsedCity ? afterPref.slice(parsedCity.length) : afterPref
 
     // 2) 住所文字列の先頭と一致する解析結果があればそれを採用（町名番地以下に都道府県名が含まれる場合の誤分解を防ぐ）
     const useParsedPref = parsedPref && raw.startsWith(parsedPref)
     const useParsedCity = parsedCity && afterPref.startsWith(parsedCity)
-    const finalPref = useParsedPref ? parsedPref : (prefecture || parsedPref)
-    const finalCity = useParsedCity ? parsedCity : (city || parsedCity)
+    const finalPref = useParsedPref ? parsedPref : prefecture || parsedPref
+    const finalCity = useParsedCity ? parsedCity : city || parsedCity
 
     // 3) 既存の prefecture/city と住所文字列の先頭が一致する場合は「残り」だけ返す
     if (finalPref && finalCity && raw.startsWith(`${finalPref}${finalCity}`)) {
-      return { prefecture: finalPref, city: finalCity, street: raw.slice(`${finalPref}${finalCity}`.length).trim() }
+      return {
+        prefecture: finalPref,
+        city: finalCity,
+        street: raw.slice(`${finalPref}${finalCity}`.length).trim(),
+      }
     }
     if (finalPref && raw.startsWith(finalPref)) {
       const rest = raw.slice(finalPref.length)
       if (finalCity && rest.startsWith(finalCity)) {
-        return { prefecture: finalPref, city: finalCity, street: rest.slice(finalCity.length).trim() }
+        return {
+          prefecture: finalPref,
+          city: finalCity,
+          street: rest.slice(finalCity.length).trim(),
+        }
       }
     }
 
@@ -96,7 +117,9 @@ export default function CompleteProfilePage() {
    * - 名刺OCR情報を優先し、郵便番号APIで補完
    * - 優先順位: 1) 既存のprefecture/city 2) addressから抽出 3) 郵便番号APIから取得
    */
-  const normalizeAddressForSave = async (data: typeof companyData): Promise<{
+  const normalizeAddressForSave = async (
+    data: typeof companyData
+  ): Promise<{
     prefecture: string
     city: string
     address: string
@@ -104,13 +127,13 @@ export default function CompleteProfilePage() {
     let { prefecture, city, address } = data
     const postalCode = data.postalCode
 
-    console.log('📍 住所正規化開始:', { prefecture, city, address, postalCode })
+    console.log("📍 住所正規化開始:", { prefecture, city, address, postalCode })
 
     // Step 1: prefecture/cityが空でaddressに都道府県・市区町村が含まれている場合
     if ((!prefecture || !city) && address) {
       const split = splitJapaneseAddressForCompanyForm(address, prefecture, city)
-      console.log('📝 addressから住所を分割:', split)
-      
+      console.log("📝 addressから住所を分割:", split)
+
       if (!prefecture && split.prefecture) {
         prefecture = split.prefecture
       }
@@ -125,28 +148,30 @@ export default function CompleteProfilePage() {
 
     // Step 2: まだ空の場合、郵便番号APIから取得を試みる
     if ((!prefecture || !city) && postalCode) {
-      const cleanPostalCode = postalCode.replace(/[〒ー-]/g, '')
+      const cleanPostalCode = postalCode.replace(/[〒ー-]/g, "")
       if (/^\d{7}$/.test(cleanPostalCode)) {
         try {
-          console.log('📮 郵便番号APIから住所を補完:', cleanPostalCode)
+          console.log("📮 郵便番号APIから住所を補完:", cleanPostalCode)
           const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
           const response = await fetch(apiUrl)
           const apiData = await response.json()
-          
+
           if (apiData.status === 200 && apiData.results && apiData.results.length > 0) {
             const result = apiData.results[0]
-            const apiPref = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
-            const apiCity = result.address2 || ''
-            
-            console.log('✅ 郵便番号APIから取得:', { apiPref, apiCity })
-            
+            const apiPref = result.prefcode
+              ? getPrefectureName(result.prefcode)
+              : result.address1 || ""
+            const apiCity = result.address2 || ""
+
+            console.log("✅ 郵便番号APIから取得:", { apiPref, apiCity })
+
             if (!prefecture && apiPref) {
               prefecture = apiPref
             }
             if (!city && apiCity) {
               city = apiCity
             }
-            
+
             // addressから重複する県・市を除去
             if (address && prefecture && address.startsWith(prefecture)) {
               address = address.slice(prefecture.length).trim()
@@ -156,12 +181,12 @@ export default function CompleteProfilePage() {
             }
           }
         } catch (error) {
-          console.error('❌ 郵便番号API補完エラー:', error)
+          console.error("❌ 郵便番号API補完エラー:", error)
         }
       }
     }
 
-    console.log('✅ 住所正規化完了:', { prefecture, city, address })
+    console.log("✅ 住所正規化完了:", { prefecture, city, address })
     return { prefecture, city, address }
   }
 
@@ -177,7 +202,7 @@ export default function CompleteProfilePage() {
     for (let i = 0; i < len; i++) {
       bytes[i] = binaryString.charCodeAt(i)
     }
-    const blob = new Blob([bytes], { type: 'application/pdf' })
+    const blob = new Blob([bytes], { type: "application/pdf" })
     return URL.createObjectURL(blob)
   }
 
@@ -199,163 +224,212 @@ export default function CompleteProfilePage() {
     if (!uploadedFile?.dataUrl) return
     // プレビュー用URLとは別に、別タブ用に新しいURLを生成（プレビューを閉じても別タブが壊れないように）
     const url = createPdfObjectUrlFromDataUrl(uploadedFile.dataUrl)
-    const opened = window.open(url, '_blank', 'noopener,noreferrer')
+    const opened = window.open(url, "_blank", "noopener,noreferrer")
     if (!opened) {
-      alert('ポップアップがブロックされました。ブラウザ設定でこのサイトのポップアップを許可してください。')
+      alert(
+        "ポップアップがブロックされました。ブラウザ設定でこのサイトのポップアップを許可してください。"
+      )
       return
     }
-    if (url.startsWith('blob:')) {
+    if (url.startsWith("blob:")) {
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
     }
   }
-  
+
   // ステップ状態の変更をログに記録
   React.useEffect(() => {
-    console.log('📊 ステップ状態が変更されました:', { step, scanStep, hasOcrResult: !!ocrResult, isProcessing })
+    console.log("📊 ステップ状態が変更されました:", {
+      step,
+      scanStep,
+      hasOcrResult: !!ocrResult,
+      isProcessing,
+    })
   }, [step, scanStep, ocrResult, isProcessing])
-  
+
   const [profileData, setProfileData] = useState({
-    name: '',
-    nameKana: '',
-    position: '',
-    department: '',
-    phone: '',
-    mobile: '',
-    avatarUrl: '', // アバター画像URL
+    name: "",
+    nameKana: "",
+    position: "",
+    department: "",
+    phone: "",
+    mobile: "",
+    avatarUrl: "", // アバター画像URL
   })
-  
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [isDraggingAvatar, setIsDraggingAvatar] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [companyDocuments, setCompanyDocuments] = useState<File[]>([])
-  
+
   const [companyData, setCompanyData] = useState({
-    name: '',
-    nameKana: '',
-    industry: '',
-    employeeCount: '',
-    annualRevenue: '',
-    website: '',
-    email: '', // 会社のemailを追加
-    postalCode: '',
-    prefecture: '',
-    city: '',
-    address: '',
-    retrievedInfo: '',
+    name: "",
+    nameKana: "",
+    industry: "",
+    employeeCount: "",
+    annualRevenue: "",
+    website: "",
+    email: "", // 会社のemailを追加
+    postalCode: "",
+    prefecture: "",
+    city: "",
+    address: "",
+    retrievedInfo: "",
     // Web検索から取得する追加フィールド
-    establishedDate: '',
-    representativeName: '',
-    companyPhone: '', // 会社代表電話
-    fax: '',
-    businessDescription: '',
-    capital: '',
-    fiscalYearEnd: '', // 決算開始月（1-12）。DBには期末で保存するため保存時に変換
+    establishedDate: "",
+    representativeName: "",
+    companyPhone: "", // 会社代表電話
+    fax: "",
+    businessDescription: "",
+    capital: "",
+    fiscalYearEnd: "", // 決算開始月（1-12）。DBには期末で保存するため保存時に変換
   })
   const [companyIntel, setCompanyIntel] = useState<Record<string, any> | null>(null)
   const [companyIntelMeta, setCompanyIntelMeta] = useState<Record<string, any> | null>(null)
   const [isFetchingCompanyIntel, setIsFetchingCompanyIntel] = useState(false)
-  const [companyIntelStatus, setCompanyIntelStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [companyIntelStatus, setCompanyIntelStatus] = useState<{
+    message: string
+    type: "success" | "error" | "info"
+  } | null>(null)
   const [useExternalCompanySources, setUseExternalCompanySources] = useState(true)
   const [showWebSearchHelp, setShowWebSearchHelp] = useState(false)
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [postalCodeStatus, setPostalCodeStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [postalCodeStatus, setPostalCodeStatus] = useState<{
+    message: string
+    type: "success" | "error" | "info"
+  } | null>(null)
   const [ocrValidation, setOcrValidation] = useState<OCRValidationResult | null>(null)
-  
+
   const industries = [
-    '情報通信業', '製造業', '卸売業・小売業', 'サービス業', '建設業',
-    '不動産業', '金融業・保険業', '運輸業・郵便業', '医療・福祉', '教育・学習支援業', 'その他'
+    "情報通信業",
+    "製造業",
+    "卸売業・小売業",
+    "サービス業",
+    "建設業",
+    "不動産業",
+    "金融業・保険業",
+    "運輸業・郵便業",
+    "医療・福祉",
+    "教育・学習支援業",
+    "その他",
   ]
-  
+
   const departments = [
-    '営業部', 'マーケティング部', '開発部', '技術部', '人事部', '経理部', '総務部', '企画部', 'その他'
+    "営業部",
+    "マーケティング部",
+    "開発部",
+    "技術部",
+    "人事部",
+    "経理部",
+    "総務部",
+    "企画部",
+    "その他",
   ]
-  
+
   const employeeRanges = [
-    '1-9名', '10-29名', '30-49名', '50-99名', '100-299名', '300-499名', '500-999名', '1000名以上'
+    "1-9名",
+    "10-29名",
+    "30-49名",
+    "50-99名",
+    "100-299名",
+    "300-499名",
+    "500-999名",
+    "1000名以上",
   ]
-  
+
   const revenueRanges = [
-    '1億円未満', '1-5億円', '5-10億円', '10-50億円', '50-100億円', '100-500億円', '500億円以上'
+    "1億円未満",
+    "1-5億円",
+    "5-10億円",
+    "10-50億円",
+    "50-100億円",
+    "100-500億円",
+    "500億円以上",
   ]
 
   useEffect(() => {
     // 認証状態とプロフィール登録状況を確認（初回のみ実行）
     let isMounted = true
-    
+
     const checkAuthAndProfile = async () => {
       const supabase = createClient()
       if (!supabase) {
-        console.warn('⚠️ Supabase client not available')
+        console.warn("⚠️ Supabase client not available")
         return
       }
-      
+
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
+
         if (userError || !user) {
-          console.log('❌ 認証されていません:', userError?.message)
+          console.log("❌ 認証されていません:", userError?.message)
           if (isMounted) {
-            router.push('/auth/login')
+            router.push("/auth/login")
           }
           return
         }
-        
-        console.log('✅ 認証確認完了:', user.id)
-        
+
+        console.log("✅ 認証確認完了:", user.id)
+
         // プロフィールが既に登録されているか確認（エラーを無視）
         const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('name, name_kana, position, department, phone, mobile, avatar_url, company_id')
-          .eq('user_id', user.id)
+          .from("profiles")
+          .select("name, name_kana, position, department, phone, mobile, avatar_url, company_id")
+          .eq("user_id", user.id)
           .maybeSingle() // single()の代わりにmaybeSingle()を使用（存在しない場合エラーにならない）
-        
+
         if (profileError) {
           // プロファイルが存在しない場合はエラーを無視（新規登録プロセス中）
-          console.log('📝 プロファイル確認:', profileError.code === 'PGRST116' ? 'プロファイル未作成（正常）' : profileError.message)
+          console.log(
+            "📝 プロファイル確認:",
+            profileError.code === "PGRST116" ? "プロファイル未作成（正常）" : profileError.message
+          )
         }
-        
+
         // 既存のプロフィールデータがある場合はフォームに設定
         if (profile && isMounted) {
           setProfileData({
-            name: profile.name || '',
-            nameKana: profile.name_kana || '',
-            position: profile.position || '',
-            department: profile.department || '',
-            phone: profile.phone || '',
-            mobile: profile.mobile || '',
-            avatarUrl: profile.avatar_url || '',
+            name: profile.name || "",
+            nameKana: profile.name_kana || "",
+            position: profile.position || "",
+            department: profile.department || "",
+            phone: profile.phone || "",
+            mobile: profile.mobile || "",
+            avatarUrl: profile.avatar_url || "",
           })
-          
+
           if (profile.avatar_url) {
             setAvatarPreview(profile.avatar_url)
           }
         }
-        
+
         // プロフィールと会社情報が既に登録されている場合のみダッシュボードへ
-        if (profile && profile.name && profile.name !== 'User' && profile.company_id) {
-          console.log('✅ プロファイル登録済み、ダッシュボードへリダイレクト')
+        if (profile && profile.name && profile.name !== "User" && profile.company_id) {
+          console.log("✅ プロファイル登録済み、ダッシュボードへリダイレクト")
           if (isMounted) {
-            router.push('/dashboard')
+            router.push("/dashboard")
           }
         } else {
-          console.log('📝 プロファイル登録が必要:', {
+          console.log("📝 プロファイル登録が必要:", {
             hasProfile: !!profile,
             name: profile?.name,
-            hasCompanyId: !!profile?.company_id
+            hasCompanyId: !!profile?.company_id,
           })
         }
       } catch (error) {
-        console.error('❌ プロファイルチェックエラー:', error)
+        console.error("❌ プロファイルチェックエラー:", error)
         // エラーが発生してもループしないようにする
       }
     }
-    
+
     checkAuthAndProfile()
-    
+
     // クリーンアップ
     return () => {
       isMounted = false
@@ -364,35 +438,36 @@ export default function CompleteProfilePage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    console.log('📁 ファイルが選択されました:', {
+    console.log("📁 ファイルが選択されました:", {
       name: file?.name,
       type: file?.type,
       size: file?.size,
       hasFile: !!file,
     })
-    
+
     if (file) {
       // ファイルタイプの確認（画像 or PDF）
-      const fileNameLower = (file.name || '').toLowerCase()
-      const isImage = (file.type || '').startsWith('image/')
-      const isPdf = (file.type || '').toLowerCase() === 'application/pdf' || fileNameLower.endsWith('.pdf')
-      
+      const fileNameLower = (file.name || "").toLowerCase()
+      const isImage = (file.type || "").startsWith("image/")
+      const isPdf =
+        (file.type || "").toLowerCase() === "application/pdf" || fileNameLower.endsWith(".pdf")
+
       if (!isImage && !isPdf) {
-        console.error('❌ 無効なファイル形式:', file.type)
-        setErrors({ ocr: '画像ファイル（JPEG、PNG）またはPDFファイルを選択してください。' })
+        console.error("❌ 無効なファイル形式:", file.type)
+        setErrors({ ocr: "画像ファイル（JPEG、PNG）またはPDFファイルを選択してください。" })
         return
       }
-      
-      console.log('📖 ファイルを読み込み中...')
+
+      console.log("📖 ファイルを読み込み中...")
       const reader = new FileReader()
       reader.onload = (event) => {
         const result = event.target?.result as string
-        console.log('✅ ファイル読み込み完了:', {
+        console.log("✅ ファイル読み込み完了:", {
           dataUrlLength: result?.length,
           hasData: !!result,
         })
         const dataUrlMatch = result?.match(/^data:([^;]+);base64,(.+)$/)
-        const mimeTypeFromDataUrl = dataUrlMatch?.[1] || file.type || 'application/octet-stream'
+        const mimeTypeFromDataUrl = dataUrlMatch?.[1] || file.type || "application/octet-stream"
         if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
         setPdfViewerOpen(false)
         setPdfViewerUrl(null)
@@ -402,134 +477,137 @@ export default function CompleteProfilePage() {
           name: file.name,
         })
         setScanStep(2)
-        console.log('🔄 processOCRを呼び出します（画像データを直接渡します）...')
+        console.log("🔄 processOCRを呼び出します（画像データを直接渡します）...")
         // 画像データを直接渡してOCR処理を開始
         processOCRWithImage(result)
       }
       reader.onerror = (error) => {
-        console.error('❌ ファイル読み込みエラー:', error)
-        setErrors({ ocr: 'ファイルの読み込みに失敗しました' })
+        console.error("❌ ファイル読み込みエラー:", error)
+        setErrors({ ocr: "ファイルの読み込みに失敗しました" })
       }
       reader.readAsDataURL(file)
     } else {
-      console.warn('⚠️ ファイルが選択されていません')
+      console.warn("⚠️ ファイルが選択されていません")
     }
   }
 
   const processOCRWithImage = async (imageData: string) => {
-    console.log('🚀 processOCRWithImage開始:', {
+    console.log("🚀 processOCRWithImage開始:", {
       imageDataLength: imageData?.length,
       hasImageData: !!imageData,
     })
-    
+
     if (!imageData) {
-      console.error('❌ imageDataが存在しません')
+      console.error("❌ imageDataが存在しません")
       return
     }
-    
-    console.log('⏳ OCR処理を開始します...')
+
+    console.log("⏳ OCR処理を開始します...")
     setIsProcessing(true)
     setErrors({})
-    
+
     try {
       // Base64データURLを解析
       const dataUrlMatch = imageData.match(/^data:([^;]+);base64,(.+)$/)
       if (!dataUrlMatch) {
-        throw new Error('画像データの形式が正しくありません')
+        throw new Error("画像データの形式が正しくありません")
       }
-      
-      let mimeType = dataUrlMatch[1] || 'image/jpeg'
+
+      let mimeType = dataUrlMatch[1] || "image/jpeg"
       let base64Data = dataUrlMatch[2] // base64データ部分のみ
-      const isPDF = mimeType.includes('pdf')
-      
-      console.log('📸 ファイルデータを解析:', {
+      const isPDF = mimeType.includes("pdf")
+
+      console.log("📸 ファイルデータを解析:", {
         mimeType,
         base64Length: base64Data.length,
         isPDF,
       })
-      
+
       // PDFの場合はクライアントサイドで画像に変換（根本的解決）
       if (isPDF) {
-        console.log('📄 PDFを検出、クライアントサイドで画像に変換します...')
+        console.log("📄 PDFを検出、クライアントサイドで画像に変換します...")
         try {
           const imageDataUrl = await convertPdfToImageClient(imageData, 1, 2.0)
           const imageMatch = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/)
           if (imageMatch) {
-            mimeType = imageMatch[1] || 'image/png'
+            mimeType = imageMatch[1] || "image/png"
             base64Data = imageMatch[2]
-            console.log('✅ PDF→画像変換完了:', {
+            console.log("✅ PDF→画像変換完了:", {
               newMimeType: mimeType,
               newBase64Length: base64Data.length,
             })
           } else {
-            throw new Error('画像変換後のデータ形式が正しくありません')
+            throw new Error("画像変換後のデータ形式が正しくありません")
           }
         } catch (pdfError) {
           const pdfMsg = pdfError instanceof Error ? pdfError.message : String(pdfError)
-          console.error('❌ PDF→画像変換エラー:', pdfMsg)
+          console.error("❌ PDF→画像変換エラー:", pdfMsg)
           throw new Error(`PDFを画像に変換できませんでした: ${pdfMsg}`)
         }
       }
-      
+
       // OCR APIを呼び出し（JSON形式でbase64データを送信）
-      console.log('📤 OCR APIを呼び出します...')
-      
+      console.log("📤 OCR APIを呼び出します...")
+
       // 認証状態を事前に確認
       const supabase = createClient()
       if (!supabase) {
-        throw new Error('Supabaseが設定されていません')
+        throw new Error("Supabaseが設定されていません")
       }
-      const { data: { user }, error: authCheckError } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+        error: authCheckError,
+      } = await supabase.auth.getUser()
+
       if (authCheckError || !user) {
-        console.error('❌ OCR呼び出し前の認証チェック失敗:', {
+        console.error("❌ OCR呼び出し前の認証チェック失敗:", {
           hasError: !!authCheckError,
           errorMessage: authCheckError?.message,
           hasUser: !!user,
         })
-        throw new Error('認証されていません。ページを再読み込みしてください。')
+        throw new Error("認証されていません。ページを再読み込みしてください。")
       }
-      
-      console.log('✅ 認証確認完了、OCR APIを呼び出します:', {
+
+      console.log("✅ 認証確認完了、OCR APIを呼び出します:", {
         userId: user.id,
         email: user.email,
       })
-      
-      const response = await fetch('/api/ocr-business-card', {
-        method: 'POST',
+
+      const response = await fetch("/api/ocr-business-card", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        credentials: 'include', // Cookieを含める
+        credentials: "include", // Cookieを含める
         body: JSON.stringify({
           image: base64Data, // base64データ部分のみ
           mimeType: mimeType, // PDF対応のためMIMEタイプを送信
         }),
       })
-      
-      console.log('📥 OCR API応答:', {
+
+      console.log("📥 OCR API応答:", {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
         url: response.url,
         headers: Object.fromEntries(response.headers.entries()),
       })
-      
+
       // レスポンスのContent-Typeを確認
-      const contentType = response.headers.get('content-type') || ''
-      console.log('📋 レスポンスContent-Type:', contentType)
-      
+      const contentType = response.headers.get("content-type") || ""
+      console.log("📋 レスポンスContent-Type:", contentType)
+
       // レスポンス本文を取得（エラー/成功の両方で使用）
       const responseText = await response.text()
-      console.log('📋 レスポンス本文（生）:', responseText?.substring(0, 500) || '(空)')
-      console.log('📋 レスポンス本文の長さ:', responseText?.length || 0)
-      
+      console.log("📋 レスポンス本文（生）:", responseText?.substring(0, 500) || "(空)")
+      console.log("📋 レスポンス本文の長さ:", responseText?.length || 0)
+
       if (!response.ok) {
         // エラーレスポンスの内容を取得
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`
         let errorData: any = null
-        
+
         // 詳細なエラー情報をログに出力（安全に取得）
         try {
           const errorInfo: any = {
@@ -538,111 +616,124 @@ export default function CompleteProfilePage() {
             ok: response.ok,
             contentType,
             responseTextLength: responseText?.length || 0,
-            responseTextPreview: responseText?.substring(0, 200) || '(空)',
+            responseTextPreview: responseText?.substring(0, 200) || "(空)",
           }
-          
+
           // response.urlが利用可能な場合のみ追加
           try {
             errorInfo.url = response.url
           } catch (e) {
-            errorInfo.url = '(取得不可)'
+            errorInfo.url = "(取得不可)"
           }
-          
+
           // ヘッダーを安全に取得
           try {
             errorInfo.headers = Object.fromEntries(response.headers.entries())
           } catch (e) {
-            errorInfo.headers = '(取得不可)'
+            errorInfo.headers = "(取得不可)"
           }
-          
-          console.error('❌ OCR API エラー:', errorInfo)
-          console.error('❌ レスポンスステータス:', response.status)
-          console.error('❌ レスポンスステータステキスト:', response.statusText)
-          console.error('❌ Content-Type:', contentType)
-          console.error('❌ レスポンス本文の長さ:', responseText?.length || 0)
-          console.error('❌ レスポンス本文（最初の500文字）:', responseText?.substring(0, 500) || '(空)')
+
+          console.error("❌ OCR API エラー:", errorInfo)
+          console.error("❌ レスポンスステータス:", response.status)
+          console.error("❌ レスポンスステータステキスト:", response.statusText)
+          console.error("❌ Content-Type:", contentType)
+          console.error("❌ レスポンス本文の長さ:", responseText?.length || 0)
+          console.error(
+            "❌ レスポンス本文（最初の500文字）:",
+            responseText?.substring(0, 500) || "(空)"
+          )
         } catch (logError) {
-          console.error('❌ エラー情報のログ出力に失敗:', logError)
-          console.error('❌ レスポンスステータス:', response.status)
-          console.error('❌ レスポンス本文:', responseText?.substring(0, 500) || '(空)')
+          console.error("❌ エラー情報のログ出力に失敗:", logError)
+          console.error("❌ レスポンスステータス:", response.status)
+          console.error("❌ レスポンス本文:", responseText?.substring(0, 500) || "(空)")
         }
-        
+
         try {
-          if (contentType.includes('application/json') && responseText && responseText.trim() !== '') {
+          if (
+            contentType.includes("application/json") &&
+            responseText &&
+            responseText.trim() !== ""
+          ) {
             try {
               errorData = JSON.parse(responseText)
-              console.error('❌ OCR API エラー (JSON):', errorData)
-              
+              console.error("❌ OCR API エラー (JSON):", errorData)
+
               // エラーメッセージを構築（複数の可能性を確認）
-              errorMessage = errorData.error || errorData.details || errorData.message || errorMessage
-              
+              errorMessage =
+                errorData.error || errorData.details || errorData.message || errorMessage
+
               // 空のオブジェクトの場合は、ステータスコードから推測
               if (Object.keys(errorData).length === 0) {
-                console.warn('⚠️ エラーデータが空のオブジェクトです')
+                console.warn("⚠️ エラーデータが空のオブジェクトです")
                 if (response.status === 401) {
-                  errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
+                  errorMessage = "認証エラーが発生しました。ページを再読み込みしてください。"
                 } else if (response.status === 500) {
-                  errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
+                  errorMessage =
+                    "サーバーエラーが発生しました。しばらく待ってから再度お試しください。"
                 } else {
                   errorMessage = `エラーが発生しました (HTTP ${response.status})`
                 }
               } else {
-                console.log('✅ エラーメッセージを取得:', errorMessage)
+                console.log("✅ エラーメッセージを取得:", errorMessage)
               }
             } catch (jsonParseError) {
-              console.error('❌ JSON解析エラー:', jsonParseError)
-              console.error('❌ 解析しようとしたテキスト:', responseText?.substring(0, 200))
+              console.error("❌ JSON解析エラー:", jsonParseError)
+              console.error("❌ 解析しようとしたテキスト:", responseText?.substring(0, 200))
               errorMessage = responseText || errorMessage
             }
           } else {
-            console.error('❌ OCR API エラー (Text):', responseText?.substring(0, 200))
+            console.error("❌ OCR API エラー (Text):", responseText?.substring(0, 200))
             errorMessage = responseText || errorMessage
-            
+
             // ステータスコードに基づくエラーメッセージ
             if (response.status === 401) {
-              errorMessage = '認証エラーが発生しました。ページを再読み込みしてください。'
+              errorMessage = "認証エラーが発生しました。ページを再読み込みしてください。"
             } else if (response.status === 500) {
-              errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
+              errorMessage = "サーバーエラーが発生しました。しばらく待ってから再度お試しください。"
             } else if (response.status === 429) {
-              errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
+              errorMessage = "APIの利用制限に達しました。しばらく待ってから再度お試しください。"
             } else if (response.status === 503) {
-              errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
+              errorMessage =
+                "ネットワークエラーが発生しました。インターネット接続を確認してください。"
             }
           }
         } catch (parseError) {
-          console.error('❌ エラーレスポンスの解析に失敗:', parseError)
-          console.error('❌ 解析エラーの詳細:', parseError instanceof Error ? parseError.message : String(parseError))
+          console.error("❌ エラーレスポンスの解析に失敗:", parseError)
+          console.error(
+            "❌ 解析エラーの詳細:",
+            parseError instanceof Error ? parseError.message : String(parseError)
+          )
           errorMessage = `エラーが発生しました (HTTP ${response.status})`
         }
-        
+
         throw new Error(errorMessage)
       }
-      
+
       // 成功レスポンスをJSONとして解析
       let result: any
       try {
         result = JSON.parse(responseText)
       } catch (jsonError) {
-        console.error('❌ レスポンスJSON解析エラー:', jsonError)
-        throw new Error('サーバーからの応答が正しい形式ではありません')
+        console.error("❌ レスポンスJSON解析エラー:", jsonError)
+        throw new Error("サーバーからの応答が正しい形式ではありません")
       }
-      console.log('✅ OCR API結果:', result)
-      
+      console.log("✅ OCR API結果:", result)
+
       // エラーチェック
       if (result.error) {
         throw new Error(result.error)
       }
-      
+
       // レスポンスからdataオブジェクトを取得（テストスクリプトと同じ形式）
       const data = result.data
-      
+
       if (!data) {
-        console.error('❌ レスポンスにdataオブジェクトが含まれていません:', result)
-        throw new Error('OCR結果の形式が正しくありません')
+        console.error("❌ レスポンスにdataオブジェクトが含まれていません:", result)
+        throw new Error("OCR結果の形式が正しくありません")
       }
-      
-      console.log('📋 抽出されたデータ:', JSON.stringify(data, null, 2))
-      
+
+      console.log("📋 抽出されたデータ:", JSON.stringify(data, null, 2))
+
       // OCRResult形式に変換（テストスクリプトの結果と同じ形式）
       const ocrData: OCRResult = {
         personName: data.personName || data.fullName || null,
@@ -656,82 +747,100 @@ export default function CompleteProfilePage() {
         address: data.address || null,
         website: data.website || null,
       }
-      
-      console.log('✅ OCRデータ変換完了:', ocrData)
-      
+
+      console.log("✅ OCRデータ変換完了:", ocrData)
+
       // 少なくとも1つの情報が取得できた場合のみ結果を表示
-      const hasValidData = ocrData.personName || ocrData.companyName || ocrData.email || ocrData.phone || ocrData.department
-      
+      const hasValidData =
+        ocrData.personName ||
+        ocrData.companyName ||
+        ocrData.email ||
+        ocrData.phone ||
+        ocrData.department
+
       if (hasValidData) {
         // OCR結果を検証・修正
         const validation = await validateOCRResult(ocrData)
         setOcrValidation(validation)
-        
+
         // 修正されたデータがある場合はそれを使用、なければ元のデータを使用
         const finalOcrData = validation.correctedData || ocrData
         setOcrResult(finalOcrData)
         setScanStep(3)
-        console.log('✅ OCR結果を表示ステップに設定（修正済みデータを使用）')
+        console.log("✅ OCR結果を表示ステップに設定（修正済みデータを使用）")
       } else {
-        console.warn('⚠️ 有効なデータが取得できませんでした:', ocrData)
-        throw new Error('名刺から情報を読み取れませんでした。画像を確認してください。')
+        console.warn("⚠️ 有効なデータが取得できませんでした:", ocrData)
+        throw new Error("名刺から情報を読み取れませんでした。画像を確認してください。")
       }
     } catch (error) {
-      console.error('❌ OCR処理エラー:', error)
-      let errorMessage = '名刺の読み取りに失敗しました。手動で入力してください。'
-      
+      console.error("❌ OCR処理エラー:", error)
+      let errorMessage = "名刺の読み取りに失敗しました。手動で入力してください。"
+
       if (error instanceof Error) {
         errorMessage = error.message
-        
+
         // より分かりやすいエラーメッセージに変換
         // 注意: 順序が重要。より具体的なエラーを先にチェックする
-        
+
         // 1. PDF関連のエラーを最優先でチェック（「fetch」が含まれる可能性があるため）
-        if (error.message.includes('PDFを画像に変換') || 
-            error.message.includes('PDF→画像変換') ||
-            error.message.includes('pdfjs-dist') ||
-            error.message.includes('worker') ||
-            error.message.includes('Setting up fake worker') ||
-            (error.message.includes('PDF') && error.message.includes('変換'))) {
-          errorMessage = 'PDFの処理に失敗しました。別のPDFをお試しください（1ページ目を使用します）。'
-        } 
+        if (
+          error.message.includes("PDFを画像に変換") ||
+          error.message.includes("PDF→画像変換") ||
+          error.message.includes("pdfjs-dist") ||
+          error.message.includes("worker") ||
+          error.message.includes("Setting up fake worker") ||
+          (error.message.includes("PDF") && error.message.includes("変換"))
+        ) {
+          errorMessage =
+            "PDFの処理に失敗しました。別のPDFをお試しください（1ページ目を使用します）。"
+        }
         // 2. 認証エラー
-        else if (error.message.includes('401') || error.message.includes('認証') || error.message.includes('Unauthorized')) {
-          errorMessage = '認証エラーが発生しました。ページを再読み込みしてから再度お試しください。'
-        } 
+        else if (
+          error.message.includes("401") ||
+          error.message.includes("認証") ||
+          error.message.includes("Unauthorized")
+        ) {
+          errorMessage = "認証エラーが発生しました。ページを再読み込みしてから再度お試しください。"
+        }
         // 3. レート制限
-        else if (error.message.includes('429') || error.message.includes('rate limit')) {
-          errorMessage = 'APIの利用制限に達しました。しばらく待ってから再度お試しください。'
-        } 
+        else if (error.message.includes("429") || error.message.includes("rate limit")) {
+          errorMessage = "APIの利用制限に達しました。しばらく待ってから再度お試しください。"
+        }
         // 4. 画像データの形式エラー
-        else if (error.message.includes('画像データ') || error.message.includes('Invalid image')) {
-          errorMessage = '画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。'
-        } 
+        else if (error.message.includes("画像データ") || error.message.includes("Invalid image")) {
+          errorMessage =
+            "画像データの形式が正しくありません。JPEGまたはPNG形式の画像をアップロードしてください。"
+        }
         // 5. タイムアウト
-        else if (error.message.includes('タイムアウト') || error.message.includes('timeout')) {
-          errorMessage = '処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。'
-        } 
+        else if (error.message.includes("タイムアウト") || error.message.includes("timeout")) {
+          errorMessage =
+            "処理がタイムアウトしました。画像サイズを小さくするか、しばらく待ってから再度お試しください。"
+        }
         // 6. サーバーエラー
-        else if (error.message.includes('500') || error.message.includes('サーバー')) {
-          errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。'
-        } 
+        else if (error.message.includes("500") || error.message.includes("サーバー")) {
+          errorMessage = "サーバーエラーが発生しました。しばらく待ってから再度お試しください。"
+        }
         // 7. ネットワークエラー（PDF関連でない場合のみ）
-        else if ((error.message.includes('network') || error.message.includes('ECONNREFUSED')) && 
-                 !error.message.includes('PDF') && 
-                 !error.message.includes('worker')) {
-          errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
-        } 
+        else if (
+          (error.message.includes("network") || error.message.includes("ECONNREFUSED")) &&
+          !error.message.includes("PDF") &&
+          !error.message.includes("worker")
+        ) {
+          errorMessage = "ネットワークエラーが発生しました。インターネット接続を確認してください。"
+        }
         // 8. fetchエラー（PDF関連でない場合のみ）
-        else if (error.message.includes('fetch') && 
-                 !error.message.includes('PDF') && 
-                 !error.message.includes('worker') &&
-                 !error.message.includes('dynamically imported module')) {
-          errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。'
+        else if (
+          error.message.includes("fetch") &&
+          !error.message.includes("PDF") &&
+          !error.message.includes("worker") &&
+          !error.message.includes("dynamically imported module")
+        ) {
+          errorMessage = "ネットワークエラーが発生しました。インターネット接続を確認してください。"
         }
       }
-      
-      setErrors({ 
-        ocr: errorMessage
+
+      setErrors({
+        ocr: errorMessage,
       })
       // エラーが発生しても、手動入力に進める
       setScanStep(1)
@@ -741,35 +850,36 @@ export default function CompleteProfilePage() {
   }
 
   const applyOCRData = async () => {
-    console.log('🔵 applyOCRData が呼ばれました')
-    console.log('🔵 ocrResult:', ocrResult)
-    
+    console.log("🔵 applyOCRData が呼ばれました")
+    console.log("🔵 ocrResult:", ocrResult)
+
     if (!ocrResult) {
-      console.warn('⚠️ ocrResult が存在しません')
+      console.warn("⚠️ ocrResult が存在しません")
       return
     }
-    
+
     try {
       // 部署のマッチング（部分一致で検索）
       let matchedDepartment = ocrResult.department
       if (ocrResult.department) {
         // 「営業」「マーケティング」など部分一致で検索
         const deptKeywords: Record<string, string> = {
-          '営業': '営業部',
-          'マーケティング': 'マーケティング部',
-          '開発': '開発部',
-          '技術': '技術部',
-          '人事': '人事部',
-          '経理': '経理部',
-          '総務': '総務部',
-          '企画': '企画部',
+          営業: "営業部",
+          マーケティング: "マーケティング部",
+          開発: "開発部",
+          技術: "技術部",
+          人事: "人事部",
+          経理: "経理部",
+          総務: "総務部",
+          企画: "企画部",
         }
-        
-        let matched = departments.find((d) => 
-          ocrResult.department?.includes(d.replace("・", "")) || 
-          d.includes(ocrResult.department?.replace("・", "") || "")
+
+        let matched = departments.find(
+          (d) =>
+            ocrResult.department?.includes(d.replace("・", "")) ||
+            d.includes(ocrResult.department?.replace("・", "") || "")
         )
-        
+
         // キーワードベースのマッチング
         if (!matched) {
           for (const [keyword, dept] of Object.entries(deptKeywords)) {
@@ -779,43 +889,43 @@ export default function CompleteProfilePage() {
             }
           }
         }
-        
+
         if (matched) {
           matchedDepartment = matched
-          console.log('✅ 部署マッチング:', ocrResult.department, '->', matched)
+          console.log("✅ 部署マッチング:", ocrResult.department, "->", matched)
         } else {
           // マッチしない場合は「その他」にセット
-          matchedDepartment = 'その他'
-          console.log('⚠️ 部署マッチングなし、「その他」に設定:', ocrResult.department)
+          matchedDepartment = "その他"
+          console.log("⚠️ 部署マッチングなし、「その他」に設定:", ocrResult.department)
         }
       }
-      
+
       // 設定するデータをログに出力
       const newProfileData = {
-        name: ocrResult.personName || '',
-        nameKana: ocrResult.personNameKana || '',
-        department: matchedDepartment || '',
-        phone: ocrResult.phone || '',
-        mobile: ocrResult.mobile || '',
+        name: ocrResult.personName || "",
+        nameKana: ocrResult.personNameKana || "",
+        department: matchedDepartment || "",
+        phone: ocrResult.phone || "",
+        mobile: ocrResult.mobile || "",
       }
-      
+
       // websiteから「URL:」「url:」などのプレフィックスを除去
-      const cleanWebsite = (ocrResult.website || '')
-        .replace(/^(URL|url|Url)\s*[:：]\s*/i, '')
+      const cleanWebsite = (ocrResult.website || "")
+        .replace(/^(URL|url|Url)\s*[:：]\s*/i, "")
         .trim()
 
       const newCompanyData = {
-        name: ocrResult.companyName || '',
+        name: ocrResult.companyName || "",
         website: cleanWebsite,
-        postalCode: ocrResult.postalCode || '',
-        address: ocrResult.address || '',
-        email: ocrResult.email || '', // 会社のemailを追加
+        postalCode: ocrResult.postalCode || "",
+        address: ocrResult.address || "",
+        email: ocrResult.email || "", // 会社のemailを追加
       }
-      
-      console.log('📝 セットするプロフィールデータ:', newProfileData)
-      console.log('📝 セットする会社データ:', newCompanyData)
-      
-      setProfileData(prev => ({
+
+      console.log("📝 セットするプロフィールデータ:", newProfileData)
+      console.log("📝 セットする会社データ:", newCompanyData)
+
+      setProfileData((prev) => ({
         ...prev,
         name: newProfileData.name || prev.name,
         nameKana: newProfileData.nameKana || prev.nameKana,
@@ -823,104 +933,112 @@ export default function CompleteProfilePage() {
         phone: newProfileData.phone || prev.phone,
         mobile: newProfileData.mobile || prev.mobile,
       }))
-      
+
       // 会社データをセット
-      setCompanyData(prev => ({
+      setCompanyData((prev) => ({
         ...prev,
         name: newCompanyData.name || prev.name,
         website: newCompanyData.website || prev.website,
-        postalCode: newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== '' ? newCompanyData.postalCode : prev.postalCode,
+        postalCode:
+          newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== ""
+            ? newCompanyData.postalCode
+            : prev.postalCode,
         address: newCompanyData.address || prev.address,
         email: newCompanyData.email || prev.email,
       }))
-      
-      console.log('✅ 会社データをセットしました:', {
-        postalCode: newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== '' ? newCompanyData.postalCode : '保持',
-        email: newCompanyData.email || '保持',
+
+      console.log("✅ 会社データをセットしました:", {
+        postalCode:
+          newCompanyData.postalCode !== undefined && newCompanyData.postalCode !== ""
+            ? newCompanyData.postalCode
+            : "保持",
+        email: newCompanyData.email || "保持",
       })
-      
+
       // OCR結果から郵便番号が取得された場合、郵便番号から都道府県と市区町村を取得
       // その際、OCRで読み取った住所から「都道府県+市区町村」を引いた残りを「町名番地以下」にセットする
       if (newCompanyData.postalCode) {
-        console.log('📍 OCR結果から郵便番号を検出、住所を取得します:', newCompanyData.postalCode)
-        
+        console.log("📍 OCR結果から郵便番号を検出、住所を取得します:", newCompanyData.postalCode)
+
         // OCRで読み取った元の住所を保存（町名番地以下の抽出に使う）
-        const originalAddress = newCompanyData.address || ''
-        console.log('📝 OCRで読み取った元の住所を保存:', originalAddress)
-        
+        const originalAddress = newCompanyData.address || ""
+        console.log("📝 OCRで読み取った元の住所を保存:", originalAddress)
+
         // 〒マークとハイフンを除去してから検索
-        const cleanPostalCode = newCompanyData.postalCode.replace(/[〒ー-]/g, '')
+        const cleanPostalCode = newCompanyData.postalCode.replace(/[〒ー-]/g, "")
         if (/^\d{7}$/.test(cleanPostalCode)) {
           // 郵便番号から住所を取得（都道府県・市区町村・番地）
           try {
             const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
             const response = await fetch(apiUrl)
             const data = await response.json()
-            
+
             if (data.status === 200 && data.results && data.results.length > 0) {
               const result = data.results[0]
-              const prefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
-              const city = result.address2 || ''
-              const address = result.address3 || ''
+              const prefecture = result.prefcode
+                ? getPrefectureName(result.prefcode)
+                : result.address1 || ""
+              const city = result.address2 || ""
+              const address = result.address3 || ""
               const split = splitJapaneseAddressForCompanyForm(originalAddress, prefecture, city)
-              
-              console.log('✅ 郵便番号から住所を取得:', { prefecture, city, address })
-              
+
+              console.log("✅ 郵便番号から住所を取得:", { prefecture, city, address })
+
               // 都道府県・市区町村・番地をセット
-              setCompanyData(prev => ({
+              setCompanyData((prev) => ({
                 ...prev,
                 prefecture: prefecture || prev.prefecture,
                 city: city || prev.city,
                 // 町名番地以下（例: 名駅1-1-1 JPタワー名古屋25階）
-                address: (split.street || address || prev.address),
+                address: split.street || address || prev.address,
               }))
-              
-              console.log('✅ 住所情報をセットしました（町名番地以下を抽出）')
+
+              console.log("✅ 住所情報をセットしました（町名番地以下を抽出）")
             }
           } catch (error) {
-            console.error('❌ 郵便番号検索エラー:', error)
+            console.error("❌ 郵便番号検索エラー:", error)
           }
         } else {
-          console.warn('⚠️ OCR結果の郵便番号が正しい形式ではありません:', newCompanyData.postalCode)
+          console.warn("⚠️ OCR結果の郵便番号が正しい形式ではありません:", newCompanyData.postalCode)
         }
       }
-      
-      console.log('➡️ ステップ2に移動します')
-      console.log('🔵 現在のstep状態:', step)
-      
+
+      console.log("➡️ ステップ2に移動します")
+      console.log("🔵 現在のstep状態:", step)
+
       // 状態をクリーンアップ
       setUploadedFile(null)
       setOcrResult(null)
       setErrors({})
       setScanStep(1)
-      
+
       // ステップ2に移動
-      console.log('➡️ setStep(2) を実行します')
+      console.log("➡️ setStep(2) を実行します")
       setStep(2)
-      console.log('✅ setStep(2) 実行完了')
-      
-      console.log('✅ applyOCRData 完了')
+      console.log("✅ setStep(2) 実行完了")
+
+      console.log("✅ applyOCRData 完了")
     } catch (error) {
-      console.error('❌ applyOCRData エラー:', error)
+      console.error("❌ applyOCRData エラー:", error)
     }
   }
 
   // アバターファイル処理（共通処理）
   const handleAvatarFile = (file: File) => {
     // 画像ファイルのみ許可（JPEG、PNG）
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      setErrors({ avatar: 'JPEGまたはPNG形式の画像を選択してください' })
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setErrors({ avatar: "JPEGまたはPNG形式の画像を選択してください" })
       return
     }
-    
+
     // ファイルサイズチェック（5MB以下）
     if (file.size > 5 * 1024 * 1024) {
-      setErrors({ avatar: 'ファイルサイズは5MB以下にしてください' })
+      setErrors({ avatar: "ファイルサイズは5MB以下にしてください" })
       return
     }
-    
+
     setAvatarFile(file)
-    
+
     // プレビュー用にDataURLを作成
     const reader = new FileReader()
     reader.onload = (event) => {
@@ -959,46 +1077,42 @@ export default function CompleteProfilePage() {
       handleAvatarFile(file)
     }
   }
-  
+
   // アバターをSupabaseストレージにアップロード
   const uploadAvatar = async (userId: string): Promise<string | null> => {
     if (!avatarFile) return null
-    
+
     try {
       const supabase = createClient()
       if (!supabase) {
-        throw new Error('Supabaseが設定されていません')
+        throw new Error("Supabaseが設定されていません")
       }
-      
+
       setIsUploadingAvatar(true)
-      
+
       // ファイル名を生成（ユーザーID + タイムスタンプ）
-      const fileExt = avatarFile.name.split('.').pop()
+      const fileExt = avatarFile.name.split(".").pop()
       const fileName = `${userId}-${Date.now()}.${fileExt}`
       const filePath = `avatars/${fileName}`
-      
+
       // Supabaseストレージにアップロード
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile, {
-          cacheControl: '3600',
-          upsert: false
-        })
-      
+      const { data, error } = await supabase.storage.from("avatars").upload(filePath, avatarFile, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+
       if (error) {
-        console.error('❌ アバターアップロードエラー:', error)
+        console.error("❌ アバターアップロードエラー:", error)
         throw new Error(`アバターのアップロードに失敗しました: ${error.message}`)
       }
-      
+
       // 公開URLを取得
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-      
-      console.log('✅ アバターアップロード成功:', urlData.publicUrl)
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath)
+
+      console.log("✅ アバターアップロード成功:", urlData.publicUrl)
       return urlData.publicUrl
     } catch (error) {
-      console.error('❌ アバターアップロードエラー:', error)
+      console.error("❌ アバターアップロードエラー:", error)
       throw error
     } finally {
       setIsUploadingAvatar(false)
@@ -1012,25 +1126,23 @@ export default function CompleteProfilePage() {
     try {
       const supabase = createClient()
       if (!supabase) {
-        throw new Error('Supabaseが設定されていません')
+        throw new Error("Supabaseが設定されていません")
       }
 
       const uploadedPaths: string[] = [] // URLではなくパスを保存
 
       for (const file of companyDocuments) {
-        const fileExt = file.name.split('.').pop()
+        const fileExt = file.name.split(".").pop()
         const fileName = `${companyId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
         const filePath = fileName
 
-        const { error } = await supabase.storage
-          .from('company-documents')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          })
+        const { error } = await supabase.storage.from("company-documents").upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        })
 
         if (error) {
-          console.error('ファイルアップロードエラー:', error)
+          console.error("ファイルアップロードエラー:", error)
           continue
         }
 
@@ -1040,7 +1152,7 @@ export default function CompleteProfilePage() {
 
       return uploadedPaths
     } catch (error) {
-      console.error('会社資料アップロードエラー:', error)
+      console.error("会社資料アップロードエラー:", error)
       throw error
     }
   }
@@ -1048,7 +1160,7 @@ export default function CompleteProfilePage() {
   const validateProfile = () => {
     const newErrors: Record<string, string> = {}
     if (!profileData.name.trim()) {
-      newErrors.name = '氏名を入力してください'
+      newErrors.name = "氏名を入力してください"
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -1057,7 +1169,7 @@ export default function CompleteProfilePage() {
   const validateCompany = () => {
     const newErrors: Record<string, string> = {}
     if (!companyData.name.trim()) {
-      newErrors.companyName = '会社名を入力してください'
+      newErrors.companyName = "会社名を入力してください"
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -1067,17 +1179,17 @@ export default function CompleteProfilePage() {
   const validateOCRResult = async (ocrData: OCRResult): Promise<OCRValidationResult> => {
     const warnings: string[] = []
     const errors: string[] = []
-    let correctedData: OCRResult = { ...ocrData } // コピーを作成
-    
-    console.log('🔍 OCR結果の検証を開始:', ocrData)
-    
+    const correctedData: OCRResult = { ...ocrData } // コピーを作成
+
+    console.log("🔍 OCR結果の検証を開始:", ocrData)
+
     // 1. 郵便番号と住所の整合性チェック・自動修正
     if (ocrData.postalCode) {
       try {
         // 郵便番号のクリーンアップ（全角→半角、各種ハイフン・記号除去）
         const cleanPostalCode = ocrData.postalCode
-          .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角数字→半角
-          .replace(/[〒\s　ー−‐‑–—\-]/g, '') // 〒、空白、各種ハイフン除去
+          .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 全角数字→半角
+          .replace(/[〒\s　ー−‐‑–—\-]/g, "") // 〒、空白、各種ハイフン除去
           .trim()
 
         // クリーンアップした郵便番号を保存（フォーマット: XXX-XXXX）
@@ -1085,51 +1197,57 @@ export default function CompleteProfilePage() {
           const formattedPostalCode = `${cleanPostalCode.slice(0, 3)}-${cleanPostalCode.slice(3)}`
           if (formattedPostalCode !== ocrData.postalCode) {
             correctedData.postalCode = formattedPostalCode
-            console.log('✅ 郵便番号を自動修正:', ocrData.postalCode, '→', formattedPostalCode)
+            console.log("✅ 郵便番号を自動修正:", ocrData.postalCode, "→", formattedPostalCode)
           }
 
           const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
           const response = await fetch(apiUrl)
           const data = await response.json()
-          
+
           if (data.status === 200 && data.results && data.results.length > 0) {
             // 複数結果がある場合は最初の住所を使用
             const result = data.results[0]
-            const correctPrefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
-            const correctCity = result.address2 || ''
-            const correctAddress = result.address3 || ''
+            const correctPrefecture = result.prefcode
+              ? getPrefectureName(result.prefcode)
+              : result.address1 || ""
+            const correctCity = result.address2 || ""
+            const correctAddress = result.address3 || ""
             const correctFullAddress = `${correctPrefecture}${correctCity}${correctAddress}`.trim()
-            
+
             if (ocrData.address) {
               // 住所のクリーンアップ（全角数字→半角、記号除去）
               const ocrAddress = ocrData.address
-                .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角→半角
-                .replace(/[〒ー−‐‑–—\-]/g, '') // 各種記号除去
+                .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 全角→半角
+                .replace(/[〒ー−‐‑–—\-]/g, "") // 各種記号除去
                 .trim()
-              
+
               // 住所の類似度をチェック
-              const correctWords = correctFullAddress.split(/[都道府県市区町村]/).filter(w => w.length > 1)
-              const ocrWords = ocrAddress.split(/[都道府県市区町村]/).filter(w => w.length > 1)
-              
+              const correctWords = correctFullAddress
+                .split(/[都道府県市区町村]/)
+                .filter((w) => w.length > 1)
+              const ocrWords = ocrAddress.split(/[都道府県市区町村]/).filter((w) => w.length > 1)
+
               // 共通の単語数をチェック
-              const commonWords = correctWords.filter(word => 
-                ocrWords.some(ocrWord => ocrWord.includes(word) || word.includes(ocrWord))
+              const commonWords = correctWords.filter((word) =>
+                ocrWords.some((ocrWord) => ocrWord.includes(word) || word.includes(ocrWord))
               )
-              
-              const similarity = correctWords.length > 0 ? commonWords.length / correctWords.length : 0
-              
+
+              const similarity =
+                correctWords.length > 0 ? commonWords.length / correctWords.length : 0
+
               // 類似度が低い場合（0.5未満）、住所を自動修正
               if (similarity < 0.5) {
-                console.warn('⚠️ 郵便番号と住所の不一致を検出、住所を自動修正します:', {
+                console.warn("⚠️ 郵便番号と住所の不一致を検出、住所を自動修正します:", {
                   postalCode: ocrData.postalCode,
                   ocrAddress,
                   correctFullAddress,
-                  similarity
+                  similarity,
                 })
 
                 // 町名番地以下（数字等）が含まれる“それらしい全文住所”は保持し、都道府県/市区町村は会社フォーム側で補完する
                 const looksLikeFullAddress =
-                  (ocrAddress.includes(correctPrefecture) || ocrAddress.includes(correctCity)) && /\d/.test(ocrAddress)
+                  (ocrAddress.includes(correctPrefecture) || ocrAddress.includes(correctCity)) &&
+                  /\d/.test(ocrAddress)
 
                 if (!looksLikeFullAddress) {
                   // 正しい住所（郵便番号由来）で上書き（町名番地以下が取れない場合のフォールバック）
@@ -1142,7 +1260,7 @@ export default function CompleteProfilePage() {
                     `郵便番号（${ocrData.postalCode}）に対応する住所と一部異なる可能性があります（町名番地以下を優先して保持）。名刺画像と照合して確認してください。`
                   )
                 }
-                
+
                 // 住所が間違っていた場合、電話番号も確認が必要な可能性があることを警告
                 if (ocrData.phone) {
                   warnings.push(
@@ -1157,18 +1275,21 @@ export default function CompleteProfilePage() {
             } else {
               // 住所が読み取れていない場合、郵便番号から取得した住所を設定
               correctedData.address = correctFullAddress
-              console.log('✅ 住所が読み取れていなかったため、郵便番号から住所を自動設定:', correctFullAddress)
+              console.log(
+                "✅ 住所が読み取れていなかったため、郵便番号から住所を自動設定:",
+                correctFullAddress
+              )
             }
           } else {
             warnings.push(`郵便番号（${ocrData.postalCode}）から住所を取得できませんでした。`)
           }
         }
       } catch (error) {
-        console.error('住所整合性チェックエラー:', error)
-        warnings.push('郵便番号と住所の整合性チェック中にエラーが発生しました。')
+        console.error("住所整合性チェックエラー:", error)
+        warnings.push("郵便番号と住所の整合性チェック中にエラーが発生しました。")
       }
     }
-    
+
     // 2. メールアドレスの形式チェック
     if (ocrData.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -1176,15 +1297,15 @@ export default function CompleteProfilePage() {
         errors.push(`メールアドレスの形式が正しくありません: ${ocrData.email}`)
       }
     }
-    
+
     // 3. 電話番号の形式チェック・自動修正
     if (ocrData.phone) {
       // 電話番号をクリーンアップ（全角数字→半角、不要な文字を除去）
-      let cleanedPhone = ocrData.phone
-        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角→半角
-        .replace(/[ー−]/g, '-') // 全角ハイフン→半角
-        .replace(/[\s　]+/g, '') // 空白除去
-        .replace(/[TEL:tel:Tel:電話：電話:]/gi, '') // プレフィックス除去
+      const cleanedPhone = ocrData.phone
+        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 全角→半角
+        .replace(/[ー−]/g, "-") // 全角ハイフン→半角
+        .replace(/[\s　]+/g, "") // 空白除去
+        .replace(/[TEL:tel:Tel:電話：電話:]/gi, "") // プレフィックス除去
         .trim()
 
       const phoneRegex = /^[\d-()（）]+$/
@@ -1192,18 +1313,18 @@ export default function CompleteProfilePage() {
         warnings.push(`電話番号の形式を確認してください: ${ocrData.phone}`)
       } else if (cleanedPhone !== ocrData.phone) {
         correctedData.phone = cleanedPhone
-        console.log('✅ 電話番号を自動修正:', ocrData.phone, '→', cleanedPhone)
+        console.log("✅ 電話番号を自動修正:", ocrData.phone, "→", cleanedPhone)
       }
     }
 
     // 4. 携帯電話番号の形式チェック・自動修正
     if (ocrData.mobile) {
       // 携帯番号をクリーンアップ（全角数字→半角、不要な文字を除去）
-      let cleanedMobile = ocrData.mobile
-        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角→半角
-        .replace(/[ー−]/g, '-') // 全角ハイフン→半角
-        .replace(/[\s　]+/g, '') // 空白除去
-        .replace(/[携帯：携帯:Mobile:mobile:MOBILE:]/gi, '') // プレフィックス除去
+      const cleanedMobile = ocrData.mobile
+        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)) // 全角→半角
+        .replace(/[ー−]/g, "-") // 全角ハイフン→半角
+        .replace(/[\s　]+/g, "") // 空白除去
+        .replace(/[携帯：携帯:Mobile:mobile:MOBILE:]/gi, "") // プレフィックス除去
         .trim()
 
       const mobileRegex = /^[\d-()（）]+$/
@@ -1211,16 +1332,18 @@ export default function CompleteProfilePage() {
         warnings.push(`携帯電話番号の形式を確認してください: ${ocrData.mobile}`)
       } else {
         // 携帯番号として妥当か確認（日本の携帯は070/080/090で始まる）
-        const digitsOnly = cleanedMobile.replace(/\D/g, '')
+        const digitsOnly = cleanedMobile.replace(/\D/g, "")
         const isValidMobile = /^0[789]0\d{8}$/.test(digitsOnly)
 
         if (!isValidMobile && digitsOnly.length >= 10) {
-          warnings.push(`携帯電話番号の形式を確認してください（固定電話の可能性があります）: ${cleanedMobile}`)
+          warnings.push(
+            `携帯電話番号の形式を確認してください（固定電話の可能性があります）: ${cleanedMobile}`
+          )
         }
 
         if (cleanedMobile !== ocrData.mobile) {
           correctedData.mobile = cleanedMobile
-          console.log('✅ 携帯電話番号を自動修正:', ocrData.mobile, '→', cleanedMobile)
+          console.log("✅ 携帯電話番号を自動修正:", ocrData.mobile, "→", cleanedMobile)
         }
       }
     }
@@ -1228,7 +1351,7 @@ export default function CompleteProfilePage() {
     // 5. URLの形式チェック
     if (ocrData.website) {
       try {
-        new URL(ocrData.website.startsWith('http') ? ocrData.website : `https://${ocrData.website}`)
+        new URL(ocrData.website.startsWith("http") ? ocrData.website : `https://${ocrData.website}`)
       } catch {
         warnings.push(`ウェブサイトのURL形式を確認してください: ${ocrData.website}`)
       }
@@ -1238,99 +1361,101 @@ export default function CompleteProfilePage() {
     const hasName = !!ocrData.personName
     const hasCompany = !!ocrData.companyName
     const hasContact = !!(ocrData.email || ocrData.phone || ocrData.mobile)
-    
+
     if (!hasName && !hasCompany) {
-      errors.push('氏名または会社名が読み取れませんでした。')
+      errors.push("氏名または会社名が読み取れませんでした。")
     }
-    
+
     if (!hasContact) {
-      warnings.push('連絡先情報（メール、電話番号）が読み取れませんでした。')
+      warnings.push("連絡先情報（メール、電話番号）が読み取れませんでした。")
     }
-    
+
     const validationResult: OCRValidationResult = {
       isValid: errors.length === 0,
       warnings,
       errors,
-      correctedData: Object.keys(correctedData).length > 0 ? correctedData : undefined
+      correctedData: Object.keys(correctedData).length > 0 ? correctedData : undefined,
     }
-    
-    console.log('✅ OCR検証完了:', validationResult)
-    console.log('📝 修正されたデータ:', correctedData)
+
+    console.log("✅ OCR検証完了:", validationResult)
+    console.log("📝 修正されたデータ:", correctedData)
     return validationResult
   }
 
   // 郵便番号から住所を取得
   const fetchAddressFromPostalCode = async (postalCode: string) => {
     // 〒マークとハイフンを除去
-    const cleanPostalCode = postalCode.replace(/[〒ー-]/g, '')
-    
-    console.log('📍 郵便番号検索開始:', { postalCode, cleanPostalCode })
-    
+    const cleanPostalCode = postalCode.replace(/[〒ー-]/g, "")
+
+    console.log("📍 郵便番号検索開始:", { postalCode, cleanPostalCode })
+
     // 7桁の数字でない場合は処理しない
     if (!/^\d{7}$/.test(cleanPostalCode)) {
-      console.log('⚠️ 郵便番号が7桁の数字ではありません:', cleanPostalCode)
+      console.log("⚠️ 郵便番号が7桁の数字ではありません:", cleanPostalCode)
       return
     }
-    
+
     try {
       // 郵便番号検索APIを使用（zipcloud）
       const apiUrl = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanPostalCode}`
-      console.log('🔍 API呼び出し:', apiUrl)
-      
+      console.log("🔍 API呼び出し:", apiUrl)
+
       const response = await fetch(apiUrl)
       const data = await response.json()
-      
-      console.log('📥 APIレスポンス:', JSON.stringify(data, null, 2))
-      
+
+      console.log("📥 APIレスポンス:", JSON.stringify(data, null, 2))
+
       if (data.status === 200 && data.results && data.results.length > 0) {
         const result = data.results[0]
-        console.log('✅ 住所データ取得成功:', result)
-        
-        const prefecture = result.prefcode ? getPrefectureName(result.prefcode) : result.address1 || ''
-        const city = result.address2 || ''
-        const address = result.address3 || ''
-        
-        console.log('📝 設定する住所データ:', { prefecture, city, address })
-        
-        setCompanyData(prev => {
+        console.log("✅ 住所データ取得成功:", result)
+
+        const prefecture = result.prefcode
+          ? getPrefectureName(result.prefcode)
+          : result.address1 || ""
+        const city = result.address2 || ""
+        const address = result.address3 || ""
+
+        console.log("📝 設定する住所データ:", { prefecture, city, address })
+
+        setCompanyData((prev) => {
           const newData = {
             ...prev,
             prefecture: prefecture || prev.prefecture,
             city: city || prev.city,
             address: address || prev.address,
           }
-          console.log('✅ 会社データを更新しました:', newData)
+          console.log("✅ 会社データを更新しました:", newData)
           return newData
         })
-        
+
         // 成功メッセージを表示
         if (prefecture || city) {
           const addressText = `${prefecture} ${city} ${address}`.trim()
-          console.log('✅ 住所を設定しました:', addressText)
+          console.log("✅ 住所を設定しました:", addressText)
           setPostalCodeStatus({
             message: `住所を設定しました: ${addressText}`,
-            type: 'success'
+            type: "success",
           })
           // 5秒後にメッセージを消す
           setTimeout(() => setPostalCodeStatus(null), 5000)
         }
       } else {
-        console.warn('⚠️ 住所が見つかりませんでした:', data)
-        const errorMsg = data.message || '住所が見つかりませんでした'
-        console.warn('エラーメッセージ:', errorMsg)
+        console.warn("⚠️ 住所が見つかりませんでした:", data)
+        const errorMsg = data.message || "住所が見つかりませんでした"
+        console.warn("エラーメッセージ:", errorMsg)
         setPostalCodeStatus({
           message: `郵便番号から住所を取得できませんでした: ${errorMsg}`,
-          type: 'error'
+          type: "error",
         })
         setTimeout(() => setPostalCodeStatus(null), 5000)
       }
     } catch (error) {
-      console.error('❌ 郵便番号検索エラー:', error)
-      const errorMsg = error instanceof Error ? error.message : '郵便番号検索に失敗しました'
-      console.error('エラー詳細:', errorMsg)
+      console.error("❌ 郵便番号検索エラー:", error)
+      const errorMsg = error instanceof Error ? error.message : "郵便番号検索に失敗しました"
+      console.error("エラー詳細:", errorMsg)
       setPostalCodeStatus({
         message: `郵便番号検索エラー: ${errorMsg}`,
-        type: 'error'
+        type: "error",
       })
       setTimeout(() => setPostalCodeStatus(null), 5000)
       // エラーが発生しても続行
@@ -1340,26 +1465,63 @@ export default function CompleteProfilePage() {
   // 都道府県コードから都道府県名を取得（APIのprefcodeは数値または文字列で返る場合があるため正規化）
   const getPrefectureName = (code: string | number): string => {
     const prefectureMap: Record<string, string> = {
-      '01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城県', '05': '秋田県',
-      '06': '山形県', '07': '福島県', '08': '茨城県', '09': '栃木県', '10': '群馬県',
-      '11': '埼玉県', '12': '千葉県', '13': '東京都', '14': '神奈川県', '15': '新潟県',
-      '16': '富山県', '17': '石川県', '18': '福井県', '19': '山梨県', '20': '長野県',
-      '21': '岐阜県', '22': '静岡県', '23': '愛知県', '24': '三重県', '25': '滋賀県',
-      '26': '京都府', '27': '大阪府', '28': '兵庫県', '29': '奈良県', '30': '和歌山県',
-      '31': '鳥取県', '32': '島根県', '33': '岡山県', '34': '広島県', '35': '山口県',
-      '36': '徳島県', '37': '香川県', '38': '愛媛県', '39': '高知県', '40': '福岡県',
-      '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
-      '46': '鹿児島県', '47': '沖縄県'
+      "01": "北海道",
+      "02": "青森県",
+      "03": "岩手県",
+      "04": "宮城県",
+      "05": "秋田県",
+      "06": "山形県",
+      "07": "福島県",
+      "08": "茨城県",
+      "09": "栃木県",
+      "10": "群馬県",
+      "11": "埼玉県",
+      "12": "千葉県",
+      "13": "東京都",
+      "14": "神奈川県",
+      "15": "新潟県",
+      "16": "富山県",
+      "17": "石川県",
+      "18": "福井県",
+      "19": "山梨県",
+      "20": "長野県",
+      "21": "岐阜県",
+      "22": "静岡県",
+      "23": "愛知県",
+      "24": "三重県",
+      "25": "滋賀県",
+      "26": "京都府",
+      "27": "大阪府",
+      "28": "兵庫県",
+      "29": "奈良県",
+      "30": "和歌山県",
+      "31": "鳥取県",
+      "32": "島根県",
+      "33": "岡山県",
+      "34": "広島県",
+      "35": "山口県",
+      "36": "徳島県",
+      "37": "香川県",
+      "38": "愛媛県",
+      "39": "高知県",
+      "40": "福岡県",
+      "41": "佐賀県",
+      "42": "長崎県",
+      "43": "熊本県",
+      "44": "大分県",
+      "45": "宮崎県",
+      "46": "鹿児島県",
+      "47": "沖縄県",
     }
-    const key = String(code).replace(/\D/g, '').padStart(2, '0')
-    return prefectureMap[key] || (typeof code === 'string' ? code : '')
+    const key = String(code).replace(/\D/g, "").padStart(2, "0")
+    return prefectureMap[key] || (typeof code === "string" ? code : "")
   }
 
   const fetchCompanyIntel = async () => {
     if (!companyData.website) {
       setCompanyIntelStatus({
-        message: 'WebサイトのURLを入力してください',
-        type: 'error',
+        message: "WebサイトのURLを入力してください",
+        type: "error",
       })
       return
     }
@@ -1367,13 +1529,13 @@ export default function CompleteProfilePage() {
     try {
       setIsFetchingCompanyIntel(true)
       setCompanyIntelStatus({
-        message: 'Webサイトから情報を取得しています...',
-        type: 'info',
+        message: "Webサイトから情報を取得しています...",
+        type: "info",
       })
 
-      const response = await fetch('/api/company-intel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/company-intel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           website: companyData.website,
           companyName: companyData.name, // 会社名を渡す
@@ -1398,33 +1560,34 @@ export default function CompleteProfilePage() {
       }
       if (!response.ok) {
         // エラーの詳細をログに出力（デバッグ用）
-        console.error('❌ API Error Response:', {
+        console.error("❌ API Error Response:", {
           status: response.status,
           statusText: response.statusText,
           result: result,
         })
-        
+
         // 429エラー（クォータ超過）の場合は特別なメッセージを表示
         if (response.status === 429) {
           // 実際のエラーメッセージを確認
-          const errorMessage = result?.error || result?.details || 'OpenAI APIの利用制限に達しました'
-          console.error('❌ 429 Error Details:', {
+          const errorMessage =
+            result?.error || result?.details || "OpenAI APIの利用制限に達しました"
+          console.error("❌ 429 Error Details:", {
             error: result?.error,
             details: result?.details,
             fullResult: result,
           })
           throw new Error(`${errorMessage}。しばらく時間をおいてから再度お試しください。`)
         }
-        const base = result?.error || 'Web情報の取得に失敗しました'
-        const details = result?.details ? `\n${String(result.details).slice(0, 300)}` : ''
-        const meta = result?.meta ? `\n(${JSON.stringify(result.meta).slice(0, 300)})` : ''
+        const base = result?.error || "Web情報の取得に失敗しました"
+        const details = result?.details ? `\n${String(result.details).slice(0, 300)}` : ""
+        const meta = result?.meta ? `\n(${JSON.stringify(result.meta).slice(0, 300)})` : ""
         throw new Error(`${base}${details}${meta}`)
       }
 
       const intel = result?.data || {}
       setCompanyIntelMeta(result?.meta || null)
       setCompanyIntel(intel)
-      setCompanyData(prev => ({
+      setCompanyData((prev) => ({
         ...prev,
         industry: intel.industry || prev.industry,
         employeeCount: intel.employeeCount || prev.employeeCount,
@@ -1442,17 +1605,19 @@ export default function CompleteProfilePage() {
         // 決算月を自動セット（取得できた場合のみ）
         // APIは期末（例: 3月決算→"3"）。表示は決算開始月のため変換
         fiscalYearEnd: intel.fiscalYearEnd
-          ? (intel.fiscalYearEnd === '12' ? '1' : String(parseInt(intel.fiscalYearEnd, 10) + 1))
+          ? intel.fiscalYearEnd === "12"
+            ? "1"
+            : String(parseInt(intel.fiscalYearEnd, 10) + 1)
           : prev.fiscalYearEnd,
         // 入力項目以外で取得した情報は「取得情報」に箇条書きでセット
         retrievedInfo: (() => {
           const lines: string[] = []
           // 主要製品/サービスは取得情報のトップに
           if (Array.isArray(intel.products) && intel.products.length > 0) {
-            lines.push(`- 主要製品: ${intel.products.slice(0, 5).join(' / ')}`)
+            lines.push(`- 主要製品: ${intel.products.slice(0, 5).join(" / ")}`)
           }
           if (Array.isArray(intel.services) && intel.services.length > 0) {
-            lines.push(`- 主要サービス: ${intel.services.slice(0, 5).join(' / ')}`)
+            lines.push(`- 主要サービス: ${intel.services.slice(0, 5).join(" / ")}`)
           }
           // 最新の売上/従業員数も見えるように表示（上場企業の一次情報優先）
           if (intel.latestRevenueText) {
@@ -1464,32 +1629,33 @@ export default function CompleteProfilePage() {
           if (Array.isArray(intel.extraBullets) && intel.extraBullets.length > 0) {
             lines.push(...intel.extraBullets.map((line: string) => `- ${line}`))
           }
-          if (lines.length > 0) return lines.join('\n')
+          if (lines.length > 0) return lines.join("\n")
           return intel.summary || intel.rawNotes || prev.retrievedInfo
         })(),
       }))
 
       setCompanyIntelStatus({
-        message: 'Web情報を取得し、フォームに反映しました',
-        type: 'success',
+        message: "Web情報を取得し、フォームに反映しました",
+        type: "success",
       })
     } catch (error) {
-      console.error('❌ Web情報取得エラー:', error)
-      let message = error instanceof Error ? error.message : 'Web情報の取得に失敗しました'
-      
+      console.error("❌ Web情報取得エラー:", error)
+      let message = error instanceof Error ? error.message : "Web情報の取得に失敗しました"
+
       // 429エラー（クォータ超過）の場合はより分かりやすいメッセージに
-      if (error instanceof Error && (
-        error.message.includes('429') ||
-        error.message.includes('quota') ||
-        error.message.includes('exceeded') ||
-        error.message.includes('利用制限')
-      )) {
-        message = 'OpenAI APIの利用制限に達しました。しばらく時間をおいてから再度お試しください。'
+      if (
+        error instanceof Error &&
+        (error.message.includes("429") ||
+          error.message.includes("quota") ||
+          error.message.includes("exceeded") ||
+          error.message.includes("利用制限"))
+      ) {
+        message = "OpenAI APIの利用制限に達しました。しばらく時間をおいてから再度お試しください。"
       }
-      
+
       setCompanyIntelStatus({
         message,
-        type: 'error',
+        type: "error",
       })
     } finally {
       setIsFetchingCompanyIntel(false)
@@ -1499,58 +1665,65 @@ export default function CompleteProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!validateProfile()) return
-    
+
     setIsLoading(true)
     setErrors({})
-    
+
     try {
       const supabase = createClient()
       if (!supabase) {
-        throw new Error('Supabaseが設定されていません')
+        throw new Error("Supabaseが設定されていません")
       }
-      
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
       if (userError) {
-        console.error('User auth error:', userError)
+        console.error("User auth error:", userError)
         throw new Error(`認証エラー: ${userError.message}`)
       }
-      
+
       if (!user) {
-        throw new Error('認証されていません')
+        throw new Error("認証されていません")
       }
-      
+
       // アバターをアップロード（ファイルが選択されている場合）
       let avatarUrl = profileData.avatarUrl
       if (avatarFile) {
         try {
-          console.log('📤 アバターをアップロードします...')
+          console.log("📤 アバターをアップロードします...")
           const uploadedUrl = await uploadAvatar(user.id)
           if (uploadedUrl) {
             avatarUrl = uploadedUrl
             // プレビューも更新
             setAvatarPreview(uploadedUrl)
-            setProfileData(prev => ({ ...prev, avatarUrl: uploadedUrl }))
+            setProfileData((prev) => ({ ...prev, avatarUrl: uploadedUrl }))
           }
         } catch (uploadError) {
-          console.error('❌ アバターアップロードエラー:', uploadError)
-          setErrors({ avatar: uploadError instanceof Error ? uploadError.message : 'アバターのアップロードに失敗しました' })
+          console.error("❌ アバターアップロードエラー:", uploadError)
+          setErrors({
+            avatar:
+              uploadError instanceof Error
+                ? uploadError.message
+                : "アバターのアップロードに失敗しました",
+          })
           setIsLoading(false)
           return
         }
       }
-      
+
       // プロファイルを作成または更新（upsert）
-      console.log('📝 プロフィールを保存します:', {
+      console.log("📝 プロフィールを保存します:", {
         user_id: user.id,
         email: user.email,
         name: profileData.name,
         avatar_url: avatarUrl,
       })
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
+
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        {
           user_id: user.id,
           email: user.email, // NOT NULL制約があるためemailを追加
           name: profileData.name,
@@ -1560,27 +1733,31 @@ export default function CompleteProfilePage() {
           phone: profileData.phone || null,
           mobile: profileData.mobile || null,
           avatar_url: avatarUrl || null,
-        }, {
-          onConflict: 'user_id'
-        })
-      
+        },
+        {
+          onConflict: "user_id",
+        }
+      )
+
       if (profileError) {
-        console.error('Profile upsert error:', profileError)
-        throw new Error(`プロフィールの保存に失敗しました: ${profileError.message || profileError.code || '不明なエラー'}`)
+        console.error("Profile upsert error:", profileError)
+        throw new Error(
+          `プロフィールの保存に失敗しました: ${profileError.message || profileError.code || "不明なエラー"}`
+        )
       }
-      
-      console.log('✅ プロフィール保存完了')
-      
+
+      console.log("✅ プロフィール保存完了")
+
       setStep(3)
     } catch (error) {
-      console.error('Profile update error:', error)
-      
+      console.error("Profile update error:", error)
+
       // エラーメッセージを適切に取得
-      let errorMessage = 'エラーが発生しました'
-      
+      let errorMessage = "エラーが発生しました"
+
       if (error instanceof Error) {
         errorMessage = error.message
-      } else if (error && typeof error === 'object') {
+      } else if (error && typeof error === "object") {
         // Supabaseのエラーオブジェクトの場合
         const supabaseError = error as any
         if (supabaseError.message) {
@@ -1592,10 +1769,10 @@ export default function CompleteProfilePage() {
         } else {
           errorMessage = JSON.stringify(error)
         }
-      } else if (typeof error === 'string') {
+      } else if (typeof error === "string") {
         errorMessage = error
       }
-      
+
       setErrors({ general: errorMessage })
     } finally {
       setIsLoading(false)
@@ -1604,74 +1781,77 @@ export default function CompleteProfilePage() {
 
   const handleSaveCompany = async () => {
     if (!validateCompany()) return
-    
+
     setIsLoading(true)
     setErrors({})
-    
+
     try {
       const supabase = createClient()
       if (!supabase) {
-        throw new Error('Supabaseが設定されていません')
+        throw new Error("Supabaseが設定されていません")
       }
-      
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
       if (userError) {
-        console.error('User auth error:', userError)
+        console.error("User auth error:", userError)
         throw new Error(`認証エラー: ${userError.message}`)
       }
-      
+
       if (!user) {
-        throw new Error('認証されていません')
+        throw new Error("認証されていません")
       }
-      
+
       // 会社情報を取得または作成
-      console.log('📝 プロフィールから会社IDを取得します')
-      
+      console.log("📝 プロフィールから会社IDを取得します")
+
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('user_id', user.id)
+        .from("profiles")
+        .select("company_id")
+        .eq("user_id", user.id)
         .maybeSingle()
-      
+
       if (profileError) {
-        console.error('Profile fetch error:', profileError)
+        console.error("Profile fetch error:", profileError)
         throw new Error(`プロフィールの取得に失敗しました: ${profileError.message}`)
       }
-      
+
       // プロフィールが存在しない場合は作成
       if (!profile) {
-        console.log('📝 プロフィールが存在しないため作成します')
-        const { error: createProfileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: user.id,
-            email: user.email, // NOT NULL制約があるためemailを追加
-            name: 'User', // 仮の名前
-          })
-        
+        console.log("📝 プロフィールが存在しないため作成します")
+        const { error: createProfileError } = await supabase.from("profiles").insert({
+          user_id: user.id,
+          email: user.email, // NOT NULL制約があるためemailを追加
+          name: "User", // 仮の名前
+        })
+
         if (createProfileError) {
-          console.error('Profile create error:', createProfileError)
+          console.error("Profile create error:", createProfileError)
           throw new Error(`プロフィールの作成に失敗しました: ${createProfileError.message}`)
         }
       }
-      
+
       let companyId = profile?.company_id
       let didInsertNewCompany = false
-      console.log('📝 現在の会社ID:', companyId)
+      console.log("📝 現在の会社ID:", companyId)
       const retrievedInfoPayload = companyIntel
         ? companyIntel
-        : (companyData.retrievedInfo ? { summary: companyData.retrievedInfo } : null)
-      
+        : companyData.retrievedInfo
+          ? { summary: companyData.retrievedInfo }
+          : null
+
       if (!companyId) {
         // 会社を新規作成（このときだけダッシュボードで「新規」挨拶を出す）
         didInsertNewCompany = true
-        console.log('📝 新しい会社を作成します:', companyData.name)
-        
+        console.log("📝 新しい会社を作成します:", companyData.name)
+
         // DB保存直前に住所を正規化（県・市・町名番地を適切に分割）
         const normalizedAddress = await normalizeAddressForSave(companyData)
-        console.log('📍 正規化済み住所:', normalizedAddress)
-        
+        console.log("📍 正規化済み住所:", normalizedAddress)
+
         const insertData = {
           name: companyData.name,
           name_kana: companyData.nameKana || null,
@@ -1693,22 +1873,24 @@ export default function CompleteProfilePage() {
           capital: companyData.capital || null,
           // 画面上は決算開始月。DBには期末で保存（開始1月→12月、それ以外→開始月-1）
           fiscal_year_end: companyData.fiscalYearEnd
-            ? (parseInt(companyData.fiscalYearEnd, 10) === 1 ? 12 : parseInt(companyData.fiscalYearEnd, 10) - 1)
+            ? parseInt(companyData.fiscalYearEnd, 10) === 1
+              ? 12
+              : parseInt(companyData.fiscalYearEnd, 10) - 1
             : null,
           ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
         }
-        console.log('📝 会社データ挿入:', JSON.stringify(insertData, null, 2))
+        console.log("📝 会社データ挿入:", JSON.stringify(insertData, null, 2))
 
         // RLSポリシーの関係で、INSERT後すぐにSELECTすると失敗するため、
         // まずINSERTのみ実行し、その後会社名で検索してIDを取得する
-        const { error: insertError } = await supabase
-          .from('companies')
-          .insert(insertData)
+        const { error: insertError } = await supabase.from("companies").insert(insertData)
 
         if (insertError) {
-          console.error('Company insert error:', insertError)
-          console.error('Company insert error (JSON):', JSON.stringify(insertError, null, 2))
-          throw new Error(`会社情報の作成に失敗しました: ${insertError.message || insertError.code || insertError.hint || '不明なエラー'}`)
+          console.error("Company insert error:", insertError)
+          console.error("Company insert error (JSON):", JSON.stringify(insertError, null, 2))
+          throw new Error(
+            `会社情報の作成に失敗しました: ${insertError.message || insertError.code || insertError.hint || "不明なエラー"}`
+          )
         }
 
         // 挿入した会社のIDを取得（会社名とWebサイトで特定）
@@ -1716,30 +1898,35 @@ export default function CompleteProfilePage() {
         // または、挿入時に返されるIDを使用できるように、SupabaseでRLSポリシーを更新する必要がある
         // ここでは会社名で検索する（同名企業がある場合は最新のものを使用）
         const { data: insertedCompany, error: selectError } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('name', companyData.name)
-          .order('created_at', { ascending: false })
+          .from("companies")
+          .select("id")
+          .eq("name", companyData.name)
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle()
 
         if (selectError) {
-          console.error('Company select error:', selectError)
+          console.error("Company select error:", selectError)
           // SELECTエラーでも続行を試みる（RLSの問題の可能性）
         }
 
         if (!insertedCompany?.id) {
           // RLSの問題でSELECTできない場合、別の方法で取得を試みる
-          console.log('⚠️ 通常のSELECTでIDを取得できませんでした。RPC経由で取得を試みます...')
+          console.log("⚠️ 通常のSELECTでIDを取得できませんでした。RPC経由で取得を試みます...")
 
           // 最後に挿入された会社を取得（名前一致）
-          const { data: rpcData, error: rpcError } = await supabase.rpc('get_latest_company_by_name', {
-            company_name: companyData.name
-          })
+          const { data: rpcData, error: rpcError } = await supabase.rpc(
+            "get_latest_company_by_name",
+            {
+              company_name: companyData.name,
+            }
+          )
 
           if (rpcError || !rpcData) {
-            console.error('RPC error:', rpcError)
-            throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）。Supabaseの管理画面でRLSポリシーを確認してください。')
+            console.error("RPC error:", rpcError)
+            throw new Error(
+              "会社情報の作成に失敗しました（IDが取得できませんでした）。Supabaseの管理画面でRLSポリシーを確認してください。"
+            )
           }
           companyId = rpcData
         } else {
@@ -1747,46 +1934,48 @@ export default function CompleteProfilePage() {
         }
 
         if (!companyId) {
-          throw new Error('会社情報の作成に失敗しました（IDが取得できませんでした）')
+          throw new Error("会社情報の作成に失敗しました（IDが取得できませんでした）")
         }
-        console.log('✅ 会社作成完了:', companyId)
+        console.log("✅ 会社作成完了:", companyId)
 
         // 会社資料をアップロード（会社作成後）
         let documentPaths: string[] = []
         if (companyDocuments.length > 0) {
           try {
             documentPaths = await uploadCompanyDocuments(companyId)
-            console.log('✅ 会社資料アップロード完了:', documentPaths.length, 'ファイル')
-            
+            console.log("✅ 会社資料アップロード完了:", documentPaths.length, "ファイル")
+
             // アップロードした資料パスを会社情報に更新
             if (documentPaths.length > 0) {
               const { error: updateDocsError } = await supabase
-                .from('companies')
+                .from("companies")
                 .update({ documents_urls: documentPaths })
-                .eq('id', companyId)
-              
+                .eq("id", companyId)
+
               if (updateDocsError) {
-                console.error('会社資料パス更新エラー:', updateDocsError)
+                console.error("会社資料パス更新エラー:", updateDocsError)
               }
             }
           } catch (docError) {
-            console.error('会社資料アップロードエラー（続行）:', docError)
+            console.error("会社資料アップロードエラー（続行）:", docError)
             // 資料アップロードが失敗しても続行
           }
         }
-        
+
         // プロファイルに会社IDを設定
-        console.log('📝 プロフィールに会社IDを設定します')
+        console.log("📝 プロフィールに会社IDを設定します")
         const { error: updateError } = await supabase
-          .from('profiles')
+          .from("profiles")
           .update({ company_id: companyId })
-          .eq('user_id', user.id)
-        
+          .eq("user_id", user.id)
+
         if (updateError) {
-          console.error('Profile update error:', updateError)
-          throw new Error(`プロフィールの更新に失敗しました: ${updateError.message || updateError.code || '不明なエラー'}`)
+          console.error("Profile update error:", updateError)
+          throw new Error(
+            `プロフィールの更新に失敗しました: ${updateError.message || updateError.code || "不明なエラー"}`
+          )
         }
-        console.log('✅ プロフィール更新完了')
+        console.log("✅ プロフィール更新完了")
       } else {
         // 既存の会社を更新
         // 会社資料をアップロード
@@ -1794,31 +1983,31 @@ export default function CompleteProfilePage() {
         if (companyDocuments.length > 0) {
           try {
             documentPaths = await uploadCompanyDocuments(companyId)
-            console.log('✅ 会社資料アップロード完了:', documentPaths.length, 'ファイル')
+            console.log("✅ 会社資料アップロード完了:", documentPaths.length, "ファイル")
           } catch (docError) {
-            console.error('会社資料アップロードエラー（続行）:', docError)
+            console.error("会社資料アップロードエラー（続行）:", docError)
             // 資料アップロードが失敗しても続行
           }
         }
 
         // 既存の資料パスを取得
         const { data: existingCompany } = await supabase
-          .from('companies')
-          .select('documents_urls')
-          .eq('id', companyId)
+          .from("companies")
+          .select("documents_urls")
+          .eq("id", companyId)
           .single()
 
         const existingDocuments = existingCompany?.documents_urls || []
-        const allDocuments = Array.isArray(existingDocuments) 
+        const allDocuments = Array.isArray(existingDocuments)
           ? [...existingDocuments, ...documentPaths]
           : documentPaths
 
         // DB保存直前に住所を正規化（県・市・町名番地を適切に分割）
         const normalizedAddress = await normalizeAddressForSave(companyData)
-        console.log('📍 正規化済み住所（更新）:', normalizedAddress)
+        console.log("📍 正規化済み住所（更新）:", normalizedAddress)
 
         const { error: updateError } = await supabase
-          .from('companies')
+          .from("companies")
           .update({
             name: companyData.name,
             name_kana: companyData.nameKana || null,
@@ -1840,31 +2029,35 @@ export default function CompleteProfilePage() {
             business_description: companyData.businessDescription || null,
             capital: companyData.capital || null,
             // 画面上は決算開始月。DBには期末で保存（開始1月→12月、それ以外→開始月-1）
-          fiscal_year_end: companyData.fiscalYearEnd
-            ? (parseInt(companyData.fiscalYearEnd, 10) === 1 ? 12 : parseInt(companyData.fiscalYearEnd, 10) - 1)
-            : null,
+            fiscal_year_end: companyData.fiscalYearEnd
+              ? parseInt(companyData.fiscalYearEnd, 10) === 1
+                ? 12
+                : parseInt(companyData.fiscalYearEnd, 10) - 1
+              : null,
             ...(retrievedInfoPayload ? { retrieved_info: retrievedInfoPayload } : {}),
           })
-          .eq('id', companyId)
-        
+          .eq("id", companyId)
+
         if (updateError) {
-          console.error('Company update error:', updateError)
-          throw new Error(`会社情報の更新に失敗しました: ${updateError.message || updateError.code || '不明なエラー'}`)
+          console.error("Company update error:", updateError)
+          throw new Error(
+            `会社情報の更新に失敗しました: ${updateError.message || updateError.code || "不明なエラー"}`
+          )
         }
       }
-      
+
       // ダッシュボードにリダイレクト（会社を新規作成したときだけ ?new=1 で「はじめまして！」を出す）
-      console.log('✅ 登録完了！ダッシュボードにリダイレクトします')
-      router.push(didInsertNewCompany ? '/dashboard?new=1' : '/dashboard')
+      console.log("✅ 登録完了！ダッシュボードにリダイレクトします")
+      router.push(didInsertNewCompany ? "/dashboard?new=1" : "/dashboard")
     } catch (error) {
-      console.error('Company save error:', error)
-      
+      console.error("Company save error:", error)
+
       // エラーメッセージを適切に取得
-      let errorMessage = 'エラーが発生しました'
-      
+      let errorMessage = "エラーが発生しました"
+
       if (error instanceof Error) {
         errorMessage = error.message
-      } else if (error && typeof error === 'object') {
+      } else if (error && typeof error === "object") {
         // Supabaseのエラーオブジェクトの場合
         const supabaseError = error as any
         if (supabaseError.message) {
@@ -1876,10 +2069,10 @@ export default function CompleteProfilePage() {
         } else {
           errorMessage = JSON.stringify(error)
         }
-      } else if (typeof error === 'string') {
+      } else if (typeof error === "string") {
         errorMessage = error
       }
-      
+
       setErrors({ general: errorMessage })
     } finally {
       setIsLoading(false)
@@ -1887,33 +2080,45 @@ export default function CompleteProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 pt-24 pb-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 px-4 pb-12 pt-24">
+      <div className="mx-auto max-w-4xl">
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-4">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                step >= 1 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-              }`}>
+            <div
+              className={`flex items-center gap-2 ${step >= 1 ? "text-blue-600" : "text-gray-400"}`}
+            >
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                  step >= 1 ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                }`}
+              >
                 {step > 1 ? <CheckCircle size={20} /> : <Camera size={20} />}
               </div>
               <span className="font-medium">名刺登録</span>
             </div>
-            <div className={`w-16 h-0.5 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-300'}`} />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                step >= 2 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-              }`}>
+            <div className={`h-0.5 w-16 ${step >= 2 ? "bg-blue-600" : "bg-gray-300"}`} />
+            <div
+              className={`flex items-center gap-2 ${step >= 2 ? "text-blue-600" : "text-gray-400"}`}
+            >
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                  step >= 2 ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                }`}
+              >
                 {step > 2 ? <CheckCircle size={20} /> : <User size={20} />}
               </div>
               <span className="font-medium">プロフィール</span>
             </div>
-            <div className={`w-16 h-0.5 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-300'}`} />
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                step >= 3 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-              }`}>
+            <div className={`h-0.5 w-16 ${step >= 3 ? "bg-blue-600" : "bg-gray-300"}`} />
+            <div
+              className={`flex items-center gap-2 ${step >= 3 ? "text-blue-600" : "text-gray-400"}`}
+            >
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                  step >= 3 ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                }`}
+              >
                 <Building2 size={20} />
               </div>
               <span className="font-medium">会社情報</span>
@@ -1923,22 +2128,22 @@ export default function CompleteProfilePage() {
 
         {/* Step 1: Business Card OCR */}
         {step === 1 && (
-          <Card className="shadow-2xl border border-gray-200 bg-white">
+          <Card className="border border-gray-200 bg-white shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">名刺を登録</CardTitle>
+              <CardTitle className="text-center text-2xl font-bold">名刺を登録</CardTitle>
               <CardDescription className="text-center">
                 名刺をスキャンして、プロフィール情報を自動入力します
               </CardDescription>
             </CardHeader>
             <CardContent>
               {scanStep === 1 && (
-                <div className="text-center py-12">
+                <div className="py-12 text-center">
                   <div className="mb-6">
-                    <div className="w-24 h-24 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-4">
-                      <Camera className="w-12 h-12 text-blue-600" />
+                    <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-blue-50">
+                      <Camera className="h-12 w-12 text-blue-600" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">名刺をアップロード</h3>
-                    <p className="text-gray-600 text-sm mb-6">
+                    <h3 className="mb-2 text-lg font-semibold">名刺をアップロード</h3>
+                    <p className="mb-6 text-sm text-gray-600">
                       名刺の画像（JPEG、PNG）またはPDFをアップロードすると、自動で情報を読み取ります
                     </p>
                   </div>
@@ -1951,7 +2156,7 @@ export default function CompleteProfilePage() {
                   />
                   <Button
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700"
                   >
                     <Upload size={18} className="mr-2" />
                     名刺を選択
@@ -1959,49 +2164,49 @@ export default function CompleteProfilePage() {
                   <div className="mt-6">
                     <button
                       onClick={() => setStep(2)}
-                      className="text-sm text-gray-600 hover:text-gray-900 underline"
+                      className="text-sm text-gray-600 underline hover:text-gray-900"
                     >
                       スキップして手動入力
                     </button>
                   </div>
                 </div>
               )}
-              
+
               {scanStep === 2 && (
-                <div className="text-center py-12">
-                  <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">名刺を読み取っています...</p>
-                  {errors.ocr && (
-                    <p className="text-sm text-red-500 mt-2">{errors.ocr}</p>
-                  )}
+                <div className="py-12 text-center">
+                  <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-blue-600" />
+                  <p className="mb-2 text-gray-600">名刺を読み取っています...</p>
+                  {errors.ocr && <p className="mt-2 text-sm text-red-500">{errors.ocr}</p>}
                 </div>
               )}
-              
+
               {scanStep === 3 && ocrResult && (
                 <div className="space-y-4">
                   {/* OCR成功メッセージ */}
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-700 font-medium">
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                    <p className="text-sm font-medium text-green-700">
                       名刺から情報を読み取りました。下のフォームに自動入力されています。
                     </p>
                   </div>
-                  
+
                   {/* OCR検証結果の表示 */}
                   {ocrValidation && (
                     <div className="space-y-2">
                       {ocrValidation.correctedData && (
-                        <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-                          <p className="text-sm font-bold text-blue-800 mb-2">
+                        <div className="rounded-lg border-2 border-blue-300 bg-blue-50 p-4">
+                          <p className="mb-2 text-sm font-bold text-blue-800">
                             ✅ 自動修正が適用されました
                           </p>
-                          <p className="text-sm text-blue-700 mb-2">
+                          <p className="mb-2 text-sm text-blue-700">
                             読み取った郵便番号と住所を照合し、正しい住所に自動修正しました。修正後の情報が下のフォームに反映されています。
                           </p>
                           {ocrValidation.warnings.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-blue-200">
-                              <ul className="list-disc list-inside space-y-1">
+                            <div className="mt-3 border-t border-blue-200 pt-3">
+                              <ul className="list-inside list-disc space-y-1">
                                 {ocrValidation.warnings.map((warning, index) => (
-                                  <li key={index} className="text-sm text-blue-600">{warning}</li>
+                                  <li key={index} className="text-sm text-blue-600">
+                                    {warning}
+                                  </li>
                                 ))}
                               </ul>
                             </div>
@@ -2009,66 +2214,72 @@ export default function CompleteProfilePage() {
                         </div>
                       )}
                       {!ocrValidation.correctedData && ocrValidation.errors.length > 0 && (
-                        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
-                          <p className="text-sm font-bold text-red-800 mb-2">
+                        <div className="rounded-lg border-2 border-red-300 bg-red-50 p-4">
+                          <p className="mb-2 text-sm font-bold text-red-800">
                             ⚠️ 重要な問題が検出されました
                           </p>
-                          <ul className="list-disc list-inside space-y-1">
+                          <ul className="list-inside list-disc space-y-1">
                             {ocrValidation.errors.map((error, index) => (
-                              <li key={index} className="text-sm text-red-700">{error}</li>
+                              <li key={index} className="text-sm text-red-700">
+                                {error}
+                              </li>
                             ))}
                           </ul>
-                          <p className="text-xs text-red-600 mt-2 font-medium">
+                          <p className="mt-2 text-xs font-medium text-red-600">
                             📝 この情報を使用する前に、読み取り結果を確認・修正してください。
                           </p>
                         </div>
                       )}
                       {!ocrValidation.correctedData && ocrValidation.warnings.length > 0 && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <p className="text-sm font-semibold text-yellow-800 mb-2">
+                        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                          <p className="mb-2 text-sm font-semibold text-yellow-800">
                             ⚠️ 確認が必要な項目があります
                           </p>
-                          <ul className="list-disc list-inside space-y-1">
+                          <ul className="list-inside list-disc space-y-1">
                             {ocrValidation.warnings.map((warning, index) => (
-                              <li key={index} className="text-sm text-yellow-700">{warning}</li>
+                              <li key={index} className="text-sm text-yellow-700">
+                                {warning}
+                              </li>
                             ))}
                           </ul>
                         </div>
                       )}
-                      {ocrValidation.errors.length === 0 && ocrValidation.warnings.length === 0 && !ocrValidation.correctedData && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <p className="text-sm text-green-700 font-medium">
-                            ✅ 読み取り結果に問題は見つかりませんでした。
-                          </p>
-                        </div>
-                      )}
+                      {ocrValidation.errors.length === 0 &&
+                        ocrValidation.warnings.length === 0 &&
+                        !ocrValidation.correctedData && (
+                          <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                            <p className="text-sm font-medium text-green-700">
+                              ✅ 読み取り結果に問題は見つかりませんでした。
+                            </p>
+                          </div>
+                        )}
                     </div>
                   )}
-                  
+
                   {errors.ocr && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
                       <p className="text-sm text-red-600">{errors.ocr}</p>
                     </div>
                   )}
-                  
+
                   {/* アップロードした名刺画像の表示 */}
                   {uploadedFile?.dataUrl && (
-                    <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
-                      <h4 className="font-semibold mb-3">アップロードした名刺</h4>
+                    <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4">
+                      <h4 className="mb-3 font-semibold">アップロードした名刺</h4>
                       <div className="flex justify-center">
-                        {uploadedFile.mimeType.toLowerCase().includes('pdf') ? (
-                          <div className="w-full max-w-xl border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        {uploadedFile.mimeType.toLowerCase().includes("pdf") ? (
+                          <div className="w-full max-w-xl rounded-lg border border-gray-200 bg-gray-50 p-4">
                             <div className="flex items-center gap-3">
-                              <FileText className="w-6 h-6 text-red-600" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">{uploadedFile.name}</p>
-                                <p className="text-xs text-gray-600">PDF（1ページ目を解析します）</p>
+                              <FileText className="h-6 w-6 text-red-600" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-gray-900">
+                                  {uploadedFile.name}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  PDF（1ページ目を解析します）
+                                </p>
                               </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={openPdfPreview}
-                              >
+                              <Button type="button" variant="outline" onClick={openPdfPreview}>
                                 PDFを開く
                               </Button>
                             </div>
@@ -2077,7 +2288,7 @@ export default function CompleteProfilePage() {
                           <img
                             src={uploadedFile.dataUrl}
                             alt="アップロードした名刺"
-                            className="max-w-full h-auto max-h-96 rounded-lg shadow-md object-contain"
+                            className="h-auto max-h-96 max-w-full rounded-lg object-contain shadow-md"
                           />
                         )}
                       </div>
@@ -2095,7 +2306,7 @@ export default function CompleteProfilePage() {
                       setPdfViewerOpen(open)
                     }}
                   >
-                    <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl h-[calc(100vh-2rem)] max-h-[90vh] p-0 overflow-hidden">
+                    <DialogContent className="h-[calc(100vh-2rem)] max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl overflow-hidden p-0">
                       <div className="flex h-full flex-col">
                         <div className="border-b bg-white px-4 py-3">
                           <DialogHeader>
@@ -2104,7 +2315,7 @@ export default function CompleteProfilePage() {
                         </div>
 
                         <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3">
-                          <p className="text-sm text-gray-600 truncate">{uploadedFile?.name}</p>
+                          <p className="truncate text-sm text-gray-600">{uploadedFile?.name}</p>
                           <Button type="button" variant="outline" onClick={openPdfInNewTab}>
                             別タブで開く
                           </Button>
@@ -2124,75 +2335,95 @@ export default function CompleteProfilePage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <h4 className="font-semibold mb-3 text-lg">読み取り結果</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+
+                  <div className="mb-4 rounded-lg bg-gray-50 p-4">
+                    <h4 className="mb-3 text-lg font-semibold">読み取り結果</h4>
+                    <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                       {ocrResult.personName && (
                         <div className="flex items-start">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">氏名:</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            氏名:
+                          </span>
                           <span className="text-gray-900">{ocrResult.personName}</span>
                         </div>
                       )}
                       {ocrResult.personNameKana && (
                         <div className="flex items-start">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">氏名(カナ):</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            氏名(カナ):
+                          </span>
                           <span className="text-gray-900">{ocrResult.personNameKana}</span>
                         </div>
                       )}
                       {ocrResult.department && (
                         <div className="flex items-start">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">部署:</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            部署:
+                          </span>
                           <span className="text-gray-900">{ocrResult.department}</span>
                         </div>
                       )}
                       {ocrResult.companyName && (
                         <div className="flex items-start md:col-span-2">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">会社名:</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            会社名:
+                          </span>
                           <span className="text-gray-900">{ocrResult.companyName}</span>
                         </div>
                       )}
                       {ocrResult.email && (
                         <div className="flex items-start md:col-span-2">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">メール:</span>
-                          <span className="text-gray-900 break-all">{ocrResult.email}</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            メール:
+                          </span>
+                          <span className="break-all text-gray-900">{ocrResult.email}</span>
                         </div>
                       )}
                       {ocrResult.phone && (
                         <div className="flex items-start">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">電話:</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            電話:
+                          </span>
                           <span className="text-gray-900">{ocrResult.phone}</span>
                         </div>
                       )}
                       {ocrResult.mobile && (
                         <div className="flex items-start">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">携帯:</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            携帯:
+                          </span>
                           <span className="text-gray-900">{ocrResult.mobile}</span>
                         </div>
                       )}
                       {ocrResult.postalCode && (
                         <div className="flex items-start">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">郵便番号:</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            郵便番号:
+                          </span>
                           <span className="text-gray-900">〒{ocrResult.postalCode}</span>
                         </div>
                       )}
                       {ocrResult.address && (
                         <div className="flex items-start md:col-span-2">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">住所:</span>
-                          <span className="text-gray-900 break-words">{ocrResult.address}</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            住所:
+                          </span>
+                          <span className="break-words text-gray-900">{ocrResult.address}</span>
                         </div>
                       )}
                       {ocrResult.website && (
                         <div className="flex items-start md:col-span-2">
-                          <span className="font-semibold text-gray-700 w-24 flex-shrink-0">ウェブサイト:</span>
-                          <span className="text-blue-600 break-all">{ocrResult.website}</span>
+                          <span className="w-24 flex-shrink-0 font-semibold text-gray-700">
+                            ウェブサイト:
+                          </span>
+                          <span className="break-all text-blue-600">{ocrResult.website}</span>
                         </div>
                       )}
                     </div>
-                    
+
                     {/* 読み取れなかった項目の表示 */}
                     {!ocrResult.personName && !ocrResult.companyName && !ocrResult.email && (
-                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+                      <div className="mt-3 rounded border border-yellow-200 bg-yellow-50 p-2 text-xs text-yellow-700">
                         ⚠️ 一部の情報が読み取れませんでした。手動で入力してください。
                       </div>
                     )}
@@ -2214,12 +2445,12 @@ export default function CompleteProfilePage() {
                     <Button
                       onClick={(e) => {
                         e.preventDefault()
-                        console.log('🔵 「この情報を使用」ボタンがクリックされました')
-                        console.log('🔵 現在の状態:', { step, scanStep, hasOcrResult: !!ocrResult })
+                        console.log("🔵 「この情報を使用」ボタンがクリックされました")
+                        console.log("🔵 現在の状態:", { step, scanStep, hasOcrResult: !!ocrResult })
                         applyOCRData()
-                        console.log('🔵 applyOCRData 実行後')
+                        console.log("🔵 applyOCRData 実行後")
                       }}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700"
                       disabled={!ocrResult || isProcessing}
                     >
                       <CheckCircle size={18} className="mr-2" />
@@ -2228,9 +2459,9 @@ export default function CompleteProfilePage() {
                   </div>
                 </div>
               )}
-              
+
               {errors.ocr && scanStep === 1 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
                   <p className="text-sm text-red-600">{errors.ocr}</p>
                 </div>
               )}
@@ -2240,9 +2471,9 @@ export default function CompleteProfilePage() {
 
         {/* Step 2: Profile Information */}
         {step === 2 && (
-          <Card className="shadow-2xl border border-gray-200 bg-white">
+          <Card className="border border-gray-200 bg-white shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">プロフィール情報</CardTitle>
+              <CardTitle className="text-center text-2xl font-bold">プロフィール情報</CardTitle>
               <CardDescription className="text-center">
                 あなたの基本情報を入力してください
               </CardDescription>
@@ -2250,16 +2481,14 @@ export default function CompleteProfilePage() {
             <CardContent>
               <div className="space-y-4">
                 {/* アバターアップロード */}
-                <div className="flex flex-col items-center gap-4 mb-6">
+                <div className="mb-6 flex flex-col items-center gap-4">
                   <Label>プロフィール写真（任意）</Label>
-                  <div 
-                    className={`
-                      relative border-2 border-dashed rounded-lg p-4 transition-colors
-                      ${isDraggingAvatar 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                      }
-                    `}
+                  <div
+                    className={`relative rounded-lg border-2 border-dashed p-4 transition-colors ${
+                      isDraggingAvatar
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-300 bg-gray-50 hover:border-gray-400"
+                    } `}
                     onDragOver={handleAvatarDragOver}
                     onDragLeave={handleAvatarDragLeave}
                     onDrop={handleAvatarDrop}
@@ -2267,31 +2496,35 @@ export default function CompleteProfilePage() {
                     {avatarPreview || profileData.avatarUrl ? (
                       <div className="relative">
                         <img
-                          src={avatarPreview || profileData.avatarUrl || ''}
+                          src={avatarPreview || profileData.avatarUrl || ""}
                           alt="アバタープレビュー"
-                          className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                          className="h-24 w-24 rounded-full border-4 border-gray-200 object-cover"
                         />
                         <button
                           type="button"
                           onClick={() => {
                             setAvatarFile(null)
                             setAvatarPreview(null)
-                            setProfileData(prev => ({ ...prev, avatarUrl: '' }))
+                            setProfileData((prev) => ({ ...prev, avatarUrl: "" }))
                             if (avatarInputRef.current) {
-                              avatarInputRef.current.value = ''
+                              avatarInputRef.current.value = ""
                             }
                           }}
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
                         >
                           <X size={14} />
                         </button>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2">
-                        <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                        <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-gray-300 bg-gray-200">
                           <User size={32} className="text-gray-400" />
                         </div>
-                        <p className="text-xs text-gray-500 text-center">ドラッグ＆ドロップ<br />またはクリック</p>
+                        <p className="text-center text-xs text-gray-500">
+                          ドラッグ＆ドロップ
+                          <br />
+                          またはクリック
+                        </p>
                       </div>
                     )}
                     <input
@@ -2312,51 +2545,55 @@ export default function CompleteProfilePage() {
                   >
                     {isUploadingAvatar ? (
                       <>
-                        <Loader2 className="animate-spin mr-2" size={16} />
+                        <Loader2 className="mr-2 animate-spin" size={16} />
                         アップロード中...
                       </>
                     ) : (
                       <>
                         <Camera size={16} className="mr-2" />
-                        {avatarPreview || profileData.avatarUrl ? '写真を変更' : '写真を選択'}
+                        {avatarPreview || profileData.avatarUrl ? "写真を変更" : "写真を選択"}
                       </>
                     )}
                   </Button>
                   <p className="text-xs text-gray-500">JPEG、PNG形式（最大5MB）</p>
-                  {errors.avatar && (
-                    <p className="text-sm text-red-500">{errors.avatar}</p>
-                  )}
+                  {errors.avatar && <p className="text-sm text-red-500">{errors.avatar}</p>}
                 </div>
-                
+
                 <div className="grid gap-2">
-                  <Label htmlFor="name">氏名 <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="name">
+                    氏名 <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="name"
                     value={profileData.name}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setProfileData((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="山田 太郎"
                     required
                   />
                   {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                 </div>
-                
+
                 <div className="grid gap-2">
                   <Label htmlFor="nameKana">氏名（カナ）</Label>
                   <Input
                     id="nameKana"
                     value={profileData.nameKana}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, nameKana: e.target.value }))}
+                    onChange={(e) =>
+                      setProfileData((prev) => ({ ...prev, nameKana: e.target.value }))
+                    }
                     placeholder="ヤマダ タロウ"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="position">肩書き</Label>
                     <Input
                       id="position"
                       value={profileData.position}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
+                      onChange={(e) =>
+                        setProfileData((prev) => ({ ...prev, position: e.target.value }))
+                      }
                       placeholder="例：部長、課長"
                     />
                   </div>
@@ -2365,57 +2602,59 @@ export default function CompleteProfilePage() {
                     <select
                       id="department"
                       value={profileData.department}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      onChange={(e) =>
+                        setProfileData((prev) => ({ ...prev, department: e.target.value }))
+                      }
+                      className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="">選択してください</option>
-                      {departments.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="phone">電話番号</Label>
                     <Input
                       id="phone"
                       value={profileData.phone}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                      onChange={(e) =>
+                        setProfileData((prev) => ({ ...prev, phone: e.target.value }))
+                      }
                       placeholder="03-1234-5678"
                     />
                   </div>
-                  
+
                   <div className="grid gap-2">
                     <Label htmlFor="mobile">携帯電話</Label>
                     <Input
                       id="mobile"
                       value={profileData.mobile}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, mobile: e.target.value }))}
+                      onChange={(e) =>
+                        setProfileData((prev) => ({ ...prev, mobile: e.target.value }))
+                      }
                       placeholder="090-1234-5678"
                     />
                   </div>
                 </div>
-                
-                {errors.general && (
-                  <p className="text-sm text-red-500">{errors.general}</p>
-                )}
-                
+
+                {errors.general && <p className="text-sm text-red-500">{errors.general}</p>}
+
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                    className="flex-1"
-                  >
+                  <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
                     戻る
                   </Button>
                   <Button
                     onClick={handleSaveProfile}
                     disabled={isLoading}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700"
                   >
-                    {isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                    {isLoading ? <Loader2 className="mr-2 animate-spin" size={18} /> : null}
                     次へ
                   </Button>
                 </div>
@@ -2426,9 +2665,9 @@ export default function CompleteProfilePage() {
 
         {/* Step 3: Company Information */}
         {step === 3 && (
-          <Card className="shadow-2xl border border-gray-200 bg-white">
+          <Card className="border border-gray-200 bg-white shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">会社情報</CardTitle>
+              <CardTitle className="text-center text-2xl font-bold">会社情報</CardTitle>
               <CardDescription className="text-center">
                 会社の基本情報を入力してください
               </CardDescription>
@@ -2436,13 +2675,15 @@ export default function CompleteProfilePage() {
             <CardContent>
               <div className="space-y-4">
                 {/* ウェブサイト入力とWeb検索ボタン（トップに配置） */}
-                <div className="grid gap-2 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="grid gap-2 rounded-lg border border-blue-100 bg-blue-50 p-4">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="website" className="font-semibold">ウェブサイト</Label>
+                    <Label htmlFor="website" className="font-semibold">
+                      ウェブサイト
+                    </Label>
                     <button
                       type="button"
                       onClick={() => setShowWebSearchHelp(true)}
-                      className="w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 text-white text-xs font-bold flex items-center justify-center transition-colors"
+                      className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-xs font-bold text-white transition-colors hover:bg-gray-500"
                       title="Web情報取得について"
                     >
                       ?
@@ -2452,15 +2693,17 @@ export default function CompleteProfilePage() {
                     <Input
                       id="website"
                       value={companyData.website}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, website: e.target.value }))}
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, website: e.target.value }))
+                      }
                       placeholder="https://example.com"
-                      className="sm:flex-1 bg-white"
+                      className="bg-white sm:flex-1"
                     />
                     <Button
                       type="button"
                       onClick={fetchCompanyIntel}
                       disabled={isFetchingCompanyIntel}
-                      className="sm:w-44 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+                      className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold text-white shadow-md transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg sm:w-44"
                     >
                       {isFetchingCompanyIntel ? (
                         <>
@@ -2478,7 +2721,7 @@ export default function CompleteProfilePage() {
                   <p className="text-xs text-gray-600">
                     会社のウェブサイトから業種・従業員数・売上などの情報を自動取得します
                   </p>
-                  <label className="flex items-center gap-2 text-xs text-gray-600 select-none">
+                  <label className="flex select-none items-center gap-2 text-xs text-gray-600">
                     <input
                       type="checkbox"
                       checked={useExternalCompanySources}
@@ -2488,11 +2731,15 @@ export default function CompleteProfilePage() {
                     外部企業情報サイトも検索する（従業員数/年商/拠点などの補完に有効）
                   </label>
                   {companyIntelStatus && (
-                    <div className={`text-xs p-2 rounded ${
-                      companyIntelStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                      companyIntelStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                      'bg-blue-50 text-blue-700 border border-blue-200'
-                    }`}>
+                    <div
+                      className={`rounded p-2 text-xs ${
+                        companyIntelStatus.type === "success"
+                          ? "border border-green-200 bg-green-50 text-green-700"
+                          : companyIntelStatus.type === "error"
+                            ? "border border-red-200 bg-red-50 text-red-700"
+                            : "border border-blue-200 bg-blue-50 text-blue-700"
+                      }`}
+                    >
                       {companyIntelStatus.message}
                     </div>
                   )}
@@ -2500,9 +2747,15 @@ export default function CompleteProfilePage() {
 
                 {/* Web検索ヘルプポップアップ */}
                 {showWebSearchHelp && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowWebSearchHelp(false)}>
-                    <div className="bg-white rounded-lg shadow-xl max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between mb-4">
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                    onClick={() => setShowWebSearchHelp(false)}
+                  >
+                    <div
+                      className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="mb-4 flex items-center justify-between">
                         <h3 className="text-lg font-bold text-gray-900">Web情報取得について</h3>
                         <button
                           type="button"
@@ -2514,10 +2767,11 @@ export default function CompleteProfilePage() {
                       </div>
                       <div className="space-y-3 text-sm text-gray-700">
                         <p>
-                          <strong>Web情報取得機能</strong>は、入力されたウェブサイトから会社情報を自動的に取得し、フォームに入力する機能です。
+                          <strong>Web情報取得機能</strong>
+                          は、入力されたウェブサイトから会社情報を自動的に取得し、フォームに入力する機能です。
                         </p>
                         <p className="font-semibold">取得できる情報:</p>
-                        <ul className="list-disc list-inside space-y-1 text-gray-600">
+                        <ul className="list-inside list-disc space-y-1 text-gray-600">
                           <li>業種</li>
                           <li>従業員数</li>
                           <li>年間売上</li>
@@ -2525,8 +2779,9 @@ export default function CompleteProfilePage() {
                           <li>主要製品・サービス</li>
                           <li>拠点情報</li>
                         </ul>
-                        <p className="text-xs text-gray-500 mt-4">
-                          ※ 「外部企業情報サイトも検索する」にチェックを入れると、求人サイトや企業データベースからも情報を補完します。
+                        <p className="mt-4 text-xs text-gray-500">
+                          ※
+                          「外部企業情報サイトも検索する」にチェックを入れると、求人サイトや企業データベースからも情報を補完します。
                         </p>
                       </div>
                       <div className="mt-6 flex justify-end">
@@ -2544,23 +2799,29 @@ export default function CompleteProfilePage() {
                 )}
 
                 <div className="grid gap-2">
-                  <Label htmlFor="companyName">会社名 <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="companyName">
+                    会社名 <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="companyName"
                     value={companyData.name}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setCompanyData((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="株式会社サンプル"
                     required
                   />
-                  {errors.companyName && <p className="text-sm text-red-500">{errors.companyName}</p>}
+                  {errors.companyName && (
+                    <p className="text-sm text-red-500">{errors.companyName}</p>
+                  )}
                 </div>
-                
+
                 <div className="grid gap-2">
                   <Label htmlFor="companyNameKana">会社名（カナ）</Label>
                   <Input
                     id="companyNameKana"
                     value={companyData.nameKana}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, nameKana: e.target.value }))}
+                    onChange={(e) =>
+                      setCompanyData((prev) => ({ ...prev, nameKana: e.target.value }))
+                    }
                     placeholder="カブシキガイシャサンプル"
                   />
                 </div>
@@ -2574,14 +2835,14 @@ export default function CompleteProfilePage() {
                       value={companyData.postalCode}
                       onChange={(e) => {
                         const value = e.target.value
-                        setCompanyData(prev => ({ ...prev, postalCode: value }))
+                        setCompanyData((prev) => ({ ...prev, postalCode: value }))
                         setPostalCodeStatus(null) // 入力中はステータスをクリア
                         // 郵便番号が7桁になったら自動的に住所を取得
-                        const cleanPostalCode = value.replace(/[ー-]/g, '')
+                        const cleanPostalCode = value.replace(/[ー-]/g, "")
                         if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
                           setPostalCodeStatus({
-                            message: '住所を検索中...',
-                            type: 'info'
+                            message: "住所を検索中...",
+                            type: "info",
                           })
                           fetchAddressFromPostalCode(value)
                         }
@@ -2589,11 +2850,11 @@ export default function CompleteProfilePage() {
                       onBlur={(e) => {
                         // フォーカスが外れた時にも住所を取得
                         const value = e.target.value
-                        const cleanPostalCode = value.replace(/[ー-]/g, '')
+                        const cleanPostalCode = value.replace(/[ー-]/g, "")
                         if (cleanPostalCode.length === 7 && /^\d{7}$/.test(cleanPostalCode)) {
                           setPostalCodeStatus({
-                            message: '住所を検索中...',
-                            type: 'info'
+                            message: "住所を検索中...",
+                            type: "info",
                           })
                           fetchAddressFromPostalCode(value)
                         }
@@ -2601,99 +2862,124 @@ export default function CompleteProfilePage() {
                       placeholder="150-0001"
                     />
                     {postalCodeStatus && (
-                      <div className={`text-xs p-2 rounded ${
-                        postalCodeStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                        postalCodeStatus.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                        'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
+                      <div
+                        className={`rounded p-2 text-xs ${
+                          postalCodeStatus.type === "success"
+                            ? "border border-green-200 bg-green-50 text-green-700"
+                            : postalCodeStatus.type === "error"
+                              ? "border border-red-200 bg-red-50 text-red-700"
+                              : "border border-blue-200 bg-blue-50 text-blue-700"
+                        }`}
+                      >
                         {postalCodeStatus.message}
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="grid gap-2">
                     <Label htmlFor="prefecture">都道府県</Label>
                     <Input
                       id="prefecture"
                       value={companyData.prefecture}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, prefecture: e.target.value }))}
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, prefecture: e.target.value }))
+                      }
                       placeholder="東京都"
                     />
                   </div>
-                  
+
                   <div className="grid gap-2">
                     <Label htmlFor="city">市区町村</Label>
                     <Input
                       id="city"
                       value={companyData.city}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, city: e.target.value }))}
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, city: e.target.value }))
+                      }
                       placeholder="渋谷区"
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid gap-2">
                   <Label htmlFor="address">町名番地以下</Label>
                   <Input
                     id="address"
                     value={companyData.address}
                     onChange={(e) => {
-                        const value = e.target.value
-                        setCompanyData(prev => {
-                          const next = { ...prev, address: value }
-                          const split = splitJapaneseAddressForCompanyForm(value, prev.prefecture, prev.city)
-                          if (split.prefecture && split.prefecture !== prev.prefecture) next.prefecture = split.prefecture
-                          if (split.city && split.city !== prev.city) next.city = split.city
-                          return next
-                        })
-                      }}
+                      const value = e.target.value
+                      setCompanyData((prev) => {
+                        const next = { ...prev, address: value }
+                        const split = splitJapaneseAddressForCompanyForm(
+                          value,
+                          prev.prefecture,
+                          prev.city
+                        )
+                        if (split.prefecture && split.prefecture !== prev.prefecture)
+                          next.prefecture = split.prefecture
+                        if (split.city && split.city !== prev.city) next.city = split.city
+                        return next
+                      })
+                    }}
                     placeholder="名駅1-1-1 JPタワー名古屋25階"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="industry">業種</Label>
                     <select
                       id="industry"
                       value={companyData.industry}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, industry: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, industry: e.target.value }))
+                      }
+                      className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="">選択してください</option>
-                      {industries.map(ind => (
-                        <option key={ind} value={ind}>{ind}</option>
+                      {industries.map((ind) => (
+                        <option key={ind} value={ind}>
+                          {ind}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="grid gap-2">
                     <Label htmlFor="employeeCount">従業員数</Label>
                     <select
                       id="employeeCount"
                       value={companyData.employeeCount}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, employeeCount: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, employeeCount: e.target.value }))
+                      }
+                      className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="">選択してください</option>
-                      {employeeRanges.map(range => (
-                        <option key={range} value={range}>{range}</option>
+                      {employeeRanges.map((range) => (
+                        <option key={range} value={range}>
+                          {range}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="grid gap-2">
                   <Label htmlFor="annualRevenue">年間売上</Label>
                   <select
                     id="annualRevenue"
                     value={companyData.annualRevenue}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, annualRevenue: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    onChange={(e) =>
+                      setCompanyData((prev) => ({ ...prev, annualRevenue: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                   >
                     <option value="">選択してください</option>
-                    {revenueRanges.map(range => (
-                      <option key={range} value={range}>{range}</option>
+                    {revenueRanges.map((range) => (
+                      <option key={range} value={range}>
+                        {range}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -2704,12 +2990,16 @@ export default function CompleteProfilePage() {
                     <select
                       id="fiscalYearEnd"
                       value={companyData.fiscalYearEnd}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, fiscalYearEnd: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, fiscalYearEnd: e.target.value }))
+                      }
+                      className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="">選択してください</option>
                       {[...Array(12)].map((_, i) => (
-                        <option key={i + 1} value={String(i + 1)}>{i + 1}月</option>
+                        <option key={i + 1} value={String(i + 1)}>
+                          {i + 1}月
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -2719,7 +3009,9 @@ export default function CompleteProfilePage() {
                       id="companyEmail"
                       type="email"
                       value={companyData.email}
-                      onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) =>
+                        setCompanyData((prev) => ({ ...prev, email: e.target.value }))
+                      }
                       placeholder="info@example.com"
                     />
                   </div>
@@ -2730,9 +3022,11 @@ export default function CompleteProfilePage() {
                   <textarea
                     id="retrievedInfo"
                     value={companyData.retrievedInfo}
-                    onChange={(e) => setCompanyData(prev => ({ ...prev, retrievedInfo: e.target.value }))}
+                    onChange={(e) =>
+                      setCompanyData((prev) => ({ ...prev, retrievedInfo: e.target.value }))
+                    }
                     placeholder="Web情報取得で取得した内容（製品、工場、支店、店舗数など）が表示されます"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 min-h-[120px]"
+                    className="min-h-[120px] w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                   />
                   <p className="text-xs text-gray-500">
                     取得結果やメモを保存できます。保存すると「追加情報」フィールドとして記録されます。
@@ -2744,50 +3038,68 @@ export default function CompleteProfilePage() {
                       </summary>
                       <div className="mt-2 space-y-2">
                         <div className="text-[11px] text-gray-600">
-                          method: {String(companyIntelMeta.method || '')}
-                          {companyIntelMeta.firecrawlStatus ? ` / firecrawlStatus: ${companyIntelMeta.firecrawlStatus}` : ''}
+                          method: {String(companyIntelMeta.method || "")}
+                          {companyIntelMeta.firecrawlStatus
+                            ? ` / firecrawlStatus: ${companyIntelMeta.firecrawlStatus}`
+                            : ""}
                         </div>
                         {(companyIntelMeta.directDetails || companyIntelMeta.directException) && (
                           <div>
-                            <div className="text-[11px] font-semibold text-gray-700 mb-1">公式HP取得エラー詳細</div>
-                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
-{String(companyIntelMeta.directDetails || companyIntelMeta.directException || '(なし)')}
+                            <div className="mb-1 text-[11px] font-semibold text-gray-700">
+                              公式HP取得エラー詳細
+                            </div>
+                            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800">
+                              {String(
+                                companyIntelMeta.directDetails ||
+                                  companyIntelMeta.directException ||
+                                  "(なし)"
+                              )}
                             </pre>
                           </div>
                         )}
                         <div>
-                          <div className="text-[11px] font-semibold text-gray-700 mb-1">公式HPプレビュー</div>
-                          <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
-{String(companyIntelMeta.officialPreview || '(なし)')}
+                          <div className="mb-1 text-[11px] font-semibold text-gray-700">
+                            公式HPプレビュー
+                          </div>
+                          <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800">
+                            {String(companyIntelMeta.officialPreview || "(なし)")}
                           </pre>
                         </div>
                         <div>
-                          <div className="text-[11px] font-semibold text-gray-700 mb-1">外部情報サイトプレビュー</div>
-                          <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
-{String(companyIntelMeta.externalPreview || '(なし)')}
+                          <div className="mb-1 text-[11px] font-semibold text-gray-700">
+                            外部情報サイトプレビュー
+                          </div>
+                          <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800">
+                            {String(companyIntelMeta.externalPreview || "(なし)")}
                           </pre>
                         </div>
                         {companyIntelMeta.externalMeta && (
                           <div>
-                            <div className="text-[11px] font-semibold text-gray-700 mb-1">外部検索ログ（queries / results / fetchLogs）</div>
-                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-72 overflow-auto">
-{JSON.stringify(companyIntelMeta.externalMeta, null, 2)}
+                            <div className="mb-1 text-[11px] font-semibold text-gray-700">
+                              外部検索ログ（queries / results / fetchLogs）
+                            </div>
+                            <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800">
+                              {JSON.stringify(companyIntelMeta.externalMeta, null, 2)}
                             </pre>
                           </div>
                         )}
                         {companyIntelMeta.directDetails && (
                           <div>
-                            <div className="text-[11px] font-semibold text-gray-700 mb-1">通常fetchエラー詳細</div>
-                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
-{String(companyIntelMeta.directDetails || '(なし)')}
+                            <div className="mb-1 text-[11px] font-semibold text-gray-700">
+                              通常fetchエラー詳細
+                            </div>
+                            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800">
+                              {String(companyIntelMeta.directDetails || "(なし)")}
                             </pre>
                           </div>
                         )}
                         {companyIntelMeta.directException && (
                           <div>
-                            <div className="text-[11px] font-semibold text-gray-700 mb-1">通常fetch例外</div>
-                            <pre className="whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800 max-h-48 overflow-auto">
-{String(companyIntelMeta.directException || '(なし)')}
+                            <div className="mb-1 text-[11px] font-semibold text-gray-700">
+                              通常fetch例外
+                            </div>
+                            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border bg-white p-2 text-[11px] text-gray-800">
+                              {String(companyIntelMeta.directException || "(なし)")}
                             </pre>
                           </div>
                         )}
@@ -2795,37 +3107,31 @@ export default function CompleteProfilePage() {
                     </details>
                   )}
                 </div>
-                
+
                 {/* 会社資料アップロード */}
                 <div className="grid gap-2">
                   <Label>会社資料（任意）</Label>
                   <FileUpload
                     files={companyDocuments}
                     onFilesChange={setCompanyDocuments}
-                    acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                    acceptedTypes={["application/pdf", "image/jpeg", "image/png"]}
                     maxSize={10 * 1024 * 1024}
                     multiple={true}
                   />
                 </div>
-                
-                {errors.general && (
-                  <p className="text-sm text-red-500">{errors.general}</p>
-                )}
-                
+
+                {errors.general && <p className="text-sm text-red-500">{errors.general}</p>}
+
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(2)}
-                    className="flex-1"
-                  >
+                  <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
                     戻る
                   </Button>
                   <Button
                     onClick={handleSaveCompany}
                     disabled={isLoading}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700"
                   >
-                    {isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                    {isLoading ? <Loader2 className="mr-2 animate-spin" size={18} /> : null}
                     完了してダッシュボードへ
                   </Button>
                 </div>
@@ -2835,10 +3141,10 @@ export default function CompleteProfilePage() {
         )}
 
         {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        <div className="mt-6 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
           >
             <Home size={18} />
             <span>トップページに戻る</span>
@@ -2848,4 +3154,3 @@ export default function CompleteProfilePage() {
     </div>
   )
 }
-

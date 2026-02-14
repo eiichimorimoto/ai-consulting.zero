@@ -5,15 +5,15 @@
  *
  * @see stripe-payment-spec-v2.2.md §5-1, §8-1
  */
-'use client'
+"use client"
 
-import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { LazyMotion, domAnimation, m } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
-import AppHeader from '@/components/AppHeader'
-import { CancelFlow } from '@/components/billing/CancelFlow'
+import React, { useEffect, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { LazyMotion, domAnimation, m } from "framer-motion"
+import { ArrowLeft } from "lucide-react"
+import AppHeader from "@/components/AppHeader"
+import { CancelFlow } from "@/components/billing/CancelFlow"
 
 interface SubscriptionData {
   plan_type: string
@@ -31,7 +31,7 @@ export default function CancelPage() {
   useEffect(() => {
     async function fetchSubscription() {
       try {
-        const res = await fetch('/api/stripe/subscription')
+        const res = await fetch("/api/stripe/subscription")
         if (res.ok) {
           const data = await res.json()
           setSub(data.subscription)
@@ -50,8 +50,8 @@ export default function CancelPage() {
     if (!loading && sub) {
       // Freeプランまたは既に解約予定の場合のみリダイレクト
       // has_stripe_subscriptionの条件は削除（有料プランなら解約フローを表示すべき）
-      if (sub.plan_type === 'free' || sub.cancel_at) {
-        router.replace('/account/billing')
+      if (sub.plan_type === "free" || sub.cancel_at) {
+        router.replace("/account/billing")
       }
     }
   }, [loading, sub, router])
@@ -62,10 +62,10 @@ export default function CancelPage() {
         <AppHeader />
 
         <main className="pt-20">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
             <Link
               href="/dashboard/settings?tab=plan"
-              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft size={16} />
               設定（プラン）に戻る
@@ -82,16 +82,13 @@ export default function CancelPage() {
               {loading ? (
                 <div className="space-y-4">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+                    <div key={i} className="h-20 animate-pulse rounded-xl bg-gray-100" />
                   ))}
                 </div>
-              ) : sub && sub.plan_type !== 'free' && !sub.cancel_at ? (
-                <CancelFlow
-                  planType={sub.plan_type}
-                  currentPeriodEnd={sub.current_period_end}
-                />
+              ) : sub && sub.plan_type !== "free" && !sub.cancel_at ? (
+                <CancelFlow planType={sub.plan_type} currentPeriodEnd={sub.current_period_end} />
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="py-12 text-center text-gray-500">
                   解約対象のサブスクリプションがありません。
                 </div>
               )}

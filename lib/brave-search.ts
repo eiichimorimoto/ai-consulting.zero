@@ -4,7 +4,7 @@
  * 複数のAPIエンドポイントで共通して使用するBrave検索機能を提供
  */
 
-import { fetchWithRetry } from './fetch-with-retry'
+import { fetchWithRetry } from "./fetch-with-retry"
 
 // デフォルトのUser-Agent
 const DEFAULT_UA =
@@ -39,7 +39,7 @@ export async function braveWebSearch(
 ): Promise<BraveWebResult[]> {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
   if (!key) {
-    console.warn('⚠️ BRAVE_SEARCH_API_KEY が設定されていません')
+    console.warn("⚠️ BRAVE_SEARCH_API_KEY が設定されていません")
     return []
   }
 
@@ -65,17 +65,18 @@ export async function braveWebSearch(
       return []
     }
 
-    const json = await resp.json() as { web?: { results?: Array<{ url?: string; title?: string; description?: string }> } }
+    const json = (await resp.json()) as {
+      web?: { results?: Array<{ url?: string; title?: string; description?: string }> }
+    }
     const items = json?.web?.results || []
 
     return items
       .map((r) => ({
-        url: r?.url || '',
+        url: r?.url || "",
         title: r?.title,
-        description: r?.description
+        description: r?.description,
       }))
       .filter((r) => typeof r.url === "string" && r.url.length > 0) as BraveWebResult[]
-
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(`❌ Brave Search エラー (query: "${query}"): ${message}`)
@@ -94,8 +95,6 @@ export async function braveWebSearchMultiple(
   queries: string[],
   countPerQuery: number = 5
 ): Promise<BraveWebResult[]> {
-  const results = await Promise.all(
-    queries.map(query => braveWebSearch(query, countPerQuery))
-  )
+  const results = await Promise.all(queries.map((query) => braveWebSearch(query, countPerQuery)))
   return results.flat()
 }

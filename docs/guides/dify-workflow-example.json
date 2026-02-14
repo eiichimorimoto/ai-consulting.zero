@@ -59,12 +59,7 @@
         "title": "コンテキスト整形",
         "language": "javascript",
         "code": "function main(args) {\n  // HTTP Requestの出力を取得\n  const context = args.context;\n  \n  // レスポンスが成功しているか確認\n  if (!context || !context.success || !context.data) {\n    return {\n      formatted_context: 'エラー: データの取得に失敗しました',\n      company_name: '不明',\n      user_name: '不明',\n      has_history: false\n    };\n  }\n  \n  const data = context.data;\n  \n  // 会社情報の整形\n  const companyInfo = [\n    '【会社情報】',\n    '会社名: ' + (data.company.name || '不明'),\n    '業種: ' + (data.company.industry || '不明'),\n    '従業員数: ' + (data.company.employee_count || '不明'),\n    '事業内容: ' + (data.company.business_description || 'なし'),\n    '現在の課題: ' + ((data.company.current_challenges || []).join(', ') || 'なし'),\n    'IT成熟度: ' + (data.company.it_maturity_level || '不明')\n  ].join('\\n');\n  \n  // プロフィール整形\n  const profileInfo = [\n    '',\n    '【担当者情報】',\n    '名前: ' + data.profile.name,\n    '役職: ' + (data.profile.position || '不明'),\n    '部署: ' + (data.profile.department || '不明'),\n    'メール: ' + data.profile.email\n  ].join('\\n');\n  \n  // Web情報整形\n  let webInfo = '';\n  if (data.webResources && data.webResources.length > 0) {\n    const resources = data.webResources.map(function(r) {\n      return '- ' + (r.title || 'タイトルなし') + ': ' + (r.description || '');\n    }).join('\\n');\n    webInfo = '\\n\\n【外部情報】\\n' + resources;\n  }\n  \n  // 会話履歴整形（継続案件の場合）\n  let historyInfo = '';\n  if (data.conversationHistory) {\n    const session = data.conversationHistory.session;\n    const messages = data.conversationHistory.recentMessages || [];\n    \n    const messageList = messages.map(function(m) {\n      return m.role + ': ' + m.content;\n    }).join('\\n');\n    \n    historyInfo = [\n      '',\n      '',\n      '【過去の相談】',\n      'セッション: ' + session.title,\n      '分析サマリー: ' + (session.summary || 'なし'),\n      '前回の提案: ' + (session.recommendations ? JSON.stringify(session.recommendations) : 'なし'),\n      '',\n      '【直近の会話】',\n      messageList\n    ].join('\\n');\n  }\n  \n  return {\n    formatted_context: companyInfo + profileInfo + webInfo + historyInfo,\n    company_name: data.company.name || '不明',\n    user_name: data.profile.name || '不明',\n    has_history: !!data.conversationHistory\n  };\n}",
-        "output_variables": [
-          "formatted_context",
-          "company_name",
-          "user_name",
-          "has_history"
-        ]
+        "output_variables": ["formatted_context", "company_name", "user_name", "has_history"]
       }
     },
     {

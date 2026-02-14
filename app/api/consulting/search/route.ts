@@ -1,19 +1,19 @@
 /**
  * Web検索API（Brave Search版）
- * 
+ *
  * Brave Search APIを使用してWeb検索を実行
- * 
+ *
  * 注: Google Custom Search APIは設定が複雑なため、
  * 当面はBrave Search APIのみを使用します。
- * 
+ *
  * @endpoint POST /api/consulting/search
  * @param {string} query - 検索クエリ
  * @returns {SearchResult[]} 検索結果（最大10件）
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server"
 // import { hybridWebSearch } from '@/lib/hybrid-search' // Google検索を無効化
-import { braveWebSearch } from '@/lib/brave-search'
+import { braveWebSearch } from "@/lib/brave-search"
 
 export interface SearchResult {
   url: string
@@ -26,64 +26,60 @@ export async function POST(request: NextRequest) {
     // 1. 入力検証
     const body = await request.json()
     const { query } = body
-    
-    if (!query || typeof query !== 'string') {
-      return NextResponse.json(
-        { success: false, error: '検索クエリが無効です' },
-        { status: 400 }
-      )
+
+    if (!query || typeof query !== "string") {
+      return NextResponse.json({ success: false, error: "検索クエリが無効です" }, { status: 400 })
     }
-    
+
     if (query.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: '検索クエリを入力してください' },
+        { success: false, error: "検索クエリを入力してください" },
         { status: 400 }
       )
     }
-    
+
     if (query.length > 500) {
       return NextResponse.json(
-        { success: false, error: '検索クエリが長すぎます（最大500文字）' },
+        { success: false, error: "検索クエリが長すぎます（最大500文字）" },
         { status: 400 }
       )
     }
-    
+
     // 2. Brave Search実行（最大10件）
     const results = await braveWebSearch(query, 10)
-    
+
     if (results.length === 0) {
       return NextResponse.json({
         success: true,
         results: [],
-        message: '検索結果が見つかりませんでした',
-        source: 'brave'
+        message: "検索結果が見つかりませんでした",
+        source: "brave",
       })
     }
-    
+
     // 3. 結果整形（title/description は Brave では optional のため空文字でフォールバック）
-    const formattedResults: SearchResult[] = results.map(r => ({
+    const formattedResults: SearchResult[] = results.map((r) => ({
       url: r.url,
-      title: r.title ?? '',
-      description: r.description ?? ''
+      title: r.title ?? "",
+      description: r.description ?? "",
     }))
-    
+
     // 4. 結果返却
     return NextResponse.json({
       success: true,
       results: formattedResults,
-      source: 'brave' // Brave Searchのみ使用
+      source: "brave", // Brave Searchのみ使用
     })
-    
   } catch (error) {
-    console.error('Search API error:', error)
-    
-    const errorMessage = error instanceof Error ? error.message : '不明なエラー'
-    
+    console.error("Search API error:", error)
+
+    const errorMessage = error instanceof Error ? error.message : "不明なエラー"
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: '検索中にエラーが発生しました',
-        details: errorMessage
+      {
+        success: false,
+        error: "検索中にエラーが発生しました",
+        details: errorMessage,
       },
       { status: 500 }
     )

@@ -1,11 +1,11 @@
-'use client';
+"use client"
 
-import { useState, useRef, DragEvent } from "react";
-import { Upload, FileText, X, Eye, Calculator } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useRef, DragEvent } from "react"
+import { Upload, FileText, X, Eye, Calculator } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Dialog,
   DialogContent,
@@ -13,100 +13,100 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
 
 interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  uploadedAt: Date;
-  budgetData?: BudgetDataItem[];
+  id: string
+  name: string
+  size: number
+  type: string
+  uploadedAt: Date
+  budgetData?: BudgetDataItem[]
 }
 
 interface BudgetDataItem {
-  actual: number;
-  budget?: number;
+  actual: number
+  budget?: number
 }
 
 interface FilesTabProps {
-  onBudgetDataImported?: (data: BudgetDataItem[]) => void;
-  onBudgetGenerated?: (data: BudgetDataItem[]) => void;
-  attachedFiles?: File[];
+  onBudgetDataImported?: (data: BudgetDataItem[]) => void
+  onBudgetGenerated?: (data: BudgetDataItem[]) => void
+  attachedFiles?: File[]
 }
 
-export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFiles = [] }: FilesTabProps) {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showGrowthRateDialog, setShowGrowthRateDialog] = useState(false);
-  const [selectedFileForBudget, setSelectedFileForBudget] = useState<UploadedFile | null>(null);
-  const [growthRate, setGrowthRate] = useState<number>(20);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export function FilesTab({
+  onBudgetDataImported,
+  onBudgetGenerated,
+  attachedFiles = [],
+}: FilesTabProps) {
+  const [files, setFiles] = useState<UploadedFile[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [showGrowthRateDialog, setShowGrowthRateDialog] = useState(false)
+  const [selectedFileForBudget, setSelectedFileForBudget] = useState<UploadedFile | null>(null)
+  const [growthRate, setGrowthRate] = useState<number>(20)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
+    if (bytes === 0) return "0 Bytes"
+    const k = 1024
+    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
+  }
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
 
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
+    e.preventDefault()
+    e.stopPropagation()
+  }
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
 
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    handleFiles(droppedFiles);
-  };
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    handleFiles(droppedFiles)
+  }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files);
-      handleFiles(selectedFiles);
+      const selectedFiles = Array.from(e.target.files)
+      handleFiles(selectedFiles)
     }
-  };
+  }
 
   const handleFiles = async (newFiles: File[]) => {
-    setIsUploading(true);
+    setIsUploading(true)
 
     for (const file of newFiles) {
       try {
         // Check if it's Excel or CSV
-        const isExcelOrCSV = /\.(xlsx?|csv)$/i.test(file.name);
+        const isExcelOrCSV = /\.(xlsx?|csv)$/i.test(file.name)
 
-        let budgetData: BudgetDataItem[] | undefined;
+        let budgetData: BudgetDataItem[] | undefined
 
         if (isExcelOrCSV) {
           // For demo purposes, create mock budget data
-          budgetData = [
-            { actual: 12500000 },
-            { actual: 7200000 },
-            { actual: 5300000 },
-          ];
+          budgetData = [{ actual: 12500000 }, { actual: 7200000 }, { actual: 5300000 }]
 
           // Notify parent component about new budget data
           if (onBudgetDataImported && budgetData) {
-            onBudgetDataImported(budgetData);
+            onBudgetDataImported(budgetData)
           }
         }
 
@@ -117,58 +117,62 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFile
           type: file.type,
           uploadedAt: new Date(),
           budgetData,
-        };
+        }
 
-        setFiles(prev => [...prev, uploadedFile]);
-        toast.success(`${file.name} をアップロードしました`);
+        setFiles((prev) => [...prev, uploadedFile])
+        toast.success(`${file.name} をアップロードしました`)
       } catch (error) {
-        console.error('File upload error:', error);
-        toast.error("アップロード失敗", { description: `${file.name} のアップロードに失敗しました。` });
+        console.error("File upload error:", error)
+        toast.error("アップロード失敗", {
+          description: `${file.name} のアップロードに失敗しました。`,
+        })
       }
     }
 
-    setIsUploading(false);
-  };
+    setIsUploading(false)
+  }
 
   const handleRemoveFile = (id: string) => {
-    setFiles(prev => prev.filter(file => file.id !== id));
-  };
+    setFiles((prev) => prev.filter((file) => file.id !== id))
+  }
 
   const handleGenerateBudget = () => {
     if (!selectedFileForBudget || !selectedFileForBudget.budgetData) {
-      toast.error("予算を生成できません", { description: "ファイルデータが見つかりません。" });
-      return;
+      toast.error("予算を生成できません", { description: "ファイルデータが見つかりません。" })
+      return
     }
 
     try {
       // Calculate budget from actual with growth rate
-      const multiplier = 1 + (growthRate / 100);
+      const multiplier = 1 + growthRate / 100
       const generatedBudget = selectedFileForBudget.budgetData.map((item) => ({
         ...item,
         budget: Math.round(item.actual * multiplier),
-      }));
+      }))
 
       // Notify parent component
       if (onBudgetGenerated) {
-        onBudgetGenerated(generatedBudget);
+        onBudgetGenerated(generatedBudget)
       }
 
-      toast.success(`予算を生成しました（増減率: ${growthRate > 0 ? '+' : ''}${growthRate}%）`);
-      setShowGrowthRateDialog(false);
+      toast.success(`予算を生成しました（増減率: ${growthRate > 0 ? "+" : ""}${growthRate}%）`)
+      setShowGrowthRateDialog(false)
     } catch (error) {
-      console.error('Budget generation error:', error);
-      toast.error("予算の生成に失敗", { description: "予算の生成に失敗しました。もう一度お試しください。" });
+      console.error("Budget generation error:", error)
+      toast.error("予算の生成に失敗", {
+        description: "予算の生成に失敗しました。もう一度お試しください。",
+      })
     }
-  };
+  }
 
   const handleClickDropZone = () => {
-    fileInputRef.current?.click();
-  };
+    fileInputRef.current?.click()
+  }
 
   return (
     <div className="p-6">
-      <h3 className="text-sm font-bold text-foreground mb-1">ファイル</h3>
-      <p className="text-xs text-muted-foreground mb-4">ドラッグ&ドロップで追加</p>
+      <h3 className="text-foreground mb-1 text-sm font-bold">ファイル</h3>
+      <p className="text-muted-foreground mb-4 text-xs">ドラッグ&ドロップで追加</p>
 
       {/* Drop Zone */}
       <div
@@ -177,20 +181,18 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFile
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={handleClickDropZone}
-        className={`
-          border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer
-          ${isDragging
-            ? 'border-primary bg-primary/5'
-            : 'border-border hover:border-primary/50'
-          }
-        `}
+        className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all ${
+          isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+        } `}
       >
-        <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
-        <p className="text-sm text-muted-foreground mb-2">
-          {isDragging ? 'ここにドロップ' : 'ファイルをドラッグ&ドロップ'}
+        <Upload
+          className={`mx-auto mb-4 h-12 w-12 ${isDragging ? "text-primary" : "text-muted-foreground"}`}
+        />
+        <p className="text-muted-foreground mb-2 text-sm">
+          {isDragging ? "ここにドロップ" : "ファイルをドラッグ&ドロップ"}
         </p>
-        <p className="text-xs text-muted-foreground">または クリックして選択</p>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-muted-foreground text-xs">または クリックして選択</p>
+        <p className="text-muted-foreground mt-2 text-xs">
           対応形式: PDF, Excel, Word, 画像 (最大10MB)
         </p>
       </div>
@@ -206,12 +208,12 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFile
 
       {/* Uploaded Files List */}
       <div className="mt-6">
-        <h4 className="text-xs font-semibold text-muted-foreground mb-3">
+        <h4 className="text-muted-foreground mb-3 text-xs font-semibold">
           アップロード済みファイル ({files.length + attachedFiles.length})
         </h4>
 
         {files.length === 0 && attachedFiles.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">ファイルがありません</p>
+          <p className="text-muted-foreground py-4 text-center text-xs">ファイルがありません</p>
         ) : (
           <div className="space-y-2">
             {/* チャットエリアから添付されたファイル */}
@@ -219,75 +221,80 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFile
               <Card key={`attached-${index}`} className="border-border/50 bg-blue-50/50">
                 <CardContent className="p-3">
                   <div className="flex items-start gap-3">
-                    <FileText className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                    <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-foreground truncate text-xs font-medium">{file.name}</p>
+                      <p className="text-muted-foreground text-xs">
                         {formatFileSize(file.size)} • チャットから添付
                       </p>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex flex-shrink-0 gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
-                        onClick={() => {/* TODO: Preview */}}
+                        onClick={() => {
+                          /* TODO: Preview */
+                        }}
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            
+
             {/* FilesTabから直接アップロードされたファイル */}
-            {files.map(file => (
+            {files.map((file) => (
               <Card key={file.id} className="border-border/50">
                 <CardContent className="p-3">
                   <div className="flex items-start gap-3">
-                    <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleString('ja-JP', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                    <FileText className="text-muted-foreground mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-foreground truncate text-xs font-medium">{file.name}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {formatFileSize(file.size)} •{" "}
+                        {new Date(file.uploadedAt).toLocaleString("ja-JP", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </p>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex flex-shrink-0 gap-1">
                       {file.budgetData && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0"
                           onClick={() => {
-                            setSelectedFileForBudget(file);
-                            setShowGrowthRateDialog(true);
+                            setSelectedFileForBudget(file)
+                            setShowGrowthRateDialog(true)
                           }}
                           title="予算を生成"
                         >
-                          <Calculator className="w-3.5 h-3.5" />
+                          <Calculator className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
-                        onClick={() => {/* TODO: Preview */}}
+                        onClick={() => {
+                          /* TODO: Preview */
+                        }}
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive h-7 w-7 p-0"
                         onClick={() => handleRemoveFile(file.id)}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -317,7 +324,7 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFile
                 onChange={(e) => setGrowthRate(Number(e.target.value))}
                 placeholder="20"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 例: +20% で入力すると、実績の1.2倍が予算になります
               </p>
             </div>
@@ -326,12 +333,10 @@ export function FilesTab({ onBudgetDataImported, onBudgetGenerated, attachedFile
             <Button variant="outline" onClick={() => setShowGrowthRateDialog(false)}>
               キャンセル
             </Button>
-            <Button onClick={handleGenerateBudget}>
-              予算を生成
-            </Button>
+            <Button onClick={handleGenerateBudget}>予算を生成</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

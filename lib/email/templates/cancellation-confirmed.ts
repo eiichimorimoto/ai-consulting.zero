@@ -5,7 +5,7 @@
 
 export interface CancellationConfirmedParams {
   userName: string
-  cancelType: 'end_of_period' | 'immediate'
+  cancelType: "end_of_period" | "immediate"
   periodEndDate?: string // YYYY-MM-DD
   pricingUrl: string
 }
@@ -14,10 +14,10 @@ export function cancellationConfirmedTemplate(params: CancellationConfirmedParam
   subject: string
   html: string
 } {
-  const isEndOfPeriod = params.cancelType === 'end_of_period'
+  const isEndOfPeriod = params.cancelType === "end_of_period"
 
   return {
-    subject: '【SolveWise】サブスクリプション解約のご連絡',
+    subject: "【SolveWise】サブスクリプション解約のご連絡",
     html: `
 <!DOCTYPE html>
 <html lang="ja">
@@ -26,17 +26,21 @@ export function cancellationConfirmedTemplate(params: CancellationConfirmedParam
   <h2 style="color: #6b7280;">サブスクリプション解約のご連絡</h2>
   <p>${params.userName} 様</p>
   <p>SolveWiseのサブスクリプション解約手続きが完了しました。</p>
-  ${isEndOfPeriod ? `
+  ${
+    isEndOfPeriod
+      ? `
   <p style="background: #f3f4f6; padding: 16px; border-radius: 8px;">
-    現在の請求期間終了日（${params.periodEndDate || '—'}）までサービスをご利用いただけます。<br/>
+    現在の請求期間終了日（${params.periodEndDate || "—"}）までサービスをご利用いただけます。<br/>
     期間終了後、Freeプランに移行されます。
   </p>
-  ` : `
+  `
+      : `
   <p style="background: #f3f4f6; padding: 16px; border-radius: 8px;">
     即時解約が完了しました。Freeプランに移行されました。<br/>
     データは30日間保持されます。
   </p>
-  `}
+  `
+  }
   <p>再度ご利用をご検討の際は、いつでもプランをご契約いただけます。</p>
   <p style="margin: 24px 0;">
     <a href="${params.pricingUrl}" style="display: inline-block; padding: 12px 24px; background-color: #6b7280; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">

@@ -4,74 +4,74 @@
  * 開発サーバー起動時に自動でブラウザを開くラッパースクリプト。
  * Next.jsの準備完了ログを検出したら一度だけブラウザを起動する。
  */
-const { spawn } = require('child_process');
+const { spawn } = require("child_process")
 
-const nextBin = require.resolve('next/dist/bin/next');
-const port = process.env.PORT || '3000';
-const fallbackUrl = `http://localhost:${port}`;
+const nextBin = require.resolve("next/dist/bin/next")
+const port = process.env.PORT || "3000"
+const fallbackUrl = `http://localhost:${port}`
 
-let detectedLocalUrl = null;
+let detectedLocalUrl = null
 
-let browserOpened = false;
+let browserOpened = false
 
 // Next.js 16 推奨: Turbopack をデフォルトで使用（安定版、高速）
 // Webpack を使いたい場合は `NEXT_DEV_ENGINE=webpack` を環境変数で指定する。
-const engine = (process.env.NEXT_DEV_ENGINE || 'turbopack').toLowerCase();
-const devArgs = [nextBin, 'dev', engine === 'turbopack' ? '--turbo' : '--webpack'];
+const engine = (process.env.NEXT_DEV_ENGINE || "turbopack").toLowerCase()
+const devArgs = [nextBin, "dev", engine === "turbopack" ? "--turbo" : "--webpack"]
 
 const nextProcess = spawn(process.execPath, devArgs, {
   env: process.env,
-  stdio: ['inherit', 'pipe', 'pipe'],
-});
+  stdio: ["inherit", "pipe", "pipe"],
+})
 
 const extractLocalUrl = (text) => {
   // Next.jsのログ例:
   // - Local:         http://localhost:3000
-  const match = text.match(/- Local:\s+(https?:\/\/\S+)/i);
-  return match?.[1] ?? null;
-};
+  const match = text.match(/- Local:\s+(https?:\/\/\S+)/i)
+  return match?.[1] ?? null
+}
 
 const getUrlToOpen = () => {
-  return process.env.DEV_SERVER_URL || detectedLocalUrl || fallbackUrl;
-};
+  return process.env.DEV_SERVER_URL || detectedLocalUrl || fallbackUrl
+}
 
 const maybeOpenBrowser = (chunk) => {
-  if (browserOpened) return;
-  const text = chunk.toString();
-  const localUrl = extractLocalUrl(text);
-  if (localUrl) detectedLocalUrl = localUrl;
+  if (browserOpened) return
+  const text = chunk.toString()
+  const localUrl = extractLocalUrl(text)
+  if (localUrl) detectedLocalUrl = localUrl
   if (/Ready in/i.test(text) || /started server/i.test(text)) {
-    browserOpened = true;
-    const urlToOpen = getUrlToOpen();
-    const opener = process.platform === 'win32'
-      ? spawn('cmd', ['/c', 'start', '', urlToOpen], { stdio: 'ignore', detached: true })
-      : process.platform === 'darwin'
-        ? spawn('open', [urlToOpen], { stdio: 'ignore', detached: true })
-        : spawn('xdg-open', [urlToOpen], { stdio: 'ignore', detached: true });
-    opener.unref();
-    process.stdout.write(`\n自動でブラウザを起動しました: ${urlToOpen}\n\n`);
+    browserOpened = true
+    const urlToOpen = getUrlToOpen()
+    const opener =
+      process.platform === "win32"
+        ? spawn("cmd", ["/c", "start", "", urlToOpen], { stdio: "ignore", detached: true })
+        : process.platform === "darwin"
+          ? spawn("open", [urlToOpen], { stdio: "ignore", detached: true })
+          : spawn("xdg-open", [urlToOpen], { stdio: "ignore", detached: true })
+    opener.unref()
+    process.stdout.write(`\n自動でブラウザを起動しました: ${urlToOpen}\n\n`)
   }
-};
+}
 
-nextProcess.stdout.on('data', (data) => {
-  process.stdout.write(data);
-  maybeOpenBrowser(data);
-});
+nextProcess.stdout.on("data", (data) => {
+  process.stdout.write(data)
+  maybeOpenBrowser(data)
+})
 
-nextProcess.stderr.on('data', (data) => {
-  process.stderr.write(data);
-  maybeOpenBrowser(data);
-});
+nextProcess.stderr.on("data", (data) => {
+  process.stderr.write(data)
+  maybeOpenBrowser(data)
+})
 
 const handleSignal = (signal) => {
-  nextProcess.kill(signal);
-  process.exit();
-};
+  nextProcess.kill(signal)
+  process.exit()
+}
 
-process.on('SIGINT', handleSignal);
-process.on('SIGTERM', handleSignal);
+process.on("SIGINT", handleSignal)
+process.on("SIGTERM", handleSignal)
 
-nextProcess.on('exit', (code) => {
-  process.exit(code);
-});
-
+nextProcess.on("exit", (code) => {
+  process.exit(code)
+})

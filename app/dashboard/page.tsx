@@ -14,20 +14,20 @@ export default async function DashboardPage() {
 
   // プロファイルが完成しているかチェック
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, company_id, avatar_url')
-    .eq('user_id', data.user.id)
+    .from("profiles")
+    .select("name, company_id, avatar_url")
+    .eq("user_id", data.user.id)
     .single()
 
   // プロファイルが未完成の場合（nameが'User'またはcompany_idが存在しない）はプロファイル登録画面へ
-  if (!profile || !profile.name || profile.name === 'User' || !profile.company_id) {
+  if (!profile || !profile.name || profile.name === "User" || !profile.company_id) {
     redirect("/auth/complete-profile")
   }
 
   // 会社情報とサブスクリプションを並列取得
   const [companyResult, subscriptionResult] = await Promise.all([
-    supabase.from('companies').select('*').eq('id', profile.company_id).single(),
-    supabase.from('subscriptions').select('*').eq('user_id', data.user.id).maybeSingle(),
+    supabase.from("companies").select("*").eq("id", profile.company_id).single(),
+    supabase.from("subscriptions").select("*").eq("user_id", data.user.id).maybeSingle(),
   ])
 
   const company = companyResult.data

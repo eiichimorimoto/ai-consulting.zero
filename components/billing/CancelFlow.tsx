@@ -9,23 +9,23 @@
  *
  * @see stripe-payment-spec-v2.2.md §5-1, §5-2
  */
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { AlertTriangle, ChevronRight, Loader2 } from 'lucide-react'
-import { RetentionOffer } from './RetentionOffer'
+import React, { useState } from "react"
+import { useRouter } from "next/navigation"
+import { AlertTriangle, ChevronRight, Loader2 } from "lucide-react"
+import { RetentionOffer } from "./RetentionOffer"
 
 const CANCEL_REASONS = [
-  { value: 'too_expensive', label: '料金が高い' },
-  { value: 'not_enough_features', label: '機能が不足している' },
-  { value: 'switching_to_competitor', label: '他サービスに切り替える' },
-  { value: 'not_using_enough', label: 'あまり利用していない' },
-  { value: 'temporary_pause', label: '一時的に利用を停止したい' },
-  { value: 'other', label: 'その他' },
+  { value: "too_expensive", label: "料金が高い" },
+  { value: "not_enough_features", label: "機能が不足している" },
+  { value: "switching_to_competitor", label: "他サービスに切り替える" },
+  { value: "not_using_enough", label: "あまり利用していない" },
+  { value: "temporary_pause", label: "一時的に利用を停止したい" },
+  { value: "other", label: "その他" },
 ] as const
 
-type CancelReason = typeof CANCEL_REASONS[number]['value']
+type CancelReason = (typeof CANCEL_REASONS)[number]["value"]
 
 interface CancelFlowProps {
   planType: string
@@ -35,24 +35,24 @@ interface CancelFlowProps {
 export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
-  const [reason, setReason] = useState<CancelReason | ''>('')
-  const [feedback, setFeedback] = useState('')
-  const [cancelType, setCancelType] = useState<'end_of_period' | 'immediate'>('end_of_period')
+  const [reason, setReason] = useState<CancelReason | "">("")
+  const [feedback, setFeedback] = useState("")
+  const [cancelType, setCancelType] = useState<"end_of_period" | "immediate">("end_of_period")
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const periodEndFormatted = currentPeriodEnd
-    ? new Date(currentPeriodEnd).toLocaleDateString('ja-JP', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+    ? new Date(currentPeriodEnd).toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       })
     : null
 
   function handleReasonNext() {
     if (!reason) return
     // too_expensive → リテンション提示
-    if (reason === 'too_expensive') {
+    if (reason === "too_expensive") {
       setStep(2)
     } else {
       setStep(3)
@@ -68,9 +68,9 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
     setError(null)
 
     try {
-      const res = await fetch('/api/stripe/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/stripe/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cancelType,
           reason,
@@ -83,10 +83,10 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
       if (data.success) {
         setStep(4)
       } else {
-        setError(data.error || '解約処理に失敗しました。')
+        setError(data.error || "解約処理に失敗しました。")
       }
     } catch {
-      setError('エラーが発生しました。')
+      setError("エラーが発生しました。")
     } finally {
       setProcessing(false)
     }
@@ -95,10 +95,10 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
   // Step 4: 完了
   if (step === 4) {
     return (
-      <div className="text-center py-12 space-y-4">
+      <div className="space-y-4 py-12 text-center">
         <div className="text-4xl">✅</div>
         <h2 className="text-xl font-bold text-gray-900">解約手続きが完了しました</h2>
-        {cancelType === 'end_of_period' && periodEndFormatted ? (
+        {cancelType === "end_of_period" && periodEndFormatted ? (
           <p className="text-gray-600">
             {periodEndFormatted}までサービスをご利用いただけます。
             <br />
@@ -112,8 +112,8 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
           </p>
         )}
         <button
-          onClick={() => router.push('/account/billing')}
-          className="mt-4 px-6 py-3 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors"
+          onClick={() => router.push("/account/billing")}
+          className="mt-4 rounded-xl bg-gray-900 px-6 py-3 font-medium text-white transition-colors hover:bg-gray-800"
         >
           課金管理に戻る
         </button>
@@ -125,31 +125,29 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
     <div className="space-y-6">
       {/* ステップインジケーター */}
       <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span className={step >= 1 ? 'text-blue-600 font-medium' : ''}>理由選択</span>
+        <span className={step >= 1 ? "font-medium text-blue-600" : ""}>理由選択</span>
         <ChevronRight size={14} />
-        {reason === 'too_expensive' && (
+        {reason === "too_expensive" && (
           <>
-            <span className={step >= 2 ? 'text-blue-600 font-medium' : ''}>特別オファー</span>
+            <span className={step >= 2 ? "font-medium text-blue-600" : ""}>特別オファー</span>
             <ChevronRight size={14} />
           </>
         )}
-        <span className={step >= 3 ? 'text-blue-600 font-medium' : ''}>確認</span>
+        <span className={step >= 3 ? "font-medium text-blue-600" : ""}>確認</span>
       </div>
 
       {/* Step 1: 理由選択 */}
       {step === 1 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            解約の理由をお聞かせください
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">解約の理由をお聞かせください</h2>
           <div className="space-y-2">
             {CANCEL_REASONS.map((r) => (
               <label
                 key={r.value}
-                className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-colors ${
                   reason === r.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:bg-gray-50'
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 <input
@@ -165,19 +163,19 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
             ))}
           </div>
 
-          {(reason === 'other' || reason === 'switching_to_competitor') && (
+          {(reason === "other" || reason === "switching_to_competitor") && (
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="詳細をお聞かせください（任意）"
-              className="w-full p-3 rounded-xl border border-gray-200 text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-24 w-full resize-none rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           )}
 
           <button
             onClick={handleReasonNext}
             disabled={!reason}
-            className="w-full py-3 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-xl bg-gray-900 py-3 font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             次へ
           </button>
@@ -189,18 +187,18 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
         <RetentionOffer
           planType={planType}
           onDecline={handleRetentionDecline}
-          onAccept={() => router.push('/account/billing')}
+          onAccept={() => router.push("/account/billing")}
         />
       )}
 
       {/* Step 3: 確認 */}
       {step === 3 && (
         <div className="space-y-6">
-          <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-3">
-            <AlertTriangle size={20} className="text-yellow-600 mt-0.5 shrink-0" />
+          <div className="flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-yellow-600" />
             <div className="text-sm text-yellow-800">
               <p className="font-medium">解約前にご確認ください</p>
-              <ul className="mt-2 space-y-1 list-disc list-inside">
+              <ul className="mt-2 list-inside list-disc space-y-1">
                 <li>解約後30日間はデータが保持されます</li>
                 <li>30日経過後、コンサルティングデータは削除されます</li>
                 <li>いつでも再契約いただけます</li>
@@ -212,24 +210,24 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
             <h3 className="text-sm font-medium text-gray-700">解約タイミング</h3>
 
             <label
-              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                cancelType === 'end_of_period'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:bg-gray-50'
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                cancelType === "end_of_period"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:bg-gray-50"
               }`}
             >
               <input
                 type="radio"
                 name="cancel-type"
                 value="end_of_period"
-                checked={cancelType === 'end_of_period'}
-                onChange={() => setCancelType('end_of_period')}
-                className="accent-blue-600 mt-1"
+                checked={cancelType === "end_of_period"}
+                onChange={() => setCancelType("end_of_period")}
+                className="mt-1 accent-blue-600"
               />
               <div>
-                <span className="text-gray-900 font-medium">期間終了時に解約（推奨）</span>
+                <span className="font-medium text-gray-900">期間終了時に解約（推奨）</span>
                 {periodEndFormatted && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="mt-1 text-sm text-gray-500">
                     {periodEndFormatted}までサービスを利用できます
                   </p>
                 )}
@@ -237,23 +235,23 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
             </label>
 
             <label
-              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                cancelType === 'immediate'
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:bg-gray-50'
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                cancelType === "immediate"
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-200 hover:bg-gray-50"
               }`}
             >
               <input
                 type="radio"
                 name="cancel-type"
                 value="immediate"
-                checked={cancelType === 'immediate'}
-                onChange={() => setCancelType('immediate')}
-                className="accent-red-600 mt-1"
+                checked={cancelType === "immediate"}
+                onChange={() => setCancelType("immediate")}
+                className="mt-1 accent-red-600"
               />
               <div>
-                <span className="text-gray-900 font-medium">今すぐ解約</span>
-                <p className="text-sm text-gray-500 mt-1">
+                <span className="font-medium text-gray-900">今すぐ解約</span>
+                <p className="mt-1 text-sm text-gray-500">
                   即座にFreeプランに移行されます（残り期間の返金はありません）
                 </p>
               </div>
@@ -261,7 +259,7 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
           </div>
 
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -269,14 +267,14 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
           <div className="flex gap-3">
             <button
               onClick={() => setStep(1)}
-              className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 rounded-xl border border-gray-200 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               戻る
             </button>
             <button
               onClick={handleConfirmCancel}
               disabled={processing}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
             >
               {processing ? (
                 <>
@@ -284,7 +282,7 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
                   処理中...
                 </>
               ) : (
-                '解約を確定する'
+                "解約を確定する"
               )}
             </button>
           </div>

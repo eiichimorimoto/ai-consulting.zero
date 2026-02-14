@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: process.env.NODE_ENV === 'development',
+    ignoreBuildErrors: process.env.NODE_ENV === "development",
   },
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '*.supabase.co',
+        protocol: "https",
+        hostname: "*.supabase.co",
       },
     ],
   },
@@ -15,11 +15,11 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/',
+        source: "/",
         headers: [
           {
-            key: 'Cache-Control',
-            value: 'no-store, max-age=0, must-revalidate',
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
           },
         ],
       },
@@ -32,8 +32,8 @@ const nextConfig = {
       config.resolve.alias = {
         ...config.resolve.alias,
         // ワーカーファイルのインポートを空のモジュールに置き換え
-        'pdfjs-dist/build/pdf.worker.mjs': require.resolve('./lib/ocr/pdf-worker-stub.js'),
-        'pdfjs-dist/build/pdf.worker.min.mjs': require.resolve('./lib/ocr/pdf-worker-stub.js'),
+        "pdfjs-dist/build/pdf.worker.mjs": require.resolve("./lib/ocr/pdf-worker-stub.js"),
+        "pdfjs-dist/build/pdf.worker.min.mjs": require.resolve("./lib/ocr/pdf-worker-stub.js"),
       }
     }
     return config
@@ -41,9 +41,9 @@ const nextConfig = {
   // Turbopack設定（Next.js 16で必要・@/* を明示してビルド時の解決を確実に）
   turbopack: {
     resolveAlias: {
-      '@': '.',
-      'pdfjs-dist/build/pdf.worker.mjs': './lib/ocr/pdf-worker-stub.js',
-      'pdfjs-dist/build/pdf.worker.min.mjs': './lib/ocr/pdf-worker-stub.js',
+      "@": ".",
+      "pdfjs-dist/build/pdf.worker.mjs": "./lib/ocr/pdf-worker-stub.js",
+      "pdfjs-dist/build/pdf.worker.min.mjs": "./lib/ocr/pdf-worker-stub.js",
     },
   },
 }

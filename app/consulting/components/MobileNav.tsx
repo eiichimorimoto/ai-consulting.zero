@@ -1,16 +1,16 @@
-'use client'
+"use client"
 
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MessageSquare, FileBarChart, FileText } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MessageSquare, FileBarChart, FileText } from "lucide-react"
 
 interface MobileNavProps {
-  activeTab: 'chat' | 'context' | 'proposal'
-  onTabChange: (tab: 'chat' | 'context' | 'proposal') => void
+  activeTab: "chat" | "context" | "proposal"
+  onTabChange: (tab: "chat" | "context" | "proposal") => void
 }
 
 export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
   return (
-    <div className="border-b bg-background lg:hidden">
+    <div className="bg-background border-b lg:hidden">
       <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="chat" className="gap-2">

@@ -12,9 +12,9 @@
  *
  * @see stripe-payment-spec-v2.2.md §1-2, §4-5
  */
-import type { PlanType } from '@/lib/plan-config'
+import type { PlanType } from "@/lib/plan-config"
 
-export type BillingInterval = 'monthly' | 'yearly'
+export type BillingInterval = "monthly" | "yearly"
 
 /**
  * Price ID マッピング
@@ -42,8 +42,8 @@ const PRICE_IDS: Record<string, string | undefined> = {
  * ```
  */
 export function getPriceId(plan: PlanType, interval: BillingInterval): string {
-  if (plan === 'free') {
-    throw new Error('Freeプランには Price ID は存在しません')
+  if (plan === "free") {
+    throw new Error("Freeプランには Price ID は存在しません")
   }
 
   const key = `${plan}_${interval}`
@@ -65,19 +65,19 @@ export function getPriceId(plan: PlanType, interval: BillingInterval): string {
  */
 export function validatePriceIds(): string[] {
   const required = [
-    'STRIPE_PRICE_PRO_MONTHLY',
-    'STRIPE_PRICE_PRO_YEARLY',
-    'STRIPE_PRICE_ENTERPRISE_MONTHLY',
+    "STRIPE_PRICE_PRO_MONTHLY",
+    "STRIPE_PRICE_PRO_YEARLY",
+    "STRIPE_PRICE_ENTERPRISE_MONTHLY",
   ]
 
-  const optional = ['STRIPE_PRICE_ENTERPRISE_YEARLY']
+  const optional = ["STRIPE_PRICE_ENTERPRISE_YEARLY"]
 
   const missing = required.filter((key) => !process.env[key])
 
   // Enterprise年額は未提供の場合もあるため警告のみ
   const optionalMissing = optional.filter((key) => !process.env[key])
   if (optionalMissing.length > 0) {
-    console.warn(`[Stripe Config] 任意のPrice ID未設定: ${optionalMissing.join(', ')}`)
+    console.warn(`[Stripe Config] 任意のPrice ID未設定: ${optionalMissing.join(", ")}`)
   }
 
   return missing

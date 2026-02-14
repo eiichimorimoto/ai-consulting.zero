@@ -3,111 +3,107 @@
  * 生成前にレポート内容をHTMLでプレビュー表示
  */
 
-'use client';
+"use client"
 
-import { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
-import type { ReportSection, ChatData, TableData, ListData } from '@/lib/report/types';
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight, X, Download } from "lucide-react"
+import type { ReportSection, ChatData, TableData, ListData } from "@/lib/report/types"
 
 /** A4横のピクセル寸法（96dpi想定） */
-const PAPER_WIDTH_PX = 1122;
-const PAPER_HEIGHT_PX = 794;
+const PAPER_WIDTH_PX = 1122
+const PAPER_HEIGHT_PX = 794
 
 interface ReportPreviewProps {
-  sections: ReportSection[];
-  sessionName: string;
-  companyName?: string;
-  userName?: string;
+  sections: ReportSection[]
+  sessionName: string
+  companyName?: string
+  userName?: string
   /** 選択中の出力形式（プレビュー説明に表示） */
-  format?: 'pdf' | 'ppt' | 'md';
-  onClose: () => void;
-  onDownload: () => void;
+  format?: "pdf" | "ppt" | "md"
+  onClose: () => void
+  onDownload: () => void
 }
 
 const FORMAT_LABELS: Record<string, string> = {
-  pdf: 'PDF（A4横）',
-  ppt: 'PowerPoint（スライド形式）',
-  md: 'Markdown（テキスト）',
-};
+  pdf: "PDF（A4横）",
+  ppt: "PowerPoint（スライド形式）",
+  md: "Markdown（テキスト）",
+}
 
 const DOWNLOAD_BUTTON_LABELS: Record<string, string> = {
-  pdf: 'PDFをダウンロード',
-  ppt: 'PPTをダウンロード',
-  md: 'Markdownをダウンロード',
-};
+  pdf: "PDFをダウンロード",
+  ppt: "PPTをダウンロード",
+  md: "Markdownをダウンロード",
+}
 
 export default function ReportPreview({
   sections,
   sessionName,
   companyName,
   userName,
-  format = 'pdf',
+  format = "pdf",
   onClose,
   onDownload,
 }: ReportPreviewProps) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [scale, setScale] = useState(1);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const totalPages = sections.length + 1; // 表紙 + セクション数
+  const [currentPage, setCurrentPage] = useState(0)
+  const [scale, setScale] = useState(1)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const totalPages = sections.length + 1 // 表紙 + セクション数
 
   // プレビュー枠にA4横が収まるよう縮小率を計算
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const el = containerRef.current
+    if (!el) return
     const updateScale = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w <= 0 || h <= 0) return;
-      const scaleX = w / PAPER_WIDTH_PX;
-      const scaleY = h / PAPER_HEIGHT_PX;
-      const s = Math.min(scaleX, scaleY, 1);
-      setScale(s);
-    };
-    updateScale();
-    const ro = new ResizeObserver(updateScale);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+      const w = el.clientWidth
+      const h = el.clientHeight
+      if (w <= 0 || h <= 0) return
+      const scaleX = w / PAPER_WIDTH_PX
+      const scaleY = h / PAPER_HEIGHT_PX
+      const s = Math.min(scaleX, scaleY, 1)
+      setScale(s)
+    }
+    updateScale()
+    const ro = new ResizeObserver(updateScale)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(currentPage + 1)
     }
-  };
+  }
 
   const prevPage = () => {
     if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage(currentPage - 1)
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="flex h-[90vh] w-full max-w-4xl flex-col rounded-lg bg-white shadow-2xl">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between border-b p-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">📄 レポートプレビュー</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {FORMAT_LABELS[format] || 'PDF'}用のイメージです。下のボタンで選択中の形式（{FORMAT_LABELS[format] || 'PDF'}）でダウンロードできます。
-              {format === 'md' && ' Markdownはテキスト形式で保存されます。'}
+            <p className="mt-0.5 text-xs text-gray-500">
+              {FORMAT_LABELS[format] || "PDF"}用のイメージです。下のボタンで選択中の形式（
+              {FORMAT_LABELS[format] || "PDF"}）でダウンロードできます。
+              {format === "md" && " Markdownはテキスト形式で保存されます。"}
             </p>
           </div>
           <Button onClick={onClose} variant="ghost" size="icon">
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </Button>
         </div>
 
         {/* ページネーション */}
-        <div className="flex items-center justify-center gap-4 p-3 border-b bg-gray-50">
-          <Button
-            onClick={prevPage}
-            disabled={currentPage === 0}
-            variant="outline"
-            size="sm"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
+        <div className="flex items-center justify-center gap-4 border-b bg-gray-50 p-3">
+          <Button onClick={prevPage} disabled={currentPage === 0} variant="outline" size="sm">
+            <ChevronLeft className="mr-1 h-4 w-4" />
             前へ
           </Button>
           <span className="text-sm font-medium text-gray-600">
@@ -120,29 +116,32 @@ export default function ReportPreview({
             size="sm"
           >
             次へ
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
 
         {/* プレビューエリア（A4横を枠に収まるよう縮小表示） */}
-        <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-auto p-4 bg-gray-100 min-h-0">
+        <div
+          ref={containerRef}
+          className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-gray-100 p-4"
+        >
           <div
             style={{
               width: PAPER_WIDTH_PX * scale,
               height: PAPER_HEIGHT_PX * scale,
-              position: 'relative',
-              overflow: 'hidden',
+              position: "relative",
+              overflow: "hidden",
             }}
             className="flex-shrink-0 rounded shadow-lg"
           >
             <div
-              className="bg-white absolute left-0 top-0 report-preview-paper"
+              className="report-preview-paper absolute left-0 top-0 bg-white"
               style={{
                 width: PAPER_WIDTH_PX,
                 minHeight: PAPER_HEIGHT_PX,
-                padding: '20mm',
+                padding: "20mm",
                 transform: `scale(${scale})`,
-                transformOrigin: 'top left',
+                transformOrigin: "top left",
               }}
             >
               <style>{`
@@ -183,7 +182,12 @@ export default function ReportPreview({
                 .report-preview-paper .swot-table th { background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%); color: #fff; font-weight: 600; }
               `}</style>
               {currentPage === 0 ? (
-                <CoverPage sessionName={sessionName} companyName={companyName} userName={userName} sections={sections} />
+                <CoverPage
+                  sessionName={sessionName}
+                  companyName={companyName}
+                  userName={userName}
+                  sections={sections}
+                />
               ) : (
                 <>
                   <header className="report-header">
@@ -192,7 +196,9 @@ export default function ReportPreview({
                   </header>
                   <SectionPage section={sections[currentPage - 1]} />
                   <footer className="report-footer">
-                    <span className="page-number">{currentPage} / {totalPages}</span>
+                    <span className="page-number">
+                      {currentPage} / {totalPages}
+                    </span>
                     <span>AI参謀 - AI経営コンサルティング</span>
                     <span className="copyright">© 2026 SOLVE WISE</span>
                   </footer>
@@ -203,18 +209,21 @@ export default function ReportPreview({
         </div>
 
         {/* フッター */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 border-t bg-gray-50 p-4">
           <Button onClick={onClose} variant="outline">
             閉じる
           </Button>
-          <Button onClick={onDownload} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
-            <Download className="w-4 h-4 mr-2" />
-            {DOWNLOAD_BUTTON_LABELS[format] ?? 'PDFをダウンロード'}
+          <Button
+            onClick={onDownload}
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {DOWNLOAD_BUTTON_LABELS[format] ?? "PDFをダウンロード"}
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 /**
@@ -226,19 +235,19 @@ function CoverPage({
   userName,
   sections,
 }: {
-  sessionName: string;
-  companyName?: string;
-  userName?: string;
-  sections: ReportSection[];
+  sessionName: string
+  companyName?: string
+  userName?: string
+  sections: ReportSection[]
 }) {
-  const today = new Date().toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const reportTitle = sections[0]?.title ?? 'AI経営コンサルティング';
+  const today = new Date().toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+  const reportTitle = sections[0]?.title ?? "AI経営コンサルティング"
 
   return (
     <div className="cover-page">
@@ -250,11 +259,16 @@ function CoverPage({
       <div className="cover-subtitle">{sessionName}</div>
       <div className="cover-meta">
         <div className="created">作成日時: {today}</div>
-        {userName && <>担当: {userName}<br /></>}
+        {userName && (
+          <>
+            担当: {userName}
+            <br />
+          </>
+        )}
         <div className="author">文責: AI参謀 - AI経営コンサルティング</div>
       </div>
     </div>
-  );
+  )
 }
 
 /**
@@ -262,56 +276,58 @@ function CoverPage({
  */
 function SectionPage({ section }: { section: ReportSection }) {
   const createdAt = section.metadata?.createdAt
-    ? new Date(section.metadata.createdAt).toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+    ? new Date(section.metadata.createdAt).toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
-    : '';
+    : ""
 
   return (
     <div className="section">
       <h2 className="section-title">{section.title}</h2>
-      {section.type === 'html' && createdAt && (
+      {section.type === "html" && createdAt && (
         <p className="section-meta">作成日時: {createdAt}</p>
       )}
-      {section.type === 'chat' && <ChatSection section={section} />}
-      {section.type === 'table' && <TableSection section={section} />}
-      {section.type === 'list' && <ListSection section={section} />}
-      {section.type === 'text' && <TextSection section={section} />}
-      {section.type === 'html' && <HtmlSection section={section} />}
+      {section.type === "chat" && <ChatSection section={section} />}
+      {section.type === "table" && <TableSection section={section} />}
+      {section.type === "list" && <ListSection section={section} />}
+      {section.type === "text" && <TextSection section={section} />}
+      {section.type === "html" && <HtmlSection section={section} />}
     </div>
-  );
+  )
 }
 
 /**
  * 会話セクション（PDFと同じクラス名）
  */
 function ChatSection({ section }: { section: ReportSection }) {
-  const chatData = section.content as ChatData;
+  const chatData = section.content as ChatData
 
   return (
     <div>
       {chatData.messages.map((msg, index) => (
         <div
           key={index}
-          className={`chat-message ${msg.role === 'user' ? 'chat-user' : 'chat-assistant'}`}
+          className={`chat-message ${msg.role === "user" ? "chat-user" : "chat-assistant"}`}
         >
-          <div className="chat-role">{msg.role === 'user' ? 'ユーザー' : 'AI'}</div>
-          <div className="chat-content" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+          <div className="chat-role">{msg.role === "user" ? "ユーザー" : "AI"}</div>
+          <div className="chat-content" style={{ whiteSpace: "pre-wrap" }}>
+            {msg.content}
+          </div>
         </div>
       ))}
     </div>
-  );
+  )
 }
 
 /**
  * テーブルセクション（PDFと同じクラス名）
  */
 function TableSection({ section }: { section: ReportSection }) {
-  const tableData = section.content as TableData;
+  const tableData = section.content as TableData
 
   return (
     <table className="swot-table">
@@ -326,20 +342,22 @@ function TableSection({ section }: { section: ReportSection }) {
         {tableData.rows.map((row, i) => (
           <tr key={i}>
             {row.map((cell, j) => (
-              <td key={j} style={{ whiteSpace: 'pre-wrap', verticalAlign: 'top' }}>{cell}</td>
+              <td key={j} style={{ whiteSpace: "pre-wrap", verticalAlign: "top" }}>
+                {cell}
+              </td>
             ))}
           </tr>
         ))}
       </tbody>
     </table>
-  );
+  )
 }
 
 /**
  * リストセクション（PDFと同じ report-body 内リスト）
  */
 function ListSection({ section }: { section: ReportSection }) {
-  const listData = section.content as ListData;
+  const listData = section.content as ListData
 
   return (
     <div className="report-body">
@@ -349,46 +367,43 @@ function ListSection({ section }: { section: ReportSection }) {
         ))}
       </ul>
     </div>
-  );
+  )
 }
 
 /**
  * テキストセクション（PDFと同じ report-body）
  */
 function TextSection({ section }: { section: ReportSection }) {
-  const content = section.content as string;
+  const content = section.content as string
 
   return (
-    <div className="report-body report-para" style={{ whiteSpace: 'pre-wrap' }}>
+    <div className="report-body report-para" style={{ whiteSpace: "pre-wrap" }}>
       {content}
     </div>
-  );
+  )
 }
 
 /**
  * レポート用HTMLセクション（PDFと同じ report-body クラス。作成日時があれば表示）
  */
 function HtmlSection({ section }: { section: ReportSection }) {
-  const htmlContent = section.content as string;
+  const htmlContent = section.content as string
   const createdAt = section.metadata?.createdAt
-    ? new Date(section.metadata.createdAt).toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+    ? new Date(section.metadata.createdAt).toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
-    : null;
+    : null
 
   return (
     <div>
       {createdAt && (
-        <p className="section-meta text-[10pt] text-gray-500 mb-2">作成日時: {createdAt}</p>
+        <p className="section-meta mb-2 text-[10pt] text-gray-500">作成日時: {createdAt}</p>
       )}
-      <div
-        className="report-body"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+      <div className="report-body" dangerouslySetInnerHTML={{ __html: htmlContent }} />
     </div>
-  );
+  )
 }

@@ -1,24 +1,24 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from "next/server"
+import { createClient } from "@/utils/supabase/server"
 
 export async function POST() {
   try {
-    const supabase = await createClient();
-    
+    const supabase = await createClient()
+
     // WebサイトURLを持つ全企業を取得
     const { data: companies, error: fetchError } = await supabase
-      .from('companies')
-      .select('id, name, website')
-      .not('website', 'is', null)
-      .not('website', 'eq', '');
+      .from("companies")
+      .select("id, name, website")
+      .not("website", "is", null)
+      .not("website", "eq", "")
 
-    if (fetchError) throw fetchError;
+    if (fetchError) throw fetchError
 
     if (!companies || companies.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No companies with website found',
-      });
+        message: "No companies with website found",
+      })
     }
 
     const results = {
@@ -26,58 +26,57 @@ export async function POST() {
       succeeded: 0,
       failed: 0,
       details: [] as any[],
-    };
+    }
 
     // 各企業を順番に処理（レート制限考慮）
     for (const company of companies) {
       try {
-        console.log(`Processing: ${company.name} (${company.website})`);
+        console.log(`Processing: ${company.name} (${company.website})`)
 
         // PageSpeed APIを呼び出し
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/collect/pagespeed`,
+          `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/collect/pagespeed`,
           {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               companyId: company.id,
               url: company.website,
             }),
           }
-        );
+        )
 
-        const data = await response.json();
+        const data = await response.json()
 
         if (response.ok && data.success) {
-          results.succeeded++;
+          results.succeeded++
           results.details.push({
             company: company.name,
-            status: 'success',
+            status: "success",
             data: data.data,
-          });
-          console.log(`✓ Success: ${company.name}`);
+          })
+          console.log(`✓ Success: ${company.name}`)
         } else {
-          results.failed++;
+          results.failed++
           results.details.push({
             company: company.name,
-            status: 'failed',
-            error: data.error || 'Unknown error',
-          });
-          console.log(`✗ Failed: ${company.name} - ${data.error}`);
+            status: "failed",
+            error: data.error || "Unknown error",
+          })
+          console.log(`✗ Failed: ${company.name} - ${data.error}`)
         }
 
         // レート制限対策：1秒待機
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        await new Promise((resolve) => setTimeout(resolve, 1000))
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error)
-        results.failed++;
+        results.failed++
         results.details.push({
           company: company.name,
-          status: 'failed',
+          status: "failed",
           error: message,
-        });
-        console.log(`✗ Error: ${company.name} - ${message}`);
+        })
+        console.log(`✗ Error: ${company.name} - ${message}`)
       }
     }
 
@@ -85,13 +84,12 @@ export async function POST() {
       success: true,
       results,
       message: `Processed ${results.total} companies: ${results.succeeded} succeeded, ${results.failed} failed`,
-    });
-
+    })
   } catch (error: unknown) {
-    console.error('Batch processing error:', error);
+    console.error("Batch processing error:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
-    );
+    )
   }
 }

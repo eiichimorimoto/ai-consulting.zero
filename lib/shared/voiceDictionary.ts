@@ -4,9 +4,9 @@
  */
 
 export interface DictionaryEntry {
-  term: string;
-  alternatives: string[];
-  category: string;
+  term: string
+  alternatives: string[]
+  category: string
 }
 
 export const CONSULTING_DICTIONARY: DictionaryEntry[] = [
@@ -18,7 +18,11 @@ export const CONSULTING_DICTIONARY: DictionaryEntry[] = [
   { term: "BS", alternatives: ["ビーエス", "貸借対照表"], category: "metrics" },
 
   // Consulting terms
-  { term: "DX", alternatives: ["ディーエックス", "デジタルトランスフォーメーション"], category: "consulting" },
+  {
+    term: "DX",
+    alternatives: ["ディーエックス", "デジタルトランスフォーメーション"],
+    category: "consulting",
+  },
   { term: "RPA", alternatives: ["アールピーエー", "あーるぴーえー"], category: "consulting" },
   { term: "BPR", alternatives: ["ビーピーアール", "業務改革"], category: "consulting" },
   { term: "PMO", alternatives: ["ピーエムオー", "ぴーえむおー"], category: "consulting" },
@@ -44,59 +48,59 @@ export const CONSULTING_DICTIONARY: DictionaryEntry[] = [
   { term: "3C", alternatives: ["スリーシー", "さんしー"], category: "strategy" },
   { term: "5F", alternatives: ["ファイブフォース", "ごふぉーす"], category: "strategy" },
   { term: "バリューチェーン", alternatives: ["価値連鎖"], category: "strategy" },
-];
+]
 
 /**
  * Get speech recognition hints for better accuracy
  */
 export function getSpeechHints(): string[] {
-  return CONSULTING_DICTIONARY.map(entry => entry.term);
+  return CONSULTING_DICTIONARY.map((entry) => entry.term)
 }
 
 /**
  * Find the correct term from recognized text
  */
 export function findCorrectTerm(recognizedText: string): string | null {
-  const normalized = recognizedText.toLowerCase().trim();
+  const normalized = recognizedText.toLowerCase().trim()
 
   for (const entry of CONSULTING_DICTIONARY) {
     // Check if recognized text matches any alternative
     for (const alt of entry.alternatives) {
       if (normalized.includes(alt.toLowerCase())) {
-        return entry.term;
+        return entry.term
       }
     }
   }
 
-  return null;
+  return null
 }
 
 /**
  * Replace recognized alternatives with correct terms
  */
 export function correctTranscript(transcript: string): string {
-  let corrected = transcript;
+  let corrected = transcript
 
   for (const entry of CONSULTING_DICTIONARY) {
     for (const alt of entry.alternatives) {
-      const regex = new RegExp(alt, 'gi');
-      corrected = corrected.replace(regex, entry.term);
+      const regex = new RegExp(alt, "gi")
+      corrected = corrected.replace(regex, entry.term)
     }
   }
 
-  return corrected;
+  return corrected
 }
 
 /**
  * Get dictionary entries by category
  */
 export function getDictionaryByCategory(category: string): DictionaryEntry[] {
-  return CONSULTING_DICTIONARY.filter(entry => entry.category === category);
+  return CONSULTING_DICTIONARY.filter((entry) => entry.category === category)
 }
 
 /**
  * Get all categories
  */
 export function getCategories(): string[] {
-  return Array.from(new Set(CONSULTING_DICTIONARY.map(entry => entry.category)));
+  return Array.from(new Set(CONSULTING_DICTIONARY.map((entry) => entry.category)))
 }

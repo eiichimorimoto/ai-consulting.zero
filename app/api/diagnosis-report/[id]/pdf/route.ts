@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { ReportData } from '@/app/diagnosis/[id]/components/DiagnosisReportClient';
+import { NextResponse } from "next/server"
+import { createClient } from "@/utils/supabase/server"
+import { ReportData } from "@/app/diagnosis/[id]/components/DiagnosisReportClient"
 
 // PDFをサーバーサイドで生成
 async function generatePDF(report: ReportData): Promise<Buffer> {
   // PDFKit や puppeteer などのライブラリを使う代わりに
   // シンプルなHTMLからPDFを生成するアプローチを取る
-  
+
   const html = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -93,7 +93,7 @@ async function generatePDF(report: ReportData): Promise<Buffer> {
     </div>
 
     <div class="score-box">
-      <div class="score ${report.overall_score >= 80 ? 'good' : report.overall_score >= 50 ? 'medium' : 'bad'}">
+      <div class="score ${report.overall_score >= 80 ? "good" : report.overall_score >= 50 ? "medium" : "bad"}">
         ${report.overall_score}
       </div>
       <p style="font-size: 18px; margin-top: 10px;">総合スコア / 100</p>
@@ -101,106 +101,100 @@ async function generatePDF(report: ReportData): Promise<Buffer> {
 
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="metric-value" style="color: ${report.metrics.mobileScore >= 80 ? '#4ade80' : report.metrics.mobileScore >= 50 ? '#fbbf24' : '#f87171'}">${report.metrics.mobileScore}</div>
+        <div class="metric-value" style="color: ${report.metrics.mobileScore >= 80 ? "#4ade80" : report.metrics.mobileScore >= 50 ? "#fbbf24" : "#f87171"}">${report.metrics.mobileScore}</div>
         <div class="metric-label">モバイル</div>
       </div>
       <div class="metric-card">
-        <div class="metric-value" style="color: ${report.metrics.desktopScore >= 80 ? '#4ade80' : report.metrics.desktopScore >= 50 ? '#fbbf24' : '#f87171'}">${report.metrics.desktopScore}</div>
+        <div class="metric-value" style="color: ${report.metrics.desktopScore >= 80 ? "#4ade80" : report.metrics.desktopScore >= 50 ? "#fbbf24" : "#f87171"}">${report.metrics.desktopScore}</div>
         <div class="metric-label">デスクトップ</div>
       </div>
       <div class="metric-card">
-        <div class="metric-value" style="color: ${report.metrics.seoScore >= 80 ? '#4ade80' : report.metrics.seoScore >= 50 ? '#fbbf24' : '#f87171'}">${report.metrics.seoScore}</div>
+        <div class="metric-value" style="color: ${report.metrics.seoScore >= 80 ? "#4ade80" : report.metrics.seoScore >= 50 ? "#fbbf24" : "#f87171"}">${report.metrics.seoScore}</div>
         <div class="metric-label">SEO</div>
       </div>
       <div class="metric-card">
-        <div class="metric-value" style="color: ${report.metrics.accessibilityScore >= 80 ? '#4ade80' : report.metrics.accessibilityScore >= 50 ? '#fbbf24' : '#f87171'}">${report.metrics.accessibilityScore}</div>
+        <div class="metric-value" style="color: ${report.metrics.accessibilityScore >= 80 ? "#4ade80" : report.metrics.accessibilityScore >= 50 ? "#fbbf24" : "#f87171"}">${report.metrics.accessibilityScore}</div>
         <div class="metric-label">アクセシビリティ</div>
       </div>
     </div>
 
     <div class="issues-section">
       <h2>⚠️ 検出された課題</h2>
-      ${report.top_issues.map((issue, index) => `
+      ${report.top_issues
+        .map(
+          (issue, index) => `
         <div class="issue-card">
           <div class="issue-header">
             <span style="font-size: 24px; color: #64748b;">#${index + 1}</span>
-            <span class="severity-badge severity-${issue.severity}">${issue.severity === 'critical' ? '重大' : issue.severity === 'high' ? '高' : '中'}</span>
+            <span class="severity-badge severity-${issue.severity}">${issue.severity === "critical" ? "重大" : issue.severity === "high" ? "高" : "中"}</span>
             <span style="color: #94a3b8; text-transform: uppercase;">${issue.category}</span>
           </div>
           <div class="issue-title">${issue.issue}</div>
           <div class="issue-impact">💰 ${issue.impact}</div>
         </div>
-      `).join('')}
+      `
+        )
+        .join("")}
     </div>
 
     <div class="footer">
-      <p>診断日時: ${new Date(report.created_at).toLocaleString('ja-JP')}</p>
+      <p>診断日時: ${new Date(report.created_at).toLocaleString("ja-JP")}</p>
       <p style="margin-top: 8px;">© AI Consulting Zero - Webサイト診断サービス</p>
     </div>
   </div>
 </body>
 </html>
-  `;
+  `
 
   // HTMLをPDFに変換するために、外部サービスまたはpuppeteerを使用
   // ここでは簡易的にHTMLをBase64エンコードして返す
   // 本番環境ではPuppeteerやPDFライブラリを使用することを推奨
-  
+
   // Vercelのサーバーレス環境ではpuppeteerは使用できないため、
   // HTMLを直接返す（クライアント側でPDF変換を行う）
   // 将来的には外部PDF生成サービス（例: PDFShift, HTMLtoPDF API）の使用を検討
-  console.log('Using HTML fallback for PDF generation (puppeteer not available in serverless environment)');
-  return Buffer.from(html);
+  console.log(
+    "Using HTML fallback for PDF generation (puppeteer not available in serverless environment)"
+  )
+  return Buffer.from(html)
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const { id } = await params
 
     if (!id) {
-      return NextResponse.json(
-        { error: 'Report ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Report ID is required" }, { status: 400 })
     }
 
-    const supabase = await createClient();
+    const supabase = await createClient()
 
     // レポートを取得
     const { data: report, error } = await supabase
-      .from('diagnosis_previews')
-      .select('*')
-      .eq('id', id)
-      .single();
+      .from("diagnosis_previews")
+      .select("*")
+      .eq("id", id)
+      .single()
 
     if (error || !report) {
-      return NextResponse.json(
-        { error: 'Report not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Report not found" }, { status: 404 })
     }
 
     // PDFを生成
-    const pdfBuffer = await generatePDF(report);
+    const pdfBuffer = await generatePDF(report)
 
     // PDFとして返す
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="diagnosis_${report.company_name}_${new Date().toISOString().split('T')[0]}.pdf"`,
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="diagnosis_${report.company_name}_${new Date().toISOString().split("T")[0]}.pdf"`,
       },
-    });
-
+    })
   } catch (error: unknown) {
-    console.error('Error generating PDF:', error);
+    console.error("Error generating PDF:", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate PDF' },
+      { error: error instanceof Error ? error.message : "Failed to generate PDF" },
       { status: 500 }
-    );
+    )
   }
 }
-
-

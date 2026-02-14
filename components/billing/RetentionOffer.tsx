@@ -6,10 +6,10 @@
  *
  * @see stripe-payment-spec-v2.2.md §5-1
  */
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import { Gift, Loader2 } from 'lucide-react'
+import React, { useState } from "react"
+import { Gift, Loader2 } from "lucide-react"
 
 interface RetentionOfferProps {
   planType: string
@@ -21,7 +21,7 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const discountPercent = planType === 'enterprise' ? 20 : 30
+  const discountPercent = planType === "enterprise" ? 20 : 30
 
   async function handleAcceptOffer() {
     setApplying(true)
@@ -29,9 +29,9 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
 
     try {
       // リテンションクーポンを適用
-      const res = await fetch('/api/stripe/apply-retention-coupon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/stripe/apply-retention-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ discountPercent }),
       })
 
@@ -41,19 +41,19 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
         // 成功：課金管理ページに戻る
         onAccept()
       } else {
-        setError(data.error || 'クーポンの適用に失敗しました。')
+        setError(data.error || "クーポンの適用に失敗しました。")
         setApplying(false)
       }
     } catch {
-      setError('エラーが発生しました。')
+      setError("エラーが発生しました。")
       setApplying(false)
     }
   }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 p-6 text-center space-y-4">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-100">
+      <div className="space-y-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 text-center">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
           <Gift size={28} className="text-blue-600" />
         </div>
 
@@ -61,11 +61,11 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
 
         <p className="text-gray-600">
           今なら次の請求から
-          <span className="text-blue-600 font-bold text-lg"> {discountPercent}%OFF </span>
+          <span className="text-lg font-bold text-blue-600"> {discountPercent}%OFF </span>
           でご利用いただけます。
         </p>
 
-        <div className="rounded-xl bg-white border border-blue-100 p-4 text-sm text-gray-600">
+        <div className="rounded-xl border border-blue-100 bg-white p-4 text-sm text-gray-600">
           <p>
             ✓ 次回の請求に{discountPercent}%割引が適用されます
             <br />
@@ -75,16 +75,16 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <button
             onClick={handleAcceptOffer}
             disabled={applying}
-            className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {applying ? (
               <>
@@ -92,12 +92,12 @@ export function RetentionOffer({ planType, onDecline, onAccept }: RetentionOffer
                 処理中...
               </>
             ) : (
-              'オファーを受け取る'
+              "オファーを受け取る"
             )}
           </button>
           <button
             onClick={onDecline}
-            className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 rounded-xl border border-gray-200 py-3 font-medium text-gray-600 transition-colors hover:bg-gray-50"
           >
             解約を続ける
           </button>

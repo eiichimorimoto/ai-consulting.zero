@@ -9,7 +9,7 @@
  * @see stripe-payment-spec-v2.2.md §6-7
  */
 
-import { Resend } from 'resend'
+import { Resend } from "resend"
 
 let resendInstance: Resend | null = null
 
@@ -18,7 +18,7 @@ function getResend(): Resend {
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    throw new Error('RESEND_API_KEY が設定されていません')
+    throw new Error("RESEND_API_KEY が設定されていません")
   }
 
   resendInstance = new Resend(apiKey)
@@ -47,13 +47,13 @@ export interface SendEmailResult {
  */
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   if (params.dryRun) {
-    console.log('[Email] Dry run:', { to: params.to, subject: params.subject })
-    return { success: true, id: 'dry-run' }
+    console.log("[Email] Dry run:", { to: params.to, subject: params.subject })
+    return { success: true, id: "dry-run" }
   }
 
   try {
     const resend = getResend()
-    const fromAddress = process.env.EMAIL_FROM || 'SolveWise <noreply@solvewise.jp>'
+    const fromAddress = process.env.EMAIL_FROM || "SolveWise <noreply@solvewise.jp>"
 
     const { data, error } = await resend.emails.send({
       from: fromAddress,
@@ -63,15 +63,15 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     })
 
     if (error) {
-      console.error('[Email] Send failed:', error)
+      console.error("[Email] Send failed:", error)
       return { success: false, error: error.message }
     }
 
     console.log(`[Email] Sent: ${params.subject} to ${params.to} (id: ${data?.id})`)
     return { success: true, id: data?.id }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('[Email] Error:', message)
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.error("[Email] Error:", message)
     return { success: false, error: message }
   }
 }

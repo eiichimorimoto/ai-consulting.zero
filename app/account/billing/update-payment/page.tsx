@@ -6,14 +6,14 @@
  *
  * @see stripe-payment-spec-v2.2.md §6-4, §8-1
  */
-'use client'
+"use client"
 
-import React from 'react'
-import Link from 'next/link'
-import { LazyMotion, domAnimation, m } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
-import AppHeader from '@/components/AppHeader'
-import { UpdatePaymentMethod } from '@/components/billing/UpdatePaymentMethod'
+import React from "react"
+import Link from "next/link"
+import { LazyMotion, domAnimation, m } from "framer-motion"
+import { ArrowLeft } from "lucide-react"
+import AppHeader from "@/components/AppHeader"
+import { UpdatePaymentMethod } from "@/components/billing/UpdatePaymentMethod"
 
 export default function UpdatePaymentPage() {
   return (
@@ -22,10 +22,10 @@ export default function UpdatePaymentPage() {
         <AppHeader />
 
         <main className="pt-20">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
             <Link
               href="/account/billing"
-              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft size={16} />
               課金管理に戻る
@@ -39,7 +39,7 @@ export default function UpdatePaymentPage() {
             >
               <h1 className="text-2xl font-bold text-gray-900">お支払い方法の更新</h1>
 
-              <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-700">
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
                 お支払い方法の変更はStripeの安全な管理画面で行います。
                 下のボタンからStripe管理画面に移動してください。
               </div>

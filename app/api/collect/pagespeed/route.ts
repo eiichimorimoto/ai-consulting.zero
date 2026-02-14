@@ -1,25 +1,22 @@
-import { NextResponse } from 'next/server';
-import { analyzePageSpeed } from '@/lib/pagespeed';
-import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from "next/server"
+import { analyzePageSpeed } from "@/lib/pagespeed"
+import { createClient } from "@/utils/supabase/server"
 
 export async function POST(request: Request) {
   try {
-    const { companyId, url } = await request.json();
+    const { companyId, url } = await request.json()
 
     if (!companyId || !url) {
-      return NextResponse.json(
-        { error: 'companyId and url are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "companyId and url are required" }, { status: 400 })
     }
 
     // PageSpeed分析を実行
-    const metrics = await analyzePageSpeed(url);
+    const metrics = await analyzePageSpeed(url)
 
     // Supabaseに保存
-    const supabase = await createClient();
+    const supabase = await createClient()
     const { data, error } = await supabase
-      .from('digital_scores')
+      .from("digital_scores")
       .insert({
         company_id: companyId,
         mobile_score: metrics.mobileScore,
@@ -46,17 +43,17 @@ export async function POST(request: Request) {
         is_mobile_friendly: metrics.isMobileFriendly,
       })
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
+    if (error) throw error
 
     // ログ記録
-    await supabase.from('data_collection_logs').insert({
+    await supabase.from("data_collection_logs").insert({
       company_id: companyId,
-      collection_type: 'pagespeed',
-      status: 'success',
+      collection_type: "pagespeed",
+      status: "success",
       items_collected: 1,
-    });
+    })
 
     return NextResponse.json({
       success: true,
@@ -66,23 +63,23 @@ export async function POST(request: Request) {
         hasSSL: metrics.hasSSL,
         isMobileFriendly: metrics.isMobileFriendly,
       },
-    });
+    })
   } catch (error: unknown) {
-    console.error('PageSpeed collection error:', error);
+    console.error("PageSpeed collection error:", error)
     const message = error instanceof Error ? error.message : String(error)
 
     // エラーログ記録
-    const supabase = await createClient();
-    await supabase.from('data_collection_logs').insert({
-      company_id: request.json().then((d: { companyId?: string }) => d.companyId).catch(() => null),
-      collection_type: 'pagespeed',
-      status: 'error',
+    const supabase = await createClient()
+    await supabase.from("data_collection_logs").insert({
+      company_id: request
+        .json()
+        .then((d: { companyId?: string }) => d.companyId)
+        .catch(() => null),
+      collection_type: "pagespeed",
+      status: "error",
       error_message: message,
-    });
+    })
 
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

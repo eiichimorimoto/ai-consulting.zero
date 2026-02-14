@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from "react"
 
 interface ChartData {
   value: number
@@ -22,12 +22,14 @@ interface LineChartProps {
 export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const pointsRef = useRef<Array<{ x: number; y: number; value: number; week: string; dateLabel: string }>>([])
+  const pointsRef = useRef<
+    Array<{ x: number; y: number; value: number; week: string; dateLabel: string }>
+  >([])
 
   const opts = {
-    lineColor: options.lineColor || '#6366F1',
-    unit: options.unit || '',
-    prefix: options.prefix || '',
+    lineColor: options.lineColor || "#6366F1",
+    unit: options.unit || "",
+    prefix: options.prefix || "",
   }
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
     const tooltip = tooltipRef.current
     if (!canvas || !tooltip) return
 
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext("2d")
     if (!ctx) return
 
     const resize = () => {
@@ -44,8 +46,8 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
       const dpr = window.devicePixelRatio || 1
       canvas.width = rect.width * dpr
       canvas.height = rect.height * dpr
-      canvas.style.width = rect.width + 'px'
-      canvas.style.height = rect.height + 'px'
+      canvas.style.width = rect.width + "px"
+      canvas.style.height = rect.height + "px"
       ctx.scale(dpr, dpr)
     }
 
@@ -59,26 +61,26 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
       const padding = { top: 8, right: 8, bottom: 20, left: 8 } // bottomを増やして年月表示用のスペースを確保
       const chartWidth = width - padding.left - padding.right
       const chartHeight = height - padding.top - padding.bottom
-      const minVal = Math.min(...data.map(d => d.value)) * 0.995
-      const maxVal = Math.max(...data.map(d => d.value)) * 1.005
+      const minVal = Math.min(...data.map((d) => d.value)) * 0.995
+      const maxVal = Math.max(...data.map((d) => d.value)) * 1.005
       const range = maxVal - minVal || 1
 
       // 日付から年月形式（25/06）を生成する関数
       const formatDateLabel = (d: ChartData, i: number): string => {
         if (d.date) {
-          const date = typeof d.date === 'string' ? new Date(d.date) : d.date
+          const date = typeof d.date === "string" ? new Date(d.date) : d.date
           const year = date.getFullYear().toString().slice(-2)
-          const month = (date.getMonth() + 1).toString().padStart(2, '0')
+          const month = (date.getMonth() + 1).toString().padStart(2, "0")
           return `${year}/${month}`
         }
         // weekから日付を推測（例: "1/22週" → "25/01"）
         const weekMatch = d.week.match(/(\d+)\/(\d+)/)
         if (weekMatch) {
-          const month = weekMatch[1].padStart(2, '0')
+          const month = weekMatch[1].padStart(2, "0")
           const currentYear = new Date().getFullYear().toString().slice(-2)
           return `${currentYear}/${month}`
         }
-        return ''
+        return ""
       }
 
       pointsRef.current = data.map((d, i) => ({
@@ -91,13 +93,16 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
 
       // Gradient
       const gradient = ctx.createLinearGradient(0, padding.top, 0, height)
-      gradient.addColorStop(0, opts.lineColor + '30')
-      gradient.addColorStop(1, opts.lineColor + '00')
+      gradient.addColorStop(0, opts.lineColor + "30")
+      gradient.addColorStop(1, opts.lineColor + "00")
 
-        ctx.beginPath()
-        ctx.moveTo(pointsRef.current[0]?.x || 0, height)
-        pointsRef.current.forEach((p: { x: number; y: number; value: number; week: string; dateLabel: string }) => ctx.lineTo(p.x, p.y))
-        ctx.lineTo(pointsRef.current[pointsRef.current.length - 1]?.x || 0, height)
+      ctx.beginPath()
+      ctx.moveTo(pointsRef.current[0]?.x || 0, height)
+      pointsRef.current.forEach(
+        (p: { x: number; y: number; value: number; week: string; dateLabel: string }) =>
+          ctx.lineTo(p.x, p.y)
+      )
+      ctx.lineTo(pointsRef.current[pointsRef.current.length - 1]?.x || 0, height)
       ctx.closePath()
       ctx.fillStyle = gradient
       ctx.fill()
@@ -106,35 +111,40 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
       ctx.beginPath()
       if (pointsRef.current.length > 0) {
         ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y)
-        pointsRef.current.forEach((p: { x: number; y: number; value: number; week: string; dateLabel: string }) => ctx.lineTo(p.x, p.y))
+        pointsRef.current.forEach(
+          (p: { x: number; y: number; value: number; week: string; dateLabel: string }) =>
+            ctx.lineTo(p.x, p.y)
+        )
       }
       ctx.strokeStyle = opts.lineColor
       ctx.lineWidth = 2
-      ctx.lineCap = 'round'
+      ctx.lineCap = "round"
       ctx.stroke()
 
       // Points and Date Labels
-      ctx.fillStyle = '#64748B'
-      ctx.font = '8px Inter, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      
-      pointsRef.current.forEach((p: { x: number; y: number; value: number; week: string; dateLabel: string }) => {
-        // Point
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2)
-        ctx.fillStyle = '#fff'
-        ctx.fill()
-        ctx.strokeStyle = opts.lineColor
-        ctx.lineWidth = 1.5
-        ctx.stroke()
-        
-        // Date Label (年月) below the point
-        if (p.dateLabel) {
-          ctx.fillStyle = '#64748B'
-          ctx.fillText(p.dateLabel, p.x, height - padding.bottom + 4)
+      ctx.fillStyle = "#64748B"
+      ctx.font = "8px Inter, sans-serif"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "top"
+
+      pointsRef.current.forEach(
+        (p: { x: number; y: number; value: number; week: string; dateLabel: string }) => {
+          // Point
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2)
+          ctx.fillStyle = "#fff"
+          ctx.fill()
+          ctx.strokeStyle = opts.lineColor
+          ctx.lineWidth = 1.5
+          ctx.stroke()
+
+          // Date Label (年月) below the point
+          if (p.dateLabel) {
+            ctx.fillStyle = "#64748B"
+            ctx.fillText(p.dateLabel, p.x, height - padding.bottom + 4)
+          }
         }
-      })
+      )
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -153,8 +163,8 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
       })
 
       if (closest && tooltip) {
-        const tooltipValue = tooltip.querySelector('.tooltip-value')
-        const tooltipWeek = tooltip.querySelector('.tooltip-week')
+        const tooltipValue = tooltip.querySelector(".tooltip-value")
+        const tooltipWeek = tooltip.querySelector(".tooltip-week")
         const point = closest as PointType
         if (tooltipValue) {
           tooltipValue.textContent = opts.prefix + point.value.toLocaleString() + opts.unit
@@ -162,11 +172,11 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
         if (tooltipWeek) {
           tooltipWeek.textContent = point.week
         }
-        tooltip.style.left = Math.min(point.x, rect.width - 60) + 'px'
-        tooltip.style.top = (point.y - 35) + 'px'
-        tooltip.classList.add('visible')
+        tooltip.style.left = Math.min(point.x, rect.width - 60) + "px"
+        tooltip.style.top = point.y - 35 + "px"
+        tooltip.classList.add("visible")
         draw()
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext("2d")
         if (ctx) {
           ctx.beginPath()
           ctx.arc(point.x, point.y, 4, 0, Math.PI * 2)
@@ -174,30 +184,30 @@ export function LineChart({ canvasId, tooltipId, data, options = {} }: LineChart
           ctx.fill()
         }
       } else if (tooltip) {
-        tooltip.classList.remove('visible')
+        tooltip.classList.remove("visible")
       }
     }
 
     const handleMouseLeave = () => {
       if (tooltip) {
-        tooltip.classList.remove('visible')
+        tooltip.classList.remove("visible")
       }
       draw()
     }
 
     resize()
     draw()
-    canvas.addEventListener('mousemove', handleMouseMove)
-    canvas.addEventListener('mouseleave', handleMouseLeave)
-    window.addEventListener('resize', () => {
+    canvas.addEventListener("mousemove", handleMouseMove)
+    canvas.addEventListener("mouseleave", handleMouseLeave)
+    window.addEventListener("resize", () => {
       resize()
       draw()
     })
 
     return () => {
-      canvas.removeEventListener('mousemove', handleMouseMove)
-      canvas.removeEventListener('mouseleave', handleMouseLeave)
-      window.removeEventListener('resize', () => {
+      canvas.removeEventListener("mousemove", handleMouseMove)
+      canvas.removeEventListener("mouseleave", handleMouseLeave)
+      window.removeEventListener("resize", () => {
         resize()
         draw()
       })
@@ -222,7 +232,7 @@ export function IndustryChart() {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext("2d")
     if (!ctx) return
 
     const draw = () => {
@@ -231,8 +241,8 @@ export function IndustryChart() {
       const dpr = window.devicePixelRatio || 1
       canvas.width = rect.width * dpr
       canvas.height = rect.height * dpr
-      canvas.style.width = rect.width + 'px'
-      canvas.style.height = rect.height + 'px'
+      canvas.style.width = rect.width + "px"
+      canvas.style.height = rect.height + "px"
       ctx.scale(dpr, dpr)
 
       const width = rect.width
@@ -259,7 +269,7 @@ export function IndustryChart() {
       const exportPoints = getPoints(exportData)
 
       // Grid
-      ctx.strokeStyle = '#E2E8F0'
+      ctx.strokeStyle = "#E2E8F0"
       ctx.lineWidth = 1
       for (let i = 0; i <= 4; i++) {
         const y = padding.top + (chartHeight / 4) * i
@@ -271,22 +281,22 @@ export function IndustryChart() {
 
       // Lines
       const lines = [
-        { points: domesticPoints, color: '#6366F1' },
-        { points: exportPoints, color: '#06B6D4' },
+        { points: domesticPoints, color: "#6366F1" },
+        { points: exportPoints, color: "#06B6D4" },
       ]
 
       lines.forEach(({ points, color }) => {
         ctx.beginPath()
         ctx.moveTo(points[0].x, points[0].y)
-        points.forEach(p => ctx.lineTo(p.x, p.y))
+        points.forEach((p) => ctx.lineTo(p.x, p.y))
         ctx.strokeStyle = color
         ctx.lineWidth = 2
         ctx.stroke()
 
-        points.forEach(p => {
+        points.forEach((p) => {
           ctx.beginPath()
           ctx.arc(p.x, p.y, 3, 0, Math.PI * 2)
-          ctx.fillStyle = '#fff'
+          ctx.fillStyle = "#fff"
           ctx.fill()
           ctx.strokeStyle = color
           ctx.lineWidth = 1.5
@@ -295,11 +305,11 @@ export function IndustryChart() {
       })
 
       // Labels with date (年月)
-      ctx.fillStyle = '#94A3B8'
-      ctx.font = '8px Inter, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      
+      ctx.fillStyle = "#94A3B8"
+      ctx.font = "8px Inter, sans-serif"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "top"
+
       // 年月ラベルを生成（現在日から8週間前まで）
       const now = new Date()
       const dateLabels: string[] = []
@@ -307,10 +317,10 @@ export function IndustryChart() {
         const d = new Date(now)
         d.setDate(d.getDate() - i * 7)
         const year = d.getFullYear().toString().slice(-2)
-        const month = (d.getMonth() + 1).toString().padStart(2, '0')
+        const month = (d.getMonth() + 1).toString().padStart(2, "0")
         dateLabels.push(`${year}/${month}`)
       }
-      
+
       dateLabels.forEach((label, i) => {
         if (i % 2 === 0 || i === 7) {
           ctx.fillText(label, domesticPoints[i].x, height - padding.bottom + 4)
@@ -319,13 +329,12 @@ export function IndustryChart() {
     }
 
     draw()
-    window.addEventListener('resize', draw)
+    window.addEventListener("resize", draw)
 
     return () => {
-      window.removeEventListener('resize', draw)
+      window.removeEventListener("resize", draw)
     }
   }, [])
 
   return <canvas ref={canvasRef} id="industryChart" />
 }
-

@@ -2,29 +2,33 @@
  * PDF生成ユーティリティ（Puppeteer使用）
  */
 
-import puppeteer from 'puppeteer-core';
-import type { PDFGenerateOptions, PDFGenerateResult, ReportSection, ChatData, TableData, ListData } from './types';
+import puppeteer from "puppeteer-core"
+import type {
+  PDFGenerateOptions,
+  PDFGenerateResult,
+  ReportSection,
+  ChatData,
+  TableData,
+  ListData,
+} from "./types"
 
-const DEFAULT_AUTHOR_LABEL = 'AI参謀 - AI経営コンサルティング';
-const COPYRIGHT = '© 2026 SOLVE WISE';
+const DEFAULT_AUTHOR_LABEL = "AI参謀 - AI経営コンサルティング"
+const COPYRIGHT = "© 2026 SOLVE WISE"
 
 /**
  * レポートのHTMLを生成（サンプル report-form-sample.html に準拠）
  * 表紙・セクションのみ。ヘッダー・フッターは Puppeteer displayHeaderFooter で付与。
  */
 function generateReportHTML(options: PDFGenerateOptions): string {
-  const { sections, metadata, orientation, baseUrl } = options;
-  const isPortrait = orientation === 'portrait';
-  const authorLabel = options.authorLabel ?? DEFAULT_AUTHOR_LABEL;
+  const { sections, metadata, orientation, baseUrl } = options
+  const isPortrait = orientation === "portrait"
+  const authorLabel = options.authorLabel ?? DEFAULT_AUTHOR_LABEL
 
-  const sectionsHTML = sections
-    .map(section => generateSectionHTML(section))
-    .join('\n\n');
+  const sectionsHTML = sections.map((section) => generateSectionHTML(section)).join("\n\n")
 
-  const coverLogo =
-    baseUrl
-      ? `<div class="cover-logo"><img src="${escapeHtml(baseUrl)}/logo.png" alt="SOLVE WISE"><span>SOLVE WISE</span></div>`
-      : '<div class="cover-logo"><span>SOLVE WISE</span></div>';
+  const coverLogo = baseUrl
+    ? `<div class="cover-logo"><img src="${escapeHtml(baseUrl)}/logo.png" alt="SOLVE WISE"><span>SOLVE WISE</span></div>`
+    : '<div class="cover-logo"><span>SOLVE WISE</span></div>'
 
   return `
 <!DOCTYPE html>
@@ -35,7 +39,7 @@ function generateReportHTML(options: PDFGenerateOptions): string {
   <title>${escapeHtml(metadata.title)}</title>
   <style>
     @page {
-      size: A4 ${isPortrait ? 'portrait' : 'landscape'};
+      size: A4 ${isPortrait ? "portrait" : "landscape"};
       margin: 20mm;
     }
     * { box-sizing: border-box; }
@@ -170,7 +174,7 @@ function generateReportHTML(options: PDFGenerateOptions): string {
     <div class="cover-subtitle">${escapeHtml(metadata.sessionName)}</div>
     <div class="cover-meta">
       <div class="created">作成日時: ${escapeHtml(metadata.createdAt)}</div>
-      ${metadata.userName ? `担当: ${escapeHtml(metadata.userName)}<br>` : ''}
+      ${metadata.userName ? `担当: ${escapeHtml(metadata.userName)}<br>` : ""}
       <div class="author">文責: ${escapeHtml(authorLabel)}</div>
     </div>
   </div>
@@ -178,7 +182,7 @@ function generateReportHTML(options: PDFGenerateOptions): string {
   ${sectionsHTML}
 </body>
 </html>
-  `.trim();
+  `.trim()
 }
 
 /**
@@ -186,18 +190,18 @@ function generateReportHTML(options: PDFGenerateOptions): string {
  */
 function generateSectionHTML(section: ReportSection): string {
   switch (section.type) {
-    case 'chat':
-      return generateChatHTML(section);
-    case 'table':
-      return generateTableHTML(section);
-    case 'list':
-      return generateListHTML(section);
-    case 'text':
-      return generateTextHTML(section);
-    case 'html':
-      return generateReportHTMLSection(section);
+    case "chat":
+      return generateChatHTML(section)
+    case "table":
+      return generateTableHTML(section)
+    case "list":
+      return generateListHTML(section)
+    case "text":
+      return generateTextHTML(section)
+    case "html":
+      return generateReportHTMLSection(section)
     default:
-      return '';
+      return ""
   }
 }
 
@@ -206,71 +210,67 @@ function generateSectionHTML(section: ReportSection): string {
  * content は既にHTMLのためエスケープしない
  */
 function generateReportHTMLSection(section: ReportSection): string {
-  const htmlContent = section.content as string;
+  const htmlContent = section.content as string
   const createdAt = section.metadata?.createdAt
-    ? new Date(section.metadata.createdAt).toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+    ? new Date(section.metadata.createdAt).toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
-    : '';
+    : ""
   return `
     <div class="section report-section">
       <h2 class="section-title">${escapeHtml(section.title)}</h2>
-      ${createdAt ? `<p class="section-meta">作成日時: ${escapeHtml(createdAt)}</p>` : ''}
+      ${createdAt ? `<p class="section-meta">作成日時: ${escapeHtml(createdAt)}</p>` : ""}
       <div class="section-body report-body">${htmlContent}</div>
     </div>
-  `;
+  `
 }
 
 /**
  * 会話履歴のHTML生成
  */
 function generateChatHTML(section: ReportSection): string {
-  const chatData = section.content as ChatData;
-  
+  const chatData = section.content as ChatData
+
   const messagesHTML = chatData.messages
-    .map(msg => {
-      const roleClass = msg.role === 'user' ? 'chat-user' : 'chat-assistant';
-      const roleLabel = msg.role === 'user' ? 'ユーザー' : 'AI';
-      
+    .map((msg) => {
+      const roleClass = msg.role === "user" ? "chat-user" : "chat-assistant"
+      const roleLabel = msg.role === "user" ? "ユーザー" : "AI"
+
       return `
         <div class="chat-message ${roleClass}">
           <div class="chat-role">${roleLabel}</div>
           <div class="chat-content">${escapeHtml(msg.content)}</div>
         </div>
-      `;
+      `
     })
-    .join('\n');
+    .join("\n")
 
   return `
     <div class="section">
       <h2 class="section-title">${section.title}</h2>
       ${messagesHTML}
     </div>
-  `;
+  `
 }
 
 /**
  * テーブルのHTML生成（サンプル準拠 .report-table）
  */
 function generateTableHTML(section: ReportSection): string {
-  const tableData = section.content as TableData;
+  const tableData = section.content as TableData
 
-  const headersHTML = tableData.headers
-    .map(h => `<th>${escapeHtml(h)}</th>`)
-    .join('');
+  const headersHTML = tableData.headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")
 
   const rowsHTML = tableData.rows
-    .map(row => {
-      const cellsHTML = row
-        .map(cell => `<td>${escapeHtml(cell)}</td>`)
-        .join('');
-      return `<tr>${cellsHTML}</tr>`;
+    .map((row) => {
+      const cellsHTML = row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")
+      return `<tr>${cellsHTML}</tr>`
     })
-    .join('\n');
+    .join("\n")
 
   return `
     <div class="section">
@@ -286,39 +286,39 @@ function generateTableHTML(section: ReportSection): string {
         </table>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
  * リストのHTML生成
  */
 function generateListHTML(section: ReportSection): string {
-  const listData = section.content as ListData;
-  
+  const listData = section.content as ListData
+
   const itemsHTML = listData.items
-    .map(item => `<div class="list-item">${escapeHtml(item)}</div>`)
-    .join('\n');
+    .map((item) => `<div class="list-item">${escapeHtml(item)}</div>`)
+    .join("\n")
 
   return `
     <div class="section">
       <h2 class="section-title">${section.title}</h2>
       ${itemsHTML}
     </div>
-  `;
+  `
 }
 
 /**
  * テキストのHTML生成
  */
 function generateTextHTML(section: ReportSection): string {
-  const content = section.content as string;
-  
+  const content = section.content as string
+
   return `
     <div class="section">
       <h2 class="section-title">${section.title}</h2>
       <p>${escapeHtml(content)}</p>
     </div>
-  `;
+  `
 }
 
 /**
@@ -326,143 +326,142 @@ function generateTextHTML(section: ReportSection): string {
  */
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-    .replace(/\n/g, '<br>');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+    .replace(/\n/g, "<br>")
 }
 
 /**
  * PuppeteerでPDF生成
  */
 export async function generatePDFReport(options: PDFGenerateOptions): Promise<PDFGenerateResult> {
-  let browser;
+  let browser
 
   try {
     // HTML生成
-    const html = generateReportHTML(options);
+    const html = generateReportHTML(options)
 
-    console.log('🚀 PDF生成: ブラウザ起動準備');
+    console.log("🚀 PDF生成: ブラウザ起動準備")
 
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = process.env.NODE_ENV === "production"
 
     // 本番のみ @sparticuz/chromium を動的読み込み（開発環境での競合を防ぐ）
-    let executablePath: string;
-    let launchOptions: Parameters<typeof puppeteer.launch>[0];
+    let executablePath: string
+    let launchOptions: Parameters<typeof puppeteer.launch>[0]
 
     if (isProduction) {
-      const chromium = await import('@sparticuz/chromium');
-      executablePath = await chromium.default.executablePath();
+      const chromium = await import("@sparticuz/chromium")
+      executablePath = await chromium.default.executablePath()
       launchOptions = {
         args: chromium.default.args,
         defaultViewport: chromium.default.defaultViewport,
         executablePath,
         headless: true,
-      };
+      }
     } else {
       executablePath =
-        process.platform === 'darwin'
-          ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-          : process.platform === 'win32'
-            ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-            : '/usr/bin/google-chrome';
+        process.platform === "darwin"
+          ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          : process.platform === "win32"
+            ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+            : "/usr/bin/google-chrome"
       launchOptions = {
         args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-software-rasterizer',
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-software-rasterizer",
         ],
         executablePath,
         headless: true,
         defaultViewport: { width: 800, height: 600 },
-      };
+      }
     }
 
-    console.log('📍 実行パス:', executablePath);
+    console.log("📍 実行パス:", executablePath)
 
     // ブラウザ起動
-    browser = await puppeteer.launch(launchOptions);
-    console.log('✅ ブラウザ起動成功');
+    browser = await puppeteer.launch(launchOptions)
+    console.log("✅ ブラウザ起動成功")
 
-    const page = await browser.newPage();
-    console.log('📄 新規ページ作成成功');
-    
+    const page = await browser.newPage()
+    console.log("📄 新規ページ作成成功")
+
     // HTMLを設定
-    console.log('📝 HTMLコンテンツ設定中...');
+    console.log("📝 HTMLコンテンツ設定中...")
     await page.setContent(html, {
-      waitUntil: 'load',
+      waitUntil: "load",
       timeout: 30000,
-    });
-    console.log('✅ HTMLコンテンツ設定完了');
+    })
+    console.log("✅ HTMLコンテンツ設定完了")
 
     // レンダリング安定化のため短く待機
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const isLandscape = options.orientation !== 'portrait';
-    const authorLabel = options.authorLabel ?? DEFAULT_AUTHOR_LABEL;
-    const headerLogo =
-      options.baseUrl
-        ? `<img src="${options.baseUrl}/logo.png" alt="" class="brand-logo" style="height:20px;width:auto;vertical-align:middle">`
-        : '';
+    const isLandscape = options.orientation !== "portrait"
+    const authorLabel = options.authorLabel ?? DEFAULT_AUTHOR_LABEL
+    const headerLogo = options.baseUrl
+      ? `<img src="${options.baseUrl}/logo.png" alt="" class="brand-logo" style="height:20px;width:auto;vertical-align:middle">`
+      : ""
     const headerTemplate = `
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;background:linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);color:#fff;font-size:9.5pt;font-weight:600;letter-spacing:0.08em;width:100%;box-sizing:border-box;">
         <span>SOLVE WISE</span>
         ${headerLogo}
       </div>
-    `;
+    `
     const footerTemplate = `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(135deg, #3730a3 0%, #4f46e5 100%);color:rgba(255,255,255,0.95);font-size:9pt;width:100%;box-sizing:border-box;flex-wrap:wrap;gap:8px;">
         <span class="pageNumber" style="font-weight:600"></span> / <span class="totalPages" style="font-weight:600"></span>
-        <span style="opacity:0.9">${authorLabel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+        <span style="opacity:0.9">${authorLabel.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
         <span style="font-size:8pt;opacity:0.85">${COPYRIGHT}</span>
       </div>
-    `;
+    `
 
     // PDF生成
-    console.log('🖨️ PDF生成中...', { landscape: isLandscape });
+    console.log("🖨️ PDF生成中...", { landscape: isLandscape })
     const pdfBuffer = await page.pdf({
-      format: 'A4',
+      format: "A4",
       landscape: isLandscape,
       printBackground: true,
       margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm',
+        top: "20mm",
+        right: "20mm",
+        bottom: "20mm",
+        left: "20mm",
       },
       displayHeaderFooter: true,
       headerTemplate,
       footerTemplate,
-    });
-    console.log('✅ PDF生成完了:', `${(pdfBuffer.length / 1024).toFixed(2)} KB`);
+    })
+    console.log("✅ PDF生成完了:", `${(pdfBuffer.length / 1024).toFixed(2)} KB`)
 
     // ファイル名生成
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const fileName = `AI_Consulting_Report_${timestamp}.pdf`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
+    const fileName = `AI_Consulting_Report_${timestamp}.pdf`
 
     return {
       buffer: Buffer.from(pdfBuffer),
       fileName,
-      mimeType: 'application/pdf',
-    };
+      mimeType: "application/pdf",
+    }
   } catch (error) {
-    console.error('❌ PDF生成処理でエラー:', error);
-    throw error;
+    console.error("❌ PDF生成処理でエラー:", error)
+    throw error
   } finally {
     // ブラウザを閉じる
     if (browser) {
-      console.log('🔒 ブラウザをクローズ中...');
+      console.log("🔒 ブラウザをクローズ中...")
       try {
-        await browser.close();
-        console.log('✅ ブラウザクローズ完了');
+        await browser.close()
+        console.log("✅ ブラウザクローズ完了")
       } catch (closeError) {
-        console.error('⚠️ ブラウザクローズでエラー:', closeError);
+        console.error("⚠️ ブラウザクローズでエラー:", closeError)
       }
     }
   }

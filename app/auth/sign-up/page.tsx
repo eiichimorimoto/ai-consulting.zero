@@ -19,7 +19,9 @@ function SignUpContent() {
   const [repeatPassword, setRepeatPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [passwordStrength, setPasswordStrength] = useState<ReturnType<typeof checkPasswordStrength> | null>(null)
+  const [passwordStrength, setPasswordStrength] = useState<ReturnType<
+    typeof checkPasswordStrength
+  > | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showRepeatPassword, setShowRepeatPassword] = useState(false)
   const [fromDiagnosis, setFromDiagnosis] = useState(false)
@@ -31,16 +33,16 @@ function SignUpContent() {
 
   // 診断フローから来たかどうかをチェック
   useEffect(() => {
-    const from = searchParams.get('from')
-    if (from === 'diagnosis') {
+    const from = searchParams.get("from")
+    if (from === "diagnosis") {
       setFromDiagnosis(true)
       // sessionStorageから診断データを取得
-      const savedDiagnosis = sessionStorage.getItem('pendingDiagnosis')
+      const savedDiagnosis = sessionStorage.getItem("pendingDiagnosis")
       if (savedDiagnosis) {
         try {
           setPendingDiagnosis(JSON.parse(savedDiagnosis))
         } catch (e) {
-          console.error('Failed to parse pending diagnosis:', e)
+          console.error("Failed to parse pending diagnosis:", e)
         }
       }
     }
@@ -50,18 +52,18 @@ function SignUpContent() {
     e.preventDefault()
     const supabase = createClient()
 
-    console.log('🔍 Signup process started')
-    console.log('Supabase client:', supabase ? 'Created' : 'NULL')
-    
+    console.log("🔍 Signup process started")
+    console.log("Supabase client:", supabase ? "Created" : "NULL")
+
     // 環境変数の確認
-    console.log('Environment check:', {
+    console.log("Environment check:", {
       hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
     })
 
     if (!supabase) {
-      console.error('❌ Supabase client is null')
+      console.error("❌ Supabase client is null")
       setError("Supabaseが設定されていません。環境変数を確認してください。")
       return
     }
@@ -92,14 +94,14 @@ function SignUpContent() {
     }
 
     // より厳密なメールアドレス検証（一般的なドメイン形式をチェック）
-    const emailParts = email.split('@')
+    const emailParts = email.split("@")
     if (emailParts.length !== 2 || emailParts[0].length === 0 || emailParts[1].length === 0) {
       setError("有効なメールアドレスを入力してください")
       setIsLoading(false)
       return
     }
 
-    const domainParts = emailParts[1].split('.')
+    const domainParts = emailParts[1].split(".")
     if (domainParts.length < 2 || domainParts[domainParts.length - 1].length < 2) {
       setError("有効なメールアドレスを入力してください（ドメイン名が正しくありません）")
       setIsLoading(false)
@@ -107,21 +109,24 @@ function SignUpContent() {
     }
 
     try {
-      console.log('📤 Calling supabase.auth.signUp...')
-      console.log('Email:', email)
-      console.log('Password length:', password.length)
+      console.log("📤 Calling supabase.auth.signUp...")
+      console.log("Email:", email)
+      console.log("Password length:", password.length)
       // 本番/プレビュー/ローカルでドメインが揺れても、メール内リンクを正しいドメインへ固定できるようにする
       // 例: NEXT_PUBLIC_SITE_URL=https://ai-consulting-zero.vercel.app
       // 注意: Supabaseはredirect_toにクエリパラメータを含むURLを正しく処理しない可能性があるため、
       // /auth/callbackのみを指定し、nextパラメータは/app/auth/callback/route.tsでデフォルトとして処理する
-      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, "")
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(
+        /\/$/,
+        ""
+      )
       // 重要: SupabaseのemailRedirectToは完全なURLである必要がある
       // また、Supabaseの設定でRedirect URLsに登録されている必要がある
       const emailRedirectTo = `${siteUrl}/auth/callback`
-      console.log('📧 Email redirect URL:', emailRedirectTo)
-      console.log('📧 Site URL from env:', process.env.NEXT_PUBLIC_SITE_URL)
-      console.log('📧 Window origin:', window.location.origin)
-      
+      console.log("📧 Email redirect URL:", emailRedirectTo)
+      console.log("📧 Site URL from env:", process.env.NEXT_PUBLIC_SITE_URL)
+      console.log("📧 Window origin:", window.location.origin)
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -131,30 +136,30 @@ function SignUpContent() {
           // メール確認を強制する（Supabaseの設定に依存）
         },
       })
-      
-      console.log('📥 SignUp response received')
-      console.log('Response data:', {
+
+      console.log("📥 SignUp response received")
+      console.log("Response data:", {
         hasUser: !!data?.user,
         hasSession: !!data?.session,
         hasError: !!error,
       })
-      
+
       if (error) {
-        console.error('❌ Signup error:', {
+        console.error("❌ Signup error:", {
           message: error.message,
           status: error.status,
           name: error.name,
           stack: error.stack,
         })
-        
+
         // より詳細なエラーメッセージ
         let errorMessage = error.message
-        if (error.message.includes('User already registered')) {
-          errorMessage = 'このメールアドレスは既に登録されています。'
-        } else if (error.message.includes('Invalid email')) {
-          errorMessage = 'メールアドレスの形式が正しくありません。'
-        } else if (error.message.includes('Password')) {
-          errorMessage = 'パスワードが要件を満たしていません。'
+        if (error.message.includes("User already registered")) {
+          errorMessage = "このメールアドレスは既に登録されています。"
+        } else if (error.message.includes("Invalid email")) {
+          errorMessage = "メールアドレスの形式が正しくありません。"
+        } else if (error.message.includes("Password")) {
+          errorMessage = "パスワードが要件を満たしていません。"
         }
 
         setError(errorMessage)
@@ -162,56 +167,58 @@ function SignUpContent() {
       }
 
       if (!data || !data.user) {
-        console.error('❌ No user data in response:', data)
-        setError('ユーザーの作成に失敗しました。時間をおいて再度お試しください。')
+        console.error("❌ No user data in response:", data)
+        setError("ユーザーの作成に失敗しました。時間をおいて再度お試しください。")
         return
       }
 
       // Supabaseは「再サインアップ」の場合、identities が空配列で返る
       const identities = (data.user as any)?.identities
       if (Array.isArray(identities) && identities.length === 0) {
-        setError('このメールアドレスは既に登録されています。メールを確認するか、ログインしてください。')
+        setError(
+          "このメールアドレスは既に登録されています。メールを確認するか、ログインしてください。"
+        )
         return
       }
 
       // メール送信の状態を確認
-      console.log('✅ Signup successful:', {
+      console.log("✅ Signup successful:", {
         userId: data.user.id,
         email: data.user.email,
         emailConfirmed: data.user.email_confirmed_at,
         createdAt: data.user.created_at,
         hasSession: !!data.session,
-        sessionType: data.session ? 'Session created' : 'No session (email confirmation required)',
+        sessionType: data.session ? "Session created" : "No session (email confirmation required)",
       })
-      
+
       // SupabaseのUsersテーブルにユーザーが作成されたか確認
-      console.log('🔍 Verifying user creation in Supabase...')
-      console.log('User ID:', data.user.id)
-      console.log('User Email:', data.user.email)
-      console.log('User Created At:', data.user.created_at)
+      console.log("🔍 Verifying user creation in Supabase...")
+      console.log("User ID:", data.user.id)
+      console.log("User Email:", data.user.email)
+      console.log("User Created At:", data.user.created_at)
 
       // メール確認が必要な場合（sessionがnull）
       if (!data.session && !data.user.email_confirmed_at) {
-        console.log('Email confirmation required - check your inbox')
+        console.log("Email confirmation required - check your inbox")
       }
 
       // トリガー関数がプロファイルを作成するまで待つ
       // トリガー関数（handle_new_user）はSECURITY DEFINERで実行されるため、RLSをバイパスしてプロファイルを作成します
-      console.log('⏳ Waiting for trigger function to create profile...')
-      
+      console.log("⏳ Waiting for trigger function to create profile...")
+
       // トリガー関数の実行を待つ（最大5秒）
       let profileCreated = false
       const maxAttempts = 5
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
         // プロファイルが作成されたか確認
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', data.user.id)
+          .from("profiles")
+          .select("id")
+          .eq("user_id", data.user.id)
           .single()
-        
+
         if (profile) {
           console.log(`✅ Profile created by trigger function (attempt ${attempt + 1}):`, profile)
           profileCreated = true
@@ -220,18 +227,18 @@ function SignUpContent() {
           console.log(`⏳ Waiting for profile creation... (attempt ${attempt + 1}/${maxAttempts})`)
         }
       }
-      
+
       // プロファイルが作成されていない場合のみAPIルートを呼び出す
       if (!profileCreated) {
-        console.log('⚠️ Profile not created by trigger function, attempting API creation...')
-        
+        console.log("⚠️ Profile not created by trigger function, attempting API creation...")
+
         try {
-          const response = await fetch('/api/create-profile', {
-            method: 'POST',
+          const response = await fetch("/api/create-profile", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
-            credentials: 'include',
+            credentials: "include",
             body: JSON.stringify({
               userId: data.user.id,
               email: data.user.email,
@@ -240,115 +247,132 @@ function SignUpContent() {
           })
 
           let result: any = null
-          let responseText: string = ''
-          
+          let responseText: string = ""
+
           try {
             responseText = await response.text()
             if (responseText && responseText.trim()) {
               try {
                 result = JSON.parse(responseText)
               } catch (parseError) {
-                console.warn('Failed to parse response as JSON:', parseError)
+                console.warn("Failed to parse response as JSON:", parseError)
                 result = { rawText: responseText }
               }
             }
           } catch (readError) {
-            console.error('Failed to read response:', readError)
+            console.error("Failed to read response:", readError)
           }
 
-          if (response.ok || result?.code === 'PROFILE_EXISTS') {
-            console.log('✅ Profile created via API:', result)
+          if (response.ok || result?.code === "PROFILE_EXISTS") {
+            console.log("✅ Profile created via API:", result)
           } else {
             // APIエラーでも続行（トリガー関数が後で作成する可能性がある）
             const errorCode = result?.code
-            const errorDetails = result?.details || result?.error || ''
-            
-            if (errorCode === '42501' || errorDetails.includes('row-level security')) {
-              console.warn('⚠️ RLS policy violation - profile may be created by trigger function later')
+            const errorDetails = result?.details || result?.error || ""
+
+            if (errorCode === "42501" || errorDetails.includes("row-level security")) {
+              console.warn(
+                "⚠️ RLS policy violation - profile may be created by trigger function later"
+              )
             } else {
-              console.warn('⚠️ Profile creation API error (non-critical):', result?.error || result?.details)
+              console.warn(
+                "⚠️ Profile creation API error (non-critical):",
+                result?.error || result?.details
+              )
             }
           }
         } catch (apiError) {
-          console.warn('⚠️ API call error (non-critical):', apiError)
+          console.warn("⚠️ API call error (non-critical):", apiError)
           // エラーをスローせずに続行
         }
       }
 
       // サインアップ成功後の確認
-      console.log('✅ All signup steps completed successfully')
-      console.log('📋 Final status:', {
+      console.log("✅ All signup steps completed successfully")
+      console.log("📋 Final status:", {
         userId: data.user.id,
         email: data.user.email,
         emailConfirmed: data.user.email_confirmed_at,
-        profileCreated: 'Processing...',
+        profileCreated: "Processing...",
       })
-      
+
       // 診断フローからの場合、診断レポートを保存してリダイレクト
       if (fromDiagnosis && pendingDiagnosis) {
         try {
-          console.log('📊 Saving diagnosis report...')
-          const reportResponse = await fetch('/api/register-and-save-report', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          console.log("📊 Saving diagnosis report...")
+          const reportResponse = await fetch("/api/register-and-save-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: data.user.email,
-              companyName: email.split('@')[0] + '様', // 仮の会社名
+              companyName: email.split("@")[0] + "様", // 仮の会社名
               reportData: pendingDiagnosis,
             }),
           })
-          
+
           const reportResult = await reportResponse.json()
-          
+
           if (reportResult.success && reportResult.reportId) {
             // sessionStorageをクリア
-            sessionStorage.removeItem('pendingDiagnosis')
+            sessionStorage.removeItem("pendingDiagnosis")
             // 診断レポートページへリダイレクト
             router.push(`/diagnosis/${reportResult.reportId}`)
             return
           }
         } catch (reportError) {
-          console.error('Failed to save diagnosis report:', reportError)
+          console.error("Failed to save diagnosis report:", reportError)
         }
         // エラーの場合もsessionStorageをクリア
-        sessionStorage.removeItem('pendingDiagnosis')
+        sessionStorage.removeItem("pendingDiagnosis")
       }
-      
+
       router.push("/auth/sign-up-success")
     } catch (error: unknown) {
-      console.error('❌ Signup error details:', error)
-      
+      console.error("❌ Signup error details:", error)
+
       // エラーの詳細をログに記録
       if (error instanceof Error) {
-        console.error('Error name:', error.name)
-        console.error('Error message:', error.message)
-        console.error('Error stack:', error.stack)
-        
+        console.error("Error name:", error.name)
+        console.error("Error message:", error.message)
+        console.error("Error stack:", error.stack)
+
         // エラーメッセージを日本語化
         let errorMessage = error.message
-        if (error.message.includes('Database error') || error.message.includes('プロファイルの作成に失敗')) {
-          errorMessage = 'データベースエラー: ユーザーの保存に失敗しました。管理者にお問い合わせください。'
-        } else if (error.message.includes('User already registered') || error.message.includes('already registered') || error.message.includes('already exists')) {
-          errorMessage = 'このメールアドレスは既に登録されています。'
-        } else if (error.message.includes('Password') || error.message.includes('password')) {
-          errorMessage = 'パスワードが弱すぎます。より強力なパスワードを設定してください。'
-        } else if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'メールアドレスまたはパスワードが正しくありません。'
-        } else if (error.message.includes('Email address') && error.message.includes('invalid')) {
-          errorMessage = 'メールアドレスの形式が正しくありません。有効なメールアドレスを入力してください。\n例: yourname@example.com'
-        } else if (error.message.includes('email') && error.message.includes('invalid')) {
-          errorMessage = 'メールアドレスの形式が正しくありません。有効なメールアドレスを入力してください。\n例: yourname@example.com'
-        } else if (error.message.includes('Invalid email')) {
-          errorMessage = 'メールアドレスの形式が正しくありません。有効なメールアドレスを入力してください。'
-        } else if (error.message.includes('Supabaseが設定されていません')) {
-          errorMessage = 'Supabaseが設定されていません。環境変数（NEXT_PUBLIC_SUPABASE_URL、NEXT_PUBLIC_SUPABASE_ANON_KEY）を確認してください。'
-        } else if (error.message.includes('ユーザーの作成に失敗')) {
-          errorMessage = 'ユーザーの作成に失敗しました。Supabaseの設定を確認してください。'
+        if (
+          error.message.includes("Database error") ||
+          error.message.includes("プロファイルの作成に失敗")
+        ) {
+          errorMessage =
+            "データベースエラー: ユーザーの保存に失敗しました。管理者にお問い合わせください。"
+        } else if (
+          error.message.includes("User already registered") ||
+          error.message.includes("already registered") ||
+          error.message.includes("already exists")
+        ) {
+          errorMessage = "このメールアドレスは既に登録されています。"
+        } else if (error.message.includes("Password") || error.message.includes("password")) {
+          errorMessage = "パスワードが弱すぎます。より強力なパスワードを設定してください。"
+        } else if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "メールアドレスまたはパスワードが正しくありません。"
+        } else if (error.message.includes("Email address") && error.message.includes("invalid")) {
+          errorMessage =
+            "メールアドレスの形式が正しくありません。有効なメールアドレスを入力してください。\n例: yourname@example.com"
+        } else if (error.message.includes("email") && error.message.includes("invalid")) {
+          errorMessage =
+            "メールアドレスの形式が正しくありません。有効なメールアドレスを入力してください。\n例: yourname@example.com"
+        } else if (error.message.includes("Invalid email")) {
+          errorMessage =
+            "メールアドレスの形式が正しくありません。有効なメールアドレスを入力してください。"
+        } else if (error.message.includes("Supabaseが設定されていません")) {
+          errorMessage =
+            "Supabaseが設定されていません。環境変数（NEXT_PUBLIC_SUPABASE_URL、NEXT_PUBLIC_SUPABASE_ANON_KEY）を確認してください。"
+        } else if (error.message.includes("ユーザーの作成に失敗")) {
+          errorMessage = "ユーザーの作成に失敗しました。Supabaseの設定を確認してください。"
         }
         setError(errorMessage)
       } else {
-        console.error('Unknown error type:', typeof error, error)
-        setError('エラーが発生しました。ブラウザのコンソールを確認してください。')
+        console.error("Unknown error type:", typeof error, error)
+        setError("エラーが発生しました。ブラウザのコンソールを確認してください。")
       }
     } finally {
       setIsLoading(false)
@@ -358,32 +382,77 @@ function SignUpContent() {
   return (
     <div className="flex min-h-svh w-full">
       {/* Left side - AI Illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 relative overflow-hidden items-center justify-center">
+      <div className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 lg:flex lg:w-1/2">
         {/* Quantum Computer Background Image */}
         <div className="absolute inset-0 opacity-30">
-          <img 
+          <img
             src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop"
             alt="Quantum Computer"
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-indigo-600/80"></div>
         <div className="absolute inset-0 opacity-20">
-          <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            className="h-full w-full"
+            viewBox="0 0 800 600"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             {/* AI Brain Network Pattern */}
             <circle cx="200" cy="150" r="80" fill="white" opacity="0.1" />
             <circle cx="600" cy="200" r="60" fill="white" opacity="0.1" />
             <circle cx="400" cy="400" r="70" fill="white" opacity="0.1" />
             <circle cx="150" cy="450" r="50" fill="white" opacity="0.1" />
             <circle cx="650" cy="450" r="65" fill="white" opacity="0.1" />
-            
+
             {/* Connecting Lines */}
-            <line x1="200" y1="150" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
-            <line x1="600" y1="200" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
-            <line x1="200" y1="150" x2="600" y2="200" stroke="white" strokeWidth="2" opacity="0.2" />
-            <line x1="150" y1="450" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
-            <line x1="650" y1="450" x2="400" y2="400" stroke="white" strokeWidth="2" opacity="0.2" />
-            
+            <line
+              x1="200"
+              y1="150"
+              x2="400"
+              y2="400"
+              stroke="white"
+              strokeWidth="2"
+              opacity="0.2"
+            />
+            <line
+              x1="600"
+              y1="200"
+              x2="400"
+              y2="400"
+              stroke="white"
+              strokeWidth="2"
+              opacity="0.2"
+            />
+            <line
+              x1="200"
+              y1="150"
+              x2="600"
+              y2="200"
+              stroke="white"
+              strokeWidth="2"
+              opacity="0.2"
+            />
+            <line
+              x1="150"
+              y1="450"
+              x2="400"
+              y2="400"
+              stroke="white"
+              strokeWidth="2"
+              opacity="0.2"
+            />
+            <line
+              x1="650"
+              y1="450"
+              x2="400"
+              y2="400"
+              stroke="white"
+              strokeWidth="2"
+              opacity="0.2"
+            />
+
             {/* AI Robot Silhouette */}
             <rect x="350" y="250" width="100" height="120" rx="10" fill="white" opacity="0.15" />
             <circle cx="400" cy="280" r="20" fill="white" opacity="0.2" />
@@ -392,208 +461,225 @@ function SignUpContent() {
             <rect x="380" y="350" width="40" height="20" rx="5" fill="white" opacity="0.15" />
           </svg>
         </div>
-        <div className="relative z-10 text-center px-12">
+        <div className="relative z-10 px-12 text-center">
           <div className="mb-8">
-            <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center animate-bounce">
-              <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <div className="mx-auto mb-6 flex h-32 w-32 animate-bounce items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+              <svg
+                className="h-20 w-20 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
               </svg>
             </div>
-            <h2 className="text-4xl font-bold text-white mb-4">AIの力で<br />経営を変革</h2>
-            <p className="text-white/90 text-lg">24時間365日、AIがあなたのビジネスをサポートします</p>
+            <h2 className="mb-4 text-4xl font-bold text-white">
+              AIの力で
+              <br />
+              経営を変革
+            </h2>
+            <p className="text-lg text-white/90">
+              24時間365日、AIがあなたのビジネスをサポートします
+            </p>
           </div>
         </div>
       </div>
-      
+
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
+      <div className="flex w-full items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 p-6 md:p-10 lg:w-1/2">
         <div className="w-full max-w-md">
-        <div className="flex flex-col gap-6">
-
-          {!supabaseReady && (
-            <Card className="border-amber-200 bg-amber-50 shadow-md">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-amber-800">Supabase未設定</p>
-                    <p className="text-sm text-amber-700 mt-1">
-                      認証機能を使用するには、v0サイドバーの「Connect」からSupabaseを接続してください。
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 診断フローからの場合のメッセージ */}
-          {fromDiagnosis && pendingDiagnosis && (
-            <Card className="border-blue-200 bg-blue-50 shadow-md mb-4">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-blue-800">診断レポートの準備ができています</p>
-                    <p className="text-sm text-blue-700 mt-1">
-                      アカウント作成が完了すると、診断レポートの完全版をご覧いただけます。
-                    </p>
-                    <div className="mt-2 p-2 bg-blue-100 rounded text-sm">
-                      <span className="text-blue-800 font-semibold">総合スコア: </span>
-                      <span className={`font-bold ${pendingDiagnosis.overallScore >= 60 ? 'text-green-600' : pendingDiagnosis.overallScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {pendingDiagnosis.overallScore}/100
-                      </span>
+          <div className="flex flex-col gap-6">
+            {!supabaseReady && (
+              <Card className="border-amber-200 bg-amber-50 shadow-md">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
+                    <div>
+                      <p className="font-medium text-amber-800">Supabase未設定</p>
+                      <p className="mt-1 text-sm text-amber-700">
+                        認証機能を使用するには、v0サイドバーの「Connect」からSupabaseを接続してください。
+                      </p>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
-          <Card className="shadow-2xl border border-gray-200 bg-white">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">
-                {fromDiagnosis ? '無料新規登録' : '新規登録'}
-              </CardTitle>
-              <CardDescription>
-                {fromDiagnosis 
-                  ? 'アカウントを作成して完全な診断レポートを受け取りましょう'
-                  : 'アカウントを作成してAIコンサルティングを始めましょう'
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignUp}>
-                <div className="flex flex-col gap-5">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">メールアドレス</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      disabled={!supabaseReady}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">パスワード</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="8文字以上（大文字・小文字・数字・記号を含む）"
-                        required
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value)
-                          setPasswordStrength(checkPasswordStrength(e.target.value))
-                        }}
-                        className="h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
-                        disabled={!supabaseReady}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                    {password && passwordStrength && (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all ${
-                                passwordStrength.score === 0 || passwordStrength.score === 1
-                                  ? 'bg-red-500'
-                                  : passwordStrength.score === 2
-                                  ? 'bg-yellow-500'
-                                  : passwordStrength.score === 3
-                                  ? 'bg-blue-500'
-                                  : 'bg-green-500'
-                              }`}
-                              style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-medium ${
-                            passwordStrength.score === 0 || passwordStrength.score === 1
-                              ? 'text-red-600'
-                              : passwordStrength.score === 2
-                              ? 'text-yellow-600'
-                              : passwordStrength.score === 3
-                              ? 'text-blue-600'
-                              : 'text-green-600'
-                          }`}>
-                            {passwordStrength.label}
-                          </span>
-                        </div>
-                        {passwordStrength.feedback.length > 0 && (
-                          <ul className="text-xs text-gray-600 mt-1 space-y-0.5">
-                            {passwordStrength.feedback.map((msg, idx) => (
-                              <li key={idx} className="flex items-center gap-1">
-                                <span className="text-red-500">•</span>
-                                {msg}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+            {/* 診断フローからの場合のメッセージ */}
+            {fromDiagnosis && pendingDiagnosis && (
+              <Card className="mb-4 border-blue-200 bg-blue-50 shadow-md">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <FileText className="mt-0.5 h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium text-blue-800">診断レポートの準備ができています</p>
+                      <p className="mt-1 text-sm text-blue-700">
+                        アカウント作成が完了すると、診断レポートの完全版をご覧いただけます。
+                      </p>
+                      <div className="mt-2 rounded bg-blue-100 p-2 text-sm">
+                        <span className="font-semibold text-blue-800">総合スコア: </span>
+                        <span
+                          className={`font-bold ${pendingDiagnosis.overallScore >= 60 ? "text-green-600" : pendingDiagnosis.overallScore >= 40 ? "text-yellow-600" : "text-red-600"}`}
+                        >
+                          {pendingDiagnosis.overallScore}/100
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="repeat-password">パスワード（確認）</Label>
-                    <div className="relative">
-                      <Input
-                        id="repeat-password"
-                        type={showRepeatPassword ? "text" : "password"}
-                        placeholder="パスワードを再入力"
-                        required
-                        value={repeatPassword}
-                        onChange={(e) => setRepeatPassword(e.target.value)}
-                        className="h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
-                        disabled={!supabaseReady}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRepeatPassword(!showRepeatPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                        tabIndex={-1}
-                      >
-                        {showRepeatPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
                     </div>
                   </div>
-                  {error && <p className="text-sm text-red-500">{error}</p>}
-                  <Button
-                    type="submit"
-                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
-                    disabled={isLoading || !supabaseReady}
-                  >
-                    {isLoading 
-                      ? "登録中..." 
-                      : fromDiagnosis 
-                        ? "アカウントを作成して診断レポートを見る" 
-                        : "アカウントを作成"
-                    }
-                  </Button>
-                </div>
-                <div className="mt-6 text-center text-sm text-gray-600">
-                  すでにアカウントをお持ちですか？{" "}
-                  <Link
-                    href="/auth/login"
-                    className="text-blue-600 hover:text-blue-800 font-medium underline underline-offset-4"
-                  >
-                    ログイン
-                  </Link>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="border border-gray-200 bg-white shadow-2xl">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold">
+                  {fromDiagnosis ? "無料新規登録" : "新規登録"}
+                </CardTitle>
+                <CardDescription>
+                  {fromDiagnosis
+                    ? "アカウントを作成して完全な診断レポートを受け取りましょう"
+                    : "アカウントを作成してAIコンサルティングを始めましょう"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSignUp}>
+                  <div className="flex flex-col gap-5">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">メールアドレス</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-11 border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-500"
+                        disabled={!supabaseReady}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">パスワード</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="8文字以上（大文字・小文字・数字・記号を含む）"
+                          required
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value)
+                            setPasswordStrength(checkPasswordStrength(e.target.value))
+                          }}
+                          className="h-11 border-gray-300 bg-white pr-10 focus:border-blue-500 focus:ring-blue-500"
+                          disabled={!supabaseReady}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {password && passwordStrength && (
+                        <div className="mt-2">
+                          <div className="mb-1 flex items-center gap-2">
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                              <div
+                                className={`h-full transition-all ${
+                                  passwordStrength.score === 0 || passwordStrength.score === 1
+                                    ? "bg-red-500"
+                                    : passwordStrength.score === 2
+                                      ? "bg-yellow-500"
+                                      : passwordStrength.score === 3
+                                        ? "bg-blue-500"
+                                        : "bg-green-500"
+                                }`}
+                                style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                              />
+                            </div>
+                            <span
+                              className={`text-xs font-medium ${
+                                passwordStrength.score === 0 || passwordStrength.score === 1
+                                  ? "text-red-600"
+                                  : passwordStrength.score === 2
+                                    ? "text-yellow-600"
+                                    : passwordStrength.score === 3
+                                      ? "text-blue-600"
+                                      : "text-green-600"
+                              }`}
+                            >
+                              {passwordStrength.label}
+                            </span>
+                          </div>
+                          {passwordStrength.feedback.length > 0 && (
+                            <ul className="mt-1 space-y-0.5 text-xs text-gray-600">
+                              {passwordStrength.feedback.map((msg, idx) => (
+                                <li key={idx} className="flex items-center gap-1">
+                                  <span className="text-red-500">•</span>
+                                  {msg}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="repeat-password">パスワード（確認）</Label>
+                      <div className="relative">
+                        <Input
+                          id="repeat-password"
+                          type={showRepeatPassword ? "text" : "password"}
+                          placeholder="パスワードを再入力"
+                          required
+                          value={repeatPassword}
+                          onChange={(e) => setRepeatPassword(e.target.value)}
+                          className="h-11 border-gray-300 bg-white pr-10 focus:border-blue-500 focus:ring-blue-500"
+                          disabled={!supabaseReady}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRepeatPassword(!showRepeatPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          tabIndex={-1}
+                        >
+                          {showRepeatPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    {error && <p className="text-sm text-red-500">{error}</p>}
+                    <Button
+                      type="submit"
+                      className="h-11 w-full bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold text-white hover:from-blue-700 hover:to-indigo-700"
+                      disabled={isLoading || !supabaseReady}
+                    >
+                      {isLoading
+                        ? "登録中..."
+                        : fromDiagnosis
+                          ? "アカウントを作成して診断レポートを見る"
+                          : "アカウントを作成"}
+                    </Button>
+                  </div>
+                  <div className="mt-6 text-center text-sm text-gray-600">
+                    すでにアカウントをお持ちですか？{" "}
+                    <Link
+                      href="/auth/login"
+                      className="font-medium text-blue-600 underline underline-offset-4 hover:text-blue-800"
+                    >
+                      ログイン
+                    </Link>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
@@ -602,14 +688,16 @@ function SignUpContent() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-svh w-full items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh w-full items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">読み込み中...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <SignUpContent />
     </Suspense>
   )

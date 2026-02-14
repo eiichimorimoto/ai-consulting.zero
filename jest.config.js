@@ -1,35 +1,32 @@
-const nextJest = require('next/jest')
+const nextJest = require("next/jest")
 
 /** @type {import('jest').Config} */
 const createJestConfig = nextJest({
   // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
-  dir: './',
+  dir: "./",
 })
 
 // Add any custom config to be passed to Jest
 const config = {
-  coverageProvider: 'v8',
+  coverageProvider: "v8",
   // Use 'node' for API routes, 'jsdom' for React components (set per-file via docblock)
-  testEnvironment: 'node',
+  testEnvironment: "node",
   // Add more setup options before each test is run
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
+    "^@/(.*)$": "<rootDir>/$1",
   },
-  testMatch: [
-    '**/__tests__/**/*.[jt]s?(x)',
-    '**/?(*.)+(spec|test).[jt]s?(x)',
-  ],
-  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/e2e/'],
+  testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"],
+  testPathIgnorePatterns: ["/node_modules/", "/.next/", "/e2e/"],
   collectCoverageFrom: [
-    'app/**/*.{js,jsx,ts,tsx}',
-    'lib/**/*.{js,jsx,ts,tsx}',
-    'components/**/*.{js,jsx,ts,tsx}',
-    '!**/*.d.ts',
-    '!**/node_modules/**',
-    '!**/.next/**',
-    '!**/coverage/**',
-    '!**/jest.config.js',
+    "app/**/*.{js,jsx,ts,tsx}",
+    "lib/**/*.{js,jsx,ts,tsx}",
+    "components/**/*.{js,jsx,ts,tsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**",
+    "!**/.next/**",
+    "!**/coverage/**",
+    "!**/jest.config.js",
   ],
 }
 

@@ -5,7 +5,7 @@
 export interface Message {
   id: string
   session_id: string
-  role: 'user' | 'assistant'
+  role: "user" | "assistant"
   content: string
   created_at: string
 }
@@ -16,7 +16,7 @@ export interface ConsultingSession {
   company_id: string | null
   title: string
   category: string
-  status: 'active' | 'completed' | 'archived'
+  status: "active" | "completed" | "archived"
   current_round: number
   max_rounds: number
   analysis_summary: string | null
@@ -38,12 +38,12 @@ export interface ContextData {
     url: string
   }>
   proposal: {
-    status: 'none' | 'generating' | 'ready'
+    status: "none" | "generating" | "ready"
     id: string | null
   }
 }
 
-export type ViewMode = 'start' | 'chat' | 'proposal'
+export type ViewMode = "start" | "chat" | "proposal"
 
 export interface ConsultingState {
   viewMode: ViewMode

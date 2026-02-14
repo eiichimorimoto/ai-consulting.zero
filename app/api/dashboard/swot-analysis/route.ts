@@ -4,158 +4,218 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { checkAIResult } from "@/lib/fact-checker"
-import { braveWebSearch, BraveWebResult } from '@/lib/brave-search'
+import { braveWebSearch, BraveWebResult } from "@/lib/brave-search"
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
 
 const swotSchema = z.object({
-  strengths: z.array(z.object({
-    point: z.string().describe("強みの内容（80文字以内で具体的に説明）"),
-    evidence: z.string().describe("根拠（30文字以内）"),
-  })).max(3).describe("強み（3項目まで）"),
-  weaknesses: z.array(z.object({
-    point: z.string().describe("弱みの内容（80文字以内で具体的に説明）"),
-    evidence: z.string().describe("根拠（30文字以内）"),
-  })).max(3).describe("弱み（3項目まで）"),
-  opportunities: z.array(z.object({
-    point: z.string().describe("機会の内容（80文字以内で具体的に説明）"),
-    evidence: z.string().describe("根拠（30文字以内）"),
-  })).max(3).describe("機会（3項目まで）"),
-  threats: z.array(z.object({
-    point: z.string().describe("脅威の内容（80文字以内で具体的に説明）"),
-    evidence: z.string().describe("根拠（30文字以内）"),
-  })).max(3).describe("脅威（3項目まで）"),
-  competitors: z.array(z.object({
-    name: z.string().describe("想定競合企業名"),
-    strength: z.string().describe("競合の強み（20文字以内）"),
-    comparison: z.string().describe("自社との比較（20文字以内）"),
-    reason: z.string().describe("競合と想定した理由（15文字以内）"),
-  })).max(3).describe("想定競合企業（3社まで）"),
-  industryPosition: z.object({
-    ranking: z.string().describe("業界内の位置付け（15文字以内）"),
-    marketShare: z.string().describe("市場シェア（10文字以内）"),
-    differentiation: z.string().describe("差別化要因（20文字以内）"),
-  }).describe("業界内ポジション"),
-  reputation: z.object({
-    overall: z.string().describe("総合評価（20文字以内）"),
-    positives: z.array(z.object({
-      comment: z.string().describe("良い評判の内容（30文字以内）"),
-      source: z.string().describe("出典（URL、サイト名、またはプラットフォーム名）"),
-    })).min(5).max(5).describe("良い評判（必ず5項目）"),
-    negatives: z.array(z.object({
-      comment: z.string().describe("悪い評判の内容（30文字以内）"),
-      source: z.string().describe("出典（URL、サイト名、またはプラットフォーム名）"),
-    })).min(5).max(5).describe("悪い評判（必ず5項目）"),
-  }).describe("SNS/口コミ評判（良い評判5つ + 悪い評判5つ = 合計必ず10項目）"),
+  strengths: z
+    .array(
+      z.object({
+        point: z.string().describe("強みの内容（80文字以内で具体的に説明）"),
+        evidence: z.string().describe("根拠（30文字以内）"),
+      })
+    )
+    .max(3)
+    .describe("強み（3項目まで）"),
+  weaknesses: z
+    .array(
+      z.object({
+        point: z.string().describe("弱みの内容（80文字以内で具体的に説明）"),
+        evidence: z.string().describe("根拠（30文字以内）"),
+      })
+    )
+    .max(3)
+    .describe("弱み（3項目まで）"),
+  opportunities: z
+    .array(
+      z.object({
+        point: z.string().describe("機会の内容（80文字以内で具体的に説明）"),
+        evidence: z.string().describe("根拠（30文字以内）"),
+      })
+    )
+    .max(3)
+    .describe("機会（3項目まで）"),
+  threats: z
+    .array(
+      z.object({
+        point: z.string().describe("脅威の内容（80文字以内で具体的に説明）"),
+        evidence: z.string().describe("根拠（30文字以内）"),
+      })
+    )
+    .max(3)
+    .describe("脅威（3項目まで）"),
+  competitors: z
+    .array(
+      z.object({
+        name: z.string().describe("想定競合企業名"),
+        strength: z.string().describe("競合の強み（20文字以内）"),
+        comparison: z.string().describe("自社との比較（20文字以内）"),
+        reason: z.string().describe("競合と想定した理由（15文字以内）"),
+      })
+    )
+    .max(3)
+    .describe("想定競合企業（3社まで）"),
+  industryPosition: z
+    .object({
+      ranking: z.string().describe("業界内の位置付け（15文字以内）"),
+      marketShare: z.string().describe("市場シェア（10文字以内）"),
+      differentiation: z.string().describe("差別化要因（20文字以内）"),
+    })
+    .describe("業界内ポジション"),
+  reputation: z
+    .object({
+      overall: z.string().describe("総合評価（20文字以内）"),
+      positives: z
+        .array(
+          z.object({
+            comment: z.string().describe("良い評判の内容（30文字以内）"),
+            source: z.string().describe("出典（URL、サイト名、またはプラットフォーム名）"),
+          })
+        )
+        .min(5)
+        .max(5)
+        .describe("良い評判（必ず5項目）"),
+      negatives: z
+        .array(
+          z.object({
+            comment: z.string().describe("悪い評判の内容（30文字以内）"),
+            source: z.string().describe("出典（URL、サイト名、またはプラットフォーム名）"),
+          })
+        )
+        .min(5)
+        .max(5)
+        .describe("悪い評判（必ず5項目）"),
+    })
+    .describe("SNS/口コミ評判（良い評判5つ + 悪い評判5つ = 合計必ず10項目）"),
 })
 
 export async function GET(request: Request) {
   // レート制限チェック（30回/時間）
-  const rateLimitError = applyRateLimit(request, 'dashboard')
+  const rateLimitError = applyRateLimit(request, "dashboard")
   if (rateLimitError) return rateLimitError
 
   try {
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "認証されていません" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "認証されていません" }, { status: 401 })
     }
 
     // プロファイルと会社情報を取得
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', user.id)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", user.id)
       .single()
 
     if (!profile?.company_id) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     const companyId = profile.company_id
 
     const { data: company } = await supabase
-      .from('companies')
-      .select('name, industry, website, business_description, retrieved_info, prefecture, employee_count, annual_revenue')
-      .eq('id', companyId)
+      .from("companies")
+      .select(
+        "name, industry, website, business_description, retrieved_info, prefecture, employee_count, annual_revenue"
+      )
+      .eq("id", companyId)
       .single()
 
     if (!company) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     // 強制更新でない場合、キャッシュから返す（有効期限: 30分）
     const { searchParams } = new URL(request.url)
-    const forceRefresh = searchParams.get('refresh') === 'true'
+    const forceRefresh = searchParams.get("refresh") === "true"
     if (!forceRefresh) {
       const cacheExpiry = new Date()
       cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 30)
       const { data: cachedRow } = await supabase
-        .from('dashboard_data')
-        .select('data, updated_at')
-        .eq('user_id', user.id)
-        .eq('company_id', companyId)
-        .eq('data_type', 'swot-analysis')
-        .gte('updated_at', cacheExpiry.toISOString())
+        .from("dashboard_data")
+        .select("data, updated_at")
+        .eq("user_id", user.id)
+        .eq("company_id", companyId)
+        .eq("data_type", "swot-analysis")
+        .gte("updated_at", cacheExpiry.toISOString())
         .maybeSingle()
       if (cachedRow?.data) {
-        const payload = cachedRow.data as { data: unknown; company?: unknown; updatedAt?: string; factCheck?: unknown }
+        const payload = cachedRow.data as {
+          data: unknown
+          company?: unknown
+          updatedAt?: string
+          factCheck?: unknown
+        }
         return NextResponse.json({
           ...payload,
           updatedAt: payload.updatedAt || cachedRow.updated_at,
-          cached: true
+          cached: true,
         })
       }
     }
 
     // 多角的な外部情報を収集
-    const industryQuery = company.industry || ''
-    const businessDesc = company.business_description || ''
-    const prefecture = company.prefecture || ''
-    
+    const industryQuery = company.industry || ""
+    const businessDesc = company.business_description || ""
+    const prefecture = company.prefecture || ""
+
     // 会社情報から製品・サービスキーワードを抽出
     const retrievedInfo = company.retrieved_info as any
     let productKeywords: string[] = []
-    
+
     // retrieved_infoから製品情報を抽出
     if (retrievedInfo) {
-      if (retrievedInfo.products) productKeywords.push(...(Array.isArray(retrievedInfo.products) ? retrievedInfo.products : [retrievedInfo.products]))
-      if (retrievedInfo.services) productKeywords.push(...(Array.isArray(retrievedInfo.services) ? retrievedInfo.services : [retrievedInfo.services]))
+      if (retrievedInfo.products)
+        productKeywords.push(
+          ...(Array.isArray(retrievedInfo.products)
+            ? retrievedInfo.products
+            : [retrievedInfo.products])
+        )
+      if (retrievedInfo.services)
+        productKeywords.push(
+          ...(Array.isArray(retrievedInfo.services)
+            ? retrievedInfo.services
+            : [retrievedInfo.services])
+        )
       if (retrievedInfo.main_products) productKeywords.push(retrievedInfo.main_products)
-      if (retrievedInfo.business_areas) productKeywords.push(...(Array.isArray(retrievedInfo.business_areas) ? retrievedInfo.business_areas : [retrievedInfo.business_areas]))
+      if (retrievedInfo.business_areas)
+        productKeywords.push(
+          ...(Array.isArray(retrievedInfo.business_areas)
+            ? retrievedInfo.business_areas
+            : [retrievedInfo.business_areas])
+        )
     }
-    
+
     // business_descriptionからキーワード抽出
     if (businessDesc) {
-      const descKeywords = businessDesc.split(/[、,。・\s]+/).filter((k: string) => k.length >= 2 && k.length <= 15).slice(0, 5)
+      const descKeywords = businessDesc
+        .split(/[、,。・\s]+/)
+        .filter((k: string) => k.length >= 2 && k.length <= 15)
+        .slice(0, 5)
       productKeywords.push(...descKeywords)
     }
-    
+
     // 重複除去
-    productKeywords = [...new Set(productKeywords.filter(k => k && k.length > 1))].slice(0, 5)
-    const productQuery = productKeywords.length > 0 ? productKeywords.slice(0, 3).join(' ') : businessDesc.slice(0, 30)
-    
-    console.log('🔍 競合分析用キーワード:', { productKeywords, productQuery, businessDesc })
-    
+    productKeywords = [...new Set(productKeywords.filter((k) => k && k.length > 1))].slice(0, 5)
+    const productQuery =
+      productKeywords.length > 0 ? productKeywords.slice(0, 3).join(" ") : businessDesc.slice(0, 30)
+
+    console.log("🔍 競合分析用キーワード:", { productKeywords, productQuery, businessDesc })
+
     // 並列で複数の検索を実行（製品・サービス中心の検索）
     // 製品キーワードを明確に使用（下水道継手など具体的な製品名）
-    const specificProductQuery = productKeywords.length > 0 
-      ? productKeywords.join(' ') 
-      : businessDesc.slice(0, 50)
-    
-    console.log('🔍 競合検索クエリ:', { specificProductQuery, productKeywords })
-    
+    const specificProductQuery =
+      productKeywords.length > 0 ? productKeywords.join(" ") : businessDesc.slice(0, 50)
+
+    console.log("🔍 競合検索クエリ:", { specificProductQuery, productKeywords })
+
     const searchPromises = [
       // 競合分析（具体的な製品名で検索）
       braveWebSearch(`${specificProductQuery} メーカー 製造会社`, 5),
@@ -175,7 +235,7 @@ export async function GET(request: Request) {
     ]
 
     const searchResults = await Promise.all(searchPromises)
-    
+
     // カテゴリ別に整理
     const competitorResults = [...searchResults[0], ...searchResults[1]]
     const strengthResults = [...searchResults[2], ...searchResults[3]]
@@ -184,32 +244,31 @@ export async function GET(request: Request) {
     const positionResults = searchResults[9]
 
     // 検索結果をテキストにまとめる
-    const formatResults = (results: BraveWebResult[]) => results
-      .slice(0, 8)
-      .map((r: BraveWebResult) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
-      .join('\n')
+    const formatResults = (results: BraveWebResult[]) =>
+      results
+        .slice(0, 8)
+        .map((r: BraveWebResult) => `[${r.url || ""}] ${r.title || ""}: ${r.description || ""}`)
+        .join("\n")
 
     // 製品・サービス情報を整理
-    const productInfo = productKeywords.length > 0 
-      ? productKeywords.join('、')
-      : '情報なし'
+    const productInfo = productKeywords.length > 0 ? productKeywords.join("、") : "情報なし"
 
     const companyInfo = `
 【企業基本情報】
 会社名: ${company.name}
-業種: ${company.industry || '不明'}
-所在地: ${company.prefecture || '不明'}
-従業員数: ${company.employee_count || '不明'}名
-売上規模: ${company.annual_revenue || '不明'}
-事業内容: ${company.business_description || '不明'}
-Webサイト: ${company.website || 'なし'}
+業種: ${company.industry || "不明"}
+所在地: ${company.prefecture || "不明"}
+従業員数: ${company.employee_count || "不明"}名
+売上規模: ${company.annual_revenue || "不明"}
+事業内容: ${company.business_description || "不明"}
+Webサイト: ${company.website || "なし"}
 
 【★重要★ この企業の製品・サービス（競合分析の軸）】
 ${productInfo}
 ※競合企業は上記の製品・サービスが類似する企業から選定すること
 
 【取得情報（HPから収集）】
-${company.retrieved_info ? JSON.stringify(company.retrieved_info, null, 2) : 'なし'}
+${company.retrieved_info ? JSON.stringify(company.retrieved_info, null, 2) : "なし"}
 
 【競合候補・市場情報（製品ベース検索結果）】
 ${formatResults(competitorResults)}
@@ -230,10 +289,7 @@ ${formatResults(positionResults)}
     // AIで包括的なSWOT分析を実行
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "ANTHROPIC_API_KEYが設定されていません" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "ANTHROPIC_API_KEYが設定されていません" }, { status: 500 })
     }
 
     const anthropic = createAnthropic({ apiKey })
@@ -246,7 +302,7 @@ ${formatResults(positionResults)}
           role: "user",
           content: `以下の企業情報と収集した外部情報を基に、包括的なSWOT分析を行ってください。
 
-【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+【本日の日付】${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 ※ 日付を含む記載は必ず本日以降の未来日を使用すること
 
 ${companyInfo}
@@ -302,10 +358,26 @@ ${companyInfo}
     const factCheckResult = checkAIResult({
       content: JSON.stringify(object),
       issues: [
-        ...(object.strengths || []).map((s: any) => ({ severity: 'info', issue: s.title || s, category: 'strength' })),
-        ...(object.weaknesses || []).map((w: any) => ({ severity: 'warning', issue: w.title || w, category: 'weakness' })),
-        ...(object.opportunities || []).map((o: any) => ({ severity: 'info', issue: o.title || o, category: 'opportunity' })),
-        ...(object.threats || []).map((t: any) => ({ severity: 'warning', issue: t.title || t, category: 'threat' })),
+        ...(object.strengths || []).map((s: any) => ({
+          severity: "info",
+          issue: s.title || s,
+          category: "strength",
+        })),
+        ...(object.weaknesses || []).map((w: any) => ({
+          severity: "warning",
+          issue: w.title || w,
+          category: "weakness",
+        })),
+        ...(object.opportunities || []).map((o: any) => ({
+          severity: "info",
+          issue: o.title || o,
+          category: "opportunity",
+        })),
+        ...(object.threats || []).map((t: any) => ({
+          severity: "warning",
+          issue: t.title || t,
+          category: "threat",
+        })),
       ],
     })
 
@@ -320,28 +392,28 @@ ${companyInfo}
         prefecture: company.prefecture,
       },
       updatedAt,
-      factCheck: factCheckResult
+      factCheck: factCheckResult,
     }
 
-    await supabase
-      .from('dashboard_data')
-      .upsert({
+    await supabase.from("dashboard_data").upsert(
+      {
         user_id: user.id,
         company_id: companyId,
-        data_type: 'swot-analysis',
+        data_type: "swot-analysis",
         data: payload,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-      }, {
-        onConflict: 'user_id,company_id,data_type'
-      })
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      },
+      {
+        onConflict: "user_id,company_id,data_type",
+      }
+    )
 
     return NextResponse.json({
       ...payload,
-      cached: false
+      cached: false,
     })
-
   } catch (error) {
-    console.error('SWOT analysis error:', error)
+    console.error("SWOT analysis error:", error)
     return NextResponse.json(
       {
         error: "SWOT分析の取得に失敗しました",

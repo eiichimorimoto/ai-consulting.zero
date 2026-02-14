@@ -8,7 +8,7 @@
  * 本番環境ではVercel KVやUpstash Redisの使用を推奨
  */
 
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server"
 
 // レート制限の設定タイプ
 export interface RateLimitConfig {
@@ -125,21 +125,18 @@ export function checkRateLimit(
  * @param userId - オプションのユーザーID
  * @returns 識別子文字列
  */
-export function getClientIdentifier(
-  request: Request,
-  userId?: string
-): string {
+export function getClientIdentifier(request: Request, userId?: string): string {
   // ユーザーIDがあれば優先
   if (userId) {
     return `user:${userId}`
   }
 
   // IPアドレスを取得（Vercel/Cloudflare対応）
-  const forwarded = request.headers.get('x-forwarded-for')
-  const realIp = request.headers.get('x-real-ip')
-  const cfConnectingIp = request.headers.get('cf-connecting-ip')
+  const forwarded = request.headers.get("x-forwarded-for")
+  const realIp = request.headers.get("x-real-ip")
+  const cfConnectingIp = request.headers.get("cf-connecting-ip")
 
-  const ip = cfConnectingIp || realIp || forwarded?.split(',')[0]?.trim() || 'unknown'
+  const ip = cfConnectingIp || realIp || forwarded?.split(",")[0]?.trim() || "unknown"
 
   return `ip:${ip}`
 }
@@ -150,14 +147,16 @@ export function getClientIdentifier(
  * @param result - checkRateLimitの結果
  * @returns ヘッダーオブジェクト
  */
-export function getRateLimitHeaders(result: ReturnType<typeof checkRateLimit>): Record<string, string> {
+export function getRateLimitHeaders(
+  result: ReturnType<typeof checkRateLimit>
+): Record<string, string> {
   const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000)
 
   return {
-    'X-RateLimit-Limit': String(result.limit),
-    'X-RateLimit-Remaining': String(result.remaining),
-    'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
-    ...(result.allowed ? {} : { 'Retry-After': String(Math.max(1, retryAfterSeconds)) }),
+    "X-RateLimit-Limit": String(result.limit),
+    "X-RateLimit-Remaining": String(result.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
+    ...(result.allowed ? {} : { "Retry-After": String(Math.max(1, retryAfterSeconds)) }),
   }
 }
 
@@ -172,7 +171,7 @@ export function createRateLimitResponse(result: ReturnType<typeof checkRateLimit
 
   return NextResponse.json(
     {
-      error: 'リクエスト数が制限を超えました。しばらく待ってから再試行してください。',
+      error: "リクエスト数が制限を超えました。しばらく待ってから再試行してください。",
       retryAfter: Math.max(1, retryAfterSeconds),
       limit: result.limit,
       resetAt: new Date(result.resetAt).toISOString(),
@@ -208,15 +207,15 @@ export function applyRateLimit(
   config: RateLimitConfig | keyof typeof RATE_LIMIT_PRESETS,
   userId?: string
 ): NextResponse | null {
-  const resolvedConfig = typeof config === 'string'
-    ? RATE_LIMIT_PRESETS[config]
-    : config
+  const resolvedConfig = typeof config === "string" ? RATE_LIMIT_PRESETS[config] : config
 
   const identifier = getClientIdentifier(request, userId)
   const result = checkRateLimit(identifier, resolvedConfig)
 
   if (!result.allowed) {
-    console.warn(`⚠️ Rate limit exceeded for ${identifier}: ${result.limit} requests per ${resolvedConfig.windowSeconds}s`)
+    console.warn(
+      `⚠️ Rate limit exceeded for ${identifier}: ${result.limit} requests per ${resolvedConfig.windowSeconds}s`
+    )
     return createRateLimitResponse(result)
   }
 
@@ -238,9 +237,7 @@ export function withRateLimitHeaders(
   config: RateLimitConfig | keyof typeof RATE_LIMIT_PRESETS,
   userId?: string
 ): NextResponse {
-  const resolvedConfig = typeof config === 'string'
-    ? RATE_LIMIT_PRESETS[config]
-    : config
+  const resolvedConfig = typeof config === "string" ? RATE_LIMIT_PRESETS[config] : config
 
   const identifier = getClientIdentifier(request, userId)
   // カウントせずに現在の状態を取得（既にapplyRateLimitでカウント済み想定）

@@ -1,8 +1,8 @@
-'use client'
+"use client"
 
-import { useState, useRef, DragEvent } from 'react'
-import { Upload, X, File, Image as ImageIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useRef, DragEvent } from "react"
+import { Upload, X, File, Image as ImageIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface FileUploadProps {
   files: File[]
@@ -16,10 +16,10 @@ interface FileUploadProps {
 export default function FileUpload({
   files,
   onFilesChange,
-  acceptedTypes = ['application/pdf', 'image/jpeg', 'image/png'],
+  acceptedTypes = ["application/pdf", "image/jpeg", "image/png"],
   maxSize = 10 * 1024 * 1024, // 10MB
   multiple = true,
-  label = 'ファイルをアップロード'
+  label = "ファイルをアップロード",
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,7 +54,7 @@ export default function FileUpload({
     })
 
     if (errors.length > 0) {
-      alert(errors.join('\n'))
+      alert(errors.join("\n"))
     }
 
     if (newFiles.length > 0) {
@@ -91,7 +91,7 @@ export default function FileUpload({
     handleFiles(e.target.files)
     // 同じファイルを再度選択できるようにリセット
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = ""
     }
   }
 
@@ -101,10 +101,10 @@ export default function FileUpload({
   }
 
   const getFileIcon = (file: File) => {
-    if (file.type === 'application/pdf') {
-      return <File className="w-5 h-5 text-red-500" />
+    if (file.type === "application/pdf") {
+      return <File className="h-5 w-5 text-red-500" />
     }
-    return <ImageIcon className="w-5 h-5 text-blue-500" />
+    return <ImageIcon className="h-5 w-5 text-blue-500" />
   }
 
   return (
@@ -113,26 +113,22 @@ export default function FileUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`
-          border-2 border-dashed rounded-lg p-8 text-center transition-colors
-          ${isDragging 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
-          }
-        `}
+        className={`rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+          isDragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+        } `}
       >
         <input
           ref={fileInputRef}
           type="file"
-          accept={acceptedTypes.join(',')}
+          accept={acceptedTypes.join(",")}
           multiple={multiple}
           onChange={handleFileSelect}
           className="hidden"
         />
-        <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <p className="text-sm text-gray-600 mb-2">
-          ファイルをドラッグ＆ドロップするか、
-        </p>
+        <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+        <p className="mb-2 text-sm text-gray-600">ファイルをドラッグ＆ドロップするか、</p>
         <Button
           type="button"
           variant="outline"
@@ -153,15 +149,13 @@ export default function FileUpload({
             {files.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
+                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3"
               >
                 <div className="flex items-center gap-3">
                   {getFileIcon(file)}
                   <div>
                     <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
+                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
                 </div>
                 <Button
@@ -169,9 +163,9 @@ export default function FileUpload({
                   variant="ghost"
                   size="icon"
                   onClick={() => removeFile(index)}
-                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             ))}
@@ -181,5 +175,3 @@ export default function FileUpload({
     </div>
   )
 }
-
-

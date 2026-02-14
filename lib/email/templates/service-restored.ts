@@ -13,7 +13,7 @@ export function serviceRestoredTemplate(params: ServiceRestoredParams): {
   html: string
 } {
   return {
-    subject: '【SolveWise】サービス復旧のご連絡',
+    subject: "【SolveWise】サービス復旧のご連絡",
     html: `
 <!DOCTYPE html>
 <html lang="ja">

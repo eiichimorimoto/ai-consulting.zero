@@ -7,9 +7,9 @@
  * @see stripe-payment-spec-v2.2.md §4-2, §4-3, §4-4, §5-2, §6-3, §6-4
  */
 
-import type Stripe from 'stripe'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { PlanType } from '@/lib/plan-config'
+import type Stripe from "stripe"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { PlanType } from "@/lib/plan-config"
 
 // ============================================================
 // 型定義
@@ -26,36 +26,36 @@ function planTypeFromPriceId(priceId: string): PlanType {
 
   // 環境変数からマッピングを構築
   if (process.env.STRIPE_PRICE_PRO_MONTHLY) {
-    priceMap[process.env.STRIPE_PRICE_PRO_MONTHLY] = 'pro'
+    priceMap[process.env.STRIPE_PRICE_PRO_MONTHLY] = "pro"
   }
   if (process.env.STRIPE_PRICE_PRO_YEARLY) {
-    priceMap[process.env.STRIPE_PRICE_PRO_YEARLY] = 'pro'
+    priceMap[process.env.STRIPE_PRICE_PRO_YEARLY] = "pro"
   }
   if (process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY) {
-    priceMap[process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY] = 'enterprise'
+    priceMap[process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY] = "enterprise"
   }
   if (process.env.STRIPE_PRICE_ENTERPRISE_YEARLY) {
-    priceMap[process.env.STRIPE_PRICE_ENTERPRISE_YEARLY] = 'enterprise'
+    priceMap[process.env.STRIPE_PRICE_ENTERPRISE_YEARLY] = "enterprise"
   }
 
-  return priceMap[priceId] ?? 'free'
+  return priceMap[priceId] ?? "free"
 }
 
 /**
  * Stripe Price ID → billing_interval を逆引きする
  */
-function intervalFromPriceId(priceId: string): 'monthly' | 'yearly' | null {
+function intervalFromPriceId(priceId: string): "monthly" | "yearly" | null {
   if (
     priceId === process.env.STRIPE_PRICE_PRO_MONTHLY ||
     priceId === process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY
   ) {
-    return 'monthly'
+    return "monthly"
   }
   if (
     priceId === process.env.STRIPE_PRICE_PRO_YEARLY ||
     priceId === process.env.STRIPE_PRICE_ENTERPRISE_YEARLY
   ) {
-    return 'yearly'
+    return "yearly"
   }
   return null
 }
@@ -93,8 +93,8 @@ export async function handleCheckoutSessionCompleted(
   const session = event.data.object as Stripe.Checkout.Session
 
   // mode=subscription のみ処理
-  if (session.mode !== 'subscription') {
-    console.log('[Webhook] checkout.session.completed: non-subscription mode, skipping')
+  if (session.mode !== "subscription") {
+    console.log("[Webhook] checkout.session.completed: non-subscription mode, skipping")
     return
   }
 
@@ -103,25 +103,25 @@ export async function handleCheckoutSessionCompleted(
   const customerEmail = session.customer_email || session.customer_details?.email
 
   if (!customerId || !subscriptionId) {
-    console.error('[Webhook] checkout.session.completed: missing customer or subscription ID')
+    console.error("[Webhook] checkout.session.completed: missing customer or subscription ID")
     return
   }
 
   // Stripe Subscriptionの詳細を取得
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
   const priceId = subscription.items.data[0]?.price?.id
-  const planType = priceId ? planTypeFromPriceId(priceId) : 'pro'
-  const billingInterval = priceId ? intervalFromPriceId(priceId) : 'monthly'
+  const planType = priceId ? planTypeFromPriceId(priceId) : "pro"
+  const billingInterval = priceId ? intervalFromPriceId(priceId) : "monthly"
 
   // metadataからuser_idを取得（create-checkout APIでセットする）
   const userId = session.metadata?.user_id
 
   if (!userId) {
     // metadataにuser_idがない場合、メールアドレスからprofilesを検索
-    console.warn('[Webhook] checkout.session.completed: no user_id in metadata, searching by email')
+    console.warn("[Webhook] checkout.session.completed: no user_id in metadata, searching by email")
 
     if (!customerEmail) {
-      console.error('[Webhook] checkout.session.completed: no user_id or email available')
+      console.error("[Webhook] checkout.session.completed: no user_id or email available")
       return
     }
 
@@ -129,7 +129,7 @@ export async function handleCheckoutSessionCompleted(
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (authError) {
-      console.error('[Webhook] Failed to list auth users:', authError)
+      console.error("[Webhook] Failed to list auth users:", authError)
       throw authError
     }
 
@@ -144,12 +144,18 @@ export async function handleCheckoutSessionCompleted(
       userId: matchedUser.id,
       customerId,
       subscriptionId,
-      priceId: priceId || '',
+      priceId: priceId || "",
       planType,
       billingInterval,
       status: subscription.status,
-      currentPeriodStart: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null })(),
-      currentPeriodEnd: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null })(),
+      currentPeriodStart: (() => {
+        const p = getSubscriptionPeriod(subscription)
+        return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null
+      })(),
+      currentPeriodEnd: (() => {
+        const p = getSubscriptionPeriod(subscription)
+        return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null
+      })(),
       trialEnd: subscription.trial_end
         ? new Date(subscription.trial_end * 1000).toISOString()
         : null,
@@ -162,15 +168,19 @@ export async function handleCheckoutSessionCompleted(
     userId,
     customerId,
     subscriptionId,
-    priceId: priceId || '',
+    priceId: priceId || "",
     planType,
     billingInterval,
     status: subscription.status,
-    currentPeriodStart: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null })(),
-    currentPeriodEnd: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null })(),
-    trialEnd: subscription.trial_end
-      ? new Date(subscription.trial_end * 1000).toISOString()
-      : null,
+    currentPeriodStart: (() => {
+      const p = getSubscriptionPeriod(subscription)
+      return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null
+    })(),
+    currentPeriodEnd: (() => {
+      const p = getSubscriptionPeriod(subscription)
+      return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null
+    })(),
+    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
   })
 }
 
@@ -189,14 +199,14 @@ export async function handleSubscriptionCreated(
   const subscription = event.data.object as Stripe.Subscription
   const customerId = subscription.customer as string
   const priceId = subscription.items.data[0]?.price?.id
-  const planType = priceId ? planTypeFromPriceId(priceId) : 'pro'
-  const billingInterval = priceId ? intervalFromPriceId(priceId) : 'monthly'
+  const planType = priceId ? planTypeFromPriceId(priceId) : "pro"
+  const billingInterval = priceId ? intervalFromPriceId(priceId) : "monthly"
 
   // customer_idからsubscriptionsテーブルのuser_idを取得
   const { data: existing } = await supabaseAdmin
-    .from('subscriptions')
-    .select('user_id')
-    .eq('stripe_customer_id', customerId)
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
     .single()
 
   if (!existing?.user_id) {
@@ -204,7 +214,7 @@ export async function handleSubscriptionCreated(
     // ログを残して200を返す（Checkoutハンドラー側でUPSERTされる）
     console.log(
       `[Webhook] subscription.created: no existing record for customer ${customerId}, ` +
-      'checkout.session.completed will handle this'
+        "checkout.session.completed will handle this"
     )
     return
   }
@@ -213,15 +223,19 @@ export async function handleSubscriptionCreated(
     userId: existing.user_id,
     customerId,
     subscriptionId: subscription.id,
-    priceId: priceId || '',
+    priceId: priceId || "",
     planType,
     billingInterval,
     status: subscription.status,
-    currentPeriodStart: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null })(),
-    currentPeriodEnd: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null })(),
-    trialEnd: subscription.trial_end
-      ? new Date(subscription.trial_end * 1000).toISOString()
-      : null,
+    currentPeriodStart: (() => {
+      const p = getSubscriptionPeriod(subscription)
+      return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null
+    })(),
+    currentPeriodEnd: (() => {
+      const p = getSubscriptionPeriod(subscription)
+      return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null
+    })(),
+    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
   })
 }
 
@@ -239,7 +253,7 @@ export async function handleSubscriptionUpdated(
   const subscription = event.data.object as Stripe.Subscription
   const customerId = subscription.customer as string
   const priceId = subscription.items.data[0]?.price?.id
-  const planType = priceId ? planTypeFromPriceId(priceId) : 'free'
+  const planType = priceId ? planTypeFromPriceId(priceId) : "free"
   const billingInterval = priceId ? intervalFromPriceId(priceId) : null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -248,8 +262,14 @@ export async function handleSubscriptionUpdated(
     plan_type: planType,
     stripe_price_id: priceId || null,
     billing_interval: billingInterval,
-    current_period_start: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null })(),
-    current_period_end: (() => { const p = getSubscriptionPeriod(subscription); return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null })(),
+    current_period_start: (() => {
+      const p = getSubscriptionPeriod(subscription)
+      return p.currentPeriodStart ? new Date(p.currentPeriodStart * 1000).toISOString() : null
+    })(),
+    current_period_end: (() => {
+      const p = getSubscriptionPeriod(subscription)
+      return p.currentPeriodEnd ? new Date(p.currentPeriodEnd * 1000).toISOString() : null
+    })(),
     cancel_at: subscription.cancel_at
       ? new Date(subscription.cancel_at * 1000).toISOString()
       : null,
@@ -263,18 +283,18 @@ export async function handleSubscriptionUpdated(
   }
 
   const { error } = await supabaseAdmin
-    .from('subscriptions')
+    .from("subscriptions")
     .update(updateData)
-    .eq('stripe_customer_id', customerId)
+    .eq("stripe_customer_id", customerId)
 
   if (error) {
-    console.error('[Webhook] subscription.updated: DB update failed:', error)
+    console.error("[Webhook] subscription.updated: DB update failed:", error)
     throw error
   }
 
   console.log(
     `[Webhook] subscription.updated: customer=${customerId} ` +
-    `status=${subscription.status} plan=${planType}`
+      `status=${subscription.status} plan=${planType}`
   )
 }
 
@@ -292,20 +312,20 @@ export async function handleSubscriptionDeleted(
   const customerId = subscription.customer as string
 
   const { error } = await supabaseAdmin
-    .from('subscriptions')
+    .from("subscriptions")
     .update({
-      status: 'canceled',
-      plan_type: 'free',
+      status: "canceled",
+      plan_type: "free",
       canceled_at: subscription.canceled_at
         ? new Date(subscription.canceled_at * 1000).toISOString()
         : new Date().toISOString(),
-      app_status: 'active', // Freeプランとしてアクティブに
+      app_status: "active", // Freeプランとしてアクティブに
       updated_at: new Date().toISOString(),
     })
-    .eq('stripe_customer_id', customerId)
+    .eq("stripe_customer_id", customerId)
 
   if (error) {
-    console.error('[Webhook] subscription.deleted: DB update failed:', error)
+    console.error("[Webhook] subscription.deleted: DB update failed:", error)
     throw error
   }
 
@@ -331,41 +351,41 @@ export async function handleInvoicePaid(
   const customerId = invoice.customer as string
   // Stripe v20+: subscription フィールドは型定義から削除されたが、webhookデータには含まれる
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const subscriptionId = ((invoice as any).subscription as string) || ''
+  const subscriptionId = ((invoice as any).subscription as string) || ""
 
   if (!subscriptionId) {
-    console.log('[Webhook] invoice.paid: no subscription_id (one-time payment?), skipping')
+    console.log("[Webhook] invoice.paid: no subscription_id (one-time payment?), skipping")
     return
   }
 
   // subscriptionsのstatusとapp_statusを復旧
   const { error: subError } = await supabaseAdmin
-    .from('subscriptions')
+    .from("subscriptions")
     .update({
-      status: 'active',
-      app_status: 'active',
+      status: "active",
+      app_status: "active",
       updated_at: new Date().toISOString(),
     })
-    .eq('stripe_customer_id', customerId)
+    .eq("stripe_customer_id", customerId)
 
   if (subError) {
-    console.error('[Webhook] invoice.paid: subscription update failed:', subError)
+    console.error("[Webhook] invoice.paid: subscription update failed:", subError)
     throw subError
   }
 
   // payment_failuresの未解決レコードをresolvedに更新（§6-4）
   const { error: pfError } = await supabaseAdmin
-    .from('payment_failures')
+    .from("payment_failures")
     .update({
-      dunning_status: 'resolved',
+      dunning_status: "resolved",
       resolved_at: new Date().toISOString(),
     })
-    .eq('stripe_subscription_id', subscriptionId)
-    .is('resolved_at', null) // 未解決レコードのみ
+    .eq("stripe_subscription_id", subscriptionId)
+    .is("resolved_at", null) // 未解決レコードのみ
 
   if (pfError) {
     // payment_failuresが存在しない場合はエラーにしない
-    console.warn('[Webhook] invoice.paid: payment_failures update:', pfError.message)
+    console.warn("[Webhook] invoice.paid: payment_failures update:", pfError.message)
   }
 
   console.log(`[Webhook] invoice.paid: customer=${customerId} → active, dunning resolved`)
@@ -388,59 +408,57 @@ export async function handleInvoicePaymentFailed(
   const customerId = invoice.customer as string
   // Stripe v20+: subscription フィールドは型定義から削除されたが、webhookデータには含まれる
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const subscriptionId = ((invoice as any).subscription as string) || ''
+  const subscriptionId = ((invoice as any).subscription as string) || ""
 
   if (!subscriptionId) {
-    console.log('[Webhook] invoice.payment_failed: no subscription_id, skipping')
+    console.log("[Webhook] invoice.payment_failed: no subscription_id, skipping")
     return
   }
 
   // subscriptionsのstatusをpast_dueに更新
   const { error: subError } = await supabaseAdmin
-    .from('subscriptions')
+    .from("subscriptions")
     .update({
-      status: 'past_due',
+      status: "past_due",
       updated_at: new Date().toISOString(),
     })
-    .eq('stripe_customer_id', customerId)
+    .eq("stripe_customer_id", customerId)
 
   if (subError) {
-    console.error('[Webhook] invoice.payment_failed: subscription update failed:', subError)
+    console.error("[Webhook] invoice.payment_failed: subscription update failed:", subError)
     throw subError
   }
 
   // user_idを取得
   const { data: sub } = await supabaseAdmin
-    .from('subscriptions')
-    .select('user_id')
-    .eq('stripe_customer_id', customerId)
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
     .single()
 
   // payment_failuresテーブルに記録（§6-3）
   const attemptCount = invoice.attempt_count || 1
-  const { error: pfError } = await supabaseAdmin
-    .from('payment_failures')
-    .upsert(
-      {
-        user_id: sub?.user_id || null,
-        stripe_subscription_id: subscriptionId,
-        stripe_invoice_id: invoice.id,
-        attempt_count: attemptCount,
-        last_attempt_at: new Date().toISOString(),
-        dunning_status: 'active',
-        failure_reason: invoice.last_finalization_error?.message || 'Payment failed',
-      },
-      { onConflict: 'stripe_invoice_id' }
-    )
+  const { error: pfError } = await supabaseAdmin.from("payment_failures").upsert(
+    {
+      user_id: sub?.user_id || null,
+      stripe_subscription_id: subscriptionId,
+      stripe_invoice_id: invoice.id,
+      attempt_count: attemptCount,
+      last_attempt_at: new Date().toISOString(),
+      dunning_status: "active",
+      failure_reason: invoice.last_finalization_error?.message || "Payment failed",
+    },
+    { onConflict: "stripe_invoice_id" }
+  )
 
   if (pfError) {
-    console.error('[Webhook] invoice.payment_failed: payment_failures upsert failed:', pfError)
+    console.error("[Webhook] invoice.payment_failed: payment_failures upsert failed:", pfError)
     throw pfError
   }
 
   console.log(
     `[Webhook] invoice.payment_failed: customer=${customerId} ` +
-    `attempt=${attemptCount} → past_due`
+      `attempt=${attemptCount} → past_due`
   )
 
   // TODO: Step 8でattempt_countに応じた通知メール送信を追加
@@ -459,7 +477,7 @@ export async function handleInvoiceFinalized(
   const invoice = event.data.object as Stripe.Invoice
   console.log(
     `[Webhook] invoice.finalized: invoice=${invoice.id} ` +
-    `customer=${invoice.customer} amount=${invoice.amount_due}`
+      `customer=${invoice.customer} amount=${invoice.amount_due}`
   )
 
   // 将来拡張: 請求書確定通知等
@@ -478,7 +496,7 @@ export async function handleTrialWillEnd(
   const subscription = event.data.object as Stripe.Subscription
   console.log(
     `[Webhook] trial_will_end: subscription=${subscription.id} ` +
-    `customer=${subscription.customer} trial_end=${subscription.trial_end}`
+      `customer=${subscription.customer} trial_end=${subscription.trial_end}`
   )
 
   // TODO: 将来トライアル機能実装時にメール通知を追加
@@ -494,7 +512,7 @@ interface UpsertSubscriptionParams {
   subscriptionId: string
   priceId: string
   planType: PlanType
-  billingInterval: 'monthly' | 'yearly' | null
+  billingInterval: "monthly" | "yearly" | null
   status: string
   currentPeriodStart: string | null
   currentPeriodEnd: string | null
@@ -511,33 +529,31 @@ async function upsertSubscription(
   supabaseAdmin: AdminClient,
   params: UpsertSubscriptionParams
 ): Promise<void> {
-  const { error } = await supabaseAdmin
-    .from('subscriptions')
-    .upsert(
-      {
-        user_id: params.userId,
-        stripe_customer_id: params.customerId,
-        stripe_subscription_id: params.subscriptionId,
-        stripe_price_id: params.priceId,
-        plan_type: params.planType,
-        billing_interval: params.billingInterval,
-        status: params.status,
-        app_status: 'active',
-        current_period_start: params.currentPeriodStart,
-        current_period_end: params.currentPeriodEnd,
-        trial_end: params.trialEnd,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    )
+  const { error } = await supabaseAdmin.from("subscriptions").upsert(
+    {
+      user_id: params.userId,
+      stripe_customer_id: params.customerId,
+      stripe_subscription_id: params.subscriptionId,
+      stripe_price_id: params.priceId,
+      plan_type: params.planType,
+      billing_interval: params.billingInterval,
+      status: params.status,
+      app_status: "active",
+      current_period_start: params.currentPeriodStart,
+      current_period_end: params.currentPeriodEnd,
+      trial_end: params.trialEnd,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  )
 
   if (error) {
-    console.error('[Webhook] upsertSubscription failed:', error)
+    console.error("[Webhook] upsertSubscription failed:", error)
     throw error
   }
 
   console.log(
     `[Webhook] upsertSubscription: user=${params.userId} plan=${params.planType} ` +
-    `status=${params.status}`
+      `status=${params.status}`
   )
 }

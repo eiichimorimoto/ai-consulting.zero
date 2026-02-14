@@ -49,7 +49,10 @@ const safeSlice = (text: string, maxChars: number) => {
 const DEFAULT_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 
-const fetchHtmlToText = async (url: string, timeoutMs = 30_000): Promise<{
+const fetchHtmlToText = async (
+  url: string,
+  timeoutMs = 30_000
+): Promise<{
   ok: boolean
   status: number
   contentType: string
@@ -59,21 +62,21 @@ const fetchHtmlToText = async (url: string, timeoutMs = 30_000): Promise<{
   errorType?: string
 }> => {
   try {
-  const resp = await fetchWithTimeout(
-    url,
-    {
-      method: "GET",
-      headers: {
-        "User-Agent": DEFAULT_UA,
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    const resp = await fetchWithTimeout(
+      url,
+      {
+        method: "GET",
+        headers: {
+          "User-Agent": DEFAULT_UA,
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
       },
-    },
-    timeoutMs
-  )
-  const ct = resp.headers.get("content-type") || ""
-  const html = await resp.text()
-  const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
-  return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
+      timeoutMs
+    )
+    const ct = resp.headers.get("content-type") || ""
+    const html = await resp.text()
+    const text = resp.ok && ct.includes("text/html") ? stripHtmlToText(html) : ""
+    return { ok: resp.ok, status: resp.status, contentType: ct, html, text }
   } catch (error: unknown) {
     // エラーの詳細を返す
     const err = error as { message?: string; name?: string }
@@ -81,9 +84,13 @@ const fetchHtmlToText = async (url: string, timeoutMs = 30_000): Promise<{
     let errorType = err?.name || "UnknownError"
 
     // AbortError（タイムアウト）の場合は特別なメッセージ
-    if (err?.name === 'AbortError' || errorMessage.includes('aborted') || errorMessage.includes('AbortError')) {
+    if (
+      err?.name === "AbortError" ||
+      errorMessage.includes("aborted") ||
+      errorMessage.includes("AbortError")
+    ) {
       errorMessage = `サイトへの接続がタイムアウトしました（${timeoutMs / 1000}秒、最大3回リトライ済み）。サイトの応答が遅いか、アクセス制限がある可能性があります。しばらく時間をおいてから再度お試しください。`
-      errorType = 'TimeoutError'
+      errorType = "TimeoutError"
     }
 
     return {
@@ -165,8 +172,14 @@ const stripCorporateSuffix = (name: string): string => {
   if (!name) return ""
   // 法人格を除去
   return name
-    .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|学校法人|社会福祉法人|宗教法人|特定非営利活動法人|NPO法人)\s*/g, "")
-    .replace(/\s*(株式会社|有限会社|合同会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|学校法人|社会福祉法人|宗教法人|特定非営利活動法人|NPO法人)$/g, "")
+    .replace(
+      /^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|学校法人|社会福祉法人|宗教法人|特定非営利活動法人|NPO法人)\s*/g,
+      ""
+    )
+    .replace(
+      /\s*(株式会社|有限会社|合同会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|学校法人|社会福祉法人|宗教法人|特定非営利活動法人|NPO法人)$/g,
+      ""
+    )
     .replace(/（株）|㈱|\(株\)/g, "")
     .replace(/（有）|㈲|\(有\)/g, "")
     .replace(/（合）|\(合\)/g, "")
@@ -212,7 +225,12 @@ const parseOkuYen = (text: string): number | null => {
     const okuVal = Number(okuHyakuMan[1])
     const hyakuManVal = Number(okuHyakuMan[2])
     if (Number.isFinite(okuVal) && Number.isFinite(hyakuManVal)) {
-      console.log("📊 parseOkuYen 複合(億+百万円):", { text, okuVal, hyakuManVal, result: okuVal + hyakuManVal / 100 })
+      console.log("📊 parseOkuYen 複合(億+百万円):", {
+        text,
+        okuVal,
+        hyakuManVal,
+        result: okuVal + hyakuManVal / 100,
+      })
       return okuVal + hyakuManVal / 100
     }
   }
@@ -223,7 +241,12 @@ const parseOkuYen = (text: string): number | null => {
     const okuVal = Number(okuMan[1])
     const manVal = Number(okuMan[2])
     if (Number.isFinite(okuVal) && Number.isFinite(manVal)) {
-      console.log("📊 parseOkuYen 複合(億+万円):", { text, okuVal, manVal, result: okuVal + manVal / 10000 })
+      console.log("📊 parseOkuYen 複合(億+万円):", {
+        text,
+        okuVal,
+        manVal,
+        result: okuVal + manVal / 10000,
+      })
       return okuVal + manVal / 10000
     }
   }
@@ -287,7 +310,8 @@ const parseOkuYen = (text: string): number | null => {
   const yen = normalized.match(/(\d{10,15})\s*円/)
   if (yen) {
     const v = Number(yen[1])
-    if (Number.isFinite(v) && v >= 1000000000) { // 10億円以上
+    if (Number.isFinite(v) && v >= 1000000000) {
+      // 10億円以上
       return v / 100000000 // 億円に変換
     }
   }
@@ -334,27 +358,35 @@ const guessStockCodeFromText = (text: string) => {
  * @returns { isListed: boolean, stockCode: string, confidence: string, reasons: string[] }
  */
 const detectListedCompany = (
-  text: string, 
+  text: string,
   internalLinks: string[]
-): { isListed: boolean; stockCode: string; confidence: 'high' | 'medium' | 'low'; reasons: string[] } => {
+): {
+  isListed: boolean
+  stockCode: string
+  confidence: "high" | "medium" | "low"
+  reasons: string[]
+} => {
   const reasons: string[] = []
   let score = 0
-  
+
   // 1. 証券コードの検出（高信頼度）
   const stockCode = guessStockCodeFromText(text)
   if (stockCode) {
     score += 50
     reasons.push(`証券コード検出: ${stockCode}`)
   }
-  
+
   // 2. 上場市場の記載確認（高信頼度）
   const marketPatterns = [
-    { pattern: /東京証券取引所/, name: '東京証券取引所' },
-    { pattern: /東証(?:プライム|スタンダード|グロース|一部|二部|マザーズ|JASDAQ)/, name: '東証市場' },
-    { pattern: /(?:プライム|スタンダード|グロース)市場/, name: '市場区分' },
-    { pattern: /上場企業/, name: '上場企業記載' },
-    { pattern: /上場会社/, name: '上場会社記載' },
-    { pattern: /(?:名証|札証|福証)/, name: '地方証券取引所' },
+    { pattern: /東京証券取引所/, name: "東京証券取引所" },
+    {
+      pattern: /東証(?:プライム|スタンダード|グロース|一部|二部|マザーズ|JASDAQ)/,
+      name: "東証市場",
+    },
+    { pattern: /(?:プライム|スタンダード|グロース)市場/, name: "市場区分" },
+    { pattern: /上場企業/, name: "上場企業記載" },
+    { pattern: /上場会社/, name: "上場会社記載" },
+    { pattern: /(?:名証|札証|福証)/, name: "地方証券取引所" },
   ]
   for (const { pattern, name } of marketPatterns) {
     if (pattern.test(text)) {
@@ -362,7 +394,7 @@ const detectListedCompany = (
       reasons.push(`市場記載: ${name}`)
     }
   }
-  
+
   // 3. IRページの存在確認（高信頼度）
   const irPatterns = [
     /\/ir\//i,
@@ -373,25 +405,25 @@ const detectListedCompany = (
     /投資家情報/,
     /株主・投資家/,
   ]
-  const hasIrPage = internalLinks.some(link => 
-    irPatterns.some(pattern => pattern.test(link))
-  ) || irPatterns.some(pattern => pattern.test(text))
-  
+  const hasIrPage =
+    internalLinks.some((link) => irPatterns.some((pattern) => pattern.test(link))) ||
+    irPatterns.some((pattern) => pattern.test(text))
+
   if (hasIrPage) {
     score += 40
-    reasons.push('IRページ検出')
+    reasons.push("IRページ検出")
   }
-  
+
   // 4. 有価証券報告書・決算短信の記載確認（高信頼度）
   const irDocPatterns = [
-    { pattern: /有価証券報告書/, name: '有価証券報告書' },
-    { pattern: /決算短信/, name: '決算短信' },
-    { pattern: /四半期報告書/, name: '四半期報告書' },
-    { pattern: /株主総会/, name: '株主総会' },
-    { pattern: /配当/, name: '配当情報' },
-    { pattern: /株価/, name: '株価情報' },
-    { pattern: /EDINET/, name: 'EDINET' },
-    { pattern: /TDnet/, name: 'TDnet' },
+    { pattern: /有価証券報告書/, name: "有価証券報告書" },
+    { pattern: /決算短信/, name: "決算短信" },
+    { pattern: /四半期報告書/, name: "四半期報告書" },
+    { pattern: /株主総会/, name: "株主総会" },
+    { pattern: /配当/, name: "配当情報" },
+    { pattern: /株価/, name: "株価情報" },
+    { pattern: /EDINET/, name: "EDINET" },
+    { pattern: /TDnet/, name: "TDnet" },
   ]
   for (const { pattern, name } of irDocPatterns) {
     if (pattern.test(text)) {
@@ -399,50 +431,50 @@ const detectListedCompany = (
       reasons.push(`IR関連記載: ${name}`)
     }
   }
-  
+
   // 5. 資本金の規模（参考情報）
   const capitalMatch = text.match(/資本金\s*[:：]?\s*([\d,]+)\s*(百万円|億円|万円|円)/)
   if (capitalMatch) {
-    const amount = parseInt(capitalMatch[1].replace(/,/g, ''))
+    const amount = parseInt(capitalMatch[1].replace(/,/g, ""))
     const unit = capitalMatch[2]
     let capitalYen = amount
-    if (unit === '億円') capitalYen = amount * 100000000
-    else if (unit === '百万円') capitalYen = amount * 1000000
-    else if (unit === '万円') capitalYen = amount * 10000
-    
+    if (unit === "億円") capitalYen = amount * 100000000
+    else if (unit === "百万円") capitalYen = amount * 1000000
+    else if (unit === "万円") capitalYen = amount * 10000
+
     // 資本金1億円以上は上場企業の可能性が高い
     if (capitalYen >= 100000000) {
       score += 10
       reasons.push(`資本金: ${capitalMatch[0]}`)
     }
   }
-  
+
   // 6. 従業員数の規模（参考情報）
   const employeeMatch = text.match(/従業員(?:数)?\s*[:：]?\s*([\d,]+)\s*(?:名|人)/)
   if (employeeMatch) {
-    const employees = parseInt(employeeMatch[1].replace(/,/g, ''))
+    const employees = parseInt(employeeMatch[1].replace(/,/g, ""))
     // 従業員1000人以上は上場企業の可能性が高い
     if (employees >= 1000) {
       score += 5
       reasons.push(`従業員数: ${employees}名`)
     }
   }
-  
+
   // 判定
-  let confidence: 'high' | 'medium' | 'low' = 'low'
+  let confidence: "high" | "medium" | "low" = "low"
   let isListed = false
-  
+
   if (score >= 70) {
-    confidence = 'high'
+    confidence = "high"
     isListed = true
   } else if (score >= 40) {
-    confidence = 'medium'
+    confidence = "medium"
     isListed = true
   } else if (score >= 20) {
-    confidence = 'low'
+    confidence = "low"
     isListed = true
   }
-  
+
   return { isListed, stockCode, confidence, reasons }
 }
 
@@ -451,31 +483,74 @@ const detectListedCompany = (
  */
 const extractPrefectureFromText = (text: string): string | null => {
   const prefectures = [
-    "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
-    "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
-    "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
-    "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
-    "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
-    "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
-    "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
+    "北海道",
+    "青森県",
+    "岩手県",
+    "宮城県",
+    "秋田県",
+    "山形県",
+    "福島県",
+    "茨城県",
+    "栃木県",
+    "群馬県",
+    "埼玉県",
+    "千葉県",
+    "東京都",
+    "神奈川県",
+    "新潟県",
+    "富山県",
+    "石川県",
+    "福井県",
+    "山梨県",
+    "長野県",
+    "岐阜県",
+    "静岡県",
+    "愛知県",
+    "三重県",
+    "滋賀県",
+    "京都府",
+    "大阪府",
+    "兵庫県",
+    "奈良県",
+    "和歌山県",
+    "鳥取県",
+    "島根県",
+    "岡山県",
+    "広島県",
+    "山口県",
+    "徳島県",
+    "香川県",
+    "愛媛県",
+    "高知県",
+    "福岡県",
+    "佐賀県",
+    "長崎県",
+    "熊本県",
+    "大分県",
+    "宮崎県",
+    "鹿児島県",
+    "沖縄県",
   ]
-  
+
   // 住所パターンで抽出（〒の後や、住所:の後など）
   // 例: 〒460-0002 愛知県名古屋市... / 住所：東京都渋谷区...
-  const addressPattern = /(?:〒[\d\-]+\s*|住所[:：]\s*|所在地[:：]\s*|本社[:：]\s*)([^\s]{2,4}(?:都|道|府|県))/
+  const addressPattern =
+    /(?:〒[\d\-]+\s*|住所[:：]\s*|所在地[:：]\s*|本社[:：]\s*)([^\s]{2,4}(?:都|道|府|県))/
   const match = text.match(addressPattern)
   if (match) {
-    const found = prefectures.find(p => match[1].includes(p.replace(/都|道|府|県$/, "")))
+    const found = prefectures.find((p) => match[1].includes(p.replace(/都|道|府|県$/, "")))
     if (found) return found
   }
-  
+
   // フォールバック: 単純な都道府県名の検索（ただし住所文脈で出現するもののみ）
   for (const pref of prefectures) {
     // 住所らしい文脈で出現しているか確認
-    const prefPattern = new RegExp(`(?:〒|住所|所在地|本社)[^]*?${pref.replace(/都|道|府|県$/, "")}(?:都|道|府|県)`)
+    const prefPattern = new RegExp(
+      `(?:〒|住所|所在地|本社)[^]*?${pref.replace(/都|道|府|県$/, "")}(?:都|道|府|県)`
+    )
     if (prefPattern.test(text)) return pref
   }
-  
+
   return null
 }
 
@@ -503,7 +578,7 @@ const checkAddressMatch = (
   let matchedPrefecture = false
   let matchedCity = false
   const reasons: string[] = []
-  
+
   // 都道府県の一致チェック
   if (targetPrefecture) {
     const prefInText = extractPrefectureFromText(normalizedText)
@@ -517,7 +592,7 @@ const checkAddressMatch = (
       reasons.push(`都道府県不一致: ${prefInText} != ${targetPrefecture}`)
     }
   }
-  
+
   // 市区町村の一致チェック
   if (targetCity) {
     const cityInText = extractCityFromText(normalizedText)
@@ -526,17 +601,24 @@ const checkAddressMatch = (
       score += 30
       matchedCity = true
       reasons.push(`市区町村一致: ${targetCity}`)
-    } else if (cityInText && targetCity && !normalizedText.includes(targetCity.replace(/市|区|町|村/g, ""))) {
+    } else if (
+      cityInText &&
+      targetCity &&
+      !normalizedText.includes(targetCity.replace(/市|区|町|村/g, ""))
+    ) {
       // 異なる市区町村が明示されている場合
       score -= 30
       reasons.push(`市区町村不一致: ${cityInText}`)
     }
   }
-  
+
   // 詳細住所の部分一致チェック
   if (targetAddress) {
     // 番地や建物名の一部が含まれているか
-    const addressParts = targetAddress.replace(/[〒\-ー−]/g, "").split(/[\s,、]/).filter(p => p.length > 1)
+    const addressParts = targetAddress
+      .replace(/[〒\-ー−]/g, "")
+      .split(/[\s,、]/)
+      .filter((p) => p.length > 1)
     for (const part of addressParts) {
       if (normalizedText.includes(part)) {
         score += 10
@@ -545,7 +627,7 @@ const checkAddressMatch = (
       }
     }
   }
-  
+
   return { score, matchedPrefecture, matchedCity, reason: reasons.join(", ") }
 }
 
@@ -591,7 +673,10 @@ type FinancialFacts = {
   evidenceLines?: string[]
 }
 
-const extractFinancialFactsFromPdf = async (openai: OpenAI, pdfUrl: string): Promise<FinancialFacts | null> => {
+const extractFinancialFactsFromPdf = async (
+  openai: OpenAI,
+  pdfUrl: string
+): Promise<FinancialFacts | null> => {
   try {
     const pdfResp = await fetchWithTimeout(pdfUrl, { method: "GET" }, 25_000)
     if (!pdfResp.ok) return null
@@ -645,8 +730,8 @@ JSONのみで返してください:
   } catch (error: unknown) {
     // 429エラー（クォータ超過）の場合はnullを返す（メイン処理で適切にハンドリングされる）
     const err = error as { status?: number; message?: string }
-    if (err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota')) {
-      console.error('OpenAI API quota exceeded in extractFinancialFactsFromPdf')
+    if (err?.status === 429 || err?.message?.includes("429") || err?.message?.includes("quota")) {
+      console.error("OpenAI API quota exceeded in extractFinancialFactsFromPdf")
     }
     return null
   }
@@ -705,7 +790,7 @@ interface CompanyIntelResult {
 
 export async function POST(request: Request) {
   // レート制限チェック（30回/時間）
-  const rateLimitError = applyRateLimit(request, 'companyIntel')
+  const rateLimitError = applyRateLimit(request, "companyIntel")
   if (rateLimitError) return rateLimitError
 
   try {
@@ -726,10 +811,7 @@ export async function POST(request: Request) {
       | undefined
 
     if (!website) {
-      return NextResponse.json(
-        { error: "websiteは必須です" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "websiteは必須です" }, { status: 400 })
     }
 
     // URLを正規化（HTTPサイトの場合はHTTPSを試行）
@@ -737,7 +819,7 @@ export async function POST(request: Request) {
       website.startsWith("http://") || website.startsWith("https://")
         ? website
         : `https://${website}`
-    
+
     // HTTPサイトの場合はHTTPS版を試行
     const originalUrl = normalizedUrl
     if (normalizedUrl.startsWith("http://")) {
@@ -746,10 +828,7 @@ export async function POST(request: Request) {
 
     const openaiKey = process.env.OPENAI_API_KEY
     if (!openaiKey) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEYが設定されていません" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "OPENAI_API_KEYが設定されていません" }, { status: 500 })
     }
 
     // 1. 中小企業（非上場）前提: 公式HPを直接取得して解析する（Firecrawl不要）
@@ -760,15 +839,19 @@ export async function POST(request: Request) {
 
     try {
       let fetchResult = await fetchHtmlToText(normalizedUrl, 30_000)
-      
+
       // HTTPSが失敗して、元のURLがHTTPの場合はHTTP版を試行
-      if (!fetchResult.ok && normalizedUrl.startsWith("https://") && originalUrl.startsWith("http://")) {
+      if (
+        !fetchResult.ok &&
+        normalizedUrl.startsWith("https://") &&
+        originalUrl.startsWith("http://")
+      ) {
         console.log(`⚠️ HTTPS failed, trying HTTP: ${originalUrl}`)
         fetchResult = await fetchHtmlToText(originalUrl, 30_000)
         normalizedUrl = originalUrl
         scrapeMeta.source = originalUrl
       }
-      
+
       homepageHtml = fetchResult.html || ""
       if (fetchResult.ok && fetchResult.text) {
         directFetchContent = fetchResult.text
@@ -781,10 +864,10 @@ export async function POST(request: Request) {
           scrapedCharacters: scrapedContent.length,
         }
       } else {
-        const errorDetails = fetchResult.error 
+        const errorDetails = fetchResult.error
           ? `エラー: ${fetchResult.error} (${fetchResult.errorType || "Unknown"})`
           : `HTTPステータス: ${fetchResult.status}`
-        
+
         scrapeMeta = {
           ...scrapeMeta,
           method: "direct_fetch_failed",
@@ -811,30 +894,46 @@ export async function POST(request: Request) {
     if (!scrapedContent) {
       // エラーの詳細を構築
       let errorDetails = "通常fetchでコンテンツ取得に失敗しました。"
-      
+
       if (scrapeMeta.directError) {
         errorDetails = `ネットワークエラー: ${scrapeMeta.directError}`
-        if (scrapeMeta.directError.includes("fetch failed") || scrapeMeta.directError.includes("ECONNREFUSED")) {
-          errorDetails = "サイトに接続できませんでした。URLが正しいか、サイトがアクセス可能かご確認ください。"
-        } else if (scrapeMeta.directError.includes("ENOTFOUND") || scrapeMeta.directError.includes("DNS")) {
+        if (
+          scrapeMeta.directError.includes("fetch failed") ||
+          scrapeMeta.directError.includes("ECONNREFUSED")
+        ) {
+          errorDetails =
+            "サイトに接続できませんでした。URLが正しいか、サイトがアクセス可能かご確認ください。"
+        } else if (
+          scrapeMeta.directError.includes("ENOTFOUND") ||
+          scrapeMeta.directError.includes("DNS")
+        ) {
           errorDetails = "ドメイン名が解決できませんでした。URLが正しいかご確認ください。"
-        } else if (scrapeMeta.directError.includes("timeout") || scrapeMeta.directError.includes("TIMEOUT") || scrapeMeta.directError.includes("aborted") || scrapeMeta.directError.includes("AbortError")) {
-          errorDetails = "サイトへの接続がタイムアウトしました（30秒、最大3回リトライ済み）。サイトの応答が遅いか、アクセス制限がある可能性があります。しばらく時間をおいてから再度お試しください。"
-        } else if (scrapeMeta.directErrorType === 'TimeoutError') {
+        } else if (
+          scrapeMeta.directError.includes("timeout") ||
+          scrapeMeta.directError.includes("TIMEOUT") ||
+          scrapeMeta.directError.includes("aborted") ||
+          scrapeMeta.directError.includes("AbortError")
+        ) {
+          errorDetails =
+            "サイトへの接続がタイムアウトしました（30秒、最大3回リトライ済み）。サイトの応答が遅いか、アクセス制限がある可能性があります。しばらく時間をおいてから再度お試しください。"
+        } else if (scrapeMeta.directErrorType === "TimeoutError") {
           errorDetails = scrapeMeta.directError // 既に適切なメッセージが設定されている
         }
       } else if (scrapeMeta.directStatus) {
         if (scrapeMeta.directStatus === 403) {
-          errorDetails = "サイトへのアクセスが拒否されました（403 Forbidden）。サイトのアクセス制限をご確認ください。"
+          errorDetails =
+            "サイトへのアクセスが拒否されました（403 Forbidden）。サイトのアクセス制限をご確認ください。"
         } else if (scrapeMeta.directStatus === 404) {
-          errorDetails = "ページが見つかりませんでした（404 Not Found）。URLが正しいかご確認ください。"
+          errorDetails =
+            "ページが見つかりませんでした（404 Not Found）。URLが正しいかご確認ください。"
         } else if (scrapeMeta.directStatus >= 500) {
-          errorDetails = "サイト側でエラーが発生しています。しばらく時間をおいてから再度お試しください。"
+          errorDetails =
+            "サイト側でエラーが発生しています。しばらく時間をおいてから再度お試しください。"
         } else {
           errorDetails = `HTTPステータス ${scrapeMeta.directStatus} が返されました。`
         }
       }
-      
+
       return NextResponse.json(
         {
           error: "Webサイトの情報を取得できませんでした",
@@ -871,37 +970,59 @@ export async function POST(request: Request) {
     const combinedOfficialText = `${safeSlice(scrapedContent, 9000)}\n\n${safeSlice(internalCrawlText, 9000)}`
     // フロントから渡された会社名を優先、なければテキストから推測
     const companyNameGuess = companyName || guessCompanyName(combinedOfficialText)
-    
+
     // 内部リンクのリストを取得（上場判定に使用）
-    const internalLinks = homepageHtml ? extractInternalLinksFromHtml(homepageHtml, normalizedUrl) : []
-    
+    const internalLinks = homepageHtml
+      ? extractInternalLinksFromHtml(homepageHtml, normalizedUrl)
+      : []
+
     // 上場企業かどうかを厳密に判定
     const listedDetection = detectListedCompany(combinedOfficialText, internalLinks)
     const stockCode = listedDetection.stockCode
     const isListedCompany = listedDetection.isListed
-    
+
     console.log("📊 上場判定（詳細）:", {
       isListed: listedDetection.isListed,
       stockCode: listedDetection.stockCode,
       confidence: listedDetection.confidence,
       reasons: listedDetection.reasons,
     })
-    
+
     // 住所情報を取得（フロントから渡された情報を優先）
     // 市区町村から都道府県を推測するマッピング（主要都市）
     const cityToPrefecture: Record<string, string> = {
-      "名古屋市": "愛知県", "豊田市": "愛知県", "岡崎市": "愛知県", "一宮市": "愛知県",
-      "横浜市": "神奈川県", "川崎市": "神奈川県", "相模原市": "神奈川県",
-      "大阪市": "大阪府", "堺市": "大阪府", "東大阪市": "大阪府",
-      "神戸市": "兵庫県", "姫路市": "兵庫県", "西宮市": "兵庫県",
-      "京都市": "京都府", "福岡市": "福岡県", "北九州市": "福岡県",
-      "札幌市": "北海道", "仙台市": "宮城県", "広島市": "広島県",
-      "さいたま市": "埼玉県", "川口市": "埼玉県",
-      "千葉市": "千葉県", "船橋市": "千葉県", "松戸市": "千葉県",
-      "新潟市": "新潟県", "静岡市": "静岡県", "浜松市": "静岡県",
-      "岐阜市": "岐阜県", "四日市市": "三重県", "津市": "三重県",
+      名古屋市: "愛知県",
+      豊田市: "愛知県",
+      岡崎市: "愛知県",
+      一宮市: "愛知県",
+      横浜市: "神奈川県",
+      川崎市: "神奈川県",
+      相模原市: "神奈川県",
+      大阪市: "大阪府",
+      堺市: "大阪府",
+      東大阪市: "大阪府",
+      神戸市: "兵庫県",
+      姫路市: "兵庫県",
+      西宮市: "兵庫県",
+      京都市: "京都府",
+      福岡市: "福岡県",
+      北九州市: "福岡県",
+      札幌市: "北海道",
+      仙台市: "宮城県",
+      広島市: "広島県",
+      さいたま市: "埼玉県",
+      川口市: "埼玉県",
+      千葉市: "千葉県",
+      船橋市: "千葉県",
+      松戸市: "千葉県",
+      新潟市: "新潟県",
+      静岡市: "静岡県",
+      浜松市: "静岡県",
+      岐阜市: "岐阜県",
+      四日市市: "三重県",
+      津市: "三重県",
     }
-    
+
     // 市区町村から都道府県を推測
     const inferPrefectureFromCity = (city: string): string | null => {
       if (!city) return null
@@ -913,17 +1034,25 @@ export async function POST(request: Request) {
       }
       return null
     }
-    
+
     const officialCity = companyCity || extractCityFromText(combinedOfficialText) || ""
     // 都道府県: フロントから渡された値 > 市区町村から推測 > 公式HPから抽出
-    const officialPrefecture = companyPrefecture || inferPrefectureFromCity(officialCity) || extractPrefectureFromText(combinedOfficialText) || ""
+    const officialPrefecture =
+      companyPrefecture ||
+      inferPrefectureFromCity(officialCity) ||
+      extractPrefectureFromText(combinedOfficialText) ||
+      ""
     const officialAddress = companyAddress || ""
-    
-    console.log("📍 住所情報:", { 
-      officialPrefecture, 
-      officialCity, 
+
+    console.log("📍 住所情報:", {
+      officialPrefecture,
+      officialCity,
       officialAddress: officialAddress.slice(0, 30),
-      source: companyPrefecture ? "フロント" : inferPrefectureFromCity(officialCity) ? "市区町村から推測" : "公式HP"
+      source: companyPrefecture
+        ? "フロント"
+        : inferPrefectureFromCity(officialCity)
+          ? "市区町村から推測"
+          : "公式HP",
     })
 
     // 1c. 公式HPだけで不足しそうなら、外部企業情報サイト等も検索（BRAVE_SEARCH_API_KEYがある場合のみ）
@@ -935,14 +1064,15 @@ export async function POST(request: Request) {
       const needsLocations = !/支店|営業所|工場|店舗/.test(combinedOfficialText)
       const braveKey = process.env.BRAVE_SEARCH_API_KEY?.trim() || ""
       const hasBraveKey = braveKey.length > 0
-      const shouldSearch = hasBraveKey && (forceExternalSearch || needsEmployee || needsRevenue || needsLocations)
+      const shouldSearch =
+        hasBraveKey && (forceExternalSearch || needsEmployee || needsRevenue || needsLocations)
 
       if (shouldSearch) {
         const qBase = companyNameGuess ? companyNameGuess : new URL(normalizedUrl).hostname
         const currentYear = new Date().getFullYear()
         const origin = new URL(normalizedUrl).origin
         const officialDomain = new URL(normalizedUrl).hostname
-        
+
         // 上場企業と非上場企業で検索戦略を分ける
         const preferredSitesListed = [
           // 上場企業向け: 金融/IR集約サイト（信頼性が高い）
@@ -952,7 +1082,7 @@ export async function POST(request: Request) {
           "ullet.com",
           "buffett-code.com",
         ] as const
-        
+
         const preferredSitesUnlisted = [
           // 非上場企業向け: 採用サイト（会社名+ドメインで特定しやすい）
           "job.rikunabi.com",
@@ -962,7 +1092,7 @@ export async function POST(request: Request) {
           // 企業DB（ただし同名他社混入リスクあり）
           "baseconnect.in",
         ] as const
-        
+
         const preferredSites = isListedCompany ? preferredSitesListed : preferredSitesUnlisted
 
         // 検索クエリを上場・非上場で分ける
@@ -987,7 +1117,7 @@ export async function POST(request: Request) {
             `"${qBase}" site:${preferredSites[2]}`,
           ].filter(Boolean)
         }
-        
+
         console.log("🔍 外部検索クエリ:", { isListedCompany, queries: queries.slice(0, 3) })
 
         const results: BraveWebResult[] = []
@@ -1005,7 +1135,9 @@ export async function POST(request: Request) {
         const preferredDomainScore = (url: string) => {
           try {
             const host = new URL(url).hostname
-            const hit = (preferredSites as readonly string[]).findIndex((d) => host === d || host.endsWith(`.${d}`))
+            const hit = (preferredSites as readonly string[]).findIndex(
+              (d) => host === d || host.endsWith(`.${d}`)
+            )
             if (hit >= 0) return 50 - hit
             return 0
           } catch {
@@ -1016,16 +1148,19 @@ export async function POST(request: Request) {
         // 非上場企業の場合、会社名が含まれているかで信頼性を判定
         const companyNameMatchScore = (r: BraveWebResult) => {
           if (isListedCompany) return 0 // 上場企業は証券コードで特定できるので不要
-          
+
           const text = `${r.title || ""} ${r.description || ""}`.toLowerCase()
-          const nameToCheck = companyNameGuess.replace(/株式会社|有限会社|合同会社/g, "").trim().toLowerCase()
-          
+          const nameToCheck = companyNameGuess
+            .replace(/株式会社|有限会社|合同会社/g, "")
+            .trim()
+            .toLowerCase()
+
           // 会社名が完全に含まれている場合は高スコア
           if (text.includes(nameToCheck)) return 20
-          
+
           // 公式ドメインが含まれている場合も信頼性が高い
           if (text.includes(officialDomain)) return 15
-          
+
           return 0
         }
 
@@ -1048,7 +1183,10 @@ export async function POST(request: Request) {
             _companyNameMatch: companyNameMatchScore(r),
           }))
           // 非上場企業の場合、会社名マッチスコアが0のものは除外（同名他社の可能性が高い）
-          .filter((r: RankedBraveResult) => isListedCompany || r._companyNameMatch > 0 || preferredDomainScore(r.url) > 0)
+          .filter(
+            (r: RankedBraveResult) =>
+              isListedCompany || r._companyNameMatch > 0 || preferredDomainScore(r.url) > 0
+          )
           .sort((a: RankedBraveResult, b: RankedBraveResult) => b._score - a._score)
           .slice(0, isListedCompany ? 10 : 5) // 非上場は絞り込む
 
@@ -1056,7 +1194,13 @@ export async function POST(request: Request) {
           isListedCompany,
           totalResults: uniq.size,
           filteredResults: ranked.length,
-          topResults: ranked.slice(0, 3).map((r: RankedBraveResult) => ({ url: r.url, score: r._score, nameMatch: r._companyNameMatch }))
+          topResults: ranked
+            .slice(0, 3)
+            .map((r: RankedBraveResult) => ({
+              url: r.url,
+              score: r._score,
+              nameMatch: r._companyNameMatch,
+            })),
         })
 
         const chunks: string[] = []
@@ -1068,16 +1212,27 @@ export async function POST(request: Request) {
 
             // 非上場企業の場合、取得したテキストにも会社名が含まれているか確認
             const nameToCheck = companyNameGuess.replace(/株式会社|有限会社|合同会社/g, "").trim()
-            const textContainsCompanyName = isListedCompany ||
+            const textContainsCompanyName =
+              isListedCompany ||
               !!(text && (text.includes(nameToCheck) || text.includes(officialDomain)))
 
             // 非上場企業の場合、住所マッチングで同名他社を排除
-            let addressMatch = { score: 0, matchedPrefecture: false, matchedCity: false, reason: "" }
+            let addressMatch = {
+              score: 0,
+              matchedPrefecture: false,
+              matchedCity: false,
+              reason: "",
+            }
             let isAddressConflict = false
             // 住所情報が十分にある場合のみ住所マッチングを実施
             const hasValidAddress = officialPrefecture && officialPrefecture.length > 0
             if (!isListedCompany && text && hasValidAddress) {
-              addressMatch = checkAddressMatch(text, officialPrefecture, officialCity, officialAddress)
+              addressMatch = checkAddressMatch(
+                text,
+                officialPrefecture,
+                officialCity,
+                officialAddress
+              )
               // 住所が明確に異なる場合（都道府県が違う）は同名他社と判断
               // ただし、都道府県が一致している場合や、住所情報が見つからない場合は除外しない
               if (addressMatch.score < -30 && addressMatch.reason.includes("都道府県不一致")) {
@@ -1098,21 +1253,25 @@ export async function POST(request: Request) {
               addressMatch: addressMatch,
               isAddressConflict,
             })
-            
+
             if (!ok || !text) continue
-            
+
             // 非上場企業で会社名が含まれていない場合はスキップ（誤情報防止）
             if (!isListedCompany && !textContainsCompanyName) {
               console.log("⚠️ 外部情報スキップ（会社名不一致）:", r.url)
               continue
             }
-            
+
             // 住所が明確に異なる場合はスキップ（同名他社）
             if (isAddressConflict) {
-              console.log("⚠️ 外部情報スキップ（住所不一致、同名他社の可能性）:", r.url, addressMatch.reason)
+              console.log(
+                "⚠️ 外部情報スキップ（住所不一致、同名他社の可能性）:",
+                r.url,
+                addressMatch.reason
+              )
               continue
             }
-            
+
             fetched.push(r.url)
             chunks.push(
               `(外部情報: ${r.url})\n(title: ${r.title || ""})\n(desc: ${r.description || ""})\n${safeSlice(text, 2500)}`
@@ -1130,7 +1289,11 @@ export async function POST(request: Request) {
             confidence: listedDetection.confidence,
             reasons: listedDetection.reasons,
           },
-          officialAddress: { prefecture: officialPrefecture, city: officialCity, address: officialAddress.slice(0, 30) },
+          officialAddress: {
+            prefecture: officialPrefecture,
+            city: officialCity,
+            address: officialAddress.slice(0, 30),
+          },
           braveKey: true,
           braveKeyLength: braveKey.length,
           needsEmployee,
@@ -1251,7 +1414,11 @@ export async function POST(request: Request) {
             const abs = toAbsoluteUrl(origin, href)
             if (!abs.toLowerCase().includes(".pdf")) continue
             // E-IRの決算短信/有報っぽいリンクを優先的に収集
-            if (abs.includes("eir-parts.net/doc/") || abs.includes("/tdnet/") || abs.includes("/yuho_pdf/")) {
+            if (
+              abs.includes("eir-parts.net/doc/") ||
+              abs.includes("/tdnet/") ||
+              abs.includes("/yuho_pdf/")
+            ) {
               discoveredPdfLinks.push(abs)
             }
           }
@@ -1266,7 +1433,11 @@ export async function POST(request: Request) {
       }
       supplementalContent = texts.join("\n\n")
       if (supplementalContent) {
-        scrapeMeta = { ...scrapeMeta, supplemental: "ir_candidates", supplementalChars: supplementalContent.length }
+        scrapeMeta = {
+          ...scrapeMeta,
+          supplemental: "ir_candidates",
+          supplementalChars: supplementalContent.length,
+        }
       }
     } catch {
       // ignore
@@ -1290,7 +1461,9 @@ export async function POST(request: Request) {
     let financialFacts: FinancialFacts | null = null
     let financialFactsSource: string | null = null
     const pdfCandidates = discoveredPdfLinks
-      .filter((u) => u.includes("eir-parts.net/doc/") || u.includes("/tdnet/") || u.includes("/yuho_pdf/"))
+      .filter(
+        (u) => u.includes("eir-parts.net/doc/") || u.includes("/tdnet/") || u.includes("/yuho_pdf/")
+      )
       .slice(0, 5)
     for (const pdfUrl of pdfCandidates) {
       financialFacts = await extractFinancialFactsFromPdf(openai, pdfUrl)
@@ -1419,15 +1592,21 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     let completion
     try {
       completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 800,
-      temperature: 0.2,
-      messages: [{ role: "user", content: prompt }],
-    })
+        model: "gpt-4o-mini",
+        max_tokens: 800,
+        temperature: 0.2,
+        messages: [{ role: "user", content: prompt }],
+      })
     } catch (error: unknown) {
       // エラーの詳細をログに出力（デバッグ用）
-      const err = error as { status?: number; statusCode?: number; code?: string; message?: string; type?: string }
-      console.error('❌ OpenAI API Error:', {
+      const err = error as {
+        status?: number
+        statusCode?: number
+        code?: string
+        message?: string
+        type?: string
+      }
+      console.error("❌ OpenAI API Error:", {
         status: err?.status,
         statusCode: err?.statusCode,
         code: err?.code,
@@ -1440,30 +1619,30 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       const isQuotaError =
         err?.status === 429 ||
         err?.statusCode === 429 ||
-        err?.code === 'insufficient_quota' ||
-        err?.message?.includes('429') ||
-        err?.message?.includes('quota') ||
-        err?.message?.includes('exceeded') ||
-        err?.message?.includes('rate_limit')
+        err?.code === "insufficient_quota" ||
+        err?.message?.includes("429") ||
+        err?.message?.includes("quota") ||
+        err?.message?.includes("exceeded") ||
+        err?.message?.includes("rate_limit")
 
       if (isQuotaError) {
-        console.error('❌ OpenAI API quota exceeded - Full error:', JSON.stringify(error, null, 2))
+        console.error("❌ OpenAI API quota exceeded - Full error:", JSON.stringify(error, null, 2))
         return NextResponse.json(
           {
             error: "OpenAI APIの利用制限に達しました",
-            details: `現在、OpenAI APIの利用制限（クォータ）に達しています。エラー詳細: ${err?.message || '不明'}`,
-            originalError: err?.message || err?.code || 'Unknown error',
+            details: `現在、OpenAI APIの利用制限（クォータ）に達しています。エラー詳細: ${err?.message || "不明"}`,
+            originalError: err?.message || err?.code || "Unknown error",
           },
           { status: 429 }
         )
       }
       // その他のエラー
-      console.error('❌ OpenAI API error (non-quota):', error)
+      console.error("❌ OpenAI API error (non-quota):", error)
       return NextResponse.json(
         {
           error: "OpenAI APIの呼び出しに失敗しました",
           details: err?.message || "不明なエラーが発生しました",
-          originalError: err?.message || err?.code || 'Unknown error',
+          originalError: err?.message || err?.code || "Unknown error",
         },
         { status: 500 }
       )
@@ -1490,23 +1669,27 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       })
     } catch (error) {
       console.error("JSON parse error:", error, textContent)
-      return NextResponse.json(
-        { error: "AIレスポンスの解析に失敗しました" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "AIレスポンスの解析に失敗しました" }, { status: 500 })
     }
 
     // 3. AIが返したannualRevenueがrevenueRangesに含まれるか確認し、含まれない場合は正規化を試みる
     if (parsed.annualRevenue && revenueRanges.length > 0) {
       const exactMatch = revenueRanges.includes(parsed.annualRevenue)
       if (!exactMatch) {
-        console.log("⚠️ AI annualRevenue 不一致:", { aiValue: parsed.annualRevenue, expectedRanges: revenueRanges })
+        console.log("⚠️ AI annualRevenue 不一致:", {
+          aiValue: parsed.annualRevenue,
+          expectedRanges: revenueRanges,
+        })
         // AIが返した値から数値を抽出して再マッピングを試みる
         const aiRevenueNum = parseOkuYen(parsed.annualRevenue)
-        if (aiRevenueNum != null) {
+        if (aiRevenueNum !== null) {
           const remapped = mapRevenueOkuToRange(aiRevenueNum, revenueRanges)
           if (remapped) {
-            console.log("📊 AI annualRevenue 再マッピング:", { original: parsed.annualRevenue, extracted: aiRevenueNum, remapped })
+            console.log("📊 AI annualRevenue 再マッピング:", {
+              original: parsed.annualRevenue,
+              extracted: aiRevenueNum,
+              remapped,
+            })
             parsed.annualRevenue = remapped
           } else {
             // 再マッピングも失敗した場合はnullにしてextractBullets抽出に任せる
@@ -1525,7 +1708,9 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
 
     // 3a. 売上/従業員数の「最新」一次情報が取れている場合は、(a) dataにも格納 (b) 取得情報に出す (c) プルダウン値を確実に上書きする
     const revenueOku = financialFacts?.revenueText ? parseOkuYen(financialFacts.revenueText) : null
-    const employeesN = financialFacts?.employeesText ? parseEmployeesNumber(financialFacts.employeesText) : null
+    const employeesN = financialFacts?.employeesText
+      ? parseEmployeesNumber(financialFacts.employeesText)
+      : null
     if (financialFacts?.revenueText) {
       parsed.latestRevenueText = financialFacts.revenueText
     }
@@ -1539,17 +1724,21 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     // 取得情報に必ず見える形で入れる（ユーザーが確認できるように）
     const factBullets: string[] = []
     if (financialFacts?.revenueText) {
-      factBullets.push(`売上高(最新): ${financialFacts.revenueText}${financialFactsSource ? "（決算短信/有報）" : ""}`)
+      factBullets.push(
+        `売上高(最新): ${financialFacts.revenueText}${financialFactsSource ? "（決算短信/有報）" : ""}`
+      )
     }
     if (financialFacts?.employeesText) {
-      factBullets.push(`従業員数(最新): ${financialFacts.employeesText}${financialFactsSource ? "（決算短信/有報）" : ""}`)
+      factBullets.push(
+        `従業員数(最新): ${financialFacts.employeesText}${financialFactsSource ? "（決算短信/有報）" : ""}`
+      )
     }
 
-    if (revenueOku != null && revenueRanges.length > 0) {
+    if (revenueOku !== null && revenueRanges.length > 0) {
       const mapped = mapRevenueOkuToRange(revenueOku, revenueRanges)
       if (mapped) parsed.annualRevenue = mapped
     }
-    if (employeesN != null && employeeRanges.length > 0) {
+    if (employeesN !== null && employeeRanges.length > 0) {
       const mapped = mapEmployeesToRange(employeesN, employeeRanges)
       if (mapped) parsed.employeeCount = mapped
     }
@@ -1566,7 +1755,10 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     if (!financialFactsSource && staleByExternal) {
       const y = extractRecentYears(externalText)[0]
       // 既に埋めてしまったプルダウン値は消す（誤入力防止）
-      console.log("⚠️ staleByExternal: annualRevenueをnullにリセット", { annualRevenue: parsed.annualRevenue, year: y })
+      console.log("⚠️ staleByExternal: annualRevenueをnullにリセット", {
+        annualRevenue: parsed.annualRevenue,
+        year: y,
+      })
       if (parsed.annualRevenue) parsed.annualRevenue = null
       if (parsed.employeeCount) parsed.employeeCount = null
       const warn = y
@@ -1599,10 +1791,7 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
 
         // ラベルなしでも億円/百万円パターンを探す（フォールバック）
         if (!parsed.latestRevenueText) {
-          const fallbackPatterns = [
-            /(\d[\d,]{0,5}億[\d,]*万?円)/,
-            /(\d[\d,]{2,8}百万円)/,
-          ]
+          const fallbackPatterns = [/(\d[\d,]{0,5}億[\d,]*万?円)/, /(\d[\d,]{2,8}百万円)/]
           for (const pattern of fallbackPatterns) {
             const m = combined.match(pattern)
             if (m) {
@@ -1634,21 +1823,25 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
         }
       }
 
-      if (parsed.latestRevenueText && !factBullets.some(b => b.includes("売上高"))) {
+      if (parsed.latestRevenueText && !factBullets.some((b) => b.includes("売上高"))) {
         factBullets.push(`売上高(参考): ${parsed.latestRevenueText}`)
       }
-      if (parsed.latestEmployeesText && !factBullets.some(b => b.includes("従業員数"))) {
+      if (parsed.latestEmployeesText && !factBullets.some((b) => b.includes("従業員数"))) {
         factBullets.push(`従業員数(参考): ${parsed.latestEmployeesText}`)
       }
 
       // 見つかった売上高テキストをプルダウン値にマッピング
       if (parsed.latestRevenueText && !parsed.annualRevenue && revenueRanges.length > 0) {
         const extractedOku = parseOkuYen(parsed.latestRevenueText)
-        if (extractedOku != null) {
+        if (extractedOku !== null) {
           const mapped = mapRevenueOkuToRange(extractedOku, revenueRanges)
           if (mapped) {
             parsed.annualRevenue = mapped
-            console.log("📊 売上高マッピング:", { text: parsed.latestRevenueText, oku: extractedOku, mapped })
+            console.log("📊 売上高マッピング:", {
+              text: parsed.latestRevenueText,
+              oku: extractedOku,
+              mapped,
+            })
           }
         }
       }
@@ -1656,11 +1849,15 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       // 見つかった従業員数をプルダウン値にマッピング
       if (parsed.latestEmployeesText && !parsed.employeeCount && employeeRanges.length > 0) {
         const extractedN = parseEmployeesNumber(parsed.latestEmployeesText)
-        if (extractedN != null) {
+        if (extractedN !== null) {
           const mapped = mapEmployeesToRange(extractedN, employeeRanges)
           if (mapped) {
             parsed.employeeCount = mapped
-            console.log("👥 従業員数マッピング:", { text: parsed.latestEmployeesText, n: extractedN, mapped })
+            console.log("👥 従業員数マッピング:", {
+              text: parsed.latestEmployeesText,
+              n: extractedN,
+              mapped,
+            })
           }
         }
       }
@@ -1674,11 +1871,20 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       extraBulletsLength: parsed.extraBullets?.length || 0,
       extraBullets: parsed.extraBullets,
     })
-    if (!parsed.annualRevenue && revenueRanges.length > 0 && parsed.extraBullets && parsed.extraBullets.length > 0) {
+    if (
+      !parsed.annualRevenue &&
+      revenueRanges.length > 0 &&
+      parsed.extraBullets &&
+      parsed.extraBullets.length > 0
+    ) {
       console.log("📊 extraBullets売上抽出: 条件クリア、抽出開始")
       for (const bullet of parsed.extraBullets) {
         // 売上高を含む箇条書きを探す
-        const hasRevenueKeyword = bullet.includes("売上高") || bullet.includes("売上収益") || bullet.includes("年商") || bullet.includes("営業収益")
+        const hasRevenueKeyword =
+          bullet.includes("売上高") ||
+          bullet.includes("売上収益") ||
+          bullet.includes("年商") ||
+          bullet.includes("営業収益")
         console.log("📊 bullet解析:", { bullet, hasRevenueKeyword })
         if (hasRevenueKeyword) {
           // 金額パターンを抽出（複合パターン対応）
@@ -1703,11 +1909,15 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
           ]
           for (const pattern of patterns) {
             const m = bullet.match(pattern)
-            console.log("📊 パターンマッチ:", { pattern: pattern.toString(), matched: !!m, matchResult: m?.[1] })
+            console.log("📊 パターンマッチ:", {
+              pattern: pattern.toString(),
+              matched: !!m,
+              matchResult: m?.[1],
+            })
             if (m) {
               const extractedOku = parseOkuYen(m[1])
               console.log("📊 parseOkuYen結果:", { input: m[1], extractedOku })
-              if (extractedOku != null) {
+              if (extractedOku !== null) {
                 const mapped = mapRevenueOkuToRange(extractedOku, revenueRanges)
                 console.log("📊 mapRevenueOkuToRange結果:", { extractedOku, mapped, revenueRanges })
                 if (mapped) {
@@ -1715,10 +1925,18 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
                   if (!parsed.latestRevenueText) {
                     parsed.latestRevenueText = m[1]
                   }
-                  console.log("📊 extraBulletsから売上高マッピング成功:", { bullet, extracted: m[1], oku: extractedOku, mapped })
+                  console.log("📊 extraBulletsから売上高マッピング成功:", {
+                    bullet,
+                    extracted: m[1],
+                    oku: extractedOku,
+                    mapped,
+                  })
                   break
                 } else {
-                  console.log("⚠️ mapRevenueOkuToRange が空文字を返却:", { extractedOku, revenueRanges })
+                  console.log("⚠️ mapRevenueOkuToRange が空文字を返却:", {
+                    extractedOku,
+                    revenueRanges,
+                  })
                 }
               }
             }
@@ -1735,20 +1953,30 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     }
 
     // 【追加】AIが extraBullets に従業員数を入れていても employeeCount が未設定の場合、extraBulletsから抽出を試みる
-    if (!parsed.employeeCount && employeeRanges.length > 0 && parsed.extraBullets && parsed.extraBullets.length > 0) {
+    if (
+      !parsed.employeeCount &&
+      employeeRanges.length > 0 &&
+      parsed.extraBullets &&
+      parsed.extraBullets.length > 0
+    ) {
       for (const bullet of parsed.extraBullets) {
         if (bullet.includes("従業員") || bullet.includes("社員数")) {
           const m = bullet.match(/(\d[\d,]*)\s*(?:名|人)/)
           if (m) {
             const extractedN = parseEmployeesNumber(m[1] + "名")
-            if (extractedN != null) {
+            if (extractedN !== null) {
               const mapped = mapEmployeesToRange(extractedN, employeeRanges)
               if (mapped) {
                 parsed.employeeCount = mapped
                 if (!parsed.latestEmployeesText) {
                   parsed.latestEmployeesText = m[1] + "名"
                 }
-                console.log("👥 extraBulletsから従業員数マッピング:", { bullet, extracted: m[1], n: extractedN, mapped })
+                console.log("👥 extraBulletsから従業員数マッピング:", {
+                  bullet,
+                  extracted: m[1],
+                  n: extractedN,
+                  mapped,
+                })
                 break
               }
             }
@@ -1777,7 +2005,9 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       if (parsed.branches.length <= 3) {
         structuredBullets.push(`支店: ${parsed.branches.join("、")}`)
       } else {
-        structuredBullets.push(`支店数: ${parsed.branches.length}拠点（${parsed.branches.slice(0, 3).join("、")}等）`)
+        structuredBullets.push(
+          `支店数: ${parsed.branches.length}拠点（${parsed.branches.slice(0, 3).join("、")}等）`
+        )
       }
     }
 
@@ -1786,7 +2016,9 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       if (parsed.offices.length <= 3) {
         structuredBullets.push(`営業所: ${parsed.offices.join("、")}`)
       } else {
-        structuredBullets.push(`営業所数: ${parsed.offices.length}拠点（${parsed.offices.slice(0, 3).join("、")}等）`)
+        structuredBullets.push(
+          `営業所数: ${parsed.offices.length}拠点（${parsed.offices.slice(0, 3).join("、")}等）`
+        )
       }
     }
 
@@ -1795,7 +2027,9 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       if (parsed.factories.length <= 3) {
         structuredBullets.push(`工場: ${parsed.factories.join("、")}`)
       } else {
-        structuredBullets.push(`工場数: ${parsed.factories.length}工場（${parsed.factories.slice(0, 3).join("、")}等）`)
+        structuredBullets.push(
+          `工場数: ${parsed.factories.length}工場（${parsed.factories.slice(0, 3).join("、")}等）`
+        )
       }
     }
 
@@ -1804,7 +2038,9 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       if (parsed.stores.length <= 3) {
         structuredBullets.push(`店舗: ${parsed.stores.join("、")}`)
       } else {
-        structuredBullets.push(`店舗数: ${parsed.stores.length}店舗（${parsed.stores.slice(0, 3).join("、")}等）`)
+        structuredBullets.push(
+          `店舗数: ${parsed.stores.length}店舗（${parsed.stores.slice(0, 3).join("、")}等）`
+        )
       }
     }
 
@@ -1823,15 +2059,17 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       ...structuredBullets,
       ...evidence,
       ...(parsed.extraBullets || []),
-    ].filter(Boolean).slice(0, 15)
+    ]
+      .filter(Boolean)
+      .slice(0, 15)
 
     // ファクトチェックを実行（AI結果 + 検索結果）
     const aiFactCheck = checkAIResult({
       content: JSON.stringify(parsed),
       issues: (parsed.extraBullets || []).map((bullet: string) => ({
-        severity: 'info',
+        severity: "info",
         issue: bullet,
-        category: 'company-intel'
+        category: "company-intel",
       })),
     })
 
@@ -1839,13 +2077,13 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     const searchSources: { url: string; title: string }[] = []
     if (externalMeta?.sources) {
       externalMeta.sources.forEach((s: any) => {
-        if (s.url) searchSources.push({ url: s.url, title: s.title || '' })
+        if (s.url) searchSources.push({ url: s.url, title: s.title || "" })
       })
     }
-    
+
     const searchFactCheck = checkSearchResult({
       sources: searchSources,
-      query: companyNameGuess || normalizedUrl
+      query: companyNameGuess || normalizedUrl,
     })
 
     // 総合ファクトチェック結果
@@ -1855,11 +2093,15 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
       overall: {
         passed: aiFactCheck.passed && searchFactCheck.passed,
         confidence: Math.round((aiFactCheck.confidence + searchFactCheck.confidence) / 2),
-        level: aiFactCheck.confidence >= 75 && searchFactCheck.confidence >= 75 ? 'high' :
-               aiFactCheck.confidence >= 50 && searchFactCheck.confidence >= 50 ? 'medium' : 'low',
-        summary: `AI結果: ${aiFactCheck.summary}, 検索結果: ${searchFactCheck.summary}`
+        level:
+          aiFactCheck.confidence >= 75 && searchFactCheck.confidence >= 75
+            ? "high"
+            : aiFactCheck.confidence >= 50 && searchFactCheck.confidence >= 50
+              ? "medium"
+              : "low",
+        summary: `AI結果: ${aiFactCheck.summary}, 検索結果: ${searchFactCheck.summary}`,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }
 
     console.log("📋 企業情報ファクトチェック:", JSON.stringify(factCheckResult.overall, null, 2))
@@ -1896,13 +2138,3 @@ ${financialFacts ? JSON.stringify(financialFacts) : "(なし)"}`
     )
   }
 }
-
-
-
-
-
-
-
-
-
-

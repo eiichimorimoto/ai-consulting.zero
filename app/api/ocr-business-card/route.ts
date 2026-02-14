@@ -59,10 +59,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "リクエストの解析に失敗しました",
-          details:
-            parseError instanceof Error
-              ? parseError.message
-              : String(parseError),
+          details: parseError instanceof Error ? parseError.message : String(parseError),
         },
         { status: 400 }
       )
@@ -72,10 +69,7 @@ export async function POST(request: Request) {
 
     if (!image) {
       console.error("❌ 画像データがありません")
-      return NextResponse.json(
-        { error: "画像データが必要です" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "画像データが必要です" }, { status: 400 })
     }
 
     // 環境変数の確認
@@ -87,9 +81,7 @@ export async function POST(request: Request) {
     console.log("Image data length:", image.length)
 
     if (!hasApiKey) {
-      console.warn(
-        "⚠️ ANTHROPIC_API_KEY環境変数が設定されていません。モックデータを使用します。"
-      )
+      console.warn("⚠️ ANTHROPIC_API_KEY環境変数が設定されていません。モックデータを使用します。")
       // フォールバック: モックデータを返す
       const mockResult = {
         fullName: "田中 一郎",
@@ -121,7 +113,7 @@ export async function POST(request: Request) {
         imageLength: image.length,
         mimeType: mimeType || "image/jpeg",
         isPdf,
-        estimatedSizeKB: Math.round(image.length * 0.75 / 1024), // base64は約1.33倍なので0.75で概算
+        estimatedSizeKB: Math.round((image.length * 0.75) / 1024), // base64は約1.33倍なので0.75で概算
       })
 
       const startTime = Date.now()
@@ -142,10 +134,10 @@ export async function POST(request: Request) {
         // 念のためサーバーサイドでも変換を試みる（フォールバック）
         console.log("📄 PDFを検出しました（クライアントサイドで変換済みのはず）")
         try {
-        const pdfBuffer = Buffer.from(image, "base64")
-        const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
-        imageBuffer = pngBuffer
-        mediaTypeForClaude = "image/png"
+          const pdfBuffer = Buffer.from(image, "base64")
+          const pngBuffer = await convertPdfBufferToPngBuffer(pdfBuffer, { page: 1, scaleTo: 2048 })
+          imageBuffer = pngBuffer
+          mediaTypeForClaude = "image/png"
           console.log("✅ PDF→PNG変換完了（サーバーサイドフォールバック）")
         } catch (pdfError) {
           // クライアントサイドで変換済みの場合はそのまま使用
@@ -246,7 +238,9 @@ export async function POST(request: Request) {
       })
 
       console.log("⏳ generateObjectの完了を待機中...")
-      const generateResult = await Promise.race([generatePromise, timeoutPromise]) as { object: any }
+      const generateResult = (await Promise.race([generatePromise, timeoutPromise])) as {
+        object: any
+      }
       const { object } = generateResult
       console.log("✅ generateObjectが完了しました")
 
@@ -287,29 +281,30 @@ export async function POST(request: Request) {
         .eq("id", user.id)
         .single()
       const nextOcrCount = (profileRow?.monthly_ocr_count ?? 0) + 1
-      await supabase
-        .from("profiles")
-        .update({ monthly_ocr_count: nextOcrCount })
-        .eq("id", user.id)
+      await supabase.from("profiles").update({ monthly_ocr_count: nextOcrCount }).eq("id", user.id)
 
       // 結果を返す（ファクトチェック結果を含む）
-      return NextResponse.json({ 
+      return NextResponse.json({
         data: ocrResult,
-        factCheck: factCheckResult
+        factCheck: factCheckResult,
       })
     } catch (claudeError) {
       console.error("❌ Claude API error:", claudeError)
       console.error("❌ Error type:", typeof claudeError)
       console.error("❌ Error constructor:", claudeError?.constructor?.name)
-      
+
       if (claudeError instanceof Error) {
         console.error("Error name:", claudeError.name)
         console.error("Error message:", claudeError.message)
         console.error("Error stack:", claudeError.stack)
-        
+
         // エラーの詳細をJSON形式で出力（オブジェクトの場合）
         try {
-          const errorDetails = JSON.stringify(claudeError, Object.getOwnPropertyNames(claudeError), 2)
+          const errorDetails = JSON.stringify(
+            claudeError,
+            Object.getOwnPropertyNames(claudeError),
+            2
+          )
           console.error("Error details (JSON):", errorDetails)
         } catch (e) {
           console.error("Error details (string):", String(claudeError))
@@ -330,7 +325,10 @@ export async function POST(request: Request) {
             },
             { status: 401 }
           )
-        } else if (claudeError.message.includes("429") || claudeError.message.includes("rate limit")) {
+        } else if (
+          claudeError.message.includes("429") ||
+          claudeError.message.includes("rate limit")
+        ) {
           console.error("💡 ヒント: APIレート制限に達しました")
           console.error("   しばらく待ってから再度お試しください")
           return NextResponse.json(
@@ -355,7 +353,10 @@ export async function POST(request: Request) {
             },
             { status: 503 }
           )
-        } else if (claudeError.message.includes("Invalid image") || claudeError.message.includes("image")) {
+        } else if (
+          claudeError.message.includes("Invalid image") ||
+          claudeError.message.includes("image")
+        ) {
           console.error("💡 ヒント: 画像データが無効です")
           return NextResponse.json(
             {
@@ -375,7 +376,8 @@ export async function POST(request: Request) {
           return NextResponse.json(
             {
               error: "モデルバージョンの問題が発生しました",
-              details: "AI SDK 5はv2仕様のモデルのみをサポートしています。モデル名を確認してください。",
+              details:
+                "AI SDK 5はv2仕様のモデルのみをサポートしています。モデル名を確認してください。",
             },
             { status: 500 }
           )
@@ -386,10 +388,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "名刺の読み取りに失敗しました",
-          details:
-            claudeError instanceof Error
-              ? claudeError.message
-              : String(claudeError),
+          details: claudeError instanceof Error ? claudeError.message : String(claudeError),
         },
         { status: 500 }
       )

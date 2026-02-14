@@ -133,8 +133,3 @@ testOCR(imagePath)
     console.error("\n❌ テスト失敗:", error)
     process.exit(1)
   })
-
-
-
-
-

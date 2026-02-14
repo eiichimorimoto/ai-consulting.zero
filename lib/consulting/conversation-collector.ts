@@ -7,17 +7,17 @@
  */
 
 export interface CollectedMessage {
-  role: string;
-  content: string;
-  created_at: string;
-  message_order: number;
+  role: string
+  content: string
+  created_at: string
+  message_order: number
 }
 
 export interface CollectByThemeOptions {
   /** 収集する最大件数（時系列のうち新しい方から。デフォルト 50） */
-  maxMessages?: number;
+  maxMessages?: number
   /** テーマに一致しない発言も含めるか（false = キーワード一致のみ。デフォルト false） */
-  includeUnrelated?: boolean;
+  includeUnrelated?: boolean
 }
 
 /**
@@ -30,42 +30,42 @@ export interface CollectByThemeOptions {
  * @param options - オプション
  */
 export async function collectMessagesByTheme(
-  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
   sessionId: string,
   theme: string,
   options: CollectByThemeOptions = {}
 ): Promise<CollectedMessage[]> {
-  const { maxMessages = 50, includeUnrelated = false } = options;
+  const { maxMessages = 50, includeUnrelated = false } = options
 
   const { data: messages, error } = await supabase
-    .from('consulting_messages')
-    .select('role, content, created_at, message_order')
-    .eq('session_id', sessionId)
-    .order('message_order', { ascending: true });
+    .from("consulting_messages")
+    .select("role, content, created_at, message_order")
+    .eq("session_id", sessionId)
+    .order("message_order", { ascending: true })
 
   if (error) {
-    console.error('conversation-collector: fetch error', error);
-    throw error;
+    console.error("conversation-collector: fetch error", error)
+    throw error
   }
 
-  const list = (messages || []) as CollectedMessage[];
-  const themeLower = theme.trim().toLowerCase();
-  const themeLen = themeLower.length;
+  const list = (messages || []) as CollectedMessage[]
+  const themeLower = theme.trim().toLowerCase()
+  const themeLen = themeLower.length
 
   if (themeLen === 0) {
-    return includeUnrelated ? list.slice(-maxMessages) : [];
+    return includeUnrelated ? list.slice(-maxMessages) : []
   }
 
   const related = list.filter((m) => {
-    const content = (m.content || '').trim();
-    if (!content) return false;
-    return content.toLowerCase().includes(themeLower);
-  });
+    const content = (m.content || "").trim()
+    if (!content) return false
+    return content.toLowerCase().includes(themeLower)
+  })
 
-  const result = includeUnrelated ? list : related;
+  const result = includeUnrelated ? list : related
   // 新しい方から maxMessages 件に制限してから、時系列で返す（先頭が古い）
-  const limited = result.slice(-maxMessages);
-  return limited;
+  const limited = result.slice(-maxMessages)
+  return limited
 }
 
 /**
@@ -75,54 +75,54 @@ export async function collectMessagesByTheme(
 export function formatCollectedConversation(messages: CollectedMessage[]): string {
   return messages
     .map((m) => {
-      const label = m.role === 'user' ? 'ユーザー' : 'AI';
-      return `【${label}】\n${(m.content || '').trim()}`;
+      const label = m.role === "user" ? "ユーザー" : "AI"
+      return `【${label}】\n${(m.content || "").trim()}`
     })
-    .join('\n\n');
+    .join("\n\n")
 }
 
 /**
  * セッションの全会話を取得する（提案まとめなどで会話全件をなめる場合に利用）
  */
 export async function getAllSessionMessages(
-  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
   sessionId: string,
   maxMessages = 200
 ): Promise<CollectedMessage[]> {
   const { data: messages, error } = await supabase
-    .from('consulting_messages')
-    .select('role, content, created_at, message_order')
-    .eq('session_id', sessionId)
-    .order('message_order', { ascending: true });
+    .from("consulting_messages")
+    .select("role, content, created_at, message_order")
+    .eq("session_id", sessionId)
+    .order("message_order", { ascending: true })
 
   if (error) {
-    console.error('conversation-collector: getAllSessionMessages error', error);
-    throw error;
+    console.error("conversation-collector: getAllSessionMessages error", error)
+    throw error
   }
 
-  const list = (messages || []) as CollectedMessage[];
-  return list.slice(-maxMessages);
+  const list = (messages || []) as CollectedMessage[]
+  return list.slice(-maxMessages)
 }
 
 /**
  * 指定した step_round のメッセージのみ取得する（ステップ終了時レポート用）
  */
 export async function getMessagesByStepRound(
-  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
   sessionId: string,
   stepRound: number
 ): Promise<CollectedMessage[]> {
   const { data: messages, error } = await supabase
-    .from('consulting_messages')
-    .select('role, content, created_at, message_order')
-    .eq('session_id', sessionId)
-    .eq('step_round', stepRound)
-    .order('message_order', { ascending: true });
+    .from("consulting_messages")
+    .select("role, content, created_at, message_order")
+    .eq("session_id", sessionId)
+    .eq("step_round", stepRound)
+    .order("message_order", { ascending: true })
 
   if (error) {
-    console.error('conversation-collector: getMessagesByStepRound error', error);
-    throw error;
+    console.error("conversation-collector: getMessagesByStepRound error", error)
+    throw error
   }
 
-  return (messages || []) as CollectedMessage[];
+  return (messages || []) as CollectedMessage[]
 }

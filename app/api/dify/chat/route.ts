@@ -1,35 +1,41 @@
 /**
  * Dify Chat API
- * 
+ *
  * Dify Chatflowにメッセージ送信（会話履歴自動管理 + 会社情報連携）
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
 /**
  * POST /api/dify/chat
- * 
+ *
  * Difyにメッセージ送信（Chatflow API）
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sessionId, message, userId, conversationId, categoryInfo, stepRound, stepTitle, stepGoal } = body
+    const {
+      sessionId,
+      message,
+      userId,
+      conversationId,
+      categoryInfo,
+      stepRound,
+      stepTitle,
+      stepGoal,
+    } = body
 
-    console.log('📥 Dify API received:', {
+    console.log("📥 Dify API received:", {
       sessionId,
       userId,
       conversationId,
-      categoryInfo
+      categoryInfo,
     })
 
     // バリデーション
     if (!message || !userId) {
-      return NextResponse.json(
-        { error: 'message and userId are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "message and userId are required" }, { status: 400 })
     }
 
     const startTime = Date.now()
@@ -39,17 +45,20 @@ export async function POST(request: NextRequest) {
     const difyApiKey = process.env.DIFY_CHATFLOW_API_KEY
 
     if (!difyChatflowUrl || !difyApiKey) {
-      console.warn('DIFY_CHATFLOW_URL or DIFY_CHATFLOW_API_KEY not set, using mock response')
-      
+      console.warn("DIFY_CHATFLOW_URL or DIFY_CHATFLOW_API_KEY not set, using mock response")
+
       // モックレスポンス（開発・テスト用）
-      const mockResponse = generateMockResponse(message, { profile: { name: 'お客様' }, company: { name: 'お客様の会社' } })
+      const mockResponse = generateMockResponse(message, {
+        profile: { name: "お客様" },
+        company: { name: "お客様の会社" },
+      })
       const processingTime = Date.now() - startTime
 
       return NextResponse.json({
         response: mockResponse,
         tokens_used: Math.round(mockResponse.length * 0.75), // 概算（整数化）
         processing_time: processingTime,
-        is_mock: true
+        is_mock: true,
       })
     }
 
@@ -57,42 +66,47 @@ export async function POST(request: NextRequest) {
     // RLSバイパスのため、SERVICE_ROLE_KEYを使用
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
-    console.log('🔧 Environment check:', {
+
+    console.log("🔧 Environment check:", {
       has_supabase_url: !!supabaseUrl,
-      supabase_url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NOT SET',
+      supabase_url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : "NOT SET",
       has_service_key: !!supabaseServiceKey,
-      service_key_length: supabaseServiceKey?.length || 0
+      service_key_length: supabaseServiceKey?.length || 0,
     })
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('❌ Supabase環境変数が設定されていません')
-      throw new Error('Supabase環境変数が設定されていません')
+      console.error("❌ Supabase環境変数が設定されていません")
+      throw new Error("Supabase環境変数が設定されていません")
     }
-    
+
     let companyInfo: any = {}
     let profileInfo: any = {}
 
     try {
-      console.log('🔑 Using SERVICE_ROLE_KEY to bypass RLS')
-      
+      console.log("🔑 Using SERVICE_ROLE_KEY to bypass RLS")
+
       // @supabase/supabase-js を動的インポート
-      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
-      console.log('✅ @supabase/supabase-js imported successfully')
-      
+      const { createClient: createSupabaseClient } = await import("@supabase/supabase-js")
+      console.log("✅ @supabase/supabase-js imported successfully")
+
       const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
         auth: {
           autoRefreshToken: false,
-          persistSession: false
-        }
+          persistSession: false,
+        },
       })
-      console.log('✅ supabaseAdmin client created')
-      
+      console.log("✅ supabaseAdmin client created")
+
       // プロフィールと会社情報をJOINで取得（RLSバイパス）
-      console.log('📡 Executing profiles query for userId:', userId)
-      const { data: profiles, error: profileError, count } = await supabaseAdmin
-        .from('profiles')
-        .select(`
+      console.log("📡 Executing profiles query for userId:", userId)
+      const {
+        data: profiles,
+        error: profileError,
+        count,
+      } = await supabaseAdmin
+        .from("profiles")
+        .select(
+          `
           *,
           companies (
             id,
@@ -108,10 +122,12 @@ export async function POST(request: NextRequest) {
             city,
             address
           )
-        `, { count: 'exact' })
-        .eq('user_id', userId)
+        `,
+          { count: "exact" }
+        )
+        .eq("user_id", userId)
 
-      console.log('🔍 Profile query result:', {
+      console.log("🔍 Profile query result:", {
         userId,
         count,
         has_error: !!profileError,
@@ -123,30 +139,30 @@ export async function POST(request: NextRequest) {
         // profiles_data_full: センシティブデータのため出力を削除
         first_profile_exists: !!profiles?.[0],
         first_profile_has_company: profiles?.[0]?.companies ? true : false,
-        first_profile_company_id: profiles?.[0]?.company_id || 'null'
+        first_profile_company_id: profiles?.[0]?.company_id || "null",
       })
 
       const profile = profiles?.[0] // 最初の1件を使用
 
       if (!profileError && profile) {
-        console.log('📋 Profile data:', {
+        console.log("📋 Profile data:", {
           profile_id: profile.id,
           user_id: profile.user_id,
           company_id: profile.company_id,
           name: profile.name,
-          has_companies_data: !!profile.companies
+          has_companies_data: !!profile.companies,
         })
 
         profileInfo = {
           name: profile.name,
           email: profile.email,
           position: profile.position,
-          department: profile.department
+          department: profile.department,
         }
 
         if (profile.companies) {
           // console.log('🏢 Company data:', profile.companies) // センシティブデータのため出力を削除
-          
+
           companyInfo = {
             name: profile.companies.name,
             industry: profile.companies.industry,
@@ -158,141 +174,145 @@ export async function POST(request: NextRequest) {
             postal_code: profile.companies.postal_code ?? null,
             prefecture: profile.companies.prefecture ?? null,
             city: profile.companies.city ?? null,
-            address: profile.companies.address ?? null
+            address: profile.companies.address ?? null,
           }
-          
-          console.log('✅ Company info extracted:', {
+
+          console.log("✅ Company info extracted:", {
             has_name: !!companyInfo.name,
             has_industry: !!companyInfo.industry,
             has_description: !!companyInfo.business_description,
-            has_address: !!(companyInfo.prefecture || companyInfo.city || companyInfo.address)
+            has_address: !!(companyInfo.prefecture || companyInfo.city || companyInfo.address),
           })
         } else {
-          console.warn('⚠️ Profile found but no companies data')
+          console.warn("⚠️ Profile found but no companies data")
         }
 
-        console.log('✅ Company & Profile info fetched:', {
-          company: companyInfo.name || 'なし',
+        console.log("✅ Company & Profile info fetched:", {
+          company: companyInfo.name || "なし",
           user: profileInfo.name,
-          has_company_info: !!companyInfo.name
+          has_company_info: !!companyInfo.name,
         })
       } else {
-        console.warn('⚠️ Profile not found or error:', {
+        console.warn("⚠️ Profile not found or error:", {
           error: profileError?.message,
-          has_profile: !!profile
+          has_profile: !!profile,
         })
       }
     } catch (fetchError) {
-      console.error('❌ Failed to fetch company info:', {
-        error: fetchError instanceof Error ? fetchError.message : 'Unknown error',
-        stack: fetchError instanceof Error ? fetchError.stack : undefined
+      console.error("❌ Failed to fetch company info:", {
+        error: fetchError instanceof Error ? fetchError.message : "Unknown error",
+        stack: fetchError instanceof Error ? fetchError.stack : undefined,
       })
       // エラーが発生してもDify呼び出しは続行
     }
 
     // 実際のDify Chatflow API呼び出し
     try {
-      console.log('📥 /api/dify/chat - Received conversationId:', conversationId || 'null')
-      
+      console.log("📥 /api/dify/chat - Received conversationId:", conversationId || "null")
+
       const requestBody: any = {
         inputs: {
           // 会社情報をDifyに渡す
-          company_name: companyInfo.name || '',
-          industry: companyInfo.industry || '',
-          capital: companyInfo.capital || '',
-          employee_count: companyInfo.employee_count || '',
-          website: companyInfo.website || '',
-          business_description: companyInfo.business_description || '',
-          
+          company_name: companyInfo.name || "",
+          industry: companyInfo.industry || "",
+          capital: companyInfo.capital || "",
+          employee_count: companyInfo.employee_count || "",
+          website: companyInfo.website || "",
+          business_description: companyInfo.business_description || "",
+
           // エリア情報（住所：県・市区町村・番地）
-          postal_code: companyInfo.postal_code || '',
-          prefecture: companyInfo.prefecture || '',
-          city: companyInfo.city || '',
-          address: companyInfo.address || '',
-          
+          postal_code: companyInfo.postal_code || "",
+          prefecture: companyInfo.prefecture || "",
+          city: companyInfo.city || "",
+          address: companyInfo.address || "",
+
           // ユーザー情報
-          user_name: profileInfo.name || '',
-          user_position: profileInfo.position || '',
-          user_department: profileInfo.department || '',
+          user_name: profileInfo.name || "",
+          user_position: profileInfo.position || "",
+          user_department: profileInfo.department || "",
 
           // カテゴリ情報（課題の文脈）
-          selected_category: categoryInfo?.selectedCategory || '',
-          selected_subcategory: categoryInfo?.selectedSubcategory || '',
+          selected_category: categoryInfo?.selectedCategory || "",
+          selected_subcategory: categoryInfo?.selectedSubcategory || "",
 
           // 現在のSTEP（Difyでヒアリング／分析など振る舞いを切り替える用）
           consulting_step_number: String(stepRound ?? 1),
-          consulting_step_title: stepTitle ?? '課題のヒアリング',
-          consulting_step_goal: stepGoal ?? ''
+          consulting_step_title: stepTitle ?? "課題のヒアリング",
+          consulting_step_goal: stepGoal ?? "",
         },
         query: message,
         user: userId,
-        response_mode: 'blocking'
+        response_mode: "blocking",
       }
 
       // 会話履歴管理: conversation_idがあれば送信
       if (conversationId) {
         requestBody.conversation_id = conversationId
-        console.log('✅ Adding conversation_id to Dify request:', conversationId)
+        console.log("✅ Adding conversation_id to Dify request:", conversationId)
       } else {
-        console.log('🆕 No conversation_id - starting new Dify conversation')
+        console.log("🆕 No conversation_id - starting new Dify conversation")
       }
 
       // 📤 Dify Request Body の完全な内容をログ出力
-      console.log('📤 Dify Request Body (FULL):', JSON.stringify(requestBody, null, 2))
+      console.log("📤 Dify Request Body (FULL):", JSON.stringify(requestBody, null, 2))
 
-      console.log('📤 Dify Chatflow Request:', {
+      console.log("📤 Dify Chatflow Request:", {
         url: difyChatflowUrl,
         has_conversation_id: !!requestBody.conversation_id,
         has_company_info: !!companyInfo.name,
-        company: companyInfo.name || 'なし'
+        company: companyInfo.name || "なし",
       })
 
       let difyResponse = await fetch(difyChatflowUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${difyApiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${difyApiKey}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       })
 
       // conversation_idが無効（Difyリセット等）の場合、conversation_idなしでリトライ
       if (!difyResponse.ok && requestBody.conversation_id) {
         const errorText = await difyResponse.text()
         const isConversationNotFound =
-          difyResponse.status === 404 ||
-          errorText.includes('Conversation Not Exists')
+          difyResponse.status === 404 || errorText.includes("Conversation Not Exists")
 
         if (isConversationNotFound) {
-          console.warn('⚠️ Conversation not found in Dify, retrying without conversation_id:', requestBody.conversation_id)
+          console.warn(
+            "⚠️ Conversation not found in Dify, retrying without conversation_id:",
+            requestBody.conversation_id
+          )
           delete requestBody.conversation_id
           difyResponse = await fetch(difyChatflowUrl, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Authorization': `Bearer ${difyApiKey}`,
-              'Content-Type': 'application/json'
+              Authorization: `Bearer ${difyApiKey}`,
+              "Content-Type": "application/json",
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
           })
         }
       }
 
       if (!difyResponse.ok) {
         const errorText = await difyResponse.text()
-        console.error('Dify Chatflow API Error:', {
+        console.error("Dify Chatflow API Error:", {
           status: difyResponse.status,
           statusText: difyResponse.statusText,
           body: errorText,
-          requestUrl: difyChatflowUrl
+          requestUrl: difyChatflowUrl,
         })
-        throw new Error(`Dify API error: ${difyResponse.status} ${difyResponse.statusText} - ${errorText}`)
+        throw new Error(
+          `Dify API error: ${difyResponse.status} ${difyResponse.statusText} - ${errorText}`
+        )
       }
 
       const difyData = await difyResponse.json()
       const processingTime = Date.now() - startTime
 
       // 📥 Dify Response の完全な内容をログ出力
-      console.log('📥 Dify Response (FULL):', JSON.stringify(difyData, null, 2))
+      console.log("📥 Dify Response (FULL):", JSON.stringify(difyData, null, 2))
 
       // Chatflow APIのレスポンス形式
       const aiResponse = difyData.answer || difyData.data?.answer || JSON.stringify(difyData)
@@ -300,30 +320,29 @@ export async function POST(request: NextRequest) {
       const tokensUsed = difyData.metadata?.usage?.total_tokens || 0
 
       // デバッグ: 重要なレスポンス情報をログ出力
-      console.log('📥 Dify Chatflow Response:', {
+      console.log("📥 Dify Chatflow Response:", {
         has_answer: !!difyData.answer,
         has_conversation_id: !!newConversationId,
-        conversation_id: newConversationId || 'null',
+        conversation_id: newConversationId || "null",
         tokens: tokensUsed,
-        time: processingTime + 'ms'
+        time: processingTime + "ms",
       })
 
       return NextResponse.json({
         response: aiResponse,
-        conversation_id: newConversationId,  // 会話履歴管理用
+        conversation_id: newConversationId, // 会話履歴管理用
         tokens_used: tokensUsed,
         processing_time: processingTime,
-        is_mock: false
+        is_mock: false,
       })
-
     } catch (difyError) {
       const errMsg = difyError instanceof Error ? difyError.message : String(difyError)
-      const errName = difyError instanceof Error ? difyError.name : 'Error'
-      console.error('Dify API call error:', errName, errMsg)
+      const errName = difyError instanceof Error ? difyError.name : "Error"
+      console.error("Dify API call error:", errName, errMsg)
       if (difyError instanceof Error && difyError.stack) {
-        console.error('Dify API call stack:', difyError.stack)
+        console.error("Dify API call stack:", difyError.stack)
       }
-      
+
       // Difyエラー時はフォールバックレスポンス（取得済みのプロフィール名があれば使用）
       const fallbackResponse = generateFallbackResponse(message, { profile: profileInfo })
       const processingTime = Date.now() - startTime
@@ -333,15 +352,14 @@ export async function POST(request: NextRequest) {
         tokens_used: 0,
         processing_time: processingTime,
         is_mock: true,
-        error: 'Dify API temporarily unavailable'
+        error: "Dify API temporarily unavailable",
       })
     }
-
   } catch (error) {
-    console.error('POST /api/dify/chat error:', error)
+    console.error("POST /api/dify/chat error:", error)
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Internal Server Error' 
+      {
+        error: error instanceof Error ? error.message : "Internal Server Error",
       },
       { status: 500 }
     )
@@ -352,15 +370,15 @@ export async function POST(request: NextRequest) {
  * モックレスポンス生成（開発・テスト用）
  */
 function generateMockResponse(message: string, context: any): string {
-  const companyName = context?.company?.name || 'お客様の会社'
-  const userName = context?.profile?.name || 'お客様'
-  
+  const companyName = context?.company?.name || "お客様の会社"
+  const userName = context?.profile?.name || "お客様"
+
   return `${userName}様、ご相談ありがとうございます。
 
 ${companyName}の状況を確認いたしました。
 
 【現状の理解】
-お問い合わせの内容は「${message.slice(0, 100)}${message.length > 100 ? '...' : ''}」ですね。
+お問い合わせの内容は「${message.slice(0, 100)}${message.length > 100 ? "..." : ""}」ですね。
 
 【分析結果】
 貴社の業界動向や現在の課題を踏まえ、以下の点について検討する必要があると考えます：
@@ -385,9 +403,9 @@ ${companyName}の状況を確認いたしました。
  * フォールバックレスポンス生成（Difyエラー時）
  */
 function generateFallbackResponse(message: string, context: any): string {
-  const rawName = context?.profile?.name || 'お客様'
-  const userName = rawName.endsWith('様') ? rawName : `${rawName}様`
-  
+  const rawName = context?.profile?.name || "お客様"
+  const userName = rawName.endsWith("様") ? rawName : `${rawName}様`
+
   return `${userName}、申し訳ございません。
 
 現在、AI処理システムに一時的な問題が発生しております。
@@ -407,12 +425,12 @@ export async function GET() {
   const difyApiKey = process.env.DIFY_CHATFLOW_API_KEY
 
   return NextResponse.json({
-    status: 'ok',
-    endpoint: 'Dify Chatflow API',
-    version: '2.0.0',
+    status: "ok",
+    endpoint: "Dify Chatflow API",
+    version: "2.0.0",
     dify_chatflow_configured: !!difyChatflowUrl,
     dify_api_key_configured: !!difyApiKey,
-    mode: difyChatflowUrl && difyApiKey ? 'chatflow' : 'mock',
-    conversation_history: 'automatic'
+    mode: difyChatflowUrl && difyApiKey ? "chatflow" : "mock",
+    conversation_history: "automatic",
   })
 }

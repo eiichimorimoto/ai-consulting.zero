@@ -1,9 +1,9 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { File, Image as ImageIcon, X, Download } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect } from "react"
+import { File, Image as ImageIcon, X, Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/client"
 
 interface DocumentItemProps {
   filePath: string
@@ -22,17 +22,17 @@ export default function DocumentItem({ filePath, onDelete }: DocumentItemProps) 
 
         // 署名付きURLを生成（有効期限: 1時間）
         const { data, error } = await supabase.storage
-          .from('company-documents')
+          .from("company-documents")
           .createSignedUrl(filePath, 3600)
 
         if (error) {
-          console.error('署名付きURL生成エラー:', error)
+          console.error("署名付きURL生成エラー:", error)
           return
         }
 
         setSignedUrl(data.signedUrl)
       } catch (error) {
-        console.error('署名付きURL生成エラー:', error)
+        console.error("署名付きURL生成エラー:", error)
       } finally {
         setIsLoading(false)
       }
@@ -42,18 +42,18 @@ export default function DocumentItem({ filePath, onDelete }: DocumentItemProps) 
   }, [filePath])
 
   const getFileIcon = () => {
-    const extension = filePath.split('.').pop()?.toLowerCase()
-    if (extension === 'pdf') {
-      return <File className="w-5 h-5 text-red-500" />
+    const extension = filePath.split(".").pop()?.toLowerCase()
+    if (extension === "pdf") {
+      return <File className="h-5 w-5 text-red-500" />
     }
-    return <ImageIcon className="w-5 h-5 text-blue-500" />
+    return <ImageIcon className="h-5 w-5 text-blue-500" />
   }
 
   const getFileName = () => {
     // パスからファイル名を抽出（companyId-timestamp-random.ext形式）
-    const parts = filePath.split('-')
+    const parts = filePath.split("-")
     if (parts.length >= 3) {
-      const extension = filePath.split('.').pop()
+      const extension = filePath.split(".").pop()
       return `資料.${extension}`
     }
     return filePath
@@ -61,12 +61,12 @@ export default function DocumentItem({ filePath, onDelete }: DocumentItemProps) 
 
   const handleDownload = () => {
     if (signedUrl) {
-      window.open(signedUrl, '_blank')
+      window.open(signedUrl, "_blank")
     }
   }
 
   return (
-    <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+    <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
       <div className="flex items-center gap-3">
         {getFileIcon()}
         <div>
@@ -89,7 +89,7 @@ export default function DocumentItem({ filePath, onDelete }: DocumentItemProps) 
             onClick={handleDownload}
             className="h-8 w-8"
           >
-            <Download className="w-4 h-4" />
+            <Download className="h-4 w-4" />
           </Button>
         )}
         <Button
@@ -97,13 +97,11 @@ export default function DocumentItem({ filePath, onDelete }: DocumentItemProps) 
           variant="ghost"
           size="icon"
           onClick={onDelete}
-          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </Button>
       </div>
     </div>
   )
 }
-
-

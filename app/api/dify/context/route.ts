@@ -1,12 +1,15 @@
 /**
  * Dify Context API
- * 
+ *
  * Difyワークフローから呼び出されるAPIエンドポイント
  * 新規案件・継続案件に応じて必要なコンテキストを返す
  */
 
-import { createClient as createSupabaseClient, SupabaseClient as SupabaseClientType } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import {
+  createClient as createSupabaseClient,
+  SupabaseClient as SupabaseClientType,
+} from "@supabase/supabase-js"
+import { NextRequest, NextResponse } from "next/server"
 
 // Supabase Client 型（Service Role Key用）
 // NOTE: anyを使用してRLS関連の型エラーを回避
@@ -68,7 +71,7 @@ interface ExternalInformation {
       name: string
       currentPrice: number
       unit: string
-      trend: 'up' | 'down' | 'stable'
+      trend: "up" | "down" | "stable"
     }>
     industry: string | null
   }
@@ -195,29 +198,23 @@ export async function POST(request: NextRequest) {
 
     // バリデーション
     if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'userId is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: "userId is required" }, { status: 400 })
     }
 
     // APIキー認証
-    const apiKey = request.headers.get('x-api-key')
+    const apiKey = request.headers.get("x-api-key")
     const expectedApiKey = process.env.DIFY_API_KEY
 
     if (!expectedApiKey) {
-      console.error('DIFY_API_KEY is not set in environment variables')
+      console.error("DIFY_API_KEY is not set in environment variables")
       return NextResponse.json(
-        { success: false, error: 'Server configuration error' },
+        { success: false, error: "Server configuration error" },
         { status: 500 }
       )
     }
 
     if (apiKey !== expectedApiKey) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
     // Service Role Key を使用してSupabaseクライアント作成
@@ -225,30 +222,25 @@ export async function POST(request: NextRequest) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new Error('Supabase環境変数が設定されていません')
+      throw new Error("Supabase環境変数が設定されていません")
     }
 
     const supabase = createSupabaseClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     })
 
     // 1. 基本情報取得（新規・継続共通）
     const baseContext = await getBaseContext(supabase, userId)
 
     if (!baseContext) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 })
     }
 
     // 2. 継続案件の場合は会話履歴も取得
-    const conversationHistory = isNewCase 
-      ? null 
-      : await getConversationHistory(supabase, userId)
+    const conversationHistory = isNewCase ? null : await getConversationHistory(supabase, userId)
 
     // 3. 外部情報・初回評価情報・添付ファイルを並列取得
     const [externalInformation, initialEvaluation, attachments] = await Promise.all([
@@ -258,16 +250,15 @@ export async function POST(request: NextRequest) {
     ])
 
     // 4. 新規課題内容を明示的に含める
-    const initialIssue: InitialIssue | null = initialIssueRaw && typeof initialIssueRaw === 'object'
-      ? {
-          content: String(initialIssueRaw.content ?? ''),
-          category: String(initialIssueRaw.category ?? ''),
-          categoryLabel: String(initialIssueRaw.categoryLabel ?? ''),
-          createdAt: String(
-            initialIssueRaw.createdAt ?? new Date().toISOString()
-          ),
-        }
-      : null
+    const initialIssue: InitialIssue | null =
+      initialIssueRaw && typeof initialIssueRaw === "object"
+        ? {
+            content: String(initialIssueRaw.content ?? ""),
+            category: String(initialIssueRaw.category ?? ""),
+            categoryLabel: String(initialIssueRaw.categoryLabel ?? ""),
+            createdAt: String(initialIssueRaw.createdAt ?? new Date().toISOString()),
+          }
+        : null
 
     const response: DifyContextResponse = {
       success: true,
@@ -277,18 +268,17 @@ export async function POST(request: NextRequest) {
         externalInformation: externalInformation ?? null,
         initialEvaluation: initialEvaluation ?? null,
         initialIssue,
-        attachments: attachments ?? null
-      }
+        attachments: attachments ?? null,
+      },
     }
 
     return NextResponse.json(response)
-
   } catch (error) {
-    console.error('Dify context API error:', error)
+    console.error("Dify context API error:", error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Internal Server Error' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       },
       { status: 500 }
     )
@@ -302,8 +292,9 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
   try {
     // プロフィール取得
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select(`
+      .from("profiles")
+      .select(
+        `
         name,
         name_kana,
         email,
@@ -321,12 +312,13 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
           growth_stage,
           it_maturity_level
         )
-      `)
-      .eq('user_id', userId)
+      `
+      )
+      .eq("user_id", userId)
       .single()
 
     if (profileError || !profile) {
-      console.error('Profile fetch error:', profileError)
+      console.error("Profile fetch error:", profileError)
       return null
     }
 
@@ -334,10 +326,10 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
     let webResources: WebResourceContext[] = []
     if (profile.company_id) {
       const { data: webData } = await supabase
-        .from('company_web_resources')
-        .select('title, description, url, relevance_score')
-        .eq('company_id', profile.company_id)
-        .order('relevance_score', { ascending: false })
+        .from("company_web_resources")
+        .select("title, description, url, relevance_score")
+        .eq("company_id", profile.company_id)
+        .order("relevance_score", { ascending: false })
         .limit(5)
 
       webResources = webData || []
@@ -345,39 +337,41 @@ async function getBaseContext(supabase: SupabaseClient, userId: string) {
 
     // 名刺情報取得
     const { data: cardsData } = await supabase
-      .from('business_cards')
-      .select('person_name, company_name, position, email, phone')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("business_cards")
+      .select("person_name, company_name, position, email, phone")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(10)
 
     const businessCards: BusinessCardContext[] = cardsData || []
 
     // Supabaseのリレーション結果は配列として返される場合がある
     const companiesData = profile.companies
-    const company: CompanyContext = (Array.isArray(companiesData) ? companiesData[0] : companiesData) || {
-      name: '',
+    const company: CompanyContext = (Array.isArray(companiesData)
+      ? companiesData[0]
+      : companiesData) || {
+      name: "",
       industry: null,
       employee_count: null,
       annual_revenue: null,
       business_description: null,
       current_challenges: null,
       growth_stage: null,
-      it_maturity_level: null
+      it_maturity_level: null,
     }
 
     return {
       profile: {
         name: profile.name,
         email: profile.email,
-        phone: profile.phone
+        phone: profile.phone,
       },
       company,
       webResources,
-      businessCards
+      businessCards,
     }
   } catch (error) {
-    console.error('Error in getBaseContext:', error)
+    console.error("Error in getBaseContext:", error)
     throw error
   }
 }
@@ -392,9 +386,9 @@ async function getExternalInformation(
   try {
     // 会社ID取得
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', userId)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", userId)
       .single()
 
     const companyId = profile?.company_id
@@ -404,11 +398,11 @@ async function getExternalInformation(
 
     // マーケットデータ（dashboard_data: market）
     const { data: marketRow } = await supabase
-      .from('dashboard_data')
-      .select('data')
-      .eq('company_id', companyId)
-      .eq('data_type', 'market')
-      .order('updated_at', { ascending: false })
+      .from("dashboard_data")
+      .select("data")
+      .eq("company_id", companyId)
+      .eq("data_type", "market")
+      .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()
 
@@ -416,11 +410,11 @@ async function getExternalInformation(
 
     // 地域情報（dashboard_data: local_info）
     const { data: localInfoRow } = await supabase
-      .from('dashboard_data')
-      .select('data')
-      .eq('company_id', companyId)
-      .eq('data_type', 'local_info')
-      .order('updated_at', { ascending: false })
+      .from("dashboard_data")
+      .select("data")
+      .eq("company_id", companyId)
+      .eq("data_type", "local_info")
+      .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()
 
@@ -439,38 +433,33 @@ async function getExternalInformation(
 
       externalInfo.marketData = {
         currentRate:
-          typeof marketDataRaw.currentRate === 'number'
-            ? marketDataRaw.currentRate
-            : null,
+          typeof marketDataRaw.currentRate === "number" ? marketDataRaw.currentRate : null,
         commodities: commoditiesRaw
           .map((c: unknown) => {
-            if (!c || typeof c !== 'object') return null
+            if (!c || typeof c !== "object") return null
             const commodity = c as Record<string, unknown>
             const priceSource =
-              typeof commodity.priceJpy === 'number'
+              typeof commodity.priceJpy === "number"
                 ? commodity.priceJpy
-                : typeof commodity.price === 'number'
+                : typeof commodity.price === "number"
                   ? commodity.price
                   : null
             if (priceSource === null) return null
 
-            let trend: 'up' | 'down' | 'stable' = 'stable'
-            const change = typeof commodity.change === 'number' ? commodity.change : 0
-            if (change > 0) trend = 'up'
-            else if (change < 0) trend = 'down'
+            let trend: "up" | "down" | "stable" = "stable"
+            const change = typeof commodity.change === "number" ? commodity.change : 0
+            if (change > 0) trend = "up"
+            else if (change < 0) trend = "down"
 
             return {
-              name: String(commodity.name ?? ''),
+              name: String(commodity.name ?? ""),
               currentPrice: priceSource,
-              unit: String(commodity.unit ?? ''),
+              unit: String(commodity.unit ?? ""),
               trend,
             }
           })
           .filter((c): c is NonNullable<typeof c> => c !== null),
-        industry:
-          typeof marketDataRaw.industry === 'string'
-            ? marketDataRaw.industry
-            : null,
+        industry: typeof marketDataRaw.industry === "string" ? marketDataRaw.industry : null,
       }
     }
 
@@ -484,19 +473,16 @@ async function getExternalInformation(
 
       externalInfo.localInfo = {
         laborCosts: {
-          current:
-            typeof labor.current === 'number' ? labor.current : null,
-          monthly:
-            typeof labor.monthly === 'number' ? labor.monthly : null,
-          yearly:
-            typeof labor.yearly === 'number' ? labor.yearly : null,
+          current: typeof labor.current === "number" ? labor.current : null,
+          monthly: typeof labor.monthly === "number" ? labor.monthly : null,
+          yearly: typeof labor.yearly === "number" ? labor.yearly : null,
           comparison: {
             industryMonthly:
-              typeof laborComparison.industryMonthly === 'number'
+              typeof laborComparison.industryMonthly === "number"
                 ? laborComparison.industryMonthly
                 : null,
             industryYearly:
-              typeof laborComparison.industryYearly === 'number'
+              typeof laborComparison.industryYearly === "number"
                 ? laborComparison.industryYearly
                 : null,
           },
@@ -505,10 +491,10 @@ async function getExternalInformation(
           ? (localInfoRaw.events as unknown[]).map((e) => {
               const event = e as Record<string, unknown>
               return {
-                title: String(event.title ?? ''),
-                url: String(event.url ?? ''),
-                description: String(event.description ?? ''),
-                date: String(event.date ?? ''),
+                title: String(event.title ?? ""),
+                url: String(event.url ?? ""),
+                description: String(event.description ?? ""),
+                date: String(event.date ?? ""),
               }
             })
           : [],
@@ -516,28 +502,25 @@ async function getExternalInformation(
           ? (localInfoRaw.infrastructure as unknown[]).map((i) => {
               const infra = i as Record<string, unknown>
               return {
-                title: String(infra.title ?? ''),
-                url: String(infra.url ?? ''),
-                description: String(infra.description ?? ''),
-                status: String(infra.status ?? ''),
+                title: String(infra.title ?? ""),
+                url: String(infra.url ?? ""),
+                description: String(infra.description ?? ""),
+                status: String(infra.status ?? ""),
               }
             })
           : [],
         weather: {
-          location: String(weather.location ?? ''),
+          location: String(weather.location ?? ""),
           current: {
-            temp:
-              typeof weatherCurrent.temp === 'number'
-                ? weatherCurrent.temp
-                : null,
-            desc: String(weatherCurrent.desc ?? ''),
+            temp: typeof weatherCurrent.temp === "number" ? weatherCurrent.temp : null,
+            desc: String(weatherCurrent.desc ?? ""),
           },
           week: weekArray.map((w) => {
             const day = w as Record<string, unknown>
             return {
-              day: String(day.day ?? ''),
+              day: String(day.day ?? ""),
               temp:
-                typeof day.temp === 'number'
+                typeof day.temp === "number"
                   ? day.temp
                   : Number.isFinite(Number(day.temp))
                     ? Number(day.temp)
@@ -550,7 +533,7 @@ async function getExternalInformation(
 
     return externalInfo
   } catch (error) {
-    console.error('Error in getExternalInformation:', error)
+    console.error("Error in getExternalInformation:", error)
     return null
   }
 }
@@ -565,8 +548,9 @@ async function getConversationHistory(
   try {
     // 最新のアクティブセッション取得
     const { data: sessions } = await supabase
-      .from('consulting_sessions')
-      .select(`
+      .from("consulting_sessions")
+      .select(
+        `
         id,
         title,
         analysis_summary,
@@ -577,10 +561,11 @@ async function getConversationHistory(
           content,
           created_at
         )
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .order('updated_at', { ascending: false })
+      `
+      )
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
       .limit(1)
 
     if (!sessions || sessions.length === 0) {
@@ -590,23 +575,21 @@ async function getConversationHistory(
     const session = sessions[0]
 
     // 直近のメッセージのみ取得（最大10件）
-    const recentMessages = (session.consulting_messages || [])
-      .slice(-10)
-      .map((msg: unknown) => {
-        const message = msg as Record<string, unknown>
-        return {
-          role: String(message.role ?? ''),
-          content: String(message.content ?? ''),
-          timestamp: String(message.created_at ?? '')
-        }
-      })
+    const recentMessages = (session.consulting_messages || []).slice(-10).map((msg: unknown) => {
+      const message = msg as Record<string, unknown>
+      return {
+        role: String(message.role ?? ""),
+        content: String(message.content ?? ""),
+        timestamp: String(message.created_at ?? ""),
+      }
+    })
 
     // 過去のレポート取得
     const { data: reports } = await supabase
-      .from('reports')
-      .select('id, title, report_type, executive_summary, score, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("reports")
+      .select("id, title, report_type, executive_summary, score, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(3)
 
     return {
@@ -615,13 +598,13 @@ async function getConversationHistory(
         title: session.title,
         summary: session.analysis_summary,
         insights: session.key_insights,
-        recommendations: session.recommendations
+        recommendations: session.recommendations,
       },
       recentMessages,
-      reports: reports || []
+      reports: reports || [],
     }
   } catch (error) {
-    console.error('Error in getConversationHistory:', error)
+    console.error("Error in getConversationHistory:", error)
     return null
   }
 }
@@ -636,9 +619,9 @@ async function getInitialEvaluationData(
   try {
     // 会社ID取得
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', userId)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", userId)
       .single()
 
     const companyId = profile?.company_id
@@ -648,30 +631,30 @@ async function getInitialEvaluationData(
 
     // デジタルスコア（最新1件）
     const { data: digitalScoreRow } = await supabase
-      .from('digital_scores')
+      .from("digital_scores")
       .select(
-        'performance_score, accessibility_score, best_practices_score, seo_score, collected_at'
+        "performance_score, accessibility_score, best_practices_score, seo_score, collected_at"
       )
-      .eq('company_id', companyId)
-      .order('collected_at', { ascending: false })
+      .eq("company_id", companyId)
+      .order("collected_at", { ascending: false })
       .limit(1)
       .maybeSingle()
 
     // 診断レポート（最新3件）
     const { data: diagnosticReportsRows } = await supabase
-      .from('diagnostic_reports')
-      .select('id, report_data, created_at')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false })
+      .from("diagnostic_reports")
+      .select("id, report_data, created_at")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
       .limit(3)
 
     // SWOT分析（dashboard_data のキャッシュがあれば利用）
     const { data: swotRow } = await supabase
-      .from('dashboard_data')
-      .select('data')
-      .eq('company_id', companyId)
-      .eq('data_type', 'swot_analysis')
-      .order('updated_at', { ascending: false })
+      .from("dashboard_data")
+      .select("data")
+      .eq("company_id", companyId)
+      .eq("data_type", "swot_analysis")
+      .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()
 
@@ -680,17 +663,14 @@ async function getInitialEvaluationData(
     if (digitalScoreRow) {
       result.digitalScore = {
         overall_score:
-          typeof digitalScoreRow.performance_score === 'number'
+          typeof digitalScoreRow.performance_score === "number"
             ? digitalScoreRow.performance_score
             : null,
         mobile_score: null,
         desktop_score: null,
-        seo_score:
-          typeof digitalScoreRow.seo_score === 'number'
-            ? digitalScoreRow.seo_score
-            : null,
+        seo_score: typeof digitalScoreRow.seo_score === "number" ? digitalScoreRow.seo_score : null,
         accessibility_score:
-          typeof digitalScoreRow.accessibility_score === 'number'
+          typeof digitalScoreRow.accessibility_score === "number"
             ? digitalScoreRow.accessibility_score
             : null,
         created_at: String(digitalScoreRow.collected_at),
@@ -703,24 +683,12 @@ async function getInitialEvaluationData(
         const data = (rowData.report_data || {}) as Record<string, unknown>
         return {
           id: String(rowData.id),
-          report_title: String(data.report_title ?? '診断レポート'),
-          report_summary: String(data.report_summary ?? ''),
-          priority_score:
-            typeof data.priority_score === 'number'
-              ? data.priority_score
-              : null,
-          urgency_score:
-            typeof data.urgency_score === 'number'
-              ? data.urgency_score
-              : null,
-          impact_score:
-            typeof data.impact_score === 'number'
-              ? data.impact_score
-              : null,
-          overall_score:
-            typeof data.overall_score === 'number'
-              ? data.overall_score
-              : null,
+          report_title: String(data.report_title ?? "診断レポート"),
+          report_summary: String(data.report_summary ?? ""),
+          priority_score: typeof data.priority_score === "number" ? data.priority_score : null,
+          urgency_score: typeof data.urgency_score === "number" ? data.urgency_score : null,
+          impact_score: typeof data.impact_score === "number" ? data.impact_score : null,
+          overall_score: typeof data.overall_score === "number" ? data.overall_score : null,
           created_at: String(rowData.created_at),
         }
       })
@@ -747,14 +715,14 @@ async function getInitialEvaluationData(
 
     return result
   } catch (error) {
-    console.error('Error in getInitialEvaluationData:', error)
+    console.error("Error in getInitialEvaluationData:", error)
     return null
   }
 }
 
 /**
  * 添付ファイル情報の取得
- * 
+ *
  * セッションの全メッセージから添付ファイルを取得し、Difyに渡す形式に整形
  */
 async function getAttachments(
@@ -764,58 +732,58 @@ async function getAttachments(
   try {
     // セッションの全ユーザーメッセージから添付ファイル取得
     const { data: messages, error } = await supabase
-      .from('consulting_messages')
-      .select('attachments, created_at')
-      .eq('session_id', sessionId)
-      .eq('role', 'user')
-      .not('attachments', 'is', null)
-      .order('created_at', { ascending: true })
-    
+      .from("consulting_messages")
+      .select("attachments, created_at")
+      .eq("session_id", sessionId)
+      .eq("role", "user")
+      .not("attachments", "is", null)
+      .order("created_at", { ascending: true })
+
     if (error) {
-      console.error('Error fetching attachments:', error)
+      console.error("Error fetching attachments:", error)
       return null
     }
-    
+
     if (!messages || messages.length === 0) {
       return null
     }
-    
+
     // 全メッセージから添付ファイルを抽出
     const allAttachments: AttachmentContext[] = []
     const seenIds = new Set<string>()
-    
+
     for (const message of messages) {
       if (!message.attachments || !Array.isArray(message.attachments)) {
         continue
       }
-      
+
       for (const attachment of message.attachments) {
         // 重複チェック（IDまたはURLで判定）
         const uniqueKey = attachment.id || attachment.url || attachment.name
         if (seenIds.has(uniqueKey)) {
           continue
         }
-        
+
         seenIds.add(uniqueKey)
-        
+
         // Dify用に必要な情報のみ抽出
         allAttachments.push({
           id: attachment.id || crypto.randomUUID(),
-          name: attachment.name || 'unnamed',
-          type: attachment.type || 'application/octet-stream',
+          name: attachment.name || "unnamed",
+          type: attachment.type || "application/octet-stream",
           size: attachment.size || 0,
-          url: attachment.url || '',
-          content: attachment.content || '',
-          preview: attachment.preview || '',
+          url: attachment.url || "",
+          content: attachment.content || "",
+          preview: attachment.preview || "",
           wordCount: attachment.wordCount || 0,
           lineCount: attachment.lineCount || 0,
         })
       }
     }
-    
+
     return allAttachments.length > 0 ? allAttachments : null
   } catch (error) {
-    console.error('Error in getAttachments:', error)
+    console.error("Error in getAttachments:", error)
     return null
   }
 }
@@ -825,12 +793,12 @@ async function getAttachments(
  */
 export async function GET() {
   return NextResponse.json({
-    status: 'ok',
-    endpoint: 'Dify Context API',
-    version: '1.0.0',
-    lastUpdated: '2026-01-26',
-    supportedDifyVersions: ['v1.9.0+', 'v1.11.4+', 'v2.0.0-beta.1+'],
-    latestVersion: 'v1.11.4',
-    nextjsVersion: '16.1.0+'
+    status: "ok",
+    endpoint: "Dify Context API",
+    version: "1.0.0",
+    lastUpdated: "2026-01-26",
+    supportedDifyVersions: ["v1.9.0+", "v1.11.4+", "v2.0.0-beta.1+"],
+    latestVersion: "v1.11.4",
+    nextjsVersion: "16.1.0+",
   })
 }

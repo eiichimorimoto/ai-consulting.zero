@@ -8,7 +8,7 @@
  *
  * @see stripe-payment-spec-v2.2.md §8-2
  */
-import { loadStripe, type Stripe } from '@stripe/stripe-js'
+import { loadStripe, type Stripe } from "@stripe/stripe-js"
 
 let stripePromise: Promise<Stripe | null> | null = null
 
@@ -37,7 +37,7 @@ export function getStripeClient(): Promise<Stripe | null> {
     const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
     if (!publishableKey) {
-      console.error('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY が設定されていません')
+      console.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY が設定されていません")
       return Promise.resolve(null)
     }
 

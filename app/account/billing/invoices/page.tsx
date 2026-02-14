@@ -5,14 +5,14 @@
  *
  * @see stripe-payment-spec-v2.2.md §8-1
  */
-'use client'
+"use client"
 
-import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { LazyMotion, domAnimation, m } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
-import AppHeader from '@/components/AppHeader'
-import { InvoiceList } from '@/components/billing/InvoiceList'
+import React, { useEffect, useState } from "react"
+import Link from "next/link"
+import { LazyMotion, domAnimation, m } from "framer-motion"
+import { ArrowLeft } from "lucide-react"
+import AppHeader from "@/components/AppHeader"
+import { InvoiceList } from "@/components/billing/InvoiceList"
 
 interface Invoice {
   id: string
@@ -36,7 +36,7 @@ export default function InvoicesPage() {
   useEffect(() => {
     async function fetchInvoices() {
       try {
-        const res = await fetch('/api/stripe/invoices')
+        const res = await fetch("/api/stripe/invoices")
         if (res.ok) {
           const data = await res.json()
           setInvoices(data.invoices || [])
@@ -44,10 +44,10 @@ export default function InvoicesPage() {
           // Stripe未連携
           setInvoices([])
         } else {
-          setError('請求書の取得に失敗しました。')
+          setError("請求書の取得に失敗しました。")
         }
       } catch {
-        setError('エラーが発生しました。')
+        setError("エラーが発生しました。")
       } finally {
         setLoading(false)
       }
@@ -61,10 +61,10 @@ export default function InvoicesPage() {
         <AppHeader />
 
         <main className="pt-20">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
             <Link
               href="/account/billing"
-              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft size={16} />
               課金管理に戻る
@@ -81,11 +81,11 @@ export default function InvoicesPage() {
               {loading ? (
                 <div className="space-y-3">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                    <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-100" />
                   ))}
                 </div>
               ) : error ? (
-                <div className="text-center py-12 text-gray-500">{error}</div>
+                <div className="py-12 text-center text-gray-500">{error}</div>
               ) : (
                 <InvoiceList invoices={invoices} />
               )}

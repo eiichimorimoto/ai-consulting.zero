@@ -5,22 +5,29 @@ export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="flex items-center gap-3 text-gray-900 hover:opacity-80 transition-opacity">
-            <img src="/logo.png" alt="SolveWise" width={40} height={40} className="h-10 w-auto object-contain" />
-            <span className="font-semibold text-sm">SolveWise</span>
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="flex items-center gap-3 text-gray-900 transition-opacity hover:opacity-80"
+          >
+            <img
+              src="/logo.png"
+              alt="SolveWise"
+              width={40}
+              height={40}
+              className="h-10 w-auto object-contain"
+            />
+            <span className="text-sm font-semibold">SolveWise</span>
           </Link>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 md:p-12 shadow-sm">
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-4">
-            利用規約
-          </h1>
-          <p className="text-gray-500 mb-12 text-sm">制定日：2025年11月1日</p>
+      <main className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm md:p-12">
+          <h1 className="mb-4 text-xl font-bold text-gray-900 md:text-3xl">利用規約</h1>
+          <p className="mb-12 text-sm text-gray-500">制定日：2025年11月1日</p>
 
           <div className="space-y-8 text-gray-700">
             <section className="prose max-w-none">
@@ -34,14 +41,12 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第1条（適用）</h2>
-              <p className="text-sm">
-                本規約は、当社とユーザーとの間の一切の関係に適用されます。
-              </p>
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">■ 第1条（適用）</h2>
+              <p className="text-sm">本規約は、当社とユーザーとの間の一切の関係に適用されます。</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第2条（利用登録）</h2>
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">■ 第2条（利用登録）</h2>
               <p className="text-sm">
                 登録希望者は本規約に同意のうえ登録を行い、
                 <br />
@@ -50,9 +55,9 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第3条（禁止事項）</h2>
-              <p className="text-sm mb-4">以下の行為を禁止します。</p>
-              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">■ 第3条（禁止事項）</h2>
+              <p className="mb-4 text-sm">以下の行為を禁止します。</p>
+              <ul className="ml-4 list-inside list-disc space-y-3 text-sm">
                 <li>法令または公序良俗に反する行為</li>
                 <li>サービスの運営を妨げる行為</li>
                 <li>他者の権利侵害</li>
@@ -62,8 +67,10 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第4条（利用料金と支払方法）</h2>
-              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                ■ 第4条（利用料金と支払方法）
+              </h2>
+              <ul className="ml-4 list-inside list-disc space-y-3 text-sm">
                 <li>料金はサイト上の表示に従います。</li>
                 <li>支払はStripeによるクレジットカード決済です。</li>
                 <li>サブスクリプションは自動更新となります。</li>
@@ -71,23 +78,23 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第5条（免責事項）</h2>
-              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">■ 第5条（免責事項）</h2>
+              <ul className="ml-4 list-inside list-disc space-y-3 text-sm">
                 <li>AI出力内容の正確性・有用性は保証しません。</li>
                 <li>本サービスの利用による損害について当社は一切責任を負いません。</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第6条（契約解除）</h2>
-              <p className="text-sm">
-                本規約違反があった場合、当社は通知なく契約を解除できます。
-              </p>
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">■ 第6条（契約解除）</h2>
+              <p className="text-sm">本規約違反があった場合、当社は通知なく契約を解除できます。</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第7条（反社会的勢力の排除）</h2>
-              <ul className="space-y-3 text-sm list-disc list-inside ml-4">
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                ■ 第7条（反社会的勢力の排除）
+              </h2>
+              <ul className="ml-4 list-inside list-disc space-y-3 text-sm">
                 <li>ユーザーは反社会的勢力でないことを保証します。</li>
                 <li>違反が判明した場合、当社は即時契約を解除できます。</li>
                 <li>解除による損害について当社は責任を負いません。</li>
@@ -95,7 +102,9 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">■ 第8条（準拠法および裁判管轄）</h2>
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                ■ 第8条（準拠法および裁判管轄）
+              </h2>
               <p className="text-sm">
                 本規約は日本法に準拠し、
                 <br />
@@ -104,8 +113,8 @@ export default function TermsOfServicePage() {
             </section>
           </div>
 
-          <div className="mt-16 pt-8 border-t border-gray-200 text-center">
-            <p className="text-gray-500 text-sm">
+          <div className="mt-16 border-t border-gray-200 pt-8 text-center">
+            <p className="text-sm text-gray-500">
               ――――――――――――――――――――――――
               <br />
               株式会社マネジメント総研 SolveWise事業部
@@ -119,7 +128,7 @@ export default function TermsOfServicePage() {
           <div className="mt-12 text-center">
             <Link
               href="/"
-              className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              className="group inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
             >
               <Home size={18} />
               <span>トップページに戻る</span>
@@ -130,6 +139,3 @@ export default function TermsOfServicePage() {
     </div>
   )
 }
-
-
-

@@ -63,10 +63,21 @@ export interface LocalInfo {
     current: { temp: number | null; icon: string; desc: string } // temp は null の可能性あり
     week: { day: string; date: string; icon: string; temp: number }[]
     hourly?: { time: string; temp: number; icon: string }[]
-    alerts?: { type: string; title: string; description: string; severity: 'warning' | 'severe' | 'extreme' }[]
+    alerts?: {
+      type: string
+      title: string
+      description: string
+      severity: "warning" | "severe" | "extreme"
+    }[]
   }
   traffic: { title: string; url: string; description: string; status: string }[]
-  logistics?: { title: string; url: string; description: string; category: string; status: string }[]
+  logistics?: {
+    title: string
+    url: string
+    description: string
+    category: string
+    status: string
+  }[]
   _debug?: {
     searchArea: string
     searchTimestamp: string
@@ -110,8 +121,8 @@ export interface IndustryTrend {
   category: string
   title: string
   description: string
-  direction: 'up' | 'down' | 'stable'
-  strength: 'strong' | 'moderate' | 'weak'
+  direction: "up" | "down" | "stable"
+  strength: "strong" | "moderate" | "weak"
   impact: string
   source: string
 }
@@ -119,7 +130,7 @@ export interface IndustryTrend {
 export interface IndustryTrends {
   trends: IndustryTrend[]
   summary: {
-    overallDirection: 'up' | 'down' | 'stable'
+    overallDirection: "up" | "down" | "stable"
     outlook: string
     keyFactors: string[]
   }
@@ -164,12 +175,12 @@ export interface WorldNewsItem {
   headline: string
   summary: string
   impact: string
-  direction: 'positive' | 'negative' | 'neutral'
+  direction: "positive" | "negative" | "neutral"
   source: string
 }
 
 export interface WorldNewsCategory {
-  category: 'industry_world' | 'economy' | 'geopolitics' | 'conflict' | 'ai'
+  category: "industry_world" | "economy" | "geopolitics" | "conflict" | "ai"
   title: string
   items: WorldNewsItem[]
 }
@@ -178,7 +189,7 @@ export interface WorldNews {
   categories: WorldNewsCategory[]
   overallImpact: {
     summary: string
-    riskLevel: 'high' | 'medium' | 'low'
+    riskLevel: "high" | "medium" | "low"
     opportunities: string[]
     threats: string[]
   }
@@ -188,14 +199,14 @@ export interface ForecastIndicator {
   name: string
   current: string
   forecast: string
-  trend: 'up' | 'down' | 'stable'
-  confidence: 'high' | 'medium' | 'low'
+  trend: "up" | "down" | "stable"
+  confidence: "high" | "medium" | "low"
 }
 
 export interface ForecastRisk {
   risk: string
-  probability: 'high' | 'medium' | 'low'
-  impact: 'high' | 'medium' | 'low'
+  probability: "high" | "medium" | "low"
+  impact: "high" | "medium" | "low"
   mitigation: string
 }
 
@@ -208,14 +219,22 @@ export interface ForecastOpportunity {
 export interface IndustryForecast {
   shortTerm: {
     period: string
-    outlook: 'positive' | 'neutral' | 'negative'
-    keyFactors: { factor: string; impact: 'positive' | 'negative' | 'neutral'; description: string }[]
+    outlook: "positive" | "neutral" | "negative"
+    keyFactors: {
+      factor: string
+      impact: "positive" | "negative" | "neutral"
+      description: string
+    }[]
     prediction: string
   }
   midTerm: {
     period: string
-    outlook: 'positive' | 'neutral' | 'negative'
-    keyFactors: { factor: string; impact: 'positive' | 'negative' | 'neutral'; description: string }[]
+    outlook: "positive" | "neutral" | "negative"
+    keyFactors: {
+      factor: string
+      impact: "positive" | "negative" | "neutral"
+      description: string
+    }[]
     prediction: string
   }
   indicators: ForecastIndicator[]
@@ -226,7 +245,7 @@ export interface IndustryForecast {
 
 export interface Notification {
   id: string
-  type: 'system' | 'data' | 'action' | 'alert'
+  type: "system" | "data" | "action" | "alert"
   title: string
   message: string
   action?: {
@@ -249,4 +268,3 @@ export function getWeekLabels(count: number): string[] {
   }
   return weeks
 }
-

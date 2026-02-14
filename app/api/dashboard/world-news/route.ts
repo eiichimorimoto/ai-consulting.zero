@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateObject } from "ai"
 import { z } from "zod"
-import { fetchWithRetry } from '@/lib/fetch-with-retry'
+import { fetchWithRetry } from "@/lib/fetch-with-retry"
 import { applyRateLimit } from "@/lib/rate-limit"
 
 export const runtime = "nodejs"
@@ -12,7 +12,7 @@ const braveNewsSearch = async (query: string, count = 5): Promise<any[]> => {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim()
   if (!key) return []
   const endpoint = `https://api.search.brave.com/res/v1/news/search?q=${encodeURIComponent(query)}&count=${count}`
-  
+
   try {
     const resp = await fetchWithRetry(
       endpoint,
@@ -27,12 +27,12 @@ const braveNewsSearch = async (query: string, count = 5): Promise<any[]> => {
       12_000,
       3
     )
-    
+
     if (!resp.ok) {
       console.warn(`⚠️ Brave News Search returned status ${resp.status} for query: ${query}`)
       return []
     }
-    
+
     const json: any = await resp.json()
     return json?.results || []
   } catch (error) {
@@ -42,95 +42,103 @@ const braveNewsSearch = async (query: string, count = 5): Promise<any[]> => {
 }
 
 const worldNewsSchema = z.object({
-  categories: z.array(z.object({
-    category: z.enum(["industry_world", "economy", "geopolitics", "conflict", "ai"]).describe("カテゴリ"),
-    title: z.string().describe("見出し"),
-    items: z.array(z.object({
-      headline: z.string().describe("ニュース見出し"),
-      summary: z.string().describe("要約"),
-      impact: z.string().describe("当該業界への影響"),
-      direction: z.enum(["positive", "negative", "neutral"]).describe("影響の方向性"),
-      source: z.string().describe("情報源"),
-    })).describe("ニュース項目"),
-  })).describe("カテゴリ別ニュース（順序: 業界世界情勢, 世界/日本経済動向, 地政学, 紛争, AI/生成AI技術の進展）"),
-  overallImpact: z.object({
-    summary: z.string().describe("総合的な影響サマリー"),
-    riskLevel: z.enum(["high", "medium", "low"]).describe("リスクレベル"),
-    opportunities: z.array(z.string()).describe("機会"),
-    threats: z.array(z.string()).describe("脅威"),
-  }).describe("総合影響分析"),
+  categories: z
+    .array(
+      z.object({
+        category: z
+          .enum(["industry_world", "economy", "geopolitics", "conflict", "ai"])
+          .describe("カテゴリ"),
+        title: z.string().describe("見出し"),
+        items: z
+          .array(
+            z.object({
+              headline: z.string().describe("ニュース見出し"),
+              summary: z.string().describe("要約"),
+              impact: z.string().describe("当該業界への影響"),
+              direction: z.enum(["positive", "negative", "neutral"]).describe("影響の方向性"),
+              source: z.string().describe("情報源"),
+            })
+          )
+          .describe("ニュース項目"),
+      })
+    )
+    .describe(
+      "カテゴリ別ニュース（順序: 業界世界情勢, 世界/日本経済動向, 地政学, 紛争, AI/生成AI技術の進展）"
+    ),
+  overallImpact: z
+    .object({
+      summary: z.string().describe("総合的な影響サマリー"),
+      riskLevel: z.enum(["high", "medium", "low"]).describe("リスクレベル"),
+      opportunities: z.array(z.string()).describe("機会"),
+      threats: z.array(z.string()).describe("脅威"),
+    })
+    .describe("総合影響分析"),
 })
 
 export async function GET(request: Request) {
-  const rateLimitError = applyRateLimit(request, 'dashboard')
+  const rateLimitError = applyRateLimit(request, "dashboard")
   if (rateLimitError) return rateLimitError
 
   try {
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "認証されていません" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "認証されていません" }, { status: 401 })
     }
 
     // プロファイルと会社情報を取得
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', user.id)
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", user.id)
       .single()
 
     if (!profile?.company_id) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
     const companyId = profile.company_id
 
     const { data: company } = await supabase
-      .from('companies')
-      .select('name, industry, business_description')
-      .eq('id', companyId)
+      .from("companies")
+      .select("name, industry, business_description")
+      .eq("id", companyId)
       .single()
 
     if (!company) {
-      return NextResponse.json(
-        { error: "会社情報が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 })
     }
 
-    const industryQuery = company.industry || ''
+    const industryQuery = company.industry || ""
 
     // 強制更新でない場合、キャッシュから返す（有効期限: 30分）
     const { searchParams } = new URL(request.url)
-    const forceRefresh = searchParams.get('refresh') === 'true'
+    const forceRefresh = searchParams.get("refresh") === "true"
     if (!forceRefresh) {
       const cacheExpiry = new Date()
       cacheExpiry.setMinutes(cacheExpiry.getMinutes() - 30)
       const { data: cachedRow } = await supabase
-        .from('dashboard_data')
-        .select('data, updated_at')
-        .eq('user_id', user.id)
-        .eq('company_id', companyId)
-        .eq('data_type', 'world-news')
-        .gte('updated_at', cacheExpiry.toISOString())
+        .from("dashboard_data")
+        .select("data, updated_at")
+        .eq("user_id", user.id)
+        .eq("company_id", companyId)
+        .eq("data_type", "world-news")
+        .gte("updated_at", cacheExpiry.toISOString())
         .maybeSingle()
       if (cachedRow?.data) {
         const payload = cachedRow.data as { data: unknown; company?: unknown; updatedAt?: string }
         return NextResponse.json({
           ...payload,
           updatedAt: payload.updatedAt || cachedRow.updated_at,
-          cached: true
+          cached: true,
         })
       }
     }
-    const businessDesc = company.business_description || ''
+    const businessDesc = company.business_description || ""
 
     // 5カテゴリの情報を並列収集（順序: 業界世界情勢, 世界/日本経済動向, 地政学, 紛争, AI/生成AI）
     const searchPromises = [
@@ -154,16 +162,17 @@ export async function GET(request: Request) {
 
     const searchResults = await Promise.all(searchPromises)
 
-    const formatNews = (news: any[]) => news
-      .slice(0, 6)
-      .map((r: any) => `[${r.url || ''}] ${r.title || ''}: ${r.description || ''}`)
-      .join('\n')
+    const formatNews = (news: any[]) =>
+      news
+        .slice(0, 6)
+        .map((r: any) => `[${r.url || ""}] ${r.title || ""}: ${r.description || ""}`)
+        .join("\n")
 
     const searchContext = `
 【企業情報】
 会社名: ${company.name}
-業種: ${industryQuery || '不明'}
-事業内容: ${businessDesc || '不明'}
+業種: ${industryQuery || "不明"}
+事業内容: ${businessDesc || "不明"}
 
 【1. 業界世界情勢】
 ${formatNews([...searchResults[0], ...searchResults[1]])}
@@ -184,10 +193,7 @@ ${formatNews([...searchResults[9], ...searchResults[10]])}
     // AIで分析
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "ANTHROPIC_API_KEYが設定されていません" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "ANTHROPIC_API_KEYが設定されていません" }, { status: 500 })
     }
 
     const anthropic = createAnthropic({ apiKey })
@@ -200,7 +206,7 @@ ${formatNews([...searchResults[9], ...searchResults[10]])}
           role: "user",
           content: `以下の企業情報と収集したニュースを基に、世界情勢が当該企業・業界に与える影響を分析してください。
 
-【本日の日付】${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+【本日の日付】${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 ※ 日付・期間を含む記載は本日を起点とすること
 
 ${searchContext}
@@ -244,28 +250,28 @@ direction: "positive"(好影響), "negative"(悪影響), "neutral"(中立)
         name: company.name,
         industry: company.industry,
       },
-      updatedAt
+      updatedAt,
     }
 
-    await supabase
-      .from('dashboard_data')
-      .upsert({
+    await supabase.from("dashboard_data").upsert(
+      {
         user_id: user.id,
         company_id: companyId,
-        data_type: 'world-news',
+        data_type: "world-news",
         data: payload,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-      }, {
-        onConflict: 'user_id,company_id,data_type'
-      })
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      },
+      {
+        onConflict: "user_id,company_id,data_type",
+      }
+    )
 
     return NextResponse.json({
       ...payload,
-      cached: false
+      cached: false,
     })
-
   } catch (error) {
-    console.error('World news error:', error)
+    console.error("World news error:", error)
     return NextResponse.json(
       {
         error: "世界情勢の取得に失敗しました",

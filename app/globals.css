@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -10,7 +10,7 @@
 }
 
 body {
-  font-family: 'Noto Sans JP', 'Inter', sans-serif;
+  font-family: "Noto Sans JP", "Inter", sans-serif;
 }
 
 html {
@@ -91,7 +91,8 @@ html {
 
 /* Microsoft AI Style Animations */
 @keyframes gradientShift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -100,7 +101,8 @@ html {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -196,7 +198,8 @@ html {
 
 /* ROI Background Animation - Data Visualization Style */
 @keyframes dataFloat {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) rotate(0deg);
     opacity: 0.4;
   }
@@ -224,7 +227,8 @@ html {
 }
 
 @keyframes numberPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.2;
     transform: scale(1);
   }
@@ -246,7 +250,7 @@ html {
 }
 
 .roi-background::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -258,14 +262,20 @@ html {
     linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px),
     /* Hexagon Pattern */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cpolygon points='60,10 110,35 110,85 60,110 10,85 10,35' fill='none' stroke='rgba(59, 130, 246, 0.15)' stroke-width='1'/%3E%3C/svg%3E");
-  background-size: 50px 50px, 50px 50px, 120px 120px;
-  background-position: 0 0, 0 0, 0 0;
+  background-size:
+    50px 50px,
+    50px 50px,
+    120px 120px;
+  background-position:
+    0 0,
+    0 0,
+    0 0;
   animation: gridMove 15s linear infinite;
   will-change: background-position;
 }
 
 .roi-background::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -280,8 +290,20 @@ html {
     /* Graph Lines */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M20,180 Q60,120 100,100 T180,20' fill='none' stroke='rgba(59, 130, 246, 0.2)' stroke-width='2'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M20,160 Q80,80 160,40' fill='none' stroke='rgba(99, 102, 241, 0.18)' stroke-width='2'/%3E%3C/svg%3E");
-  background-size: 200px 200px, 180px 180px, 220px 220px, 160px 160px, 250px 250px, 230px 230px;
-  background-position: 10% 20%, 80% 40%, 30% 70%, 70% 10%, 15% 50%, 85% 80%;
+  background-size:
+    200px 200px,
+    180px 180px,
+    220px 220px,
+    160px 160px,
+    250px 250px,
+    230px 230px;
+  background-position:
+    10% 20%,
+    80% 40%,
+    30% 70%,
+    70% 10%,
+    15% 50%,
+    85% 80%;
   background-repeat: no-repeat;
   animation: dataFloat 12s ease-in-out infinite;
   will-change: transform, opacity;
@@ -319,12 +341,13 @@ html {
 
 /* フォント（next/font使用時は不要だが、念のため） */
 .font-bebas {
-  font-family: var(--font-bebas-neue), 'Bebas Neue', sans-serif;
+  font-family: var(--font-bebas-neue), "Bebas Neue", sans-serif;
 }
 
 /* 光線レイのアニメーション */
 @keyframes ray-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.1;
     height: 30vmax;
   }
@@ -340,7 +363,8 @@ html {
 
 /* グローオーブのアニメーション */
 @keyframes orb-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.5;
   }
@@ -356,7 +380,8 @@ html {
 
 /* センター配置のオーブ用 */
 @keyframes orb-pulse-center {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.5;
   }

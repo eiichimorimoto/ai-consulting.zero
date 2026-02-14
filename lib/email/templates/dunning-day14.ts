@@ -13,7 +13,7 @@ export function dunningDay14Template(params: DunningDay14Params): {
   html: string
 } {
   return {
-    subject: '【重要】SolveWise サービス停止のお知らせ',
+    subject: "【重要】SolveWise サービス停止のお知らせ",
     html: `
 <!DOCTYPE html>
 <html lang="ja">
