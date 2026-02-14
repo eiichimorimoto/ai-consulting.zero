@@ -41,6 +41,10 @@ export default function AppHeader() {
   }, [])
 
   const handleLogout = async () => {
+    // 確認メッセージを表示
+    const confirmed = window.confirm('ログアウトしてもよろしいですか？')
+    if (!confirmed) return
+    
     if (!supabase) return
     await supabase.auth.signOut()
     router.push('/')
