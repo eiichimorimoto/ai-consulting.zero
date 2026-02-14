@@ -618,7 +618,11 @@ export default function SettingsContent({ user, profile, company, subscription, 
         const res = await fetch('/api/stripe/create-checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planType: newPlan, interval: 'monthly' }),
+          body: JSON.stringify({ 
+            planType: newPlan, 
+            interval: 'monthly',
+            returnUrl: '/dashboard/settings?tab=plan'  // 設定画面に戻る
+          }),
         })
         const data = await res.json().catch(() => ({}))
         if (data.url) {

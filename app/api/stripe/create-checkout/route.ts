@@ -1,7 +1,11 @@
 /**
  * Checkout Session 作成API
  *
- * POST body: { planType: 'pro'|'enterprise', interval: 'monthly'|'yearly' }
+ * POST body: { 
+ *   planType: 'pro'|'enterprise', 
+ *   interval: 'monthly'|'yearly',
+ *   returnUrl?: string  // 支払い完了後の戻り先（省略時: /dashboard/settings?tab=plan）
+ * }
  *
  * Stripe Checkout Sessionを作成し、URLを返す。
  * ユーザーはこのURLへリダイレクトされ、Stripe Checkoutページで決済を行う。
@@ -37,6 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const planType = body.planType as string
     const interval = body.interval as string
+    const returnUrl = body.returnUrl as string | undefined
 
     if (!planType || !PAID_PLANS.includes(planType as PlanType)) {
       return NextResponse.json(
@@ -64,13 +69,18 @@ export async function POST(request: NextRequest) {
 
     // 6. Checkout Session パラメータ構築
     const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || ''
+    
+    // 戻り先URL（デフォルト: /dashboard/settings?tab=plan）
+    const defaultReturnUrl = '/dashboard/settings?tab=plan'
+    const successUrl = returnUrl || defaultReturnUrl
+    const cancelUrl = returnUrl || defaultReturnUrl
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sessionParams: Record<string, any> = {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/dashboard/settings?tab=plan&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/dashboard/settings?tab=plan`,
+      success_url: `${origin}${successUrl}${successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}${cancelUrl}`,
       metadata: {
         user_id: user.id,
       },

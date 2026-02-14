@@ -17,7 +17,11 @@ export default function PricingPage() {
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planType, interval }),
+        body: JSON.stringify({ 
+          planType, 
+          interval,
+          returnUrl: '/pricing'  // /pricingページに戻る
+        }),
       })
       const data = await res.json()
       if (data.url) {
