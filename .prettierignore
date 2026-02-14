@@ -1,0 +1,6 @@
+.next/
+node_modules/
+coverage/
+backups/
+public/pdf.worker.min.mjs
+*.md

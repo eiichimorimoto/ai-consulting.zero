@@ -175,7 +175,8 @@ web_modules/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-google-credentials.json.git/index.lock
+google-credentials.json
+.git/index.lock
 *.backup.*
 .next*/
 
@@ -184,3 +185,4 @@ info-data/
 .obsidian/
 # public/**/*.mp4 と public/**/*.m4a を削除：LP・診断等で動画をデプロイに含める
 bin/
+*.docx
