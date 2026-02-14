@@ -11,7 +11,7 @@
  */
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, ChevronRight, Loader2 } from 'lucide-react'
 import { RetentionOffer } from './RetentionOffer'
@@ -40,18 +40,6 @@ export function CancelFlow({ planType, currentPeriodEnd }: CancelFlowProps) {
   const [cancelType, setCancelType] = useState<'end_of_period' | 'immediate'>('end_of_period')
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // デバッグ用ログ
-  console.log('[CancelFlow] Current step:', step, 'Reason:', reason)
-
-  // マウント時に確実に初期状態にリセット
-  useEffect(() => {
-    console.log('[CancelFlow] Component mounted, resetting to step 1')
-    setStep(1)
-    setReason('')
-    setFeedback('')
-    setError(null)
-  }, []) // 空の依存配列 = マウント時のみ実行
 
   const periodEndFormatted = currentPeriodEnd
     ? new Date(currentPeriodEnd).toLocaleDateString('ja-JP', {

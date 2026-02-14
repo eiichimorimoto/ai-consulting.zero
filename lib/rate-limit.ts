@@ -172,8 +172,7 @@ export function createRateLimitResponse(result: ReturnType<typeof checkRateLimit
 
   return NextResponse.json(
     {
-      error: 'Rate limit exceeded',
-      message: 'リクエスト数が制限を超えました。しばらく待ってから再試行してください。',
+      error: 'リクエスト数が制限を超えました。しばらく待ってから再試行してください。',
       retryAfter: Math.max(1, retryAfterSeconds),
       limit: result.limit,
       resetAt: new Date(result.resetAt).toISOString(),
