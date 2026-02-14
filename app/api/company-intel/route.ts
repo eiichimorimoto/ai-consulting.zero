@@ -1194,13 +1194,11 @@ export async function POST(request: Request) {
           isListedCompany,
           totalResults: uniq.size,
           filteredResults: ranked.length,
-          topResults: ranked
-            .slice(0, 3)
-            .map((r: RankedBraveResult) => ({
-              url: r.url,
-              score: r._score,
-              nameMatch: r._companyNameMatch,
-            })),
+          topResults: ranked.slice(0, 3).map((r: RankedBraveResult) => ({
+            url: r.url,
+            score: r._score,
+            nameMatch: r._companyNameMatch,
+          })),
         })
 
         const chunks: string[] = []

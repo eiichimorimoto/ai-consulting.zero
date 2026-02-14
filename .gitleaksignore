@@ -1,0 +1,6 @@
+# Gitleaks Ignore File
+# HTMLファイル内のbase64エンコードされたSVG画像を除外
+
+# Slides output (SVG base64 images)
+slides/output/ai-consulting-report.html
+slides/sample-consulting-report.html

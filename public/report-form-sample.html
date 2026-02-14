@@ -1,425 +1,490 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>レポート出力フォーム サンプル</title>
-  <style>
-    /* 用紙の向き: 横（デフォルト） */
-    @page {
-      size: A4 landscape;
-      margin: 20mm;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>レポート出力フォーム サンプル</title>
+    <style>
+      /* 用紙の向き: 横（デフォルト） */
+      @page {
+        size: A4 landscape;
+        margin: 20mm;
+      }
 
-    body.portrait @page {
-      size: A4 portrait;
-      margin: 20mm;
-    }
+      body.portrait @page {
+        size: A4 portrait;
+        margin: 20mm;
+      }
 
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Meiryo', sans-serif;
-      font-size: 11pt;
-      line-height: 1.6;
-      color: #1e293b;
-      margin: 0;
-      padding: 20px;
-      background: #f1f5f9;
-    }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
+        font-size: 11pt;
+        line-height: 1.6;
+        color: #1e293b;
+        margin: 0;
+        padding: 20px;
+        background: #f1f5f9;
+      }
 
-    /* ========== ヘッダー（全ページ共通イメージ） ========== */
-    .report-header {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      padding: 10px 16px;
-      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
-      color: #fff;
-      border-radius: 0 0 8px 8px;
-      margin: -20mm -20mm 20px -20mm;
-      padding: 12px 20mm;
-    }
-    .report-header .brand-text {
-      font-size: 9.5pt;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      opacity: 0.95;
-    }
-    .report-header .brand-logo {
-      height: 20px;
-      width: auto;
-      vertical-align: middle;
-    }
+      /* ========== ヘッダー（全ページ共通イメージ） ========== */
+      .report-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
+        color: #fff;
+        border-radius: 0 0 8px 8px;
+        margin: -20mm -20mm 20px -20mm;
+        padding: 12px 20mm;
+      }
+      .report-header .brand-text {
+        font-size: 9.5pt;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        opacity: 0.95;
+      }
+      .report-header .brand-logo {
+        height: 20px;
+        width: auto;
+        vertical-align: middle;
+      }
 
-    /* ========== フッター（色付きバー） ========== */
-    .report-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%);
-      color: rgba(255,255,255,0.95);
-      font-size: 9pt;
-      border-radius: 8px 8px 0 0;
-      margin: 24px -20mm -20mm -20mm;
-      padding: 12px 20mm;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .report-footer .page-number { font-weight: 600; }
-    .report-footer .author { opacity: 0.9; }
-    .report-footer .copyright { font-size: 8pt; opacity: 0.85; }
+      /* ========== フッター（色付きバー） ========== */
+      .report-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%);
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 9pt;
+        border-radius: 8px 8px 0 0;
+        margin: 24px -20mm -20mm -20mm;
+        padding: 12px 20mm;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .report-footer .page-number {
+        font-weight: 600;
+      }
+      .report-footer .author {
+        opacity: 0.9;
+      }
+      .report-footer .copyright {
+        font-size: 8pt;
+        opacity: 0.85;
+      }
 
-    /* プレビュー用: 用紙サイズのコンテナ */
-    .doc {
-      max-width: 297mm;
-      min-height: 210mm;
-      margin: 0 auto 24px;
-      padding: 20mm;
-      background: #fff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      position: relative;
-    }
-    body.portrait .doc {
-      max-width: 210mm;
-      min-height: 297mm;
-    }
+      /* プレビュー用: 用紙サイズのコンテナ */
+      .doc {
+        max-width: 297mm;
+        min-height: 210mm;
+        margin: 0 auto 24px;
+        padding: 20mm;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        position: relative;
+      }
+      body.portrait .doc {
+        max-width: 210mm;
+        min-height: 297mm;
+      }
 
-    /* 表紙 */
-    .cover-page {
-      min-height: 140mm;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 20px 0;
-      position: relative;
-    }
-    .cover-page .cover-logo {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #4f46e5;
-      font-size: 9pt;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-    }
-    .cover-page .cover-logo img { height: 22px; width: auto; }
-    .cover-title {
-      font-size: 28pt;
-      font-weight: bold;
-      color: #1e293b;
-      margin-bottom: 16px;
-      line-height: 1.3;
-    }
-    .cover-subtitle {
-      font-size: 14pt;
-      color: #64748b;
-      margin-bottom: 32px;
-    }
-    .cover-meta {
-      font-size: 11pt;
-      color: #475569;
-      text-align: center;
-      line-height: 1.8;
-    }
-    .cover-meta .created { margin-bottom: 8px; }
-    .cover-meta .author { margin-top: 16px; font-size: 10pt; color: #64748b; }
+      /* 表紙 */
+      .cover-page {
+        min-height: 140mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px 0;
+        position: relative;
+      }
+      .cover-page .cover-logo {
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #4f46e5;
+        font-size: 9pt;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+      }
+      .cover-page .cover-logo img {
+        height: 22px;
+        width: auto;
+      }
+      .cover-title {
+        font-size: 28pt;
+        font-weight: bold;
+        color: #1e293b;
+        margin-bottom: 16px;
+        line-height: 1.3;
+      }
+      .cover-subtitle {
+        font-size: 14pt;
+        color: #64748b;
+        margin-bottom: 32px;
+      }
+      .cover-meta {
+        font-size: 11pt;
+        color: #475569;
+        text-align: center;
+        line-height: 1.8;
+      }
+      .cover-meta .created {
+        margin-bottom: 8px;
+      }
+      .cover-meta .author {
+        margin-top: 16px;
+        font-size: 10pt;
+        color: #64748b;
+      }
 
-    /* 本文セクション */
-    .section {
-      margin-top: 24px;
-      padding-bottom: 32px;
-    }
-    .section-title {
-      font-size: 16pt;
-      font-weight: bold;
-      color: #334155;
-      border-bottom: 2px solid #6366f1;
-      padding-bottom: 8px;
-      margin-bottom: 16px;
-    }
-    .section-meta {
-      font-size: 10pt;
-      color: #64748b;
-      margin-bottom: 16px;
-    }
-    .section-body {
-      font-size: 11pt;
-      line-height: 1.7;
-      color: #334155;
-    }
-    .section-body p { margin: 0 0 12px 0; }
-    .section-body ol { padding-left: 24px; margin: 0 0 12px 0; }
-    .section-body li { margin-bottom: 6px; }
+      /* 本文セクション */
+      .section {
+        margin-top: 24px;
+        padding-bottom: 32px;
+      }
+      .section-title {
+        font-size: 16pt;
+        font-weight: bold;
+        color: #334155;
+        border-bottom: 2px solid #6366f1;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+      }
+      .section-meta {
+        font-size: 10pt;
+        color: #64748b;
+        margin-bottom: 16px;
+      }
+      .section-body {
+        font-size: 11pt;
+        line-height: 1.7;
+        color: #334155;
+      }
+      .section-body p {
+        margin: 0 0 12px 0;
+      }
+      .section-body ol {
+        padding-left: 24px;
+        margin: 0 0 12px 0;
+      }
+      .section-body li {
+        margin-bottom: 6px;
+      }
 
-    /* ========== 表形式（内容に応じて自動で表で表現する場合） ========== */
-    .report-table-wrap {
-      overflow-x: auto;
-      margin: 16px 0;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .report-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 10.5pt;
-    }
-    .report-table th,
-    .report-table td {
-      border: 1px solid #e2e8f0;
-      padding: 12px 14px;
-      text-align: left;
-      vertical-align: top;
-    }
-    .report-table th {
-      background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
-      color: #fff;
-      font-weight: 600;
-    }
-    .report-table tr:nth-child(even) td { background: #f8fafc; }
-    .report-table tr:hover td { background: #f1f5f9; }
+      /* ========== 表形式（内容に応じて自動で表で表現する場合） ========== */
+      .report-table-wrap {
+        overflow-x: auto;
+        margin: 16px 0;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10.5pt;
+      }
+      .report-table th,
+      .report-table td {
+        border: 1px solid #e2e8f0;
+        padding: 12px 14px;
+        text-align: left;
+        vertical-align: top;
+      }
+      .report-table th {
+        background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+        color: #fff;
+        font-weight: 600;
+      }
+      .report-table tr:nth-child(even) td {
+        background: #f8fafc;
+      }
+      .report-table tr:hover td {
+        background: #f1f5f9;
+      }
 
-    /* ========== プロセス図（内容に応じて自動でフローで表現する場合） ========== */
-    .process-flow {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      flex-wrap: wrap;
-      gap: 0;
-      margin: 20px 0;
-      padding: 16px 0;
-    }
-    .process-step {
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
-    .process-box {
-      padding: 14px 20px;
-      background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-      border: 2px solid #6366f1;
-      border-radius: 8px;
-      font-weight: 600;
-      color: #3730a3;
-      min-width: 140px;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.15);
-    }
-    .process-arrow {
-      padding: 0 12px;
-      color: #6366f1;
-      font-size: 18pt;
-      font-weight: bold;
-      flex-shrink: 0;
-    }
-    .process-step:last-child .process-arrow { display: none; }
+      /* ========== プロセス図（内容に応じて自動でフローで表現する場合） ========== */
+      .process-flow {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0;
+        margin: 20px 0;
+        padding: 16px 0;
+      }
+      .process-step {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+      .process-box {
+        padding: 14px 20px;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        border: 2px solid #6366f1;
+        border-radius: 8px;
+        font-weight: 600;
+        color: #3730a3;
+        min-width: 140px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.15);
+      }
+      .process-arrow {
+        padding: 0 12px;
+        color: #6366f1;
+        font-size: 18pt;
+        font-weight: bold;
+        flex-shrink: 0;
+      }
+      .process-step:last-child .process-arrow {
+        display: none;
+      }
 
-    /* 画面上の操作バー（印刷時は非表示） */
-    .toolbar {
-      text-align: center;
-      margin-bottom: 16px;
-      padding: 12px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    .toolbar button {
-      margin: 0 6px;
-      padding: 8px 16px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      background: #fff;
-    }
-    .toolbar button.active {
-      background: #6366f1;
-      color: #fff;
-      border-color: #6366f1;
-    }
+      /* 画面上の操作バー（印刷時は非表示） */
+      .toolbar {
+        text-align: center;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+      .toolbar button {
+        margin: 0 6px;
+        padding: 8px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #fff;
+      }
+      .toolbar button.active {
+        background: #6366f1;
+        color: #fff;
+        border-color: #6366f1;
+      }
 
-    @media print {
-      body { background: #fff; padding: 0; }
-      .toolbar { display: none !important; }
-      .doc { max-width: none; min-height: auto; box-shadow: none; margin: 0; padding: 0; }
-      .report-header, .report-footer { margin-left: 0; margin-right: 0; border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .cover-page { min-height: auto; page-break-after: always; }
-      .process-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .report-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
-</head>
-<body>
-  <div class="toolbar">
-    <span>用紙の向き:</span>
-    <button type="button" id="btn-landscape" class="active">横（A4 横向き）</button>
-    <button type="button" id="btn-portrait">縦（A4 縦向き）</button>
-    <button type="button" id="btn-print">印刷 / PDFに保存</button>
-  </div>
-
-  <div class="doc">
-    <!-- 表紙 -->
-    <div class="cover-page">
-      <div class="cover-logo">
-        <img src="/logo.png" alt="SOLVE WISE">
-        <span>SOLVE WISE</span>
-      </div>
-      <div class="cover-title">生産性向上に向けた提案レポート</div>
-      <div class="cover-subtitle">コスト削減 - 課題のヒアリング</div>
-      <div class="cover-meta">
-        <div class="created">作成日時: 2026年2月9日 17:48</div>
-        担当: 後藤 俊勝<br>
-        <div class="author">文責: AI参謀 - AI経営コンサルティング</div>
-      </div>
+      @media print {
+        body {
+          background: #fff;
+          padding: 0;
+        }
+        .toolbar {
+          display: none !important;
+        }
+        .doc {
+          max-width: none;
+          min-height: auto;
+          box-shadow: none;
+          margin: 0;
+          padding: 0;
+        }
+        .report-header,
+        .report-footer {
+          margin-left: 0;
+          margin-right: 0;
+          border-radius: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .cover-page {
+          min-height: auto;
+          page-break-after: always;
+        }
+        .process-box {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .report-table th {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <span>用紙の向き:</span>
+      <button type="button" id="btn-landscape" class="active">横（A4 横向き）</button>
+      <button type="button" id="btn-portrait">縦（A4 縦向き）</button>
+      <button type="button" id="btn-print">印刷 / PDFに保存</button>
     </div>
 
-    <!-- ヘッダー（本文ページ） -->
-    <header class="report-header">
-      <span class="brand-text">SOLVE WISE</span>
-      <img src="/logo.png" alt="" class="brand-logo">
-    </header>
-
-    <!-- 本文: 通常テキスト + 箇条書き -->
-    <div class="section">
-      <h2 class="section-title">1. 業務プロセスの見直し</h2>
-      <p class="section-meta">作成日時: 2026/2/8 17:44</p>
-      <div class="section-body">
-        <p>現在の製造プロセスを可視化し、ボトルネックとなっている工程を特定することが重要です。無駄な手順の削減や並列化により、リードタイム短縮とコスト削減が期待できます。</p>
-        <ol>
-          <li>業務フローの棚卸しと課題の洗い出し</li>
-          <li>標準作業手順の整備と教育</li>
-          <li>定期的なプロセス見直しのサイクル確立</li>
-        </ol>
-      </div>
-    </div>
-
-    <!-- 本文: 表形式の例（比較・一覧は自動で表に） -->
-    <div class="section">
-      <h2 class="section-title">2. 施策の比較検討</h2>
-      <p class="section-meta">作成日時: 2026/2/8 17:44</p>
-      <div class="report-table-wrap">
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>施策</th>
-              <th>効果</th>
-              <th>工数</th>
-              <th>優先度</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>業務プロセス見直し</td>
-              <td>高</td>
-              <td>中</td>
-              <td>◎</td>
-            </tr>
-            <tr>
-              <td>自動化・デジタル化</td>
-              <td>高</td>
-              <td>大</td>
-              <td>○</td>
-            </tr>
-            <tr>
-              <td>従業員スキルアップ</td>
-              <td>中</td>
-              <td>中</td>
-              <td>○</td>
-            </tr>
-            <tr>
-              <td>リーン生産の導入</td>
-              <td>高</td>
-              <td>大</td>
-              <td>○</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 本文: プロセス図の例（手順・フローは自動で図に） -->
-    <div class="section">
-      <h2 class="section-title">3. 導入プロセス</h2>
-      <p class="section-meta">作成日時: 2026/2/8 17:44</p>
-      <div class="process-flow">
-        <div class="process-step">
-          <div class="process-box">現状分析</div>
-          <span class="process-arrow">→</span>
+    <div class="doc">
+      <!-- 表紙 -->
+      <div class="cover-page">
+        <div class="cover-logo">
+          <img src="/logo.png" alt="SOLVE WISE" />
+          <span>SOLVE WISE</span>
         </div>
-        <div class="process-step">
-          <div class="process-box">課題整理</div>
-          <span class="process-arrow">→</span>
-        </div>
-        <div class="process-step">
-          <div class="process-box">施策検討</div>
-          <span class="process-arrow">→</span>
-        </div>
-        <div class="process-step">
-          <div class="process-box">実行計画</div>
-          <span class="process-arrow">→</span>
-        </div>
-        <div class="process-step">
-          <div class="process-box">PDCA</div>
+        <div class="cover-title">生産性向上に向けた提案レポート</div>
+        <div class="cover-subtitle">コスト削減 - 課題のヒアリング</div>
+        <div class="cover-meta">
+          <div class="created">作成日時: 2026年2月9日 17:48</div>
+          担当: 後藤 俊勝<br />
+          <div class="author">文責: AI参謀 - AI経営コンサルティング</div>
         </div>
       </div>
-      <p class="section-body">各ステップで関係者と合意を取りながら進めることを推奨します。</p>
-    </div>
 
-    <footer class="report-footer">
-      <span class="page-number">1 / 2</span>
-      <span class="author">AI参謀 - AI経営コンサルティング</span>
-      <span class="copyright">© 2026 SOLVE WISE</span>
-    </footer>
-  </div>
+      <!-- ヘッダー（本文ページ） -->
+      <header class="report-header">
+        <span class="brand-text">SOLVE WISE</span>
+        <img src="/logo.png" alt="" class="brand-logo" />
+      </header>
 
-  <!-- 2ページ目 -->
-  <div class="doc">
-    <header class="report-header">
-      <span class="brand-text">SOLVE WISE</span>
-      <img src="/logo.png" alt="" class="brand-logo">
-    </header>
-
-    <div class="section">
-      <h2 class="section-title">4. 自動化とデジタル化</h2>
-      <p class="section-meta">作成日時: 2026/2/8 17:44</p>
-      <div class="section-body">
-        <p>繰り返し作業の自動化やデータのデジタル化により、人的ミスを減らし効率を向上させます。まずは工数のかかっている業務から優先して検討することを推奨します。</p>
+      <!-- 本文: 通常テキスト + 箇条書き -->
+      <div class="section">
+        <h2 class="section-title">1. 業務プロセスの見直し</h2>
+        <p class="section-meta">作成日時: 2026/2/8 17:44</p>
+        <div class="section-body">
+          <p>
+            現在の製造プロセスを可視化し、ボトルネックとなっている工程を特定することが重要です。無駄な手順の削減や並列化により、リードタイム短縮とコスト削減が期待できます。
+          </p>
+          <ol>
+            <li>業務フローの棚卸しと課題の洗い出し</li>
+            <li>標準作業手順の整備と教育</li>
+            <li>定期的なプロセス見直しのサイクル確立</li>
+          </ol>
+        </div>
       </div>
+
+      <!-- 本文: 表形式の例（比較・一覧は自動で表に） -->
+      <div class="section">
+        <h2 class="section-title">2. 施策の比較検討</h2>
+        <p class="section-meta">作成日時: 2026/2/8 17:44</p>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>施策</th>
+                <th>効果</th>
+                <th>工数</th>
+                <th>優先度</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>業務プロセス見直し</td>
+                <td>高</td>
+                <td>中</td>
+                <td>◎</td>
+              </tr>
+              <tr>
+                <td>自動化・デジタル化</td>
+                <td>高</td>
+                <td>大</td>
+                <td>○</td>
+              </tr>
+              <tr>
+                <td>従業員スキルアップ</td>
+                <td>中</td>
+                <td>中</td>
+                <td>○</td>
+              </tr>
+              <tr>
+                <td>リーン生産の導入</td>
+                <td>高</td>
+                <td>大</td>
+                <td>○</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 本文: プロセス図の例（手順・フローは自動で図に） -->
+      <div class="section">
+        <h2 class="section-title">3. 導入プロセス</h2>
+        <p class="section-meta">作成日時: 2026/2/8 17:44</p>
+        <div class="process-flow">
+          <div class="process-step">
+            <div class="process-box">現状分析</div>
+            <span class="process-arrow">→</span>
+          </div>
+          <div class="process-step">
+            <div class="process-box">課題整理</div>
+            <span class="process-arrow">→</span>
+          </div>
+          <div class="process-step">
+            <div class="process-box">施策検討</div>
+            <span class="process-arrow">→</span>
+          </div>
+          <div class="process-step">
+            <div class="process-box">実行計画</div>
+            <span class="process-arrow">→</span>
+          </div>
+          <div class="process-step">
+            <div class="process-box">PDCA</div>
+          </div>
+        </div>
+        <p class="section-body">各ステップで関係者と合意を取りながら進めることを推奨します。</p>
+      </div>
+
+      <footer class="report-footer">
+        <span class="page-number">1 / 2</span>
+        <span class="author">AI参謀 - AI経営コンサルティング</span>
+        <span class="copyright">© 2026 SOLVE WISE</span>
+      </footer>
     </div>
 
-    <footer class="report-footer">
-      <span class="page-number">2 / 2</span>
-      <span class="author">AI参謀 - AI経営コンサルティング</span>
-      <span class="copyright">© 2026 SOLVE WISE</span>
-    </footer>
-  </div>
+    <!-- 2ページ目 -->
+    <div class="doc">
+      <header class="report-header">
+        <span class="brand-text">SOLVE WISE</span>
+        <img src="/logo.png" alt="" class="brand-logo" />
+      </header>
 
-  <script>
-    (function() {
-      var body = document.body;
-      var btnLandscape = document.getElementById('btn-landscape');
-      var btnPortrait = document.getElementById('btn-portrait');
-      var btnPrint = document.getElementById('btn-print');
+      <div class="section">
+        <h2 class="section-title">4. 自動化とデジタル化</h2>
+        <p class="section-meta">作成日時: 2026/2/8 17:44</p>
+        <div class="section-body">
+          <p>
+            繰り返し作業の自動化やデータのデジタル化により、人的ミスを減らし効率を向上させます。まずは工数のかかっている業務から優先して検討することを推奨します。
+          </p>
+        </div>
+      </div>
 
-      btnLandscape.addEventListener('click', function() {
-        body.classList.remove('portrait');
-        btnLandscape.classList.add('active');
-        btnPortrait.classList.remove('active');
-      });
-      btnPortrait.addEventListener('click', function() {
-        body.classList.add('portrait');
-        btnPortrait.classList.add('active');
-        btnLandscape.classList.remove('active');
-      });
-      btnPrint.addEventListener('click', function() { window.print(); });
-    })();
-  </script>
-</body>
+      <footer class="report-footer">
+        <span class="page-number">2 / 2</span>
+        <span class="author">AI参謀 - AI経営コンサルティング</span>
+        <span class="copyright">© 2026 SOLVE WISE</span>
+      </footer>
+    </div>
+
+    <script>
+      ;(function () {
+        var body = document.body
+        var btnLandscape = document.getElementById("btn-landscape")
+        var btnPortrait = document.getElementById("btn-portrait")
+        var btnPrint = document.getElementById("btn-print")
+
+        btnLandscape.addEventListener("click", function () {
+          body.classList.remove("portrait")
+          btnLandscape.classList.add("active")
+          btnPortrait.classList.remove("active")
+        })
+        btnPortrait.addEventListener("click", function () {
+          body.classList.add("portrait")
+          btnPortrait.classList.add("active")
+          btnLandscape.classList.remove("active")
+        })
+        btnPrint.addEventListener("click", function () {
+          window.print()
+        })
+      })()
+    </script>
+  </body>
 </html>
