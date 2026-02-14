@@ -603,6 +603,14 @@ export default function SettingsContent({ user, profile, company, subscription, 
       return
     }
 
+    // 有料→無料: 解約ページへリダイレクト
+    if (currentPlan !== 'free' && newPlan === 'free') {
+      if (confirm('Freeプランへの変更は解約手続きが必要です。解約ページに移動しますか？')) {
+        router.push('/account/cancel')
+      }
+      return
+    }
+
     // Free→有料: Checkoutへリダイレクト
     if (currentPlan === 'free' && newPlan !== 'free') {
       setIsChangingPlan(true)
