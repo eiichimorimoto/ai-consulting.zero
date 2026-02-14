@@ -300,7 +300,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single()
 
     const { maxTurnsTotal, isUnlimited } = getPlanLimits(profile?.plan_type as string | undefined)
-    if (!isUnlimited && maxTurnsTotal !== null) {
+    if (!isUnlimited && maxTurnsTotal != null) {
       const used = profile?.monthly_chat_count ?? 0
       const remaining = maxTurnsTotal - used
       if (remaining <= 0) {

@@ -117,7 +117,7 @@ export default function SettingsPlan({
             </p>
             <p className="text-sm text-gray-700">
               <span className="font-medium">今月のAI相談:</span>{" "}
-              {planLimits.isUnlimited || maxTurnsTotal === null
+              {planLimits.isUnlimited || maxTurnsTotal == null
                 ? "制限なし"
                 : `${usedChats} / ${maxTurnsTotal} 回`}
             </p>

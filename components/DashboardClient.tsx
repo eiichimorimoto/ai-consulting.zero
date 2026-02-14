@@ -6443,9 +6443,9 @@ export default function DashboardClient({ profile, company, subscription }: Dash
                           const currentQuarter = Math.ceil(currentMonth / 3)
                           // 決算期（1-12）から期首月を算出。未設定時は3月決算とみなして期首4月
                           const fiscalEnd =
-                            company?.fiscal_year_end !== null &&
-                            company.fiscal_year_end >= 1 &&
-                            company.fiscal_year_end <= 12
+                            company?.fiscal_year_end != null &&
+                            company?.fiscal_year_end >= 1 &&
+                            company?.fiscal_year_end <= 12
                               ? Number(company.fiscal_year_end)
                               : 3
                           const 期首月 = fiscalEnd === 12 ? 1 : fiscalEnd + 1

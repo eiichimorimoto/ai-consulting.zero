@@ -77,7 +77,7 @@ export default function SettingsContent({
   const usedChats = Number(profile?.monthly_chat_count ?? 0)
   const maxTurnsTotal = planLimits.maxTurnsTotal
   const remainingChats =
-    planLimits.isUnlimited || maxTurnsTotal === null ? null : Math.max(0, maxTurnsTotal - usedChats)
+    planLimits.isUnlimited || maxTurnsTotal == null ? null : Math.max(0, maxTurnsTotal - usedChats)
 
   // URL の tab と同期（階層メニューから遷移した場合など）
   useEffect(() => {

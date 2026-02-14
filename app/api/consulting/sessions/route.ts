@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // プラン別のセッション上限チェック（Enterprise は制限なし）
     const { maxSessions, isUnlimited } = getPlanLimits(profile?.plan_type as string | undefined)
-    if (!isUnlimited && maxSessions !== null) {
+    if (!isUnlimited && maxSessions != null) {
       const now = new Date()
       const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0))
       const endOfMonth = new Date(
