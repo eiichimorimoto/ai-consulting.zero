@@ -11,7 +11,7 @@ interface Plan {
   price: string
   unit: string
   features: string[]
-  planType: 'free' | 'standard' | 'enterprise'
+  planType: 'free' | 'pro' | 'enterprise'
   highlighted?: boolean
 }
 
@@ -68,7 +68,7 @@ export default function SettingsPlan({
         '新機能の優先利用権',
         'クレジット支払対応',
       ],
-      planType: 'standard' as const,
+      planType: 'pro' as const,
       highlighted: true,
     },
     {
