@@ -389,6 +389,20 @@ export default function ConsultingStartPage() {
       return
     }
 
+    // UUID形式チェック（簡易版）
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeId)
+    if (!isValidUUID) {
+      console.warn("⚠️ Invalid session ID format:", activeId)
+      return
+    }
+
+    // セッションリストに存在するか確認
+    const sessionExists = session.allSessions.some((s) => s.id === activeId)
+    if (!sessionExists) {
+      console.warn("⚠️ Session not found in local state:", activeId)
+      return
+    }
+
     // 既にメッセージが存在する場合はスキップ（重複取得防止）
     const currentMessages = session.currentSession?.messages || []
     if (currentMessages.length > 0) {
@@ -398,10 +412,16 @@ export default function ConsultingStartPage() {
     // メッセージを取得
     const fetchMessages = async () => {
       try {
+        console.log("🔍 Fetching messages for session:", activeId)
         const res = await fetch(`/api/consulting/sessions/${activeId}/messages?limit=50&offset=0`)
 
         if (!res.ok) {
-          console.error("Failed to fetch messages:", res.status)
+          const errorData = await res.json().catch(() => ({}))
+          console.error("Failed to fetch messages:", {
+            status: res.status,
+            sessionId: activeId,
+            error: errorData,
+          })
           return
         }
 
