@@ -2046,6 +2046,16 @@ export default function CompleteProfilePage() {
         }
       }
 
+      // Slack通知（新規登録）— fire-and-forget
+      fetch("/api/admin/notify-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName: profileData.name,
+          companyName: companyData.name || undefined,
+        }),
+      }).catch(() => {}) // 通知失敗はUXに影響させない
+
       // ダッシュボードにリダイレクト（会社を新規作成したときだけ ?new=1 で「はじめまして！」を出す）
       console.log("✅ 登録完了！ダッシュボードにリダイレクトします")
       router.push(didInsertNewCompany ? "/dashboard?new=1" : "/dashboard")

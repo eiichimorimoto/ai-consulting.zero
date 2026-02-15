@@ -71,8 +71,8 @@ export default function FloatingDiagnosis() {
     }
   }, [isAnalyzing])
 
-  // ダッシュボード、認証ページ、診断ページ、相談ページ、アカウント管理ページでは非表示
-  const hiddenPaths = ["/dashboard", "/auth/", "/diagnosis/", "/consulting", "/account"]
+  // ダッシュボード、管理画面、認証ページ、診断ページ、相談ページ、アカウント管理ページでは非表示
+  const hiddenPaths = ["/dashboard", "/admin", "/auth/", "/diagnosis/", "/consulting", "/account"]
   const shouldHide = hiddenPaths.some((path) => pathname.startsWith(path))
 
   if (shouldHide) return null

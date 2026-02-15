@@ -10,6 +10,11 @@
 import type Stripe from "stripe"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { PlanType } from "@/lib/plan-config"
+import {
+  notifyPlanChange,
+  notifySubscriptionCanceled,
+  notifyPaymentFailure,
+} from "@/lib/slack/templates"
 
 // ============================================================
 // 型定義
@@ -296,6 +301,19 @@ export async function handleSubscriptionUpdated(
     `[Webhook] subscription.updated: customer=${customerId} ` +
       `status=${subscription.status} plan=${planType}`
   )
+
+  // Slack通知: プラン変更
+  const previousPlan = (event.data.previous_attributes as any)?.items?.data?.[0]?.price?.id
+  if (previousPlan && previousPlan !== priceId) {
+    const { data: sub } = await supabaseAdmin
+      .from("subscriptions")
+      .select("user_id, profiles(email)")
+      .eq("stripe_customer_id", customerId)
+      .single()
+    const email = (sub as any)?.profiles?.email || customerId
+    const oldPlanType = planTypeFromPriceId(previousPlan)
+    notifyPlanChange({ userName: email, email, oldPlan: oldPlanType, newPlan: planType }).catch(() => {})
+  }
 }
 
 /**
@@ -330,6 +348,18 @@ export async function handleSubscriptionDeleted(
   }
 
   console.log(`[Webhook] subscription.deleted: customer=${customerId} → free`)
+
+  // Slack通知: 解約
+  const { data: canceledSub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("user_id, profiles(email)")
+    .eq("stripe_customer_id", customerId)
+    .single()
+  const cancelEmail = (canceledSub as any)?.profiles?.email || customerId
+  const canceledPlan = subscription.items.data[0]?.price?.id
+    ? planTypeFromPriceId(subscription.items.data[0].price.id)
+    : "pro"
+  notifySubscriptionCanceled({ userName: cancelEmail, email: cancelEmail, plan: canceledPlan }).catch(() => {})
 }
 
 // ============================================================
@@ -461,7 +491,20 @@ export async function handleInvoicePaymentFailed(
       `attempt=${attemptCount} → past_due`
   )
 
-  // TODO: Step 8でattempt_countに応じた通知メール送信を追加
+  // Slack通知: 決済失敗
+  const failEmail = sub?.user_id ? (await supabaseAdmin
+    .from("profiles")
+    .select("email")
+    .eq("id", sub.user_id)
+    .single()).data?.email || customerId : customerId
+  notifyPaymentFailure({
+    userName: failEmail,
+    email: failEmail,
+    plan: "unknown",
+    amount: `¥${invoice.amount_due || 0}`,
+    attemptCount,
+    failureReason: invoice.last_finalization_error?.message || "Payment failed",
+  }).catch(() => {})
 }
 
 /**

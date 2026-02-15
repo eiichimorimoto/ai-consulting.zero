@@ -41,6 +41,11 @@ export default function ConditionalFooter() {
     return null
   }
 
+  // 管理画面は独自レイアウト（AdminNav + AdminHeader）のためフッター不要
+  if (pathname?.startsWith("/admin")) {
+    return null
+  }
+
   // コンサルティングページは独自レイアウト（h-screen）のためフッター不要
   if (pathname?.startsWith("/consulting")) {
     return null

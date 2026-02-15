@@ -186,3 +186,4 @@ info-data/
 # public/**/*.mp4 と public/**/*.m4a を削除：LP・診断等で動画をデプロイに含める
 bin/
 *.docx
+admin-manual.js

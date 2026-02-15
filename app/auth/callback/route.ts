@@ -224,10 +224,10 @@ export async function GET(request: Request) {
     createdAt: data?.user?.created_at,
   })
 
-  // プロフィールの状態を確認
+  // プロフィールの状態を確認（is_adminも取得）
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, name, company_id")
+    .select("id, name, company_id, is_admin")
     .eq("user_id", data.user.id)
     .single()
 
@@ -235,8 +235,15 @@ export async function GET(request: Request) {
     hasProfile: !!profile,
     profileName: profile?.name,
     hasCompanyId: !!profile?.company_id,
+    isAdmin: profile?.is_admin,
     profileError: profileError?.message,
   })
+
+  // 管理者の場合は会社情報チェックをスキップして /admin へ
+  if (profile?.is_admin) {
+    console.log("[auth/callback] Admin user detected, redirecting to /admin")
+    return NextResponse.redirect(new URL("/admin", request.url))
+  }
 
   // プロフィールが未完成の場合（nameが'User'またはcompany_idが存在しない）はプロフィール登録画面へ
   // 新規登録の場合は必ずプロフィール登録画面へ

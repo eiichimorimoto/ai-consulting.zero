@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Orbitron, Montserrat, Noto_Sans_JP, Bebas_Neue } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 import ConditionalHeader from "@/components/ConditionalHeader"
 import ConditionalFooter from "@/components/ConditionalFooter"
 import FloatingDiagnosis from "@/components/FloatingDiagnosis"
@@ -71,20 +72,22 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${bebasNeue.variable}`}>
+    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
       <body className={`${inter.className} ${bebasNeue.variable} antialiased`}>
-        <ConditionalHeader />
-        {children}
-        <ConditionalFooter />
-        <FloatingDiagnosis />
-        <Toaster />
-        <SonnerToaster
-          position="top-right"
-          expand
-          richColors
-          closeButton
-          className="sonner-toaster-right"
-        />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ConditionalHeader />
+          {children}
+          <ConditionalFooter />
+          <FloatingDiagnosis />
+          <Toaster />
+          <SonnerToaster
+            position="top-right"
+            expand
+            richColors
+            closeButton
+            className="sonner-toaster-right"
+          />
+        </ThemeProvider>
       </body>
     </html>
   )

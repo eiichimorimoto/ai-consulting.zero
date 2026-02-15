@@ -45,6 +45,11 @@ export const RATE_LIMIT_PRESETS = {
   stripeRetryPayment: { limit: 3, windowSeconds: 60 },
   /** プラン変更: 3回/分 */
   stripeChangePlan: { limit: 3, windowSeconds: 60 },
+  // --- Admin API用プリセット ---
+  /** 管理API（読み取り）: 60回/分 */
+  adminRead: { limit: 60, windowSeconds: 60 },
+  /** 管理API（書き込み）: 20回/分 */
+  adminWrite: { limit: 20, windowSeconds: 60 },
 } as const
 
 // メモリストア（インスタンス単位）

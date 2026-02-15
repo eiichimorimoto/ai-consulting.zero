@@ -1137,6 +1137,72 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_invitations: {
+        Row: {
+          id: string
+          code: string
+          created_by: string
+          used_by: string | null
+          expires_at: string
+          used_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          created_by: string
+          used_by?: string | null
+          expires_at: string
+          used_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          created_by?: string
+          used_by?: string | null
+          expires_at?: string
+          used_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      archived_users: {
+        Row: {
+          id: string
+          original_user_id: string
+          email: string | null
+          name: string | null
+          was_admin: boolean
+          archived_data: Json
+          archived_by: string
+          reason: string | null
+          archived_at: string
+        }
+        Insert: {
+          id?: string
+          original_user_id: string
+          email?: string | null
+          name?: string | null
+          was_admin?: boolean
+          archived_data: Json
+          archived_by: string
+          reason?: string | null
+          archived_at?: string
+        }
+        Update: {
+          id?: string
+          original_user_id?: string
+          email?: string | null
+          name?: string | null
+          was_admin?: boolean
+          archived_data?: Json
+          archived_by?: string
+          reason?: string | null
+          archived_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1145,6 +1211,7 @@ export type Database = {
           department: string | null
           email: string
           id: string
+          is_admin: boolean
           mobile: string | null
           monthly_chat_count: number | null
           monthly_ocr_count: number | null
@@ -1162,6 +1229,7 @@ export type Database = {
           department?: string | null
           email: string
           id?: string
+          is_admin?: boolean
           mobile?: string | null
           monthly_chat_count?: number | null
           monthly_ocr_count?: number | null
@@ -1179,6 +1247,7 @@ export type Database = {
           department?: string | null
           email?: string
           id?: string
+          is_admin?: boolean
           mobile?: string | null
           monthly_chat_count?: number | null
           monthly_ocr_count?: number | null

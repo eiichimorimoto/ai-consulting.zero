@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import { AlertTriangle, Home } from "lucide-react"
 
 export default function LoginPage() {
@@ -18,9 +18,26 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null)
+  const [adminMode, setAdminMode] = useState(false)
+  const clickCountRef = useRef(0)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const supabaseReady = isSupabaseConfigured()
+
+  // 隠し管理者モード: AIアイコンを素早く5回クリックで有効化
+  const handleSecretClick = useCallback(() => {
+    clickCountRef.current += 1
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    if (clickCountRef.current >= 5) {
+      setAdminMode(true)
+      clickCountRef.current = 0
+      return
+    }
+    clickTimerRef.current = setTimeout(() => {
+      clickCountRef.current = 0
+    }, 3000)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,27 +62,31 @@ export default function LoginPage() {
       setError(null)
       setLoadingMessage("ログインしました。リダイレクト中...")
 
-      // プロファイルが完成しているかチェック
-      let redirectPath = "/dashboard"
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("name, company_id")
-            .eq("user_id", user.id)
-            .single()
+      // 管理者モードの場合は直接 /admin へ
+      let redirectPath = adminMode ? "/admin" : "/dashboard"
 
-          // プロファイルが未完成の場合はプロファイル登録画面へ
-          if (!profile || !profile.name || profile.name === "User" || !profile.company_id) {
-            redirectPath = "/auth/complete-profile"
+      // 通常モード時のみプロファイル完成チェック
+      if (!adminMode) {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+          if (user) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("name, company_id")
+              .eq("user_id", user.id)
+              .single()
+
+            // プロファイルが未完成の場合はプロファイル登録画面へ
+            if (!profile || !profile.name || profile.name === "User" || !profile.company_id) {
+              redirectPath = "/auth/complete-profile"
+            }
           }
+        } catch {
+          // プロファイル取得失敗時はダッシュボードへ（未完成ならそこでリダイレクトされる）
+          redirectPath = "/dashboard"
         }
-      } catch {
-        // プロファイル取得失敗時はダッシュボードへ（未完成ならそこでリダイレクトされる）
-        redirectPath = "/dashboard"
       }
 
       // クライアントナビゲーションを試す
@@ -172,7 +193,13 @@ export default function LoginPage() {
         </div>
         <div className="relative z-10 px-12 text-center">
           <div className="mb-8">
-            <div className="mx-auto mb-6 flex h-32 w-32 animate-bounce items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+            <div
+              onClick={handleSecretClick}
+              className={`mx-auto mb-6 flex h-32 w-32 cursor-default items-center justify-center rounded-full backdrop-blur-md transition-all duration-500 ${
+                adminMode
+                  ? "animate-pulse bg-amber-400/30 shadow-[0_0_30px_rgba(251,191,36,0.4)]"
+                  : "animate-bounce bg-white/20"
+              }`}>
               <svg
                 className="h-20 w-20 text-white"
                 fill="none"
@@ -200,17 +227,17 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Form */}
-      <div className="flex w-full items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 p-6 md:p-10 lg:w-1/2">
+      <div className="flex w-full items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 p-6 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900 md:p-10 lg:w-1/2">
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
             {!supabaseReady && (
-              <Card className="border-amber-200 bg-amber-50 shadow-md">
+              <Card className="border-amber-200 bg-amber-50 shadow-md dark:border-amber-800 dark:bg-amber-950">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
+                    <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
                     <div>
-                      <p className="font-medium text-amber-800">Supabase未設定</p>
-                      <p className="mt-1 text-sm text-amber-700">
+                      <p className="font-medium text-amber-800 dark:text-amber-200">Supabase未設定</p>
+                      <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
                         認証機能を使用するには、v0サイドバーの「Connect」からSupabaseを接続してください。
                       </p>
                     </div>
@@ -219,16 +246,16 @@ export default function LoginPage() {
               </Card>
             )}
 
-            <Card className="border border-gray-200 bg-white shadow-2xl">
+            <Card className="border border-gray-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl font-bold">ログイン</CardTitle>
-                <CardDescription>アカウントにログインしてください</CardDescription>
+                <CardTitle className="text-2xl font-bold dark:text-zinc-100">ログイン</CardTitle>
+                <CardDescription className="dark:text-zinc-400">アカウントにログインしてください</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleLogin}>
                   <div className="flex flex-col gap-5">
                     <div className="grid gap-2">
-                      <Label htmlFor="email">メールアドレス</Label>
+                      <Label htmlFor="email" className="dark:text-zinc-300">メールアドレス</Label>
                       <Input
                         id="email"
                         type="email"
@@ -236,24 +263,24 @@ export default function LoginPage() {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="h-11 border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-500"
+                        className="h-11 border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
                         disabled={!supabaseReady}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="password">パスワード</Label>
+                      <Label htmlFor="password" className="dark:text-zinc-300">パスワード</Label>
                       <Input
                         id="password"
                         type="password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="h-11 border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-500"
+                        className="h-11 border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                         disabled={!supabaseReady}
                       />
                     </div>
                     {error && <p className="text-sm text-red-500">{error}</p>}
-                    {loadingMessage && <p className="text-sm text-green-600">{loadingMessage}</p>}
+                    {loadingMessage && <p className="text-sm text-green-600 dark:text-green-400">{loadingMessage}</p>}
                     <Button
                       type="submit"
                       className="h-11 w-full bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold text-white hover:from-blue-700 hover:to-indigo-700"
@@ -262,15 +289,27 @@ export default function LoginPage() {
                       {isLoading ? loadingMessage || "ログイン中..." : "ログイン"}
                     </Button>
                   </div>
-                  <div className="mt-6 text-center text-sm text-gray-600">
+                  <div className="mt-6 text-center text-sm text-gray-600 dark:text-zinc-400">
                     アカウントをお持ちでないですか？{" "}
                     <Link
                       href="/auth/sign-up"
-                      className="font-medium text-blue-600 underline underline-offset-4 hover:text-blue-800"
+                      className="font-medium text-blue-600 underline underline-offset-4 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       新規登録
                     </Link>
                   </div>
+
+                  {/* 管理者モード時のみ表示 */}
+                  {adminMode && (
+                    <div className="mt-3 text-center">
+                      <Link
+                        href="/auth/admin-register"
+                        className="inline-flex items-center gap-1 text-xs text-amber-600 underline underline-offset-4 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                      >
+                        管理者アカウント登録
+                      </Link>
+                    </div>
+                  )}
                 </form>
               </CardContent>
             </Card>

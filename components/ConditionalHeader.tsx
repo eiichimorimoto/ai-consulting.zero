@@ -9,10 +9,16 @@ import AppHeader from "./AppHeader"
 export default function ConditionalHeader() {
   const pathname = usePathname()
   const isAuthPage = pathname?.startsWith("/auth")
+  const isAdminPage = pathname?.startsWith("/admin")
   const isDashboardPage = pathname?.startsWith("/dashboard")
   const isConsultingPage = pathname?.startsWith("/consulting")
   const isDiagnosisPage = pathname?.startsWith("/diagnosis")
   const isLandingPage = pathname === "/"
+
+  // 管理画面は独自のAdminHeaderがあるためヘッダー不要
+  if (isAdminPage) {
+    return null
+  }
 
   // ダッシュボードメイン（/dashboard）は独自のサイドバーがあるためヘッダー不要
   if (pathname === "/dashboard") {
